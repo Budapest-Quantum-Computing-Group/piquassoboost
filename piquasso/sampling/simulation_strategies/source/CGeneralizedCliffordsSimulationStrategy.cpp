@@ -1,0 +1,496 @@
+#include <iostream>
+#include "CGeneralizedCliffordsSimulationStrategy.h"
+#include "./../../source/CChinHuhPermanentCalculator.h"
+#include <math.h>
+
+namespace pic {
+
+    double rand_nums[40] = {0.929965, 0.961441, 0.46097, 0.090787, 0.137104, 0.499059, 0.951187, 0.373533, 0.634074, 0.0886671, 0.0856861, 0.999702, 0.419755, 0.376557, 0.947568, 0.705106, 0.0520666, 0.45318,
+            0.874288, 0.656594, 0.287817, 0.484918, 0.854716, 0.31408, 0.516911, 0.374158, 0.0124914, 0.878496, 0.322593, 0.699271, 0.0583747, 0.56629, 0.195314, 0.00059639, 0.443711, 0.652659, 0.350379, 0.839752, 0.710161, 0.28553};
+    int rand_num_idx = 0;
+
+/**
+@brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
+CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy() {
+
+    // seeding the random number generator
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed);
+
+}
+
+
+/**
+@brief Constructor of the class.
+@param interferometer_matrix_in The matrix describing the interferometer
+@return Returns with the instance of the class.
+*/
+CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in ) {
+
+    Update( interferometer_matrix_in );
+
+    // seeding the random number generator
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed);
+}
+
+
+/**
+@brief Destructor of the class
+*/
+CGeneralizedCliffordsSimulationStrategy::~CGeneralizedCliffordsSimulationStrategy() {
+}
+
+/**
+@brief Call to update the memroy addresses of the stored matrices
+@param interferometer_matrix_in The matrix describing the interferometer
+*/
+void
+CGeneralizedCliffordsSimulationStrategy::Update( matrix &interferometer_matrix_in ) {
+
+    interferometer_matrix = interferometer_matrix_in;
+
+}
+
+
+
+/**
+@brief Call to determine the resultant state after traversing through linear interferometer.
+@param input_state_in The input state.
+@return Returns with the resultant state after traversing through linear interferometer.
+*/
+std::vector<PicState_int64>
+CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_in, int samples_number ) {
+
+    input_state = input_state_in;
+
+    // get the possible substates of the input state and their weight for the probability calculations
+    get_sorted_possible_states();
+
+
+    // preallocate the memory for the output states
+    std::vector<PicState_int64> samples;
+    samples.reserve( samples_number );
+    for (int idx=0; idx<samples_number; idx++) {
+
+        PicState_int64 sample(input_state_in.cols, 0);
+        sample.number_of_photons = 0;
+        // the ownership of the resulting data would be given to the python side
+        sample.set_owner( false );
+        samples.push_back(sample);
+    }
+
+    // calculate the individual outputs for the shots
+    for (auto it=samples.begin(); it!=samples.end(); it++) {
+        fill_r_sample( *it );
+    }
+
+
+    return samples;
+}
+
+
+
+
+/**
+@brief Call to determine and sort all the substates of the input. They will later be used to calculate output probabilities.
+*/
+void
+CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
+
+    int64_t* input_state_data = input_state.get_data();
+
+    // locate nonzero elements of input state and count the number of photons
+    number_of_input_photons = 0;
+    input_state_inidices.reserve( input_state.rows*input_state.cols );
+    input_state_inidices.number_of_photons = 0;
+
+    for ( size_t idx = 0; idx<input_state.rows*input_state.cols; idx++) {
+        if ( input_state_data[idx] > 0 ) {
+            input_state_inidices.push_back(idx);
+            input_state_inidices.number_of_photons++;
+            number_of_input_photons = number_of_input_photons + input_state_data[idx];
+        }
+    }
+
+    // creating the root of the iteration containers for parallel_do
+    PicStates iter_values;
+    iter_values.reserve( input_state_data[input_state_inidices[0]]+1 );
+    for (int idx=0; idx<=input_state_data[input_state_inidices[0]]; idx++) {
+        PicState_int64 value( input_state_inidices.size(), 0);
+        value[0] = idx;
+        if (idx>0) {
+            value.number_of_photons = idx;
+        }
+        else{
+            value.number_of_photons = 0;
+        }
+        iter_values.push_back( value );
+    }
+
+
+    // preallocate elements for labeled states
+    labeled_states.reserve(number_of_input_photons+1);
+    for (int64_t idx=0; idx<=number_of_input_photons; idx++) {
+        concurrent_PicStates tmp;
+        labeled_states.push_back(tmp);
+    }
+
+
+    // parameters to be captured by the lambda function
+    PicState_int64 &input_state_loc = input_state;
+
+
+    //tbb::spin_mutex my_mutex;
+
+    // determine the subsattes and calculate their weight for the calculation of the probabilities
+    tbb::parallel_do( iter_values, [&](PicState_int64& iter_value, tbb::parallel_do_feeder<PicState_int64>& feeder) {
+
+
+        // creating the v_vector
+        PicState_int64 substate(input_state_loc.cols,0);
+        size_t idx_max = 0;
+        for ( size_t idx=0; idx<iter_value.size(); idx++) {
+            if ( iter_value[idx] > 0 ) {
+                substate[input_state_inidices[idx]] = iter_value[idx];
+                idx_max = idx;
+            }
+            substate.number_of_photons = iter_value.number_of_photons;
+        }
+/*
+        {
+            tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+            std::cout<< "substate with " <<  substate.number_of_photons << " particles: ";
+            print_state(substate);
+        }
+*/
+        labeled_states[substate.number_of_photons].push_back(substate);
+
+        // adding new substates to the do cycle
+        for ( size_t idx=idx_max+1; idx<iter_value.size(); idx++) {
+            for ( int jdx=1; jdx<=input_state_data[input_state_inidices[idx]]; jdx++) {
+                PicState_int64 iter_value_next = iter_value.copy();
+                iter_value_next[idx] = jdx;
+                iter_value_next.number_of_photons = iter_value.number_of_photons + 1;
+                feeder.add(iter_value_next);
+            }
+        }
+
+    });
+
+
+
+}
+
+
+/**
+@brief Call to calculate and fill the output states for the individual shots.
+@param sample The current sample state represented by a PicState_int64 class
+*/
+void
+CGeneralizedCliffordsSimulationStrategy::fill_r_sample( PicState_int64& sample ) {
+
+
+    while (number_of_input_photons > sample.number_of_photons) {
+
+        if ( pmfs.count(sample) == 0) {
+
+            // preallocate states for possible output states
+            PicStates possible_outputs;
+            possible_outputs.reserve(sample.size());
+            for (size_t idx=0; idx<sample.size();idx++) {
+                PicState_int64 possible_output(sample.size(),0);
+                    possible_outputs.push_back( possible_output );
+            }
+
+            // create a new key for the hash table
+            PicState_int64 key = sample.copy();
+            calculate_new_layer_of_pmfs( key, possible_outputs );
+            possible_output_states[key] = possible_outputs; // TODO: reserve space for possible_output_states
+
+        }
+
+        // pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs
+        sample_from_latest_pmf(sample);
+
+
+    }
+
+
+
+}
+
+
+
+
+/**
+@brief Call to calculate a new layer of probabilities of the possible output states
+@param sample A preallocated PicState_int64 for one output
+@param possible_outputs A preallocated vector of possible output states
+*/
+void
+CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_int64& sample, PicStates &possible_outputs ) {
+
+    int64_t number_of_particle_to_sample = sample.number_of_photons + 1;
+    concurrent_PicStates &possible_input_states = labeled_states[number_of_particle_to_sample];
+
+    // parallel loop to calculate the weights from possible input states and their weight
+    matrix_base<double> multinomial_coefficients = matrix_base<double>(1,possible_input_states.size());
+    tbb::combinable<double> wieght_norm{0.0};
+
+    tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_input_states.size()), [&](tbb::blocked_range<size_t> r ) {
+        // thread local storage for weight_norm
+        double &wieght_norm_priv = wieght_norm.local();
+
+        // calculate the representation of the input states and their weights
+        calculate_weights( r, input_state, input_state_inidices, possible_input_states, multinomial_coefficients, wieght_norm_priv );
+    }); // parallel for
+
+    // normalize the calculated weights
+    double weight_norm_total=0;
+    wieght_norm.combine_each([&](double a) {  // combine thread local data into a total one
+        weight_norm_total = weight_norm_total + a;
+    });
+
+    weight_norm_total = sqrt(weight_norm_total);
+    for (size_t idx=0; idx<multinomial_coefficients.size(); idx++ ) {
+        multinomial_coefficients[idx] = multinomial_coefficients[idx]/weight_norm_total;
+    }
+/*
+for (size_t idx=0; idx<multinomial_coefficients.size(); idx++) {
+    std::cout << multinomial_coefficients[idx];
+}
+std::cout << std::endl;*/
+    // calculate the probability layer for the individual output states
+tbb::spin_mutex my_mutex;
+    // container to store the new layer of output probabilities
+    matrix_base<double> pmf(1, possible_outputs.size());
+    tbb::combinable<double> probability_sum{0.0};
+    tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_outputs.size()), [&](tbb::blocked_range<size_t> r ) {
+
+        // thread local storage for probability sum
+        double &probability_sum_priv = probability_sum.local();
+
+        // Generate output states
+        generate_output_states( r, sample, possible_outputs );
+
+        // calculate the individual probabilities associated with the output states
+        for ( auto idx=r.begin(); idx!=r.end(); idx++) {
+            pmf[idx] = 0;
+
+            // calculate the individual probabilities
+            for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
+                double probability = calculate_outputs_probability(interferometer_matrix, possible_input_states[jdx], possible_outputs[idx]);
+                probability = probability*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
+                pmf[idx] = pmf[idx] + probability;
+            }
+
+            probability_sum_priv = probability_sum_priv + pmf[idx];
+
+
+        }
+
+
+    }); //parallel for
+
+    // normalize the probabilities:
+    double probability_sum_total = 0;
+    probability_sum.combine_each([&](double a) {  // combine thread local data into a total one
+        probability_sum_total = probability_sum_total + a;
+    });
+
+    for (size_t idx=0;idx<pmf.size(); idx++) {
+        pmf[idx] = pmf[idx]/probability_sum_total;
+    }
+
+    // store the calculated probability layer
+    PicState_int64 key = sample.copy();
+    pmfs[key] = pmf;
+
+
+}
+
+
+/**
+@brief Call to pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs.
+@param sample The current sample represanted by a PicState_int64 class that would be replaced by the new sample.
+*/
+void
+CGeneralizedCliffordsSimulationStrategy::sample_from_latest_pmf( PicState_int64& sample ) {
+
+    // uniform distribution of reals between 0 and 1
+    std::uniform_real_distribution<double> distribution(0.0,1.0);
+
+    // create a random double
+    double rand_num = distribution(generator);
+   //double rand_num = rand_nums[rand_num_idx];//distribution(generator);
+    //rand_num_idx = rand_num_idx + 1;
+
+    // get the probabilities of the outputs
+    matrix_base<double> pmf = pmfs[sample];
+
+    // determine the random index according to the distribution described by pmf
+    size_t random_index=0;
+    double prob_sum = 0.0;
+    for (size_t idx=0; idx<pmf.size(); idx++) {
+        prob_sum = prob_sum + pmf[idx];
+        if ( prob_sum >= rand_num) {
+            random_index = idx;
+            break;
+        }
+    }
+
+    // copy the new key
+    PicState_int64 &new_key = possible_output_states[sample][random_index];
+    int64_t* sample_data = sample.get_data();
+    int64_t* new_key_data = new_key.get_data();
+
+    memcpy( sample_data, new_key_data, sample.size()*sizeof(int64_t));
+
+    sample.number_of_photons = new_key.number_of_photons;
+}
+
+
+/**
+@brief Call to calculate sum of integers stored in a PicState
+@param vec a container if integers
+@return Returns with the sum of the elements of the container
+*/
+inline int64_t
+sum( PicState_int64 &vec) {
+
+    int64_t ret=0;
+
+    size_t element_num = vec.cols;
+    int64_t* data = vec.get_data();
+    for (size_t idx=0; idx<element_num; idx++ ) {
+        ret = ret + data[idx];
+    }
+    return ret;
+}
+
+
+
+
+
+/**
+@brief Constructor of the class.
+@param parameters_in The input state entering the interferometer
+@param possible_input_state_in Other possible input states
+@return Returns with the instance of the class.
+*/
+void calculate_weights( tbb::blocked_range<size_t> &r, PicState_int64 &input_state, PicVector<int64_t> &input_state_inidices, concurrent_PicStates& possible_input_states, matrix_base<double> &multinomial_coefficients, double& wieght_norm  ) {
+
+
+
+    PicState_int64 corresponding_k_vector = PicState_int64(input_state.size(),0);
+
+    for (auto idx=r.begin(); idx!=r.end(); idx++) {
+
+        PicState_int64 &possible_input_state = possible_input_states[idx];
+
+        // create current k vector
+        corresponding_k_vector.number_of_photons = 0;
+        for (size_t iidx=0; iidx<input_state_inidices.size(); iidx++) {
+            int64_t element = input_state[input_state_inidices[iidx]] - possible_input_state[input_state_inidices[iidx]];
+            corresponding_k_vector[input_state_inidices[iidx]] = element;
+            corresponding_k_vector.number_of_photons = corresponding_k_vector.number_of_photons + element;
+        }
+
+        // calculate_multinomial_coefficient
+        double multinomial_coefficient = factorial(corresponding_k_vector.number_of_photons);
+        for (size_t iidx=0; iidx<input_state_inidices.size(); iidx++) {
+            multinomial_coefficient = multinomial_coefficient/factorial(corresponding_k_vector[input_state_inidices[iidx]]);
+        }
+
+        multinomial_coefficients[idx] = multinomial_coefficient;
+        wieght_norm = wieght_norm + multinomial_coefficient*multinomial_coefficient;
+
+    }
+
+}
+
+
+
+
+/**
+@brief Call to generate possible output state
+@param r Range containing the indexes labeling the output samples;
+@param sample The current output sample for which the probabilities are calculated
+@param possible_outputs Vector of possible output states
+*/
+void
+generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, PicStates &possible_outputs ) {
+
+    int64_t* sample_data = sample.get_data();
+    for ( auto idx=r.begin(); idx!=r.end(); idx++) {
+        int64_t* output_data = possible_outputs[idx].get_data();
+        memcpy( output_data, sample_data, sample.size()*sizeof(int64_t) );
+        output_data[idx] = output_data[idx]+1;
+        possible_outputs[idx].number_of_photons = sample.number_of_photons + 1;
+    }
+}
+
+
+/**
+@brief Call to determine the output probability of associated with the input and output states
+@param interferometer_mtx The matrix of the interferometer.
+@param input_state The input state.
+@param output_state The output state.
+*/
+double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state) {
+
+    CChinHuhPermanentCalculator permanent_calculator( interferometer_mtx, input_state, output_state);
+    Complex16 permanent = permanent_calculator.calculate();
+
+    double probability = norm(permanent); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
+
+    for (size_t idx=0; idx<input_state.size(); idx++) {
+        probability = probability/factorial( input_state[idx] );
+    }
+    for (size_t idx=0; idx<output_state.size(); idx++) {
+        probability = probability/factorial( output_state[idx] );
+    }
+
+    return probability;
+
+}
+
+
+
+
+
+
+
+
+/**
+@brief Function to calculate factorial of a number.
+@param n The input number
+@return Returns with the factorial of the number
+*/
+double factorial(int64_t n) {
+
+
+
+    if ( n == 0 ) return 1;
+    if ( n == 1 ) return 1;
+
+    int64_t ret=1;
+
+    for (int64_t idx=2; idx<=n; idx++) {
+        ret = ret*idx;
+    }
+
+    return (double) ret;
+
+
+}
+
+
+
+
+
+
+} // PIC
