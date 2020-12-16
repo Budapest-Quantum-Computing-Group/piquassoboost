@@ -13,11 +13,13 @@ cdef extern from "source/matrix.h" namespace "pic":
 
         matrix() except +
         matrix( double complex* data_in, size_t rows_in, size_t cols_in) except +
+        matrix( size_t rows_in, size_t cols_in) except +
         bool is_conjugated()
         void conjugate()
         bool is_transposed()
         void transpose()
-        double complex* get_data();
+        double complex* get_data()
+        void set_owner( bool owner_in)
 
 
     cdef cppclass matrix_int64:
@@ -30,8 +32,10 @@ cdef extern from "source/matrix.h" namespace "pic":
 
         matrix_int64() except +
         matrix_int64( int64_t* data_in, size_t rows_in, size_t cols_in) except +
+        matrix_int64( size_t rows_in, size_t cols_in) except +
         bool is_conjugated()
         void conjugate()
         bool is_transposed()
         void transpose()
-        int64_t* get_data();
+        int64_t* get_data()
+        void set_owner( bool owner_in)
