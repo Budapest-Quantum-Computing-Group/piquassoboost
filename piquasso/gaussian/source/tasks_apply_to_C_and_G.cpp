@@ -8,6 +8,17 @@ namespace pic {
 
 
 /**
+@brief Nullary of the class.
+@return Returns with the instance of the class.
+*/
+Extract_Rows::Extract_Rows() {
+
+    rows_data = NULL;
+    mtx_data = NULL;
+
+}
+
+/**
 @brief Constructor of the class.
 @param mtx_in The matrix from which the rows corresponding to modes should be extracted into a continuous memory space.
 @param rows_out The resulting matrix.
@@ -153,11 +164,11 @@ Extract_Corner::operator()(const tbb::flow::continue_msg &msg) {
             break;
         }
 
-        // determine contigous memory slices (column indices) to be transformed in the rows
+        // determine contiguous memory slices (column indices) to be transformed in the rows
         while (true) {
 
-            // condition to exit the loop: if the difference of successive indices is greater than 1, the end of the contigous memory slice is determined
-            if ( modes[transform_col_idx+col_range] - modes[transform_col_idx+col_range-1] != 1 ) {
+            // condition to exit the loop: if the difference of successive indices is greater than 1, the end of the contiguous memory slice is determined
+            if ( transform_col_idx+col_range >= transform_col_num || modes[transform_col_idx+col_range] - modes[transform_col_idx+col_range-1] != 1 ) {
                 break;
             }
             else {

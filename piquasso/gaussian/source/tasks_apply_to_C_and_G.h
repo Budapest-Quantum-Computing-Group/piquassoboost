@@ -28,6 +28,12 @@ protected:
 public:
 
 /**
+@brief Nullary of the class.
+@return Returns with the instance of the class.
+*/
+Extract_Rows();
+
+/**
 @brief Constructor of the class.
 @param mtx_in The matrix from which the rows corresponding to modes should be extracted into a continuous memory space.
 @param rows_out The resulting matrix.
