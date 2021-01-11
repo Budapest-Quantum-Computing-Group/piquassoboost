@@ -92,12 +92,8 @@ Transform_Rows::operator()(const tbb::flow::continue_msg &msg) {
     std::cout << "Tasks apply_to_C_and_G: transforming rows" << std::endl;
 #endif
 
-
-    // preallocate resulting matrix
-    matrix dot_res(mtx.rows, mtx.cols);
-
     // calculating the product T*mtx
-    dot( T, mtx, dot_res );
+    matrix dot_res = dot( T, mtx );
 
     // copy the result into the input matrix
     memcpy(mtx_data, dot_res.get_data(), mtx.rows*mtx.cols*sizeof(Complex16));
@@ -239,12 +235,8 @@ Transform_Cols::operator()(const tbb::flow::continue_msg &msg) {
     std::cout << "Tasks apply_to_C_and_G: transforming columns" << std::endl;
 #endif
 
-
-    // resulting matrix
-    matrix dot_res(mtx.rows, mtx.cols);
-
     // calculating the product mtx*T
-    dot( mtx, T, dot_res );
+    matrix dot_res = dot( mtx, T );
 
     // copy the result into the input matrix
     memcpy(mtx_data, dot_res.get_data(), mtx.rows*mtx.cols*sizeof(Complex16));

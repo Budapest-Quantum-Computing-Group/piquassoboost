@@ -18,6 +18,13 @@ public:
     /// The number of phonons stored by the state. Must be set manually
     int64_t number_of_photons = -1;
 
+#if CACHELINE>=64
+private:
+    /// padding class object to cache line borders
+    uint8_t padding[CACHELINE-sizeof(matrix_base<int64_t>)-sizeof(int64_t)];
+#endif
+
+
 public:
 
 /**
