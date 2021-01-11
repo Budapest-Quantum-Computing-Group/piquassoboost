@@ -15,7 +15,11 @@ namespace pic {
 */
 class matrix : public matrix_base<Complex16> {
 
-
+#if CACHELINE>=64
+private:
+    /// padding class object to cache line borders
+    uint8_t padding[CACHELINE-sizeof(matrix_base<Complex16>)];
+#endif
 
 public:
 
@@ -50,6 +54,12 @@ matrix( size_t rows_in, size_t cols_in);
 */
 matrix(const matrix &in);
 
+
+/**
+@brief Call to create a copy of the matrix
+@return Returns with the instance of the class.
+*/
+matrix copy();
 
 
 }; //matrix

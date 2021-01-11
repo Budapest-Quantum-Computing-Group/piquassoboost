@@ -48,6 +48,30 @@ matrix::matrix(const matrix &in) : matrix_base<Complex16>(in)  {
 
 
 
+/**
+@brief Call to create a copy of the matrix
+@return Returns with the instance of the class.
+*/
+matrix
+matrix::copy() {
+
+  matrix ret = matrix(rows, cols);
+
+  // logical variable indicating whether the matrix needs to be conjugated in CBLAS operations
+  ret.conjugated = conjugated;
+  // logical variable indicating whether the matrix needs to be transposed in CBLAS operations
+  ret.transposed = transposed;
+  // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
+  ret.owner = true;
+
+  memcpy( ret.data, data, rows*cols*sizeof(Complex16));
+
+  return ret;
+
+}
+
+
+
 
 
 

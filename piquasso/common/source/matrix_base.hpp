@@ -8,10 +8,11 @@
 #include <tbb/tbb.h>
 
 
-
-
 /// The namespace of the Picasso project
 namespace pic {
+
+
+
 
 
 /**
@@ -63,10 +64,14 @@ matrix_base() {
   transposed = false;
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = false;
-  // mutual exclusion to count the references for class instances refering to the same data.
-  reference_mutex = NULL;
+  // mutual exclusion to count the references for class instances referring to the same data.
+  /* memory allocation new/delete in pytest call somehow fall back to malloc/free. In global pytest call this end up with invalid pointer freeing.
+  As a workaround these pointers are initialized by malloc and released by free*/
+  reference_mutex = (tbb::spin_mutex*)malloc(sizeof(tbb::spin_mutex));
+  new (reference_mutex) tbb::spin_mutex();
   // the number of the current references of the present object
-  references = NULL;
+  references = (int64_t*)malloc(sizeof(new int64_t));
+  (*references)=1;
 }
 
 
@@ -91,10 +96,13 @@ matrix_base( scalar* data_in, size_t rows_in, size_t cols_in) {
   transposed = false;
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = false;
-  // mutual exclusion to count the references for class instances refering to the same data.
-  reference_mutex = new tbb::spin_mutex;
+  // mutual exclusion to count the references for class instances referring to the same data.
+  /* memory allocation new/delete in pytest call somehow fall back to malloc/free. In global pytest call this end up with invalid pointer freeing.
+  As a workaround these pointers are initialized by malloc and released by free*/
+  reference_mutex = (tbb::spin_mutex*)malloc(sizeof(tbb::spin_mutex));
+  new (reference_mutex) tbb::spin_mutex();
   // the number of the current references of the present object
-  references = new int64_t;
+  references = (int64_t*)malloc(sizeof(new int64_t));
   (*references)=1;
 }
 
@@ -121,10 +129,13 @@ matrix_base( size_t rows_in, size_t cols_in) {
   transposed = false;
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = true;
-  // mutual exclusion to count the references for class instances refering to the same data.
-  reference_mutex = new tbb::spin_mutex;
+  // mutual exclusion to count the references for class instances referring to the same data.
+  /* memory allocation new/delete in pytest call somehow fall back to malloc/free. In global pytest call this end up with invalid pointer freeing.
+  As a workaround these pointers are initialized by malloc and released by free*/
+  reference_mutex = (tbb::spin_mutex*)malloc(sizeof(tbb::spin_mutex));
+  new (reference_mutex) tbb::spin_mutex();
   // the number of the current references of the present object
-  references = new int64_t;
+  references = (int64_t*)malloc(sizeof(new int64_t));
   (*references)=1;
 
 
@@ -194,6 +205,7 @@ bool is_transposed() {
 
 }
 
+
 /**
 @brief Call to transpose (or un-transpose) the matrix for CBLAS functions.
 */
@@ -202,6 +214,8 @@ void transpose()  {
   transposed = !transposed;
 
 }
+
+
 
 
 /**
@@ -225,8 +239,11 @@ void replace_data( scalar* data_in, bool owner_in) {
     data = data_in;
     owner = owner_in;
 
-    reference_mutex = new tbb::spin_mutex;
-    references = new int64_t;
+    /* memory allocation new/delete in pytest call somehow fall back to malloc/free. In global pytest call this end up with invalid pointer freeing.
+    As a workaround these pointers are initialized by malloc and released by free*/
+    reference_mutex = (tbb::spin_mutex*)malloc(sizeof(tbb::spin_mutex));
+    new (reference_mutex) tbb::spin_mutex();
+    references = (int64_t*)malloc(sizeof(new int64_t));
     (*references)=1;
 
 }
@@ -253,7 +270,7 @@ void release_data() {
       if (owner) {
         scalable_aligned_free(data);
       }
-      delete references;
+      free(references);
     }
     else {
         (*references)--;
@@ -264,8 +281,10 @@ void release_data() {
 
 }
 
-  if ( call_delete ) {
-    delete reference_mutex;
+  if ( call_delete && reference_mutex !=NULL) {
+    reference_mutex->~spin_mutex();
+    free(reference_mutex);
+    reference_mutex=NULL;
   }
 
 }
@@ -288,6 +307,9 @@ void set_owner( bool owner_in)  {
 @return Returns with the instance of the class.
 */
 void operator= (const matrix_base& mtx ) {
+
+  // releasing the containing data
+  release_data();
 
   // The number of rows
   rows = mtx.rows;
@@ -374,6 +396,9 @@ void print_matrix() {
     std::cout << std::endl << std::endl << std::endl;
 
 }
+
+
+
 
 
 
