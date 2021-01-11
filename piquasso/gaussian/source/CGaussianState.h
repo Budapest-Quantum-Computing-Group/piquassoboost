@@ -20,6 +20,8 @@ protected:
     matrix G;
     /// The vector which is defined by
     matrix mean;
+    /// TBB task scheduler
+    tbb::task_scheduler_init init;
 
 public:
 
