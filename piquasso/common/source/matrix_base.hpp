@@ -65,12 +65,8 @@ matrix_base() {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = false;
   // mutual exclusion to count the references for class instances referring to the same data.
-  /* memory allocation new/delete in pytest call somehow fall back to malloc/free. In global pytest call this end up with invalid pointer freeing.
-  As a workaround these pointers are initialized by malloc and released by free*/
-  reference_mutex = (tbb::spin_mutex*)malloc(sizeof(tbb::spin_mutex));
-  new (reference_mutex) tbb::spin_mutex();
-  // the number of the current references of the present object
-  references = (int64_t*)malloc(sizeof(new int64_t));
+  reference_mutex = new tbb::spin_mutex();
+  references = new int64_t;
   (*references)=1;
 }
 
@@ -97,12 +93,8 @@ matrix_base( scalar* data_in, size_t rows_in, size_t cols_in) {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = false;
   // mutual exclusion to count the references for class instances referring to the same data.
-  /* memory allocation new/delete in pytest call somehow fall back to malloc/free. In global pytest call this end up with invalid pointer freeing.
-  As a workaround these pointers are initialized by malloc and released by free*/
-  reference_mutex = (tbb::spin_mutex*)malloc(sizeof(tbb::spin_mutex));
-  new (reference_mutex) tbb::spin_mutex();
-  // the number of the current references of the present object
-  references = (int64_t*)malloc(sizeof(new int64_t));
+  reference_mutex = new tbb::spin_mutex();
+  references = new int64_t;
   (*references)=1;
 }
 
@@ -130,12 +122,8 @@ matrix_base( size_t rows_in, size_t cols_in) {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = true;
   // mutual exclusion to count the references for class instances referring to the same data.
-  /* memory allocation new/delete in pytest call somehow fall back to malloc/free. In global pytest call this end up with invalid pointer freeing.
-  As a workaround these pointers are initialized by malloc and released by free*/
-  reference_mutex = (tbb::spin_mutex*)malloc(sizeof(tbb::spin_mutex));
-  new (reference_mutex) tbb::spin_mutex();
-  // the number of the current references of the present object
-  references = (int64_t*)malloc(sizeof(new int64_t));
+  reference_mutex = new tbb::spin_mutex();
+  references = new int64_t;
   (*references)=1;
 
 
@@ -239,11 +227,8 @@ void replace_data( scalar* data_in, bool owner_in) {
     data = data_in;
     owner = owner_in;
 
-    /* memory allocation new/delete in pytest call somehow fall back to malloc/free. In global pytest call this end up with invalid pointer freeing.
-    As a workaround these pointers are initialized by malloc and released by free*/
-    reference_mutex = (tbb::spin_mutex*)malloc(sizeof(tbb::spin_mutex));
-    new (reference_mutex) tbb::spin_mutex();
-    references = (int64_t*)malloc(sizeof(new int64_t));
+    reference_mutex = new tbb::spin_mutex();
+    references = new int64_t;
     (*references)=1;
 
 }
@@ -270,7 +255,7 @@ void release_data() {
       if (owner) {
         scalable_aligned_free(data);
       }
-      free(references);
+      delete references;
     }
     else {
         (*references)--;
@@ -282,9 +267,7 @@ void release_data() {
 }
 
   if ( call_delete && reference_mutex !=NULL) {
-    reference_mutex->~spin_mutex();
-    free(reference_mutex);
-    reference_mutex=NULL;
+    delete reference_mutex;
   }
 
 }
