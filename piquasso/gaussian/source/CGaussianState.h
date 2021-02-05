@@ -48,6 +48,26 @@ CGaussianState( matrix &C_in, matrix &G_in, matrix &mean_in);
 */
 void Update( matrix &C_in, matrix &G_in, matrix &mean_in);
 
+/**
+@brief Call to update the memory address of the matrix C
+@param C_in Input matrix defined by
+*/
+void Update_C( matrix &C_in);
+
+
+/**
+@brief Call to update the memory address of the matrix G
+@param G_in Input matrix defined by
+*/
+void Update_G(matrix &G_in);
+
+
+/**
+@brief Call to update the memory address of the matrix mean
+@param C_mean Input matrix defined by
+*/
+void Update_mean(matrix &mean_in);
+
 
 /**
 @brief Applies the matrix T to the C and G.

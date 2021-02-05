@@ -180,6 +180,42 @@ CGaussianState::Update( matrix &C_in, matrix &G_in, matrix &mean_in) {
 
 
 
+/**
+@brief Call to update the memory address of the matrix C
+@param C_in Input matrix defined by
+*/
+void
+CGaussianState::Update_C( matrix &C_in) {
+
+    C = C_in;
+
+}
+
+
+/**
+@brief Call to update the memory address of the matrix G
+@param G_in Input matrix defined by
+*/
+void
+CGaussianState::Update_G(matrix &G_in) {
+
+    G = G_in;
+
+}
+
+
+/**
+@brief Call to update the memory address of the matrix mean
+@param C_mean Input matrix defined by
+*/
+void
+CGaussianState::Update_mean(matrix &mean_in) {
+
+    mean = mean_in;
+
+}
+
+
 
 
 } // PIC
