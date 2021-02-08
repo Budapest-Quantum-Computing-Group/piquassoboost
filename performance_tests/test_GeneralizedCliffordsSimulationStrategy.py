@@ -27,7 +27,7 @@ def calc_histogram( samples ):
 class TestGeneralizedCliffordSimulationStrategy:
 
 
-    def xtest_sampling(self):
+    def test_sampling(self):
 
         interferometer_mtx = np.array([
             [0, 0, 1, 0, 0],

@@ -2,6 +2,7 @@
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "./../../source/CChinHuhPermanentCalculator.h"
 #include <math.h>
+#include <tbb/tbb.h>
 
 namespace pic {
 
