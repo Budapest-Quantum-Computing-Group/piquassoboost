@@ -1,6 +1,7 @@
 #include <iostream>
 #include "CChinHuhPermanentCalculator.h"
 #include <tbb/scalable_allocator.h>
+#include "tbb/tbb.h"
 #include <math.h>
 
 namespace pic {
@@ -186,6 +187,42 @@ CChinHuhPermanentCalculator::calculate() {
 
     return permanent;
 
+
+}
+
+
+/**
+@brief Call to update the memory address of the matrix mtx
+@param mtx_in Input matrix defined by
+*/
+void
+CChinHuhPermanentCalculator::Update_mtx( matrix &mtx_in) {
+
+    mtx = mtx_in;
+
+}
+
+
+/**
+@brief Call to update the memory address of the input_state
+@param input_state_in The input state
+*/
+void
+CChinHuhPermanentCalculator::Update_input_state(PicState_int64 &input_state_in) {
+
+    input_state = input_state_in;
+
+}
+
+
+/**
+@brief Call to update the memory address of the output_state
+@param output_state_in The output state
+*/
+void
+CChinHuhPermanentCalculator::Update_output_state(PicState_int64 &output_state_in) {
+
+    output_state = output_state_in;
 
 }
 

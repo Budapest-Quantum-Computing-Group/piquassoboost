@@ -4,7 +4,6 @@
 #include "matrix.h"
 #include "PicState.h"
 #include <vector>
-#include "tbb/tbb.h"
 #include "PicVector.hpp"
 
 
@@ -90,6 +89,25 @@ input state.
 Complex16 calculate();
 
 
+/**
+@brief Call to update the memory address of the matrix mtx
+@param mtx_in Input matrix defined by
+*/
+void Update_mtx( matrix &mtx_in);
+
+
+/**
+@brief Call to update the memory address of the input_state
+@param input_state_in The input state
+*/
+void Update_input_state(PicState_int64 &input_state_in);
+
+
+/**
+@brief Call to update the memory address of the output_state
+@param output_state_in The output state
+*/
+void Update_output_state(PicState_int64 &moutput_state_in);
 
 
 }; //CChinHuhPermanentCalculator
