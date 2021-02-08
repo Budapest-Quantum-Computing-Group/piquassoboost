@@ -4,6 +4,7 @@
 #include "dot.h"
 #include <memory.h>
 #include <tbb/scalable_allocator.h>
+#include "tbb/tbb.h"
 
 namespace pic {
 

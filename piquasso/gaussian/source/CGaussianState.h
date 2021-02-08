@@ -3,7 +3,7 @@
 
 #include "matrix.h"
 #include <vector>
-#include "tbb/tbb.h"
+
 
 
 namespace pic {
@@ -20,8 +20,6 @@ protected:
     matrix G;
     /// The vector which is defined by
     matrix mean;
-    /// TBB task scheduler
-    tbb::task_scheduler_init init;
 
 public:
 

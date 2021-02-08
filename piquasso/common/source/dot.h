@@ -3,6 +3,7 @@
 
 
 #include "matrix.h"
+#include <tbb/task.h>
 
 #ifdef __cplusplus
 extern "C"

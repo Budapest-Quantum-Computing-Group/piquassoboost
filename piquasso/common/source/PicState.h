@@ -2,8 +2,9 @@
 #define PICSTATE_H
 
 #include <matrix_base.hpp>
+#include <tbb/cache_aligned_allocator.h>
+#include <tbb/concurrent_vector.h>
 #include <vector>
-#include "tbb/tbb.h"
 
 
 namespace pic {

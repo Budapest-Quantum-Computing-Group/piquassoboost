@@ -5,7 +5,7 @@
 #include <cstring>
 #include <iostream>
 #include <tbb/scalable_allocator.h>
-#include <tbb/tbb.h>
+#include <tbb/spin_mutex.h>
 
 
 /// The namespace of the Picasso project

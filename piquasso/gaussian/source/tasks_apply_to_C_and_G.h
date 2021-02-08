@@ -3,7 +3,6 @@
 
 #include "matrix.h"
 #include "dependency_graph.h"
-#include "tbb/tbb.h"
 
 
 namespace pic {
