@@ -13,13 +13,13 @@
 typedef struct GaussianState_Wrapper {
     PyObject_HEAD
     /// pointer to numpy matrix C to keep it alive
-    PyObject *C;
+    PyObject *C=NULL;
     /// pointer to numpy matrix G to keep it alive
-    PyObject *G;
+    PyObject *G=NULL;
     /// pointer to numpy matrix mean to keep it alive
-    PyObject *mean;
+    PyObject *mean=NULL;
     /// The C++ variant of class GaussianState
-    pic::CGaussianState* state;
+    pic::CGaussianState* state=NULL;
 } GaussianState_Wrapper;
 
 
@@ -42,7 +42,11 @@ create_GaussianState( pic::matrix &C, pic::matrix &G, pic::matrix &mean ) {
 */
 void
 release_CGaussianState( pic::CGaussianState*  instance ) {
-    delete instance;
+
+    if (instance != NULL ) {
+        delete instance;
+        instance = NULL;
+    }
     return;
 }
 
@@ -81,16 +85,6 @@ numpy2matrix(PyObject *arr) {
 
 
 
-
-
-
-    
-
-
-
-
-
-
 } 
 
 
@@ -114,6 +108,11 @@ GaussianState_Wrapper_dealloc(GaussianState_Wrapper *self)
     // deallocate the instance of class N_Qubit_Decomposition
     release_CGaussianState( self->state );
 
+    // release numpy arrays
+    Py_DECREF(self->C);    
+    Py_DECREF(self->G);    
+    Py_DECREF(self->mean);    
+
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
@@ -127,6 +126,12 @@ GaussianState_Wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     GaussianState_Wrapper *self;
     self = (GaussianState_Wrapper *) type->tp_alloc(type, 0);
     if (self != NULL) {}
+
+    self->state = NULL;
+    self->C = NULL;
+    self->G = NULL;
+    self->mean = NULL;
+
     return (PyObject *) self;
 }
 
@@ -171,6 +176,7 @@ GaussianState_Wrapper_init(GaussianState_Wrapper *self, PyObject *args, PyObject
 
     // create instance of class CGaussianState
     self->state = create_GaussianState( C_mtx, G_mtx, mean_mtx );
+
     
     return 0;
 }
@@ -180,22 +186,19 @@ GaussianState_Wrapper_init(GaussianState_Wrapper *self, PyObject *args, PyObject
 @brief Wrapper function to call the apply_to_C_and_G method of C++ class CGaussianState
 @param self A pointer pointing to an instance of the class GaussianState_Wrapper.
 @param args A tuple of the input arguments: ??????????????
-@param kwds A tuple of keywords
 */
 static PyObject *
-GaussianState_Wrapper_apply_to_C_and_G(GaussianState_Wrapper *self, PyObject *args, PyObject *kwds)
+GaussianState_Wrapper_apply_to_C_and_G(GaussianState_Wrapper *self, PyObject *args)
 {
    
- // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"T", (char*)"modes", NULL};
 
     // initiate variables for input arguments
     PyObject* T_arg = NULL; 
     PyObject* modes = NULL; 
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OO", kwlist,
-                                     &T_arg, &modes))
+    if (!PyArg_ParseTuple(args, "|OO",
+                                     &T_arg, &modes) )
         return Py_BuildValue("i", -1);
 
     PyObject* T = PyArray_FROM_OTF(T_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
@@ -226,17 +229,17 @@ GaussianState_Wrapper_apply_to_C_and_G(GaussianState_Wrapper *self, PyObject *ar
 
 
     // create C++ variant of the tuple/list
-    std::vector<size_t> modes_C( (int) element_num);
+    std::vector<size_t> modes_C;
+    modes_C.reserve( (int) element_num);
     for ( Py_ssize_t idx=0; idx<element_num; idx++ ) {
         if (is_tuple) {        
-            modes_C[(int) idx] = (int) PyLong_AsLong( PyTuple_GetItem(modes, idx ) );
+            modes_C.push_back( (int) PyLong_AsLong( PyTuple_GetItem(modes, idx ) ) );
         }
         else {
-            modes_C[(int) idx] = (int) PyLong_AsLong( PyList_GetItem(modes, idx ) );
+            modes_C.push_back( (int) PyLong_AsLong( PyList_GetItem(modes, idx ) ) );
         }
     }
 
-    
     // call the C++ variant transformation on the matrices C,G
     self->state->apply_to_C_and_G( T_mtx, modes_C );
 
@@ -361,7 +364,7 @@ static PyMemberDef GaussianState_Wrapper_Members[] = {
 
 
 static PyMethodDef GaussianState_Wrapper_Methods[] = {
-    {"apply_to_C_and_G", (PyCFunction) GaussianState_Wrapper_apply_to_C_and_G, METH_VARARGS | METH_KEYWORDS,
+    {"apply_to_C_and_G", (PyCFunction) GaussianState_Wrapper_apply_to_C_and_G, METH_VARARGS,
      "Method to transform amtrices C and G."
     },
     {NULL}  /* Sentinel */
@@ -456,6 +459,7 @@ static PyModuleDef GaussianState_Wrapper_Module = {
 PyMODINIT_FUNC
 PyInit_state_wrapper(void)
 {
+
     // initialize Numpy API
     import_array();
 
