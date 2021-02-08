@@ -1,4 +1,3 @@
-#
 # Copyright (C) 2020 by TODO - All rights reserved.
 #
 
@@ -28,7 +27,7 @@ def calc_histogram( samples ):
 class TestGeneralizedCliffordSimulationStrategy:
 
 
-    def test_sampling(self):
+    def xtest_sampling(self):
 
         interferometer_mtx = np.array([
             [0, 0, 1, 0, 0],
@@ -62,9 +61,11 @@ class TestGeneralizedCliffordSimulationStrategy:
             backend.sampling((shots,))
 
             print('C++ time elapsed: ' + str( time.time() - t0) + 's' )
-
-
+       
+            
             hist = calc_histogram( backend.state.results )
             for key in hist.keys():
-                print( str(key) + ': ', str(hist[key])) 
-    
+               print( str(key) + ': ', str(hist[key])) 
+
+
+

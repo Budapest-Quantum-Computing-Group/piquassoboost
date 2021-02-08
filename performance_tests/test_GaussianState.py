@@ -124,7 +124,7 @@ class TestGaussianState:
             start = time.time()   
         
             # call the transformation
-            state.apply_to_C_and_G(T, modes=modes)
+            state.apply_to_C_and_G(T, modes)
 
             # get the run time
             time_loc = time.time() - start

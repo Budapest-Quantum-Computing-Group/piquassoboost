@@ -17,7 +17,12 @@ extern "C"
 {
 #endif
 
-#if BLAS==1 // MKL
+#if BLAS==0 // undefined blas
+    /// Set the number of threads on runtime in MKL
+    void omp_set_num_threads(int num_threads);
+    /// get the number of threads in MKL
+    int omp_get_max_threads();
+#elif BLAS==1 // MKL
     /// Set the number of threads on runtime in MKL
     void MKL_Set_Num_Threads(int num_threads);
     /// get the number of threads in MKL

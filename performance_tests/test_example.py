@@ -1,10 +1,10 @@
-from performance_tests.test_wrappers.test_example_wrapper import wrapper_for_test_example
+#from performance_tests.test_wrappers.test_example_wrapper import wrapper_for_test_example
 
 
 class Test_Example:
     """This is an example class to demonstrate how to interface with a C++ part of the piquasso project."""
 
-    def test_example(self):
+    def qtest_example(self):
         r"""
         This method is called by pytest. 
         The caal is forwarded to a cython class to test some functionalities of a C++ class. 

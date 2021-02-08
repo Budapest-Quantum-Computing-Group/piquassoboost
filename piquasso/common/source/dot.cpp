@@ -22,10 +22,13 @@ namespace pic {
 matrix
 dot( matrix &A, matrix &B ) {
 
-#if BLAS==1
+#if BLAS==0 // undefined BLAS
+    int NumThreads = omp_get_max_threads();
+    omp_set_num_threads(1);
+#elif BLAS==1 // MKL
     int NumThreads = mkl_get_max_threads();
     MKL_Set_Num_Threads(1);
-#elif BLAS==2
+#elif BLAS==2 //OpenBLAS
     int NumThreads = openblas_get_num_threads();
     openblas_set_num_threads(1);
 #endif
@@ -85,7 +88,9 @@ dot( matrix &A, matrix &B ) {
     }
 
 
-#if BLAS==1 //MKL
+#if BLAS==0 // undefined BLAS
+    omp_set_num_threads(NumThreads);
+#elif BLAS==1 //MKL
     MKL_Set_Num_Threads(NumThreads);
 #elif BLAS==2 //OpenBLAS
     openblas_set_num_threads(NumThreads);

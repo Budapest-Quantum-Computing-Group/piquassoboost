@@ -1,4 +1,4 @@
-from performance_tests.test_wrappers.test_matrix_wrapper import wrapper_for_test_matrix
+#from performance_tests.test_wrappers.test_matrix_wrapper import wrapper_for_test_matrix
 
 
 class Test_Example:
@@ -18,7 +18,7 @@ class Test_Example:
         wrapper_for_matrix_instance.transpose_test_function()
 
 
-    def test_dote(self):
+    def xtest_dote(self):
         r"""
         This method test the dot product of two matrices. 
         The call is forwarded to a cython class to test some functionalities of a C++ class. 

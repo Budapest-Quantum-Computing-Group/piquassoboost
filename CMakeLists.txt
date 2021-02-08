@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.10.2)
 
+
 # set the project name and version
 project(CPiquasso VERSION 0.1)
+
+
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-option(USE_OPENBLAS "Use OpenBLAS for CBLAS implementation" ON)
+option(USE_OPENBLAS "Use OpenBLAS for CBLAS implementation" OFF)
 option(USE_MKL "Use Intel MKL for CBLAS implementation" OFF)
 
 # include CMAKE modules
@@ -17,23 +20,81 @@ include(CheckIncludeFileCXX)
 # variables for compile and link options
 set(CXX_FLAGS_DEBUG)
 set(CXX_FLAGS_RELEASE)
-set(EXTRA_LIBS)
+set(TBB_LIBS)
 set(EXTRA_INCLUDES)
+set(BLAS_LIBRARIES)
+set(BLAS_LINKER_FLAGS)
+set(NUMPY_BLAS_LIB_DIR)
+set(NUMPY_INC_DIR)
+set(PIQUASSO_LIBRARIES)
+
+
+#################################################################
+# checking python developer packages
+
+
+# find out python packages
+find_package(PythonInterp)
+find_package(PythonLibs)
+
+
+
+# Determine Numpy input directory
+exec_program(${PYTHON_EXECUTABLE}
+             ARGS "-c \"import numpy; print(numpy.get_include())\""
+             OUTPUT_VARIABLE NUMPY_INC_DIR
+             RETURN_VALUE NUMPY_NOT_FOUND
+            )
+if(NUMPY_NOT_FOUND)
+    message(FATAL_ERROR "NumPy headers not found")
+endif()
+
+
+# Determine CBLAS library directory Numpy
+exec_program(${PYTHON_EXECUTABLE}
+             ARGS "-c \"import numpy; blas_info=numpy.__config__.get_info('blas_opt_info'); libs=blas_info.get('library_dirs',' '); print(libs[0])\""
+             OUTPUT_VARIABLE NUMPY_BLAS_LIB_DIR
+             RETURN_VALUE NUMPY_BLAS_NOT_FOUND
+            )
+if(NUMPY_NOT_FOUND)
+    message(FATAL_ERROR "NumPy headers not found")
+endif()
+
+
+
+#################################################################
+
 
 # If MKL is enabled, ObenBLAS should be disabled
 if(USE_MKL)
   set(USE_OPENBLAS OFF)
   list(APPEND CXX_FLAGS_DEBUG "-DBLAS=1")
   list(APPEND CXX_FLAGS_RELEASE "-DBLAS=1")
+  list(APPEND BLAS_LIBRARIES "-Wl,-rpath=${NUMPY_BLAS_LIB_DIR}" "-L${NUMPY_BLAS_LIB_DIR}" "-lmkl_rt" "-lpthread")
 endif()
 
 # If MKL is enabled, ObenBLAS should be disabled
 if(USE_OPENBLAS)
-  set(USE_OPENBLAS OFF)
+  set(USE_MKL OFF)
   list(APPEND CXX_FLAGS_DEBUG "-DBLAS=2")
   list(APPEND CXX_FLAGS_RELEASE "-DBLAS=2")
+  list(APPEND BLAS_LIBRARIES "-Wl,-rpath=${NUMPY_BLAS_LIB_DIR}" "-L${NUMPY_BLAS_LIB_DIR}" "-lopenblas")
 endif()
 
+
+# If no CLBAS library was given for CMAKE trying to find out the BLAS library
+if((NOT USE_MKL) AND (NOT USE_OPENBLAS))
+  find_package(BLAS)
+
+  if(NOT BLAS_FOUND)
+    message(FATAL_ERROR "BLAS library not found")
+  endif()
+
+  list(APPEND BLAS_LIBRARIES ${BLAS_LIBRARIES})
+  list(APPEND CXX_FLAGS_DEBUG "-DBLAS=0")
+  list(APPEND CXX_FLAGS_RELEASE "-DBLAS=0")
+
+endif()
 
 
 # setting basic compile flags
@@ -68,6 +129,12 @@ endif()
 
 
 
+
+
+
+
+
+############################################################xx
 # checking TBB libraries and headers
 
 # adding TBB library dir if given
@@ -85,7 +152,7 @@ if(DEFINED ENV{TBB_LIB_DIR})
   endif()
 
   message("-- Adding library directory $ENV{TBB_LIB_DIR}")
-  list(APPEND EXTRA_LIBS "-L$ENV{TBB_LIB_DIR}" "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
+  list(APPEND TBB_LIBS "-Wl,-rpath=$ENV{TBB_LIB_DIR}" "-L$ENV{TBB_LIB_DIR}" "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
 
 else()
 
@@ -101,7 +168,7 @@ else()
     message(FATAL_ERROR "TBBMALLOC_PROXY library not found")
   endif()
 
-  list(APPEND EXTRA_LIBS "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
+  list(APPEND TBB_LIBS "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
 
 endif()
 
@@ -125,19 +192,11 @@ else()
   check_include_file_cxx(tbb/tbb.h TBB_HEADER)
 
   if(NOT TBB_HEADER)
-    #message(FATAL_ERROR "TBB header tbb.h not found")
+    message(FATAL_ERROR "TBB header tbb.h not found")
   endif()
 
 
 endif()
-
-
-
-
-# add the piquasso/common library
-#add_subdirectory(piquasso/common)
-#list(APPEND EXTRA_LIBS common)
-#list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/piquasso/common")
 
 
 add_library( piquasso SHARED
@@ -153,6 +212,14 @@ add_library( piquasso SHARED
     ${PROJECT_SOURCE_DIR}/piquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp    
 )
 
+
+set_target_properties(
+    piquasso
+    PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/piquasso
+    )
+
+
 # adding compile options
 target_compile_options(piquasso PRIVATE
     ${CXX_FLAGS}
@@ -162,8 +229,8 @@ target_compile_options(piquasso PRIVATE
 
 # adding linking options
 target_link_libraries( piquasso PRIVATE
-    "$<$<CONFIG:Debug>:${EXTRA_LIBS}>"
-    "$<$<CONFIG:Release>:${EXTRA_LIBS}>"
+    "$<$<CONFIG:Debug>:${TBB_LIBS} ${BLAS_LIBRARIES}>"
+    "$<$<CONFIG:Release>:${TBB_LIBS} ${BLAS_LIBRARIES}>"
 )
 
 target_include_directories(piquasso PUBLIC
@@ -188,6 +255,19 @@ set_target_properties(piquasso PROPERTIES
 
 configure_file(${PROJECT_SOURCE_DIR}/piquasso/common/source/Config.h.in
                ${PROJECT_SOURCE_DIR}/piquasso/common/source/Config.h)
+
+
+
+
+list(APPEND PIQUASSO_LIBRARIES "-Wl,-rpath=${PROJECT_SOURCE_DIR}/piquasso" "-L${PROJECT_SOURCE_DIR}/piquasso" "-lpiquasso")
+
+###########################################################################
+
+
+
+
+# adding subdirectories for python extensions
+add_subdirectory (piquasso)
 
 
 
