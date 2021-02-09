@@ -12,3 +12,7 @@ add_subdirectory (sampling)
 
 # add extension for GeneralizedCliffordsSimulationStrategy_wrapper
 add_subdirectory (sampling/simulation_strategies)
+
+
+# add extension for dot_wrapper
+#add_subdirectory (common)

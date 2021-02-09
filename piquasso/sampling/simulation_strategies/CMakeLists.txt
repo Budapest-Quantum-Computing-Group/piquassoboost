@@ -28,11 +28,6 @@ target_compile_options(GeneralizedCliffordsSimulationStrategy_wrapper PRIVATE
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
 )
 
-# adding linking options
-target_link_libraries( GeneralizedCliffordsSimulationStrategy_wrapper PRIVATE
-    "$<$<CONFIG:Debug>:${BLAS_LIBRARIES} ${PYTHON_LIBRARIES}>"
-    "$<$<CONFIG:Release>:${BLAS_LIBRARIES} ${PYTHON_LIBRARIES}>"
-)
 
 target_include_directories(GeneralizedCliffordsSimulationStrategy_wrapper PUBLIC
                             ${PROJECT_SOURCE_DIR}/piquasso/sampling/simulation_strategies/source/
@@ -43,7 +38,9 @@ target_include_directories(GeneralizedCliffordsSimulationStrategy_wrapper PUBLIC
                             ${NUMPY_INC_DIR})
 
 target_link_libraries (GeneralizedCliffordsSimulationStrategy_wrapper PRIVATE
-                        ${PIQUASSO_LIBRARIES})
+                        piquasso
+                        ${PYTHON_LIBRARIES}
+                        ${BLAS_LIBRARIES})
 
 
 

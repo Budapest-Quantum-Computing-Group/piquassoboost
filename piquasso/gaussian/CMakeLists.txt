@@ -19,6 +19,7 @@ set_target_properties(
 
 
 
+
 # adding compile options
 target_compile_options(state_wrapper PRIVATE
     ${CXX_FLAGS}
@@ -26,11 +27,6 @@ target_compile_options(state_wrapper PRIVATE
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
 )
 
-# adding linking options
-target_link_libraries( state_wrapper PRIVATE
-    "$<$<CONFIG:Debug>:${BLAS_LIBRARIES} ${PYTHON_LIBRARIES}>"
-    "$<$<CONFIG:Release>:${BLAS_LIBRARIES} ${PYTHON_LIBRARIES}>"
-)
 
 target_include_directories(state_wrapper PUBLIC
                             ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/
@@ -39,8 +35,12 @@ target_include_directories(state_wrapper PUBLIC
                             ${PYTHON_INCLUDE_DIR}
                             ${NUMPY_INC_DIR})
 
+#set_property(state_wrapper python PROPERTY IMPORTED_LOCATION ${PYTHON_LIBRARIES})
+
 target_link_libraries (state_wrapper PRIVATE
-                        ${PIQUASSO_LIBRARIES})
+                        piquasso
+                        ${PYTHON_LIBRARIES}
+                        ${BLAS_LIBRARIES})
 
 
 

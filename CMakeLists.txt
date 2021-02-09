@@ -26,6 +26,7 @@ set(BLAS_LIBRARIES)
 set(BLAS_LINKER_FLAGS)
 set(NUMPY_BLAS_LIB_DIR)
 set(NUMPY_INC_DIR)
+set(PYTHON_LIB_DIR)
 set(PIQUASSO_LIBRARIES)
 
 
@@ -36,7 +37,6 @@ set(PIQUASSO_LIBRARIES)
 # find out python packages
 find_package(PythonInterp)
 find_package(PythonLibs)
-
 
 
 # Determine Numpy input directory
@@ -73,7 +73,7 @@ if(USE_MKL)
   list(APPEND BLAS_LIBRARIES "-Wl,-rpath=${NUMPY_BLAS_LIB_DIR}" "-L${NUMPY_BLAS_LIB_DIR}" "-lmkl_rt" "-lpthread")
 endif()
 
-# If MKL is enabled, ObenBLAS should be disabled
+# If OpenBlas is enabled, MKL should be disabled
 if(USE_OPENBLAS)
   set(USE_MKL OFF)
   list(APPEND CXX_FLAGS_DEBUG "-DBLAS=2")
@@ -213,9 +213,13 @@ add_library( piquasso SHARED
 )
 
 
+
 set_target_properties(
     piquasso
     PROPERTIES
+        PREFIX ""
+        SUFFIX ""
+        OUTPUT_NAME "cpiquasso${EXT_SUFFIX}"
         LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/piquasso
     )
 
@@ -257,9 +261,6 @@ configure_file(${PROJECT_SOURCE_DIR}/piquasso/common/source/Config.h.in
                ${PROJECT_SOURCE_DIR}/piquasso/common/source/Config.h)
 
 
-
-
-list(APPEND PIQUASSO_LIBRARIES "-Wl,-rpath=${PROJECT_SOURCE_DIR}/piquasso" "-L${PROJECT_SOURCE_DIR}/piquasso" "-lpiquasso")
 
 ###########################################################################
 
