@@ -3,6 +3,8 @@
 #include "./../../source/CChinHuhPermanentCalculator.h"
 #include <math.h>
 #include <tbb/tbb.h>
+#include <chrono>
+
 
 namespace pic {
 
@@ -30,7 +32,7 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 */
 CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in ) {
 
-    Update( interferometer_matrix_in );
+    Update_interferometer_matrix( interferometer_matrix_in );
 
     // seeding the random number generator
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -45,11 +47,11 @@ CGeneralizedCliffordsSimulationStrategy::~CGeneralizedCliffordsSimulationStrateg
 }
 
 /**
-@brief Call to update the memroy addresses of the stored matrices
+@brief Call to update the memor address of the stored matrix iinterferometer_matrix
 @param interferometer_matrix_in The matrix describing the interferometer
 */
 void
-CGeneralizedCliffordsSimulationStrategy::Update( matrix &interferometer_matrix_in ) {
+CGeneralizedCliffordsSimulationStrategy::Update_interferometer_matrix( matrix &interferometer_matrix_in ) {
 
     interferometer_matrix = interferometer_matrix_in;
 

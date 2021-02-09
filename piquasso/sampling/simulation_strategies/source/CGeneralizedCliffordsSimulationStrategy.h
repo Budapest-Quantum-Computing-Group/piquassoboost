@@ -6,7 +6,6 @@
 #include "PicState.h"
 #include "PicStateHash.h"
 #include <unordered_map>
-#include <chrono>
 #include <random>
 
 
@@ -69,10 +68,10 @@ CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in );
 ~CGeneralizedCliffordsSimulationStrategy();
 
 /**
-@brief Call to update the memroy addresses of the stored matrices
+@brief Call to update the memor address of the stored matrix iinterferometer_matrix
 @param interferometer_matrix_in The matrix describing the interferometer
 */
-void Update( matrix &interferometer_matrix_in );
+void Update_interferometer_matrix( matrix &interferometer_matrix_in );
 
 /**
 @brief Call to determine the resultant state after traversing through linear interferometer.

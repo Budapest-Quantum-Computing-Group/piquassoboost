@@ -102,33 +102,6 @@ PyObject* PicState_int64_to_numpy( pic::PicState_int64 &cstate ) {
 }
 
 
-/*
-
-    cdef np.ndarray matrix_to_numpy(self, matrix &cmtx ):
-        r"""
-        Call to make a numpy array from an external matrix class.
-
-        Args:
-        cstate (PicState_int64&): a PicState_int64 instance
-
-        """
-
-        cdef np.npy_intp shape[2]
-        shape[0] = <np.npy_intp> cmtx.rows
-        shape[1] = <np.npy_intp> cmtx.cols
-
-        cdef double complex* data = cmtx.get_data()
-        return self.array_from_ptr( <void*> data, 2, shape, np.NPY_COMPLEX128 ) 
-
-*/
-        
-/**
-        ptr (void*): a void pointer
-        rows (int) number of rows in the array
-        cols (int) number of columns in the array
-        np_type (int) The data type stored in the numpy array (see possible values at https://numpy.org/doc/1.17/reference/c-api.dtype.html)
-*/
-
 
 
 /**
@@ -376,9 +349,41 @@ GeneralizedCliffordsSimulationStrategy_wrapper_simulate(GeneralizedCliffordsSimu
 
 
 
+/**
+@brief Method to get matrix interferometer_matrix
+*/
+static PyObject *
+GeneralizedCliffordsSimulationStrategy_wrapper_getinterferometer_matrix(GeneralizedCliffordsSimulationStrategy_wrapper *self, void *closure)
+{
+    Py_INCREF(self->interferometer_matrix);
+    return self->interferometer_matrix;
+}
+
+/**
+@brief Method to set matrix interferometer_matrix
+*/
+static int
+GeneralizedCliffordsSimulationStrategy_wrapper_setinterferometer_matrix(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *interferometer_matrix_arg, void *closure)
+{
+    // set the array on the Python side
+    self->interferometer_matrix = PyArray_FROM_OTF(interferometer_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+
+
+    // create PIC version of the input matrices
+    pic::matrix interferometer_matrix_mtx = numpy2matrix(self->interferometer_matrix);     
+
+    // update data on the C++ side
+    self->simulation_strategy->Update_interferometer_matrix( interferometer_matrix_mtx );
+
+
+    return 0;
+}
+
 
 
 static PyGetSetDef GeneralizedCliffordsSimulationStrategy_wrapper_getsetters[] = {
+    {"interferometer_matrix", (getter) GeneralizedCliffordsSimulationStrategy_wrapper_getinterferometer_matrix, (setter) GeneralizedCliffordsSimulationStrategy_wrapper_setinterferometer_matrix,
+     "interferometer_matrix", NULL},
     {NULL}  /* Sentinel */
 };
 
