@@ -163,10 +163,32 @@ GaussianState_Wrapper_init(GaussianState_Wrapper *self, PyObject *args, PyObject
     if ( C_arg == NULL ) return -1;
     if ( G_arg == NULL ) return -1;
     if ( mean_arg == NULL ) return -1;
-    self->C = PyArray_FROM_OTF(C_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
-    self->G = PyArray_FROM_OTF(G_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
-    self->mean = PyArray_FROM_OTF(mean_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
 
+    // establish memory contiguous arrays for C calculations
+    if ( PyArray_IS_C_CONTIGUOUS(C_arg) ) {
+        self->C = C_arg;
+        Py_INCREF(self->C); 
+    }
+    else {
+        self->C = PyArray_FROM_OTF(C_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
+
+    if ( PyArray_IS_C_CONTIGUOUS(G_arg) ) {
+        self->G = G_arg;
+        Py_INCREF(self->G); 
+    }
+    else {
+        self->G = PyArray_FROM_OTF(G_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
+
+
+    if ( PyArray_IS_C_CONTIGUOUS(mean_arg) ) {
+        self->mean = mean_arg;
+        Py_INCREF(self->mean); 
+    }
+    else {
+        self->mean = PyArray_FROM_OTF(mean_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
     
 
     // create PIC version of the input matrices
@@ -201,7 +223,15 @@ GaussianState_Wrapper_apply_to_C_and_G(GaussianState_Wrapper *self, PyObject *ar
                                      &T_arg, &modes) )
         return Py_BuildValue("i", -1);
 
-    PyObject* T = PyArray_FROM_OTF(T_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    // establish memory contiguous arrays for C calculations
+    PyObject* T = NULL;
+    if ( PyArray_IS_C_CONTIGUOUS(T_arg) ) {
+        T = T_arg;
+        Py_INCREF(T); 
+    }
+    else {
+        T = PyArray_FROM_OTF(T_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
 
     // create PIC version of the input matrix T
     pic::matrix T_mtx = numpy2matrix(T);     
@@ -243,6 +273,8 @@ GaussianState_Wrapper_apply_to_C_and_G(GaussianState_Wrapper *self, PyObject *ar
     // call the C++ variant transformation on the matrices C,G
     self->state->apply_to_C_and_G( T_mtx, modes_C );
 
+    Py_DECREF(T);
+
     return Py_BuildValue("i", 0);  
 
 }
@@ -264,8 +296,17 @@ GaussianState_Wrapper_getC(GaussianState_Wrapper *self, void *closure)
 static int
 GaussianState_Wrapper_setC(GaussianState_Wrapper *self, PyObject *C_arg, void *closure)
 {
-    // set the array on the Python side
-    self->C = PyArray_FROM_OTF(C_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    // set the mytrix on Python side
+    Py_DECREF(self->C); 
+
+    // establish memory contiguous arrays for C calculations
+    if ( PyArray_IS_C_CONTIGUOUS(C_arg) ) {
+        self->C = C_arg;
+        Py_INCREF(self->C); 
+    }
+    else {
+        self->C = PyArray_FROM_OTF(C_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
 
 
     // create PIC version of the input matrices
@@ -299,7 +340,16 @@ static int
 GaussianState_Wrapper_setG(GaussianState_Wrapper *self, PyObject *G_arg, void *closure)
 {
     // set the array on the Python side
-    self->G = PyArray_FROM_OTF(G_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    Py_DECREF(self->G); 
+
+    // establish memory contiguous arrays for C calculations
+    if ( PyArray_IS_C_CONTIGUOUS(G_arg) ) {
+        self->G = G_arg;
+        Py_INCREF(self->G); 
+    }
+    else {
+        self->G = PyArray_FROM_OTF(G_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
 
     // create PIC version of the input matrices
     pic::matrix G_mtx = numpy2matrix(self->G); ;    
@@ -331,7 +381,17 @@ static int
 GaussianState_Wrapper_setmean(GaussianState_Wrapper *self, PyObject *mean_arg, void *closure)
 {
     // set the array on the Python side
-    self->mean = PyArray_FROM_OTF(mean_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    Py_DECREF(self->mean); 
+
+    // establish memory contiguous arrays for C calculations
+    if ( PyArray_IS_C_CONTIGUOUS(mean_arg) ) {
+        self->mean = mean_arg;
+        Py_INCREF(self->mean); 
+    }
+    else {
+        self->mean = PyArray_FROM_OTF(mean_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
+
 
     // create PIC version of the input matrices
     pic::matrix mean_mtx = numpy2matrix(self->mean);    

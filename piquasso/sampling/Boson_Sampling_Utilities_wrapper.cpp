@@ -196,9 +196,31 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
     if ( input_state_arg == NULL ) return -1;
     if ( output_state_arg == NULL ) return -1;
 
-    self->matrix = PyArray_FROM_OTF(matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
-    self->input_state = PyArray_FROM_OTF(input_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
-    self->output_state = PyArray_FROM_OTF(output_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
+    // establish memory contiguous arrays for C calculations
+    if ( PyArray_IS_C_CONTIGUOUS(matrix_arg) ) {
+        self->matrix = matrix_arg;
+        Py_INCREF(self->matrix); 
+    }
+    else {
+        self->matrix = PyArray_FROM_OTF(matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
+
+    if ( PyArray_IS_C_CONTIGUOUS(input_state_arg) ) {
+        self->input_state = input_state_arg;
+        Py_INCREF(self->input_state); 
+    }
+    else {
+        self->input_state = PyArray_FROM_OTF(input_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
+    }
+
+    if ( PyArray_IS_C_CONTIGUOUS(output_state_arg) ) {
+        self->output_state = output_state_arg;
+        Py_INCREF(self->output_state); 
+    }
+    else {
+        self->output_state = PyArray_FROM_OTF(output_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
+    }
+
 
     
 
@@ -251,7 +273,16 @@ static int
 ChinHuhPermanentCalculator_wrapper_setmatrix(ChinHuhPermanentCalculator_wrapper *self, PyObject *matrix_arg, void *closure)
 {
     // set the array on the Python side
-    self->matrix = PyArray_FROM_OTF(matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    Py_DECREF(self->matrix);
+
+    // establish memory contiguous arrays for C calculations
+    if ( PyArray_IS_C_CONTIGUOUS(matrix_arg) ) {
+        self->matrix = matrix_arg;
+        Py_INCREF(self->matrix); 
+    }
+    else {
+        self->matrix = PyArray_FROM_OTF(matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
 
 
     // create PIC version of the input matrices
@@ -285,7 +316,15 @@ static int
 ChinHuhPermanentCalculator_wrapper_setinput_state(ChinHuhPermanentCalculator_wrapper *self, PyObject *input_state_arg, void *closure)
 {
     // set the array on the Python side
-    self->input_state = PyArray_FROM_OTF(input_state_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    Py_DECREF(self->input_state); 
+
+    if ( PyArray_IS_C_CONTIGUOUS(input_state_arg) ) {
+        self->input_state = input_state_arg;
+        Py_INCREF(self->input_state); 
+    }
+    else {
+        self->input_state = PyArray_FROM_OTF(input_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
+    }
 
     // create PIC version of the input matrices
     pic::PicState_int64 input_state_mtx = numpy2PicState_int64(self->input_state);    
@@ -316,8 +355,17 @@ ChinHuhPermanentCalculator_wrapper_getoutput_state(ChinHuhPermanentCalculator_wr
 static int
 ChinHuhPermanentCalculator_wrapper_setoutput_state(ChinHuhPermanentCalculator_wrapper *self, PyObject *output_state_arg, void *closure)
 {
+
     // set the array on the Python side
-    self->output_state = PyArray_FROM_OTF(output_state_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    Py_DECREF(self->output_state); 
+
+    if ( PyArray_IS_C_CONTIGUOUS(output_state_arg) ) {
+        self->output_state = output_state_arg;
+        Py_INCREF(self->output_state); 
+    }
+    else {
+        self->output_state = PyArray_FROM_OTF(output_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
+    }
 
     // create PIC version of the input matrices
     pic::PicState_int64 output_state_mtx = numpy2PicState_int64(self->output_state);    

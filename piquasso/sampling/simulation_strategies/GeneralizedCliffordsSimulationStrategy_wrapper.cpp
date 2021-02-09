@@ -90,7 +90,9 @@ r"""
         cstate (PicState_int64&): a PicState_int64 instance
 */
 PyObject* PicState_int64_to_numpy( pic::PicState_int64 &cstate ) {
-        
+
+        // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
+        cstate.set_owner( false );  
 
         npy_intp shape[1];
         shape[0] = (npy_intp) cstate.cols;
@@ -282,9 +284,19 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
     // convert python object array to numpy C API array
     if ( interferometer_matrix_arg == NULL ) return -1;
 
-    self->interferometer_matrix = PyArray_FROM_OTF(interferometer_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
 
-    
+
+    // establish memory contiguous arrays for C calculations
+    PyObject* input_state = NULL;  
+
+    if ( PyArray_IS_C_CONTIGUOUS(interferometer_matrix_arg) ) {
+        self->interferometer_matrix = interferometer_matrix_arg;
+        Py_INCREF(self->interferometer_matrix); 
+    }
+    else {
+        self->interferometer_matrix = PyArray_FROM_OTF(interferometer_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
+
 
     // create PIC version of the input matrices
     pic::matrix interferometer_matrix_mtx = numpy2matrix(self->interferometer_matrix); 
@@ -318,8 +330,16 @@ GeneralizedCliffordsSimulationStrategy_wrapper_simulate(GeneralizedCliffordsSimu
     // convert python object array to numpy C API array
     if ( input_state_arg == NULL ) return Py_BuildValue("i", -1);
 
-    PyObject* input_state = PyArray_FROM_OTF(input_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
+    // establish memory contiguous arrays for C calculations
+    PyObject* input_state = NULL;  
 
+    if ( PyArray_IS_C_CONTIGUOUS(input_state_arg) ) {
+        input_state = input_state_arg;
+        Py_INCREF(input_state); 
+    }
+    else {
+        input_state = PyArray_FROM_OTF(input_state_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
     
 
     // create PIC version of the input matrices
@@ -365,9 +385,17 @@ GeneralizedCliffordsSimulationStrategy_wrapper_getinterferometer_matrix(Generali
 static int
 GeneralizedCliffordsSimulationStrategy_wrapper_setinterferometer_matrix(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *interferometer_matrix_arg, void *closure)
 {
-    // set the array on the Python side
-    self->interferometer_matrix = PyArray_FROM_OTF(interferometer_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    // set matrin on the Pyhon side
+    Py_DECREF(self->interferometer_matrix); 
 
+    // establish memory contiguous arrays for C calculations
+    if ( PyArray_IS_C_CONTIGUOUS(interferometer_matrix_arg) ) {
+        self->interferometer_matrix = interferometer_matrix_arg;
+        Py_INCREF(self->interferometer_matrix); 
+    }
+    else {
+        self->interferometer_matrix = PyArray_FROM_OTF(interferometer_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+    }
 
     // create PIC version of the input matrices
     pic::matrix interferometer_matrix_mtx = numpy2matrix(self->interferometer_matrix);     
