@@ -15,4 +15,4 @@ add_subdirectory (sampling/simulation_strategies)
 
 
 # add extension for dot_wrapper
-#add_subdirectory (common)
+add_subdirectory (common)

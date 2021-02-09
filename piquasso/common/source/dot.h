@@ -3,7 +3,10 @@
 
 
 #include "matrix.h"
+
+#ifndef CPYTHON
 #include <tbb/task.h>
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -61,6 +64,9 @@ bool check_matrices( matrix &A, matrix &B );
 @param transpose The returned vale of CBLAS_TRANSPOSE.
 */
 void get_cblas_transpose( matrix &A, CBLAS_TRANSPOSE &transpose );
+
+// relieve Python extension from TBB functionalities
+#ifndef CPYTHON
 
 /**
 @brief Structure containing row limits for the partitioning of the matrix product calculations.
@@ -208,7 +214,8 @@ tbb::task* execute();
 
 }; // zgemm_Task
 
-
+#endif // CPYTHON
 
 }; // PIC
-#endif
+
+#endif //Dot_H
