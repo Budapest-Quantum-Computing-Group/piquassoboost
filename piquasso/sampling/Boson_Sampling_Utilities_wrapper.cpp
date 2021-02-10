@@ -4,6 +4,7 @@
 #include <numpy/arrayobject.h>
 #include "structmember.h"
 #include "CChinHuhPermanentCalculator.h"
+#include "numpy_interface.h"
 
 
 
@@ -47,78 +48,6 @@ release_ChinHuhPermanentCalculator( pic::CChinHuhPermanentCalculator*  instance 
     }
     return;
 }
-
-
-/**
-@brief Call to create a PIC matrix representation of a numpy array
-*/
-pic::matrix 
-numpy2matrix(PyObject *arr) {
-
-    // test C-style contiguous memory allocation of the arrays
-    if ( !PyArray_IS_C_CONTIGUOUS(arr) ) {
-        std::cout << "array is not memory contiguous" << std::endl;
-    }
-
-    // get the pointer to the data stored in the input matrices
-    pic::Complex16* data = (pic::Complex16*)PyArray_DATA(arr);
-
-    // get the dimensions of the array self->C
-    int dim_num = PyArray_NDIM( arr );
-    npy_intp* dims = PyArray_DIMS(arr);
-
-    // create PIC version of the input matrices   
-    if (dim_num == 2) {
-        pic::matrix mtx = pic::matrix(data, dims[0], dims[1]);  
-        return mtx;
-    }
-    else if (dim_num == 1) {
-        pic::matrix mtx = pic::matrix(data, dims[0], 1);  
-        return mtx;
-    }
-    else {
-        std::cout << "numpy2matrix: Wrong matrix dimension was given" << std::endl;
-        return pic::matrix(0,0);
-    }
-
-
-
-} 
-
-
-
-/**
-@brief Call to create a PicState_int64 representation of a numpy array
-*/
-pic::PicState_int64 
-numpy2PicState_int64(PyObject *arr) {
-
-
-    // test C-style contiguous memory allocation of the arrays
-    if ( !PyArray_IS_C_CONTIGUOUS(arr) ) {
-        std::cout << "array is not memory contiguous" << std::endl;
-    }
-
-    // get the pointer to the data stored in the input matrices
-    int64_t* data = (int64_t*)PyArray_DATA(arr);
-
-    // get the dimensions of the array self->C
-    int dim_num = PyArray_NDIM( arr );
-    npy_intp* dims = PyArray_DIMS(arr);
-
-    // create PIC version of the input matrices   
-    if (dim_num == 1) {
-        pic::PicState_int64 state = pic::PicState_int64(data, dims[0]);  
-        return state;
-    }
-    else {
-        std::cout << "numpy2PicState_int64: Wrong matrix dimension was given" << std::endl;
-        return pic::PicState_int64(0);
-    }
-
-
-
-} 
 
 
 

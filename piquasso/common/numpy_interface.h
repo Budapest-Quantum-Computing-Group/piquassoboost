@@ -1,0 +1,62 @@
+#ifndef NUMPY_INTERFACE_H
+#define NUMPY_INTERFACE_H
+
+#include <Python.h>
+#include <numpy/arrayobject.h>
+#include "matrix.h"
+#include "PicState.h"
+
+
+/**
+@brief Method to cleanup the memory when the python object becomes released
+@param capsule Pointer to the memory capsule
+*/
+void capsule_cleanup(PyObject* capsule);
+
+
+
+/**
+@brief Call to make a numpy array from data stored via void pointer.
+@param ptr pointer pointing to the data
+@param dim The number of dimensions
+@param shape array containing the dimensions.
+@param np_type The data type stored in the numpy array (see possible values at https://numpy.org/doc/1.17/reference/c-api.dtype.html)
+*/
+PyObject* array_from_ptr(void * ptr, int dim, npy_intp* shape, int np_type);
+
+
+
+/**
+@brief Call to make a numpy array from an instance of matrix class.
+@param mtx a matrix instance
+*/
+PyObject* matrix_to_numpy( pic::matrix &mtx );
+
+
+/**
+@brief Call to make a numpy array from an external PicState_int64 class.
+@param cstate a PicState_int64 instance
+*/
+PyObject* PicState_int64_to_numpy( pic::PicState_int64 &cstate );
+
+
+
+
+/**
+@brief Call to create a PIC matrix representation of a numpy array
+*/
+pic::matrix
+numpy2matrix(PyObject *arr);
+
+
+
+/**
+@brief Call to create a PicState_int64 representation of a numpy array
+*/
+pic::PicState_int64
+numpy2PicState_int64(PyObject *arr);
+
+
+
+
+#endif

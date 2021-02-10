@@ -3,6 +3,7 @@ set(EXT_DIR ${PROJECT_SOURCE_DIR}/piquasso/sampling)
 
 add_library( Boson_Sampling_Utilities_wrapper SHARED
     ${EXT_DIR}/Boson_Sampling_Utilities_wrapper.cpp  
+    ${PROJECT_SOURCE_DIR}/piquasso/common/numpy_interface.cpp
 )
 
 
@@ -31,6 +32,7 @@ target_compile_options(Boson_Sampling_Utilities_wrapper PRIVATE
 target_include_directories(Boson_Sampling_Utilities_wrapper PUBLIC
                             ${PROJECT_SOURCE_DIR}/piquasso/sampling/source/
                             ${PROJECT_SOURCE_DIR}/piquasso/common/source/
+                            ${PROJECT_SOURCE_DIR}/piquasso/common/
                             ${EXTRA_INCLUDES}
                             ${PYTHON_INCLUDE_DIR}
                             ${NUMPY_INC_DIR})
