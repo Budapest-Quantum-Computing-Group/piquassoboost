@@ -2,6 +2,7 @@ set(EXT_DIR ${PROJECT_SOURCE_DIR}/piquasso/common)
 
 add_library( dot_wrapper SHARED
     ${EXT_DIR}/dot_wrapper.cpp  
+    ${PROJECT_SOURCE_DIR}/piquasso/common/numpy_interface.cpp
 )
 
 
@@ -30,6 +31,7 @@ target_compile_options(dot_wrapper PRIVATE
 target_include_directories(dot_wrapper PUBLIC
                             ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/
                             ${PROJECT_SOURCE_DIR}/piquasso/common/source/
+                            ${PROJECT_SOURCE_DIR}/piquasso/common/
                             ${EXTRA_INCLUDES}
                             ${PYTHON_INCLUDE_DIR}
                             ${NUMPY_INC_DIR})
