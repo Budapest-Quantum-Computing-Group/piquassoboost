@@ -27,7 +27,9 @@ set(BLAS_LINKER_FLAGS)
 set(NUMPY_BLAS_LIB_DIR)
 set(NUMPY_INC_DIR)
 set(PYTHON_LIB_DIR)
-set(PIQUASSO_LIBRARIES)
+
+#enable test target
+enable_testing()
 
 
 #################################################################
@@ -209,6 +211,7 @@ add_library( piquasso SHARED
     ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/CGaussianState.cpp
     ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/tasks_apply_to_C_and_G.cpp
     ${PROJECT_SOURCE_DIR}/piquasso/sampling/source/CChinHuhPermanentCalculator.cpp
+    ${PROJECT_SOURCE_DIR}/piquasso/sampling/source/PowerTraceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/piquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp    
 )
 
@@ -254,6 +257,7 @@ set_target_properties(piquasso PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/CGaussianState.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/tasks_apply_to_C_and_G.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/sampling/source/CChinHuhPermanentCalculator.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/sampling/source/PowerTraceHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
 )
 
@@ -269,6 +273,9 @@ configure_file(${PROJECT_SOURCE_DIR}/piquasso/common/source/Config.h.in
 
 # adding subdirectories for python extensions
 add_subdirectory (piquasso)
+
+# adding CMAKE files for test executables
+add_subdirectory (ctests)
 
 
 
