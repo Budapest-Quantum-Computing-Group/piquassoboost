@@ -61,6 +61,12 @@ matrix(const matrix &in);
 */
 matrix copy();
 
+/**
+@brief Call to check the array for NaN entries.
+@return Returns with true if the array has at least one NaN entry.
+*/
+bool isnan();
+
 
 }; //matrix
 

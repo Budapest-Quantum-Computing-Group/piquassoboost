@@ -114,7 +114,9 @@ matrix_base( size_t rows_in, size_t cols_in) {
   cols = cols_in;
   // pointer to the stored data
   data = (scalar*)scalable_aligned_malloc( rows*cols*sizeof(scalar), CACHELINE);
-  assert(data);
+#ifdef DEBUG
+  if (rows > 0 && cols>0) assert(data);
+#endif
   // logical variable indicating whether the matrix needs to be conjugated in CBLAS operations
   conjugated = false;
   // logical variable indicating whether the matrix needs to be transposed in CBLAS operations
@@ -324,6 +326,14 @@ void operator= (const matrix_base& mtx ) {
 @return Returns with a reference to the idx-th element.
 */
 scalar& operator[](size_t idx) {
+
+#ifdef DEBUG
+    if ( idx >= rows*cols || idx < 0) {
+        std::cout << "Accessing element out of bonds. Exiting" << std::endl;
+        exit(-1);
+    }
+#endif
+
     return data[idx];
 }
 
