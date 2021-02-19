@@ -2,7 +2,7 @@
 
 
 # add tests to the build
-add_test(hafnian_complex_matrix ...)
+add_test(hafnian_complex_matrix hafnian_complex_matrix ...)
 
 
 # Add executable called "decomposition_test" that is built from the source files
