@@ -1,7 +1,7 @@
 #ifndef matrix_BASE_H
 #define matrix_BASE_H
 
-#include "PicTypes.h"
+#include "PicTypes.hpp"
 #include <cstring>
 #include <iostream>
 #include <tbb/scalable_allocator.h>
