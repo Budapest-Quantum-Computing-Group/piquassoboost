@@ -11,8 +11,8 @@ add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
 
 
 target_include_directories(hafnian_complex_matrix PRIVATE
-                            ../piquasso/common/source
-                            ../piquasso/sampling/source
+                            ../cpiquasso/common/source
+                            ../cpiquasso/sampling/source
                             ${EXTRA_INCLUDES})
 
 
@@ -21,7 +21,7 @@ target_include_directories(hafnian_complex_matrix PRIVATE
 # public include directories we will use those link directories when building
 # decomposition_test
 target_link_libraries (hafnian_complex_matrix 
-                           piquasso
+                           cpiquasso
                            ${TBB_LIBS}
                            ${BLAS_LIBRARIES})
 

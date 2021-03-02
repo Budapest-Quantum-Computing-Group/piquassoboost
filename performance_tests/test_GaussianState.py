@@ -1,7 +1,9 @@
 import pytest
 import numpy as np
 
-from piquasso.gaussian.state import GaussianState
+
+import piquasso as pq
+
 from piquasso import constants
 import random
 
@@ -49,7 +51,7 @@ class TestGaussianState:
         C_size = 10
         C = np.ascontiguousarray(generate_hermitian_matrix(C_size))
         G = np.ascontiguousarray(generate_complex_symmetric_matrix(C_size))
-        mean = np.ascontiguousarray(np.random.rand(C_size) + 1j * np.random.rand(C_size))
+        m = np.ascontiguousarray(np.random.rand(C_size) + 1j * np.random.rand(C_size))
 
         T_size = 4
         T = np.random.rand(T_size, T_size) + 1j * np.random.rand(T_size, T_size)
@@ -114,10 +116,10 @@ class TestGaussianState:
             G_cpp = np.copy( G )
 
             # create an instance of the Gaussioan state
-            state = GaussianState(
-                    C=C_cpp,
-                    G=G_cpp,
-                    mean=mean,
+            state = pq.GaussianState(
+                C=C_cpp,
+                G=G_cpp,
+                m=m,
             )
 
             # start measuring the time

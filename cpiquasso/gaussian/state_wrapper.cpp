@@ -16,8 +16,8 @@ typedef struct GaussianState_Wrapper {
     PyObject *C=NULL;
     /// pointer to numpy matrix G to keep it alive
     PyObject *G=NULL;
-    /// pointer to numpy matrix mean to keep it alive
-    PyObject *mean=NULL;
+    /// pointer to numpy matrix m to keep it alive
+    PyObject *m=NULL;
     /// The C++ variant of class GaussianState
     pic::CGaussianState* state=NULL;
 } GaussianState_Wrapper;
@@ -27,13 +27,13 @@ typedef struct GaussianState_Wrapper {
 @brief Creates an instance of class CGaussianState and return with a pointer pointing to the class instance (C++ linking is needed)
 @param C
 @param G
-@param mean
+@param m
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
 pic::CGaussianState* 
-create_GaussianState( pic::matrix &C, pic::matrix &G, pic::matrix &mean ) {
+create_GaussianState( pic::matrix &C, pic::matrix &G, pic::matrix &m ) {
 
-    return new pic::CGaussianState(C, G, mean);
+    return new pic::CGaussianState(C, G, m);
 }
 
 /**
@@ -71,9 +71,9 @@ GaussianState_Wrapper_dealloc(GaussianState_Wrapper *self)
     release_CGaussianState( self->state );
 
     // release numpy arrays
-    Py_DECREF(self->C);    
-    Py_DECREF(self->G);    
-    Py_DECREF(self->mean);    
+    if ( self->C != NULL ) Py_DECREF(self->C);
+    if ( self->G != NULL ) Py_DECREF(self->G);
+    if ( self->m != NULL ) Py_DECREF(self->m);
 
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
@@ -92,7 +92,7 @@ GaussianState_Wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     self->state = NULL;
     self->C = NULL;
     self->G = NULL;
-    self->mean = NULL;
+    self->m = NULL;
 
     return (PyObject *) self;
 }
@@ -109,22 +109,22 @@ static int
 GaussianState_Wrapper_init(GaussianState_Wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"C", (char*)"G", (char*)"mean", NULL};
+    static char *kwlist[] = {(char*)"C", (char*)"G", (char*)"m", NULL};
 
     // initiate variables for input arguments
     PyObject *C_arg = NULL;
     PyObject *G_arg = NULL;
-    PyObject *mean_arg = NULL;
+    PyObject *m_arg = NULL;
 
     // parsing input arguments
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOO", kwlist,
-                                     &C_arg, &G_arg, &mean_arg))
+                                     &C_arg, &G_arg, &m_arg))
         return -1;
 
     // convert python object array to numpy C API array
     if ( C_arg == NULL ) return -1;
     if ( G_arg == NULL ) return -1;
-    if ( mean_arg == NULL ) return -1;
+    if ( m_arg == NULL ) return -1;
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(C_arg) ) {
@@ -144,22 +144,22 @@ GaussianState_Wrapper_init(GaussianState_Wrapper *self, PyObject *args, PyObject
     }
 
 
-    if ( PyArray_IS_C_CONTIGUOUS(mean_arg) ) {
-        self->mean = mean_arg;
-        Py_INCREF(self->mean); 
+    if ( PyArray_IS_C_CONTIGUOUS(m_arg) ) {
+        self->m = m_arg;
+        Py_INCREF(self->m); 
     }
     else {
-        self->mean = PyArray_FROM_OTF(mean_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->m = PyArray_FROM_OTF(m_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
     
 
     // create PIC version of the input matrices
     pic::matrix C_mtx = numpy2matrix(self->C); 
     pic::matrix G_mtx = numpy2matrix(self->G);  
-    pic::matrix mean_mtx = numpy2matrix(self->mean);  
+    pic::matrix m_mtx = numpy2matrix(self->m);  
 
     // create instance of class CGaussianState
-    self->state = create_GaussianState( C_mtx, G_mtx, mean_mtx );
+    self->state = create_GaussianState( C_mtx, G_mtx, m_mtx );
 
     
     return 0;
@@ -327,39 +327,39 @@ GaussianState_Wrapper_setG(GaussianState_Wrapper *self, PyObject *G_arg, void *c
 
 
 /**
-@brief Method to call get matrix mean
+@brief Method to call get matrix m
 */
 static PyObject *
-GaussianState_Wrapper_getmean(GaussianState_Wrapper *self, void *closure)
+GaussianState_Wrapper_getm(GaussianState_Wrapper *self, void *closure)
 {
-    Py_INCREF(self->mean);
-    return self->mean;
+    Py_INCREF(self->m);
+    return self->m;
 }
 
 /**
-@brief Method to call set matrix mean
+@brief Method to call set matrix m
 */
 static int
-GaussianState_Wrapper_setmean(GaussianState_Wrapper *self, PyObject *mean_arg, void *closure)
+GaussianState_Wrapper_setm(GaussianState_Wrapper *self, PyObject *m_arg, void *closure)
 {
     // set the array on the Python side
-    Py_DECREF(self->mean); 
+    Py_DECREF(self->m); 
 
     // establish memory contiguous arrays for C calculations
-    if ( PyArray_IS_C_CONTIGUOUS(mean_arg) ) {
-        self->mean = mean_arg;
-        Py_INCREF(self->mean); 
+    if ( PyArray_IS_C_CONTIGUOUS(m_arg) ) {
+        self->m = m_arg;
+        Py_INCREF(self->m); 
     }
     else {
-        self->mean = PyArray_FROM_OTF(mean_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->m = PyArray_FROM_OTF(m_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
 
 
     // create PIC version of the input matrices
-    pic::matrix mean_mtx = numpy2matrix(self->mean);    
+    pic::matrix m_mtx = numpy2matrix(self->m);    
 
     // update data on the C++ side
-    self->state->Update_mean( mean_mtx );
+    self->state->Update_m( m_mtx );
 
 
     return 0;
@@ -372,8 +372,8 @@ static PyGetSetDef GaussianState_Wrapper_getsetters[] = {
      "C matrix", NULL},
     {"G", (getter) GaussianState_Wrapper_getG, (setter) GaussianState_Wrapper_setG,
      "G matrix", NULL},
-    {"mean", (getter) GaussianState_Wrapper_getmean, (setter) GaussianState_Wrapper_setmean,
-     "mean matrix", NULL},
+    {"m", (getter) GaussianState_Wrapper_getm, (setter) GaussianState_Wrapper_setm,
+     "m matrix", NULL},
     {NULL}  /* Sentinel */
 };
 

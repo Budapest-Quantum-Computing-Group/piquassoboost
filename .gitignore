@@ -1,0 +1,9 @@
+__pycache__
+dist
+build
+_skbuild
+cpiquasso.egg-info
+
+
+*.so
+*.so.*

@@ -1,0 +1,3 @@
+[submodule "piquasso"]
+	path = piquasso-module
+	url = git@gitlab.inf.elte.hu:wigner-rcp-quantum-computing-and-information-group/piquasso.git

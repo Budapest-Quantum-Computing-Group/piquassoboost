@@ -67,7 +67,8 @@ GeneralizedCliffordsSimulationStrategy_wrapper_dealloc(GeneralizedCliffordsSimul
     release_ChinHuhPermanentCalculator( self->simulation_strategy );
 
     // release numpy arrays
-    Py_DECREF(self->interferometer_matrix);   
+    if (self->interferometer_matrix != NULL)
+        Py_DECREF(self->interferometer_matrix);
 
     Py_TYPE(self)->tp_free((PyObject *) self);
 }

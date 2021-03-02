@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 import time
-from piquasso.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator
+from cpiquasso.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator
 
 import itertools
 from typing import List, Optional

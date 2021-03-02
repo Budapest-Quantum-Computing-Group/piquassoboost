@@ -18,12 +18,12 @@ CGaussianState::CGaussianState() {}
 @brief Constructor of the class.
 @param C_in Input matrix defined by
 @param G_in Input matrix defined by
-@param mean_in Input matrix defined by
+@param m_in Input matrix defined by
 @return Returns with the instance of the class.
 */
-CGaussianState::CGaussianState( matrix &C_in, matrix &G_in, matrix &mean_in) {
+CGaussianState::CGaussianState( matrix &C_in, matrix &G_in, matrix &m_in) {
 
-    Update( C_in, G_in, mean_in);
+    Update( C_in, G_in, m_in);
 }
 
 
@@ -168,14 +168,14 @@ CGaussianState::apply_to_C_and_G( matrix &T, std::vector<size_t> modes ) {
 @brief Call to update the memory addresses of the stored matrices
 @param C_in Input matrix defined by
 @param G_in Input matrix defined by
-@param mean_in Input matrix defined by
+@param m_in Input matrix defined by
 */
 void
-CGaussianState::Update( matrix &C_in, matrix &G_in, matrix &mean_in) {
+CGaussianState::Update( matrix &C_in, matrix &G_in, matrix &m_in) {
 
     C = C_in;
     G = G_in;
-    mean = mean_in;
+    m = m_in;
 
 }
 
@@ -206,13 +206,13 @@ CGaussianState::Update_G(matrix &G_in) {
 
 
 /**
-@brief Call to update the memory address of the matrix mean
-@param C_mean Input matrix defined by
+@brief Call to update the memory address of the matrix m
+@param C_m Input matrix defined by
 */
 void
-CGaussianState::Update_mean(matrix &mean_in) {
+CGaussianState::Update_m(matrix &m_in) {
 
-    mean = mean_in;
+    m = m_in;
 
 }
 
