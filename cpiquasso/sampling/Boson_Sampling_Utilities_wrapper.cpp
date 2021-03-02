@@ -2,17 +2,10 @@
 
 #include <Python.h>
 #include <numpy/arrayobject.h>
-
-// include python wrappers for classes
-// CChinHuhPermanentCalculator
-// PowerTraceHafnian
 #include "ChinHuhPermanentCalculator_Wrapper.hpp"
 #include "PowerTraceHafnian_Wrapper.hpp"
+#include "PowerTraceLoopHafnian_Wrapper.hpp"
 
-
-/**
-This file contains the C implementation for the python extension Boson_Sampling_Utilities_wrapper
-*/
 
 extern "C"
 {
@@ -45,6 +38,9 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     if (PyType_Ready(&PowerTraceHafnian_wrapper_Type) < 0)
         return NULL;
 
+    if (PyType_Ready(&PowerTraceLoopHafnian_wrapper_Type) < 0)
+        return NULL;
+
     m = PyModule_Create(&Boson_Sampling_Utilities_wrapper_Module);
     if (m == NULL)
         return NULL;
@@ -60,6 +56,14 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     Py_INCREF(&PowerTraceHafnian_wrapper_Type);
     if (PyModule_AddObject(m, "PowerTraceHafnian_wrapper", (PyObject *) &PowerTraceHafnian_wrapper_Type) < 0) {
         Py_DECREF(&PowerTraceHafnian_wrapper_Type);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+
+    Py_INCREF(&PowerTraceLoopHafnian_wrapper_Type);
+    if (PyModule_AddObject(m, "PowerTraceLoopHafnian_wrapper", (PyObject *) &PowerTraceLoopHafnian_wrapper_Type) < 0) {
+        Py_DECREF(&PowerTraceLoopHafnian_wrapper_Type);
         Py_DECREF(m);
         return NULL;
     }
