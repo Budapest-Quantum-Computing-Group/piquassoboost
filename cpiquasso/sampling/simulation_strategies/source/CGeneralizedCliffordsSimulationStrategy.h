@@ -90,6 +90,13 @@ void get_sorted_possible_states();
 
 
 /**
+@brief Call to recursively add substates to the hashmap of labeled states.
+*/
+void
+append_substate_to_labeled_states( PicState_int64& iter_value);
+
+
+/**
 @brief Call to calculate and fill the output states for the individual shots.
 @param sample The current sample state represented by a PicState_int64 class
 */

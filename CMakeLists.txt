@@ -18,10 +18,13 @@ include(CheckIncludeFileCXX)
 set(CXX_FLAGS_DEBUG)
 set(CXX_FLAGS_RELEASE)
 set(TBB_LIBS)
+set(PYTHON_LIBS)
 set(EXTRA_INCLUDES)
 set(BLAS_LIBRARIES)
 set(NUMPY_BLAS_LIB_DIR)
 set(NUMPY_BLAS_LIB)
+set(PYTHON_DATA_PATH)
+set(TBB_INC_DIR)
 
 
 #enable test target
@@ -64,9 +67,22 @@ exec_program(
 )
 
 
+# Determine include and library path for additional dependencies
+exec_program(${PYTHON_EXECUTABLE}
+             ARGS "-c \"from sysconfig import get_paths; info = get_paths(); data_path=info.get('data',' '); print(data_path)\""
+             OUTPUT_VARIABLE PYTHON_DATA_PATH
+             RETURN_VALUE DATA_PATH_NOT_FOUND
+            )
+if(NUMPY_NOT_FOUND)
+    message(FATAL_ERROR "Python DATA not found")
+endif()
+
 find_package(PythonExtensions REQUIRED)
 
 
+# setting paths for library dependencies
+set(PYTHON_LIBS "${PYTHON_DATA_PATH}/lib" )
+set(TBB_INC_DIR "${PYTHON_DATA_PATH}/include/")
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -150,19 +166,19 @@ if(DEFINED ENV{TBB_LIB_DIR})
 
 else()
 
-  find_library(TBB_LIB tbb)
+  find_library(TBB_LIB tbb PATH ${PYTHON_LIBS})
 
   if(NOT TBB_LIB)
     message(FATAL_ERROR "TBB library not found")
   endif()
 
-  find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy )
+  find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy PATH ${PYTHON_LIBS} )
 
   if(NOT TBBMALLOC_PROXY_LIB)
     message(FATAL_ERROR "TBBMALLOC_PROXY library not found")
   endif()
 
-  list(APPEND TBB_LIBS "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
+  list(APPEND TBB_LIBS "-Wl,-rpath=${PYTHON_LIBS}" "-L${PYTHON_LIBS}" "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
 
 endif()
 
@@ -183,10 +199,11 @@ if(DEFINED ENV{TBB_INC_DIR})
 
 else()
 
-  check_include_file_cxx(tbb/tbb.h TBB_HEADER)
+  check_include_file_cxx(tbb/tbb.h TBB_HEADER "-I${TBB_INC_DIR}")
+  list(APPEND EXTRA_INCLUDES "${TBB_INC_DIR}") 
 
   if(NOT TBB_HEADER)
-    message(FATAL_ERROR "TBB header tbb.h not found")
+    #message(FATAL_ERROR "TBB header tbb.h not found")
   endif()
 
 

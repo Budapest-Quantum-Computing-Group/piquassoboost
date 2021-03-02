@@ -103,7 +103,6 @@ CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_i
 void
 CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
 
-    int64_t* input_state_data = input_state.get_data();
 
     // locate nonzero elements of input state and count the number of photons
     number_of_input_photons = 0;
@@ -111,26 +110,11 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
     input_state_inidices.number_of_photons = 0;
 
     for ( size_t idx = 0; idx<input_state.rows*input_state.cols; idx++) {
-        if ( input_state_data[idx] > 0 ) {
+        if ( input_state[idx] > 0 ) {
             input_state_inidices.push_back(idx);
             input_state_inidices.number_of_photons++;
-            number_of_input_photons = number_of_input_photons + input_state_data[idx];
+            number_of_input_photons = number_of_input_photons + input_state[idx];
         }
-    }
-
-    // creating the root of the iteration containers for parallel_do
-    PicStates iter_values;
-    iter_values.reserve( input_state_data[input_state_inidices[0]]+1 );
-    for (int idx=0; idx<=input_state_data[input_state_inidices[0]]; idx++) {
-        PicState_int64 value( input_state_inidices.size(), 0);
-        value[0] = idx;
-        if (idx>0) {
-            value.number_of_photons = idx;
-        }
-        else{
-            value.number_of_photons = 0;
-        }
-        iter_values.push_back( value );
     }
 
 
@@ -141,19 +125,34 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
         labeled_states.push_back(tmp);
     }
 
+    // creaint recursively possible output states
+    tbb::parallel_for ((int64_t)0, input_state[input_state_inidices[0]], (int64_t)1, [&](int64_t idx){
 
-    // parameters to be captured by the lambda function
-    PicState_int64 &input_state_loc = input_state;
+        PicState_int64 iter_value( input_state_inidices.size(), 0);
+        iter_value[0] = idx;
+        if (idx>0) {
+            iter_value.number_of_photons = idx;
+        }
+        else{
+            iter_value.number_of_photons = 0;
+        }
+
+        append_substate_to_labeled_states( iter_value );
+        
+    });
 
 
-    //tbb::spin_mutex my_mutex;
+}
 
-    // determine the subsattes and calculate their weight for the calculation of the probabilities
-    tbb::parallel_do( iter_values, [&](PicState_int64& iter_value, tbb::parallel_do_feeder<PicState_int64>& feeder) {
 
+/**
+@brief Call to recursively add substates to the hashmap of labeled states.
+*/
+void
+CGeneralizedCliffordsSimulationStrategy::append_substate_to_labeled_states( PicState_int64& iter_value) {
 
         // creating the v_vector
-        PicState_int64 substate(input_state_loc.cols,0);
+        PicState_int64 substate(input_state.cols,0);
         size_t idx_max = 0;
         for ( size_t idx=0; idx<iter_value.size(); idx++) {
             if ( iter_value[idx] > 0 ) {
@@ -162,26 +161,21 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
             }
             substate.number_of_photons = iter_value.number_of_photons;
         }
-/*
-        {
-            tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-            std::cout<< "substate with " <<  substate.number_of_photons << " particles: ";
-            print_state(substate);
-        }
-*/
+
         labeled_states[substate.number_of_photons].push_back(substate);
 
+
         // adding new substates to the do cycle
-        for ( size_t idx=idx_max+1; idx<iter_value.size(); idx++) {
-            for ( int jdx=1; jdx<=input_state_data[input_state_inidices[idx]]; jdx++) {
+        tbb::parallel_for ( idx_max+1, iter_value.size(), (size_t)1, [&](size_t idx) {
+            for ( int jdx=1; jdx<=input_state[input_state_inidices[idx]]; jdx++) {
                 PicState_int64 iter_value_next = iter_value.copy();
                 iter_value_next[idx] = jdx;
                 iter_value_next.number_of_photons = iter_value.number_of_photons + 1;
-                feeder.add(iter_value_next);
-            }
-        }
 
-    });
+                append_substate_to_labeled_states( iter_value_next );
+                //feeder.add(iter_value_next);
+            }
+        });
 
 
 
@@ -261,13 +255,7 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
     for (size_t idx=0; idx<multinomial_coefficients.size(); idx++ ) {
         multinomial_coefficients[idx] = multinomial_coefficients[idx]/weight_norm_total;
     }
-/*
-for (size_t idx=0; idx<multinomial_coefficients.size(); idx++) {
-    std::cout << multinomial_coefficients[idx];
-}
-std::cout << std::endl;*/
-    // calculate the probability layer for the individual output states
-tbb::spin_mutex my_mutex;
+
     // container to store the new layer of output probabilities
     matrix_base<double> pmf(1, possible_outputs.size());
     tbb::combinable<double> probability_sum{0.0};
@@ -445,8 +433,8 @@ generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, P
 */
 double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state) {
 
-    CChinHuhPermanentCalculator permanent_calculator( interferometer_mtx, input_state, output_state);
-    Complex16 permanent = permanent_calculator.calculate();
+    CChinHuhPermanentCalculator permanent_calculator;
+    Complex16 permanent = permanent_calculator.calculate( interferometer_mtx, input_state, output_state);
 
     double probability = norm(permanent); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
 
