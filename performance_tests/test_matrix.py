@@ -1,4 +1,4 @@
-import piquasso.common.dot_wrapper as dot
+import cpiquasso.common.dot_wrapper as dot
 from scipy.stats import unitary_group
 import numpy as np
 import random

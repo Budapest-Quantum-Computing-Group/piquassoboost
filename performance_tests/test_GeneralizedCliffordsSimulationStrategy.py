@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 
 import time
-from piquasso.sampling.backend import SamplingBackend
-from piquasso.sampling.state import SamplingState
 from scipy.stats import unitary_group
+
+import piquasso as pq
 
 
 def calc_histogram( samples ):
@@ -47,23 +47,24 @@ class TestGeneralizedCliffordSimulationStrategy:
         for i in range(10):
 
             # create inputs for the permanent calculations
-            initial_state = SamplingState(1, 1, 1, 0, 1)
-            #initial_state = SamplingState(1, 1, 1, 0, 1, 0, 1, 0, 0, 0)
+            initial_state = pq.SamplingState(1, 1, 1, 0, 1)
+            initial_state.interferometer = interferometer_mtx
+            #initial_state = pq.SamplingState(1, 1, 1, 0, 1, 0, 1, 0, 0, 0)
 
-            backend = SamplingBackend(initial_state)
-            backend.state.interferometer = interferometer_mtx
-
+            program = pq.Program(state=initial_state)
 
             shots = 10000
 
+            with program:
+                pq.Sampling(shots=shots)
+
             t0 = time.time()
 
-            backend.sampling((shots,))
+            program.execute()
 
             print('C++ time elapsed: ' + str( time.time() - t0) + 's' )
-       
-            
-            hist = calc_histogram( backend.state.results )
+
+            hist = calc_histogram( program.state.results )
             for key in hist.keys():
                print( str(key) + ': ', str(hist[key])) 
 

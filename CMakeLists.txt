@@ -10,9 +10,6 @@ project(CPiquasso VERSION 0.1)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-option(USE_OPENBLAS "Use OpenBLAS for CBLAS implementation" OFF)
-option(USE_MKL "Use Intel MKL for CBLAS implementation" OFF)
-
 # include CMAKE modules
 include(CheckIncludeFile)
 include(CheckIncludeFileCXX)
@@ -23,10 +20,9 @@ set(CXX_FLAGS_RELEASE)
 set(TBB_LIBS)
 set(EXTRA_INCLUDES)
 set(BLAS_LIBRARIES)
-set(BLAS_LINKER_FLAGS)
 set(NUMPY_BLAS_LIB_DIR)
-set(NUMPY_INC_DIR)
-set(PYTHON_LIB_DIR)
+set(NUMPY_BLAS_LIB)
+
 
 #enable test target
 enable_testing()
@@ -51,41 +47,46 @@ if(NUMPY_NOT_FOUND)
     message(FATAL_ERROR "NumPy headers not found")
 endif()
 
+# Determine CBLAS library behind Numpy
+exec_program(
+  ${PYTHON_EXECUTABLE}
+  ARGS "-c \"import numpy; blas_info=numpy.__config__.get_info('blas_opt_info'); libs = blas_info.get('libraries'); print(libs[0])\""
+  OUTPUT_VARIABLE NUMPY_BLAS_LIB
+  RETURN_VALUE NUMPY_BLAS_NOT_FOUND
+)
 
-# Determine CBLAS library directory Numpy
-exec_program(${PYTHON_EXECUTABLE}
-             ARGS "-c \"import numpy; blas_info=numpy.__config__.get_info('blas_opt_info'); libs=blas_info.get('library_dirs',' '); print(libs[0])\""
-             OUTPUT_VARIABLE NUMPY_BLAS_LIB_DIR
-             RETURN_VALUE NUMPY_BLAS_NOT_FOUND
-            )
-if(NUMPY_NOT_FOUND)
-    message(FATAL_ERROR "NumPy headers not found")
-endif()
+# Determine CBLAS library directorybehind Numpy
+exec_program(
+  ${PYTHON_EXECUTABLE}
+  ARGS "-c \"import numpy; blas_info=numpy.__config__.get_info('blas_opt_info'); libs = blas_info.get('library_dirs'); print(libs[0])\""
+  OUTPUT_VARIABLE NUMPY_BLAS_LIB_DIR
+  RETURN_VALUE NUMPY_BLAS_NOT_FOUND
+)
 
 
+find_package(PythonExtensions REQUIRED)
+
+
+
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 #################################################################
 
 
 # If MKL is enabled, ObenBLAS should be disabled
-if(USE_MKL)
+if(NUMPY_BLAS_LIB MATCHES "mkl")
   set(USE_OPENBLAS OFF)
   list(APPEND CXX_FLAGS_DEBUG "-DBLAS=1")
   list(APPEND CXX_FLAGS_RELEASE "-DBLAS=1")
   list(APPEND BLAS_LIBRARIES "-Wl,-rpath=${NUMPY_BLAS_LIB_DIR}" "-L${NUMPY_BLAS_LIB_DIR}" "-lmkl_rt" "-lpthread")
-endif()
 
-# If OpenBlas is enabled, MKL should be disabled
-if(USE_OPENBLAS)
+  # If OpenBlas is enabled, MKL should be disabled
+elseif(NUMPY_BLAS_LIB MATCHES "openblas")
   set(USE_MKL OFF)
   list(APPEND CXX_FLAGS_DEBUG "-DBLAS=2")
   list(APPEND CXX_FLAGS_RELEASE "-DBLAS=2")
   list(APPEND BLAS_LIBRARIES "-Wl,-rpath=${NUMPY_BLAS_LIB_DIR}" "-L${NUMPY_BLAS_LIB_DIR}" "-lopenblas")
-endif()
-
-
-# If no CLBAS library was given for CMAKE trying to find out the BLAS library
-if((NOT USE_MKL) AND (NOT USE_OPENBLAS))
+else()
   find_package(BLAS)
 
   if(NOT BLAS_FOUND)
@@ -95,7 +96,6 @@ if((NOT USE_MKL) AND (NOT USE_OPENBLAS))
   list(APPEND BLAS_LIBRARIES ${BLAS_LIBRARIES})
   list(APPEND CXX_FLAGS_DEBUG "-DBLAS=0")
   list(APPEND CXX_FLAGS_RELEASE "-DBLAS=0")
-
 endif()
 
 
@@ -127,14 +127,6 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # using Visual Studio C++
   message("-- Using Visual Studio C++ compiler")
 endif()
-
-
-
-
-
-
-
-
 
 ############################################################xx
 # checking TBB libraries and headers
@@ -201,68 +193,60 @@ else()
 endif()
 
 
-add_library( piquasso SHARED
-    ${PROJECT_SOURCE_DIR}/piquasso/common/source/PicTypes.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/common/source/dependency_graph.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/common/source/matrix.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/common/source/PicState.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/common/source/PicStateHash.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/common/source/dot.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/CGaussianState.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/tasks_apply_to_C_and_G.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/sampling/source/CChinHuhPermanentCalculator.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/sampling/source/PowerTraceHafnian.cpp
-    ${PROJECT_SOURCE_DIR}/piquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp    
+add_library(cpiquasso SHARED
+    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dependency_graph.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/CGaussianState.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
 )
 
-
-
-set_target_properties(
-    piquasso
-    PROPERTIES
-        PREFIX ""
-        SUFFIX ""
-        OUTPUT_NAME "cpiquasso${EXT_SUFFIX}"
-        LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/piquasso
-    )
-
-
 # adding compile options
-target_compile_options(piquasso PRIVATE
+target_compile_options(cpiquasso PRIVATE
     ${CXX_FLAGS}
     "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
 )
 
 # adding linking options
-target_link_libraries( piquasso PRIVATE
+target_link_libraries(cpiquasso PRIVATE
     "$<$<CONFIG:Debug>:${TBB_LIBS} ${BLAS_LIBRARIES}>"
     "$<$<CONFIG:Release>:${TBB_LIBS} ${BLAS_LIBRARIES}>"
 )
 
-target_include_directories(piquasso PUBLIC
+target_include_directories(cpiquasso PRIVATE
                             .
-                            ./piquasso/common/source
-                            ./piquasso/sampling/source
+                            ./cpiquasso/common/source
+                            ./cpiquasso/sampling/source
                             ${EXTRA_INCLUDES})
 
-set_target_properties(piquasso PROPERTIES
+set_target_properties(cpiquasso PROPERTIES
     VERSION ${PROJECT_VERSION}
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/common/source/PicTypes.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/common/source/dependency_graph.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/common/source/matrix.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/common/source/PicState.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/common/source/PicStateHash.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/common/source/dot.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/CGaussianState.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/gaussian/source/tasks_apply_to_C_and_G.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/sampling/source/CChinHuhPermanentCalculator.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/sampling/source/PowerTraceHafnian.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dependency_graph.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/CGaussianState.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
 )
 
-configure_file(${PROJECT_SOURCE_DIR}/piquasso/common/source/Config.h.in
-               ${PROJECT_SOURCE_DIR}/piquasso/common/source/Config.h)
+configure_file(${PROJECT_SOURCE_DIR}/cpiquasso/common/source/Config.h.in
+               ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/Config.h)
+
+set_target_properties( cpiquasso PROPERTIES
+                        LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/cpiquasso
+)
 
 
 
@@ -272,14 +256,11 @@ configure_file(${PROJECT_SOURCE_DIR}/piquasso/common/source/Config.h.in
 
 
 # adding subdirectories for python extensions
-add_subdirectory (piquasso)
+add_subdirectory (cpiquasso)
 
 # adding CMAKE files for test executables
 add_subdirectory (ctests)
 
-
-
-
-
+install(TARGETS cpiquasso LIBRARY DESTINATION cpiquasso)
 
 
