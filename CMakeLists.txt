@@ -228,7 +228,7 @@ target_include_directories(cpiquasso PRIVATE
 
 set_target_properties(cpiquasso PROPERTIES
     VERSION ${PROJECT_VERSION}
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.hpp
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dependency_graph.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.h
