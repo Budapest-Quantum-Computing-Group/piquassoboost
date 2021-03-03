@@ -19,7 +19,7 @@ namespace pic {
 @param vec a container if integers
 @return Returns with the sum of the elements of the container
 */
-int64_t sum( PicState_int64 &vec);
+static int64_t sum( PicState_int64 &vec);
 
 /**
 @brief Class representing a generalized Cliffords simulation strategy

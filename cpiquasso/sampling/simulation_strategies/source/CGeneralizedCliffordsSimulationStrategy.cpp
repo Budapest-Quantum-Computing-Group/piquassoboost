@@ -1,17 +1,17 @@
 #include <iostream>
 #include "CGeneralizedCliffordsSimulationStrategy.h"
-#include "./../../source/CChinHuhPermanentCalculator.h"
+#include "CChinHuhPermanentCalculator.h"
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
 
 
 namespace pic {
-
+/*
     double rand_nums[40] = {0.929965, 0.961441, 0.46097, 0.090787, 0.137104, 0.499059, 0.951187, 0.373533, 0.634074, 0.0886671, 0.0856861, 0.999702, 0.419755, 0.376557, 0.947568, 0.705106, 0.0520666, 0.45318,
             0.874288, 0.656594, 0.287817, 0.484918, 0.854716, 0.31408, 0.516911, 0.374158, 0.0124914, 0.878496, 0.322593, 0.699271, 0.0583747, 0.56629, 0.195314, 0.00059639, 0.443711, 0.652659, 0.350379, 0.839752, 0.710161, 0.28553};
     int rand_num_idx = 0;
-
+*/
 /**
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
@@ -138,7 +138,7 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
         }
 
         append_substate_to_labeled_states( iter_value );
-        
+
     });
 
 
