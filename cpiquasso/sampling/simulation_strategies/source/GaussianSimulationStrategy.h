@@ -5,7 +5,7 @@
 #include "PicVector.hpp"
 #include "PicState.h"
 #include "PicStateHash.h"
-#include "CGaussianState.h"
+#include "GaussianState_Cov.h"
 #include <unordered_map>
 #include <random>
 
@@ -30,7 +30,7 @@ class GaussianSimulationStrategy {
 protected:
 
     /// object describing the Gaussian state
-    CGaussianState state;
+    GaussianState_Cov state;
 
     /// cutoff of the Fock basis truncation.
     size_t cutoff;

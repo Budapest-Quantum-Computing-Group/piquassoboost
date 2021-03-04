@@ -40,7 +40,7 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
 GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, const size_t& cutoff, const size_t& max_photons ) {
 
 
-    state = CGaussianState( covariance_matrix );
+    state = GaussianState_Cov( covariance_matrix );
     setCutoff( cutoff );
     setMaxPhotons( max_photons );
 
@@ -65,7 +65,7 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
 */
 GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, matrix& displacement, const size_t& cutoff, const size_t& max_photons ) {
 
-    state = CGaussianState(covariance_matrix, displacement);
+    state = GaussianState_Cov(covariance_matrix, displacement);
 
     setCutoff( cutoff );
     setMaxPhotons( max_photons );
@@ -170,7 +170,7 @@ GaussianSimulationStrategy::getSample() {
         }
         indices_2_extract.print_matrix();
 
-        CGaussianState reduced_state = state.getReducedGaussianState( indices_2_extract );
+        GaussianState_Cov reduced_state = state.getReducedGaussianState( indices_2_extract );
 
 
 
