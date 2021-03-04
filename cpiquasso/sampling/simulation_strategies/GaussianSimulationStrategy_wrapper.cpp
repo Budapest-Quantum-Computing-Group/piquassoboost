@@ -24,13 +24,15 @@ typedef struct GaussianSimulationStrategy_wrapper {
 
 /**
 @brief Creates an instance of class ChinHuhPermanentCalculator and return with a pointer pointing to the class instance (C++ linking is needed)
-@param covariance_matrix
+@param covariance_matrix The covariance matrix describing the gaussian state
+@param cutoff the Fock basis truncation.
+@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
 pic::GaussianSimulationStrategy*
-cerate_ChinHuhPermanentCalculator( pic::matrix &covariance_matrix_mtx ) {
+cerate_ChinHuhPermanentCalculator( pic::matrix &covariance_matrix_mtx, const size_t& cutoff, const size_t& max_photons ) {
 
-    return new pic::GaussianSimulationStrategy(covariance_matrix_mtx);
+    return new pic::GaussianSimulationStrategy(covariance_matrix_mtx, cutoff, max_photons);
 
 }
 
@@ -104,14 +106,16 @@ static int
 GaussianSimulationStrategy_wrapper_init(GaussianSimulationStrategy_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"covariance_matrix", NULL};
+    static char *kwlist[] = {(char*)"covariance_matrix", (char*)"fock_cutoff", (char*)"max_photons", NULL};
 
     // initiate variables for input arguments
     PyObject *covariance_matrix_arg = NULL;
+    int fock_cutoff = 0;
+    int max_photons = 0;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,
-                                     &covariance_matrix_arg))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oii", kwlist,
+                                     &covariance_matrix_arg, &fock_cutoff, &max_photons))
         return -1;
 
     // convert python object array to numpy C API array
@@ -133,7 +137,7 @@ GaussianSimulationStrategy_wrapper_init(GaussianSimulationStrategy_wrapper *self
     pic::matrix covariance_matrix_mtx = numpy2matrix(self->covariance_matrix);
 
     // create instance of class ChinHuhPermanentCalculator
-    self->simulation_strategy = cerate_ChinHuhPermanentCalculator( covariance_matrix_mtx );
+    self->simulation_strategy = cerate_ChinHuhPermanentCalculator( covariance_matrix_mtx, fock_cutoff , max_photons );
 
     return 0;
 }
@@ -158,7 +162,6 @@ GaussianSimulationStrategy_wrapper_simulate(GaussianSimulationStrategy_wrapper *
         return Py_BuildValue("i", -1);
 
 
-
     // call the C++ variant of the sampling method
     std::vector<pic::PicState_int64> samples = self->simulation_strategy->simulate(sample_num);
 
@@ -168,6 +171,10 @@ GaussianSimulationStrategy_wrapper_simulate(GaussianSimulationStrategy_wrapper *
 
 
     for ( int idx = 0; idx < samples.size(); idx++ ) {
+        // release the C++ array from the ownership of the calculated data
+        samples[idx].set_owner(false);
+
+        // convert output samples to numpy arrays
         PyObject *PySample = PicState_int64_to_numpy( samples[idx] );
         PyTuple_SetItem(PySamples, idx, PySample);
 

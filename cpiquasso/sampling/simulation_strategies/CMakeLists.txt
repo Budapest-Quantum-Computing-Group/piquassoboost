@@ -69,6 +69,7 @@ target_compile_options(GaussianSimulationStrategy_wrapper PRIVATE
 
 target_include_directories(GaussianSimulationStrategy_wrapper PUBLIC
                             ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/
                             ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/
                             ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/
                             ${PROJECT_SOURCE_DIR}/cpiquasso/common/

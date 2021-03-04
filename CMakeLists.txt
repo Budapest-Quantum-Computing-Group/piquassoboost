@@ -243,6 +243,7 @@ target_link_libraries(cpiquasso PRIVATE
 target_include_directories(cpiquasso PRIVATE
                             .
                             ./cpiquasso/common/source
+                            ./cpiquasso/gaussian/source
                             ./cpiquasso/sampling/source
                             ${EXTRA_INCLUDES})
 

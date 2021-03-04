@@ -2,6 +2,7 @@
 #define CGaussianState_H
 
 #include "matrix.h"
+#include "PicState.h"
 #include <vector>
 
 
@@ -18,8 +19,10 @@ protected:
     matrix C;
     /// The matrix which is defined by
     matrix G;
-    /// The vector which is defined by
+    /// The displacement of the Gaussian state
     matrix m;
+    /// The covariance matrix
+    matrix covariance_matrix;
 
 public:
 
@@ -28,6 +31,22 @@ public:
 @return Returns with the instance of the class.
 */
 CGaussianState();
+
+/**
+@brief Constructor of the class.
+@param covariance_matrix_in The covariance matrix
+@param m_in The displacement of the Gaussian state
+@return Returns with the instance of the class.
+*/
+CGaussianState( matrix &covariance_matrix_in, matrix &m_in);
+
+
+/**
+@brief Constructor of the class.
+@param covariance_matrix_in The covariance matrix (The displacements are set to zeros)
+@return Returns with the instance of the class.
+*/
+CGaussianState( matrix &covariance_matrix_in );
 
 /**
 @brief Constructor of the class.
@@ -61,10 +80,17 @@ void Update_G(matrix &G_in);
 
 
 /**
-@brief Call to update the memory address of the matrix m
-@param C_m Input matrix defined by
+@brief Call to update the memory address of the vector containing the displacements
+@param m_in The new displacement vector
 */
 void Update_m(matrix &m_in);
+
+
+/**
+@brief Call to update the memory address of the matrix stored in covariance_matrix
+@param covariance_matrix_in The covariance matrix describing the gaussian state
+*/
+void Update_covariance_matrix( matrix &covariance_matrix_in );
 
 
 /**
@@ -76,6 +102,13 @@ void Update_m(matrix &m_in);
 int apply_to_C_and_G( matrix &T, std::vector<size_t> modes );
 
 
+
+/**
+@brief Call to get a reduced Gaussian state (i.e. the gaussian state represented by a subset of modes of the original gaussian state)
+@param modes An instance of PicState_int64 containing the modes to be extracted from the original gaussian state
+@return Returns with the reduced Gaussian state
+*/
+CGaussianState getReducedGaussianState( PicState_int64 &modes );
 
 }; //CGaussianState
 

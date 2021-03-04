@@ -80,8 +80,6 @@ CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_i
 
         PicState_int64 sample(input_state_in.cols, 0);
         sample.number_of_photons = 0;
-        // the ownership of the resulting data would be given to the python side
-        sample.set_owner( false );
         samples.push_back(sample);
     }
 

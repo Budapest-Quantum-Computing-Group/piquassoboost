@@ -5,6 +5,7 @@
 #include "PicVector.hpp"
 #include "PicState.h"
 #include "PicStateHash.h"
+#include "CGaussianState.h"
 #include <unordered_map>
 #include <random>
 
@@ -28,8 +29,18 @@ class GaussianSimulationStrategy {
 
 protected:
 
-    /// The covariance matrix describing the gaussian state
-    matrix covariance_matrix;
+    /// object describing the Gaussian state
+    CGaussianState state;
+
+    /// cutoff of the Fock basis truncation.
+    size_t cutoff;
+    /// the maximum number of photons that can be counted in the output samples.
+    size_t max_photons;
+
+    size_t dim;
+    size_t dim_over_2;
+
+    double hbar;
 
     /// The number of photons
     int64_t number_of_input_photons;
@@ -57,11 +68,24 @@ public:
 GaussianSimulationStrategy();
 
 /**
-@brief Constructor of the class.
-@param interferometer_matrix_in The matrix describing the interferometer
+@brief Constructor of the class. (The displacement is set to zero by this constructor)
+@param covariance_matrix_in The covariance matrix describing the gaussian state
+@param cutoff the Fock basis truncation.
+@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Returns with the instance of the class.
 */
-GaussianSimulationStrategy( matrix &covariance_matrix_in );
+GaussianSimulationStrategy( matrix &covariance_matrix_in, const size_t& cutoff, const size_t& max_photons );
+
+
+/**
+@brief Constructor of the class.
+@param covariance_matrix_in The covariance matrix describing the gaussian state
+@param displacement The mean (displacement) of the Gaussian state
+@param cutoff the Fock basis truncation.
+@param max_photons specifies the maximum number of photons that can be counted in the output samples.
+@return Returns with the instance of the class.
+*/
+GaussianSimulationStrategy( matrix &covariance_matrix_in, matrix& displacement_in, const size_t& cutoff, const size_t& max_photons );
 
 /**
 @brief Destructor of the class
@@ -74,15 +98,37 @@ GaussianSimulationStrategy( matrix &covariance_matrix_in );
 */
 void Update_covariance_matrix( matrix &covariance_matrix_in );
 
+
 /**
-@brief Call to determine the resultant state after traversing through linear interferometer.
-@param input_state_in The input state.
+@brief Call to set the cutoff of the Fock basis truncation
+@param cutoff_in The cutoff of the Fock basis truncation
+*/
+void setCutoff( const size_t& cutoff_in );
+
+/**
+@brief Call to set the maximum number of photons that can be counted in the output samples.
+@param max_photons_in The maximum number of photons that can be counted in the output samples.
+*/
+void setMaxPhotons( const size_t& max_photons_in );
+
+/**
+@brief Call to get samples from the gaussian state
 @param samples_number The number of shots for which the output should be determined
-@return Returns with the resultant state after traversing through linear interferometer.
+@return Returns with the samples of the gaussian state
 */
 std::vector<PicState_int64> simulate( int samples_number );
 
 protected:
+
+
+
+
+
+/**
+@brief Call to get one sample from the gaussian state
+@return Returns with the a sample from a gaussian state
+*/
+PicState_int64 getSample();
 
 
 }; //GaussianSimulationStrategy
