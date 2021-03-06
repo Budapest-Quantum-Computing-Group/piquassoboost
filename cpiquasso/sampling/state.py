@@ -1,7 +1,7 @@
 import piquasso as pq
 
-from cpiquasso.sampling.backend import SamplingBackend
+from cpiquasso.sampling.circuit import SamplingCircuit
 
 
 class SamplingState(pq.SamplingState):
-    _backend_class = SamplingBackend
+    _circuit_class = SamplingCircuit

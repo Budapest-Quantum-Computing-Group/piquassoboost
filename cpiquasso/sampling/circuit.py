@@ -8,7 +8,7 @@ from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
 import piquasso as pq
 
 
-class SamplingBackend(pq.sampling.backend.SamplingBackend):
+class SamplingCircuit(pq.sampling.circuit.SamplingCircuit):
     def sampling(self, operation):
         """Simulates a boson sampling using generalized Clifford&Clifford algorithm
         from [Brod, Oszmaniec 2020].
