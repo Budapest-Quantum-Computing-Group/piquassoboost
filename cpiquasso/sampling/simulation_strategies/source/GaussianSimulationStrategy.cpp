@@ -40,7 +40,7 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
 GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, const size_t& cutoff, const size_t& max_photons ) {
 
 
-    state = GaussianState_Cov( covariance_matrix );
+    state = GaussianState_Cov( covariance_matrix, qudratures );
     setCutoff( cutoff );
     setMaxPhotons( max_photons );
 
@@ -65,7 +65,7 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
 */
 GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, matrix& displacement, const size_t& cutoff, const size_t& max_photons ) {
 
-    state = GaussianState_Cov(covariance_matrix, displacement);
+    state = GaussianState_Cov(covariance_matrix, displacement, qudratures);
 
     setCutoff( cutoff );
     setMaxPhotons( max_photons );
@@ -130,6 +130,7 @@ GaussianSimulationStrategy::setMaxPhotons( const size_t& max_photons_in ) {
 std::vector<PicState_int64>
 GaussianSimulationStrategy::simulate( int samples_number ) {
 
+
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
     samples.reserve(samples_number);
@@ -149,9 +150,13 @@ GaussianSimulationStrategy::simulate( int samples_number ) {
 PicState_int64
 GaussianSimulationStrategy::getSample() {
 
+    // convert the sampled Gaussian state into complex amplitude represenattion
+    state.ConvertToComplexAmplitudes();
 //std::cout << dim_over_2 << std::endl;
 
     PicState_int64 sample(dim_over_2,0);
+
+    PicState_int64 output_sample(0);
 
     // The number of modes is equal to dim_over_2 (becose the covariance matrix conatains p,q quadratires)
     // for loop to sample 1,2,3,...dim_over_2 modes
@@ -162,16 +167,38 @@ GaussianSimulationStrategy::getSample() {
         // container to store probabilities of getting different photon numbers on output of mode mode_idx
         // it contains maximally cutoff number of photons, the probability of getting higher photn number is stored in the cutoff+1-th element
         matrix_base<double> probabilities(1, cutoff+1);
+        memset(probabilities.get_data(), 0, probabilities.size()*sizeof(double));
 
         // modes to be extracted to get reduced gaussian state
         PicState_int64 indices_2_extract(mode_idx);
         for (size_t idx=0; idx<mode_idx; idx++) {
             indices_2_extract[idx] = idx;
         }
-        indices_2_extract.print_matrix();
+        //indices_2_extract.print_matrix();
 
+        // get the reduced gaussian state describing the first mode_idx modes
         GaussianState_Cov reduced_state = state.getReducedGaussianState( indices_2_extract );
 
+
+        // create array for the new output state
+        PicState_int64 current_output(output_sample.size()+1, 0);
+        memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
+
+        // get the probabilities for different photon counts on the output mode mode_idx
+        for (size_t photon_num=0; photon_num<cutoff; photon_num++) {
+
+            // set the number of photons in the last mode do be sampled
+            current_output[mode_idx-1] = photon_num;
+            current_output.print_matrix();
+
+            // get the diagonal element of the density matrix
+            Complex16 && density_element = reduced_state.getDensityMatrixElements( current_output, current_output );
+            probabilities[photon_num] = density_element.real(); //the diagonal element should be real
+
+        }
+
+
+output_sample = current_output;
 
 
 

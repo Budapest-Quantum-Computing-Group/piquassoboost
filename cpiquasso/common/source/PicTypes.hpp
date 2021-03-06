@@ -146,6 +146,19 @@ Complex16 operator*( const double &value) {
 
 };
 
+
+/**
+@brief Override operator -* of the STL complex class.
+@param value A Complex_Base valued input.
+@return Returns with the calculated value represented by an instance of the Complex16 class.
+*/
+Complex16 operator-( const Complex_Base &value) {
+
+    return Complex16(this->real() - value.real(), this->imag() - value.imag());
+
+};
+
+
 /**
 @brief Override operator = of the STL complex class.
 @param value A Complex_Base valued input.
