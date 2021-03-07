@@ -10,7 +10,7 @@
 namespace pic {
 
 /// enumeration labeling the representation of a gaussian state
-enum representation { qudratures /* i.e. q_1, q_2, q_3, ... p_1, p_2 ... p_N */ , complex_amplitudes /*i.e. a_1, a_2, ... , a^+_1, ... a^+_N */ };
+enum representation { qudratures /* i.e. q_1, q_2, q_3, ... p_1, p_2 ... p_N */ , fock_space /*i.e. a_1, a_2, ... , a^+_1, ... a^+_N */ };
 
 
 /**
@@ -71,6 +71,20 @@ void Update_covariance_matrix( matrix &covariance_matrix_in );
 
 
 /**
+@brief Call to get the covariance matrix
+@return Returns with a matrix instance containing the covariance matrix.
+*/
+matrix get_covariance_matrix();
+
+
+/**
+@brief Call to get the representation type of the Gaussian state.
+@return Returns with the representation type of the Gaussian state.
+*/
+representation get_representation();
+
+
+/**
 @brief Call to get a reduced Gaussian state (i.e. the gaussian state represented by a subset of modes of the original gaussian state)
 @param modes An instance of PicState_int64 containing the modes to be extracted from the original gaussian state
 @return Returns with the reduced Gaussian state
@@ -87,13 +101,6 @@ displacement would be the expectation value \f$ m = \langle \hat{\xi}_i \rangle_
 void ConvertToComplexAmplitudes();
 
 
-/**
-@brief Call to get the density matrix element $\f \langle i | \rho | j \rangle $\f
-@param i_state PicState_int64 instance representin Fock state i
-@param j_state PicState_int64 instance representin Fock state j
-@return Returns with the density matrix element
-*/
-Complex16 getDensityMatrixElements( PicState_int64& i_state, PicState_int64& j_state );
 
 }; //GaussianState_Cov
 

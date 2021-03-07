@@ -185,7 +185,7 @@ void
 GaussianState_Cov::ConvertToComplexAmplitudes() {
 
 
-    if (repr==complex_amplitudes) {
+    if (repr==fock_space) {
         return;
     }
 
@@ -193,12 +193,12 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
     size_t total_number_of_modes = m.cols/2;
     matrix displacement_a(1, m.cols);
 
-    matrix qq(m.get_data(), 1, total_number_of_modes);
-    matrix pp(m.get_data()+total_number_of_modes, 1, total_number_of_modes);
+    matrix q(m.get_data(), 1, total_number_of_modes);
+    matrix p(m.get_data()+total_number_of_modes, 1, total_number_of_modes);
     for (size_t idx=0; idx < total_number_of_modes; idx++) {
 
         // set the expectation values for a_1, a_2, .... a_N
-        displacement_a[idx] = (qq[idx] + Complex16(0.0,1.0)*pp[idx])/sqrt(2);
+        displacement_a[idx] = (q[idx] + Complex16(0.0,1.0)*p[idx])/sqrt(2);
 
         // set the expectation values for a^\dagger_1, a^\dagger_2, .... a^\dagger_N
         displacement_a[idx+total_number_of_modes] = std::conj(displacement_a[idx]);
@@ -209,12 +209,12 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
     total_number_of_modes = covariance_matrix.rows/2;
 
     // get the matrices of the quadratures with strides
-    qq = matrix( /* pointer to the origin of the data = */ covariance_matrix.get_data(),
+    matrix qq( /* pointer to the origin of the data = */ covariance_matrix.get_data(),
                 /* number of rows = */ total_number_of_modes,
                 /* number of columns = */ total_number_of_modes,
                 /* stride = */ 2*total_number_of_modes);
 
-    pp = matrix( /* pointer to the origin of the data = */ covariance_matrix.get_data()+total_number_of_modes*covariance_matrix.stride + total_number_of_modes,
+    matrix pp( /* pointer to the origin of the data = */ covariance_matrix.get_data()+total_number_of_modes*covariance_matrix.stride + total_number_of_modes,
                 /* number of rows = */ total_number_of_modes,
                 /* number of columns = */ total_number_of_modes,
                 /* stride = */  2*total_number_of_modes);
@@ -328,10 +328,10 @@ tbb::tick_count t0 = tbb::tick_count::now();
 
             size_t idx = 2*(row_offset + col_idx); // each 2 double is one complex
 
-            __m256d qq_vec = _mm256_loadu_pd(&qq_data_d[idx]);
-            __m256d pp_vec = _mm256_loadu_pd(&pp_data_d[idx]);
-            __m256d pq_vec = _mm256_loadu_pd(&pq_data_d[idx]);
-            __m256d qp_vec = _mm256_loadu_pd(&qp_data_d[idx]);
+            __m256d qq_vec = _mm256_loadu_pd(qq_data_d+idx);
+            __m256d pp_vec = _mm256_loadu_pd(pp_data_d+idx);
+            __m256d pq_vec = _mm256_loadu_pd(pq_data_d+idx);
+            __m256d qp_vec = _mm256_loadu_pd(qp_data_d+idx);
 
             //a_i_ad_j_data[idx]  = (qq + pp + Complex16(0.0,1.0) * (pq - qp))/2.0;
             __m256d qq_plus_pp = _mm256_add_pd( qq_vec, pp_vec );
@@ -413,47 +413,14 @@ exit(-1);
     covariance_matrix = covariance_matrix_a;
 
 
-
-    repr = complex_amplitudes;
+    // indicate that the representation was converted to Fock-space
+    repr = fock_space;
 
 
 }
 
 
 
-
-/**
-@brief Call to get the density matrix element $\f \langle i | \rho | j \rangle $\f
-@param i_state PicState_int64 instance representin Fock state i
-@param j_state PicState_int64 instance representin Fock state j
-@return Returns with the density matrix element
-*/
-Complex16
-GaussianState_Cov::getDensityMatrixElements( PicState_int64& i_state, PicState_int64& j_state ) {
-
-
-    if ( repr != complex_amplitudes ) {
-        std::cout << "To calculate Density Matrix elements the gaussian state needs to be turned into complex amplitude representation with the method ConvertToComplexAmplitudes. Exiting" << std::endl;
-        exit(-1);
-    }
-
-    // calculate Q matrix from Eq (3) in arXiv 2010.15595v3)
-    matrix Q = covariance_matrix.copy();
-    for (size_t idx=0; idx<Q.rows; idx++) {
-        Q[idx*Q.stride+idx].real( Q[idx*Q.stride+idx].real() + 0.5 );
-    }
-
-
-
-    Q.print_matrix();
-
-
-    // calculate A matrix from Eq (4) in arXiv 2010.15595v3)
-
-
-    return Complex16(0.0,0.0);
-
-}
 
 
 /**
@@ -476,6 +443,32 @@ void
 GaussianState_Cov::Update_covariance_matrix( matrix &covariance_matrix_in ) {
 
     covariance_matrix = covariance_matrix_in;
+
+}
+
+
+/**
+@brief Call to get the covariance matrix
+@return Returns with a matrix instance containing the covariance matrix..
+*/
+matrix
+GaussianState_Cov::get_covariance_matrix() {
+
+    return covariance_matrix.copy();
+
+}
+
+
+
+
+/**
+@brief Call to get the representation type of the Gaussian state.
+@return Returns with the representation type of the Gaussian state.
+*/
+representation
+GaussianState_Cov::get_representation() {
+
+    return repr;
 
 }
 

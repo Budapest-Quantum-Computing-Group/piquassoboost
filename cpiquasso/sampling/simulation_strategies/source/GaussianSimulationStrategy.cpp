@@ -4,6 +4,21 @@
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
+#include "dot.h"
+//#include "lapacke.h"
+
+extern "C" {
+
+#define LAPACK_ROW_MAJOR               101
+
+/// Definition of the LAPACKE_zgetri function from LAPACKE to calculate the LU decomposition of a matrix
+int LAPACKE_zgetrf( int matrix_layout, int n, int m, pic::Complex16* a, int lda, int* ipiv );
+
+/// Definition of the LAPACKE_zgetri function from LAPACKE to calculate the inverse of a matirx
+int LAPACKE_zgetri( int matrix_layout, int n, pic::Complex16* a, int lda, const int* ipiv );
+
+}
+
 
 
 namespace pic {
@@ -179,10 +194,15 @@ GaussianSimulationStrategy::getSample() {
         // get the reduced gaussian state describing the first mode_idx modes
         GaussianState_Cov reduced_state = state.getReducedGaussianState( indices_2_extract );
 
+        // get the Hamilton matrix A defined by Eq. (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017).
+        matrix&& A = getHamiltonMatrix( reduced_state );
+
 
         // create array for the new output state
         PicState_int64 current_output(output_sample.size()+1, 0);
         memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
+
+
 
         // get the probabilities for different photon counts on the output mode mode_idx
         for (size_t photon_num=0; photon_num<cutoff; photon_num++) {
@@ -192,8 +212,8 @@ GaussianSimulationStrategy::getSample() {
             current_output.print_matrix();
 
             // get the diagonal element of the density matrix
-            Complex16 && density_element = reduced_state.getDensityMatrixElements( current_output, current_output );
-            probabilities[photon_num] = density_element.real(); //the diagonal element should be real
+            //Complex16 && density_element = reduced_state.getDensityMatrixElements( current_output, current_output );
+            //probabilities[photon_num] = density_element.real(); //the diagonal element should be real
 
         }
 
@@ -256,6 +276,115 @@ output_sample = current_output;
 
 */
     return sample;
+
+}
+
+
+
+
+
+
+/**
+@brief Call to get the Hamilton matrix A defined by Eq. (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017).
+@param state An instance of Gaussian state in the Fock representation. (If the Gaussian state is in quadrature representation, than it is transformed into Fock-space representation)
+@return Returns with the Hamilton matrix A.
+*/
+matrix
+GaussianSimulationStrategy::getHamiltonMatrix( GaussianState_Cov& state ) {
+
+
+    if ( state.get_representation() != fock_space ) {
+        state.ConvertToComplexAmplitudes();
+    }
+
+    // calculate Q matrix from Eq (3) in arXiv 2010.15595v3)
+    matrix Q = state.get_covariance_matrix();
+    for (size_t idx=0; idx<Q.rows; idx++) {
+        Q[idx*Q.stride+idx].real( Q[idx*Q.stride+idx].real() + 0.5 );
+    }
+
+#ifdef DEBUG
+    // for checking the matrix inversion
+    matrix Qcopy = Q.copy();
+#endif // DEBUG
+
+
+    // calculate A matrix from Eq (4) in arXiv 2010.15595v3)
+    matrix Qinv = Q; //just to reuse the memory of Q for the inverse
+
+
+    // calculate the inverse of matrix Q
+    int* ipiv = (int*)scalable_aligned_malloc( Q.stride*sizeof(int), CACHELINE);
+    LAPACKE_zgetrf( LAPACK_ROW_MAJOR, Q.rows, Q.cols, Q.get_data(), Q.stride, ipiv );
+    int info = LAPACKE_zgetri( LAPACK_ROW_MAJOR, Q.rows, Q.get_data(), Q.stride, ipiv );
+    scalable_aligned_free( ipiv );
+
+    if ( info <0 ) {
+        std::cout << "inversion was not successfull. Exiting" << std::endl;
+        exit(-1);
+    }
+
+#ifdef DEBUG
+    // for checking the inversion
+    matrix C = dot(Qinv, Qcopy);
+    for (size_t idx=0; idx<C.rows; idx++) {
+        C[idx.C.stride+idx].real( C[idx.C.stride+idx].real() - 1.0);
+    }
+    double diff=0.0;
+    for (size_t idx=0; idx<C.size(); idx++) {
+        assert( abs(C[idx]) > 1e-9);
+    }
+#endif // DEBUG
+
+
+
+
+    //calculate A = X (1-Qinv)    X=(0,1;1,0)
+
+    // subtract identity from Qinv
+    for (size_t row_idx = 0; row_idx<Qinv.rows ; row_idx++) {
+
+        size_t row_offset = row_idx*Qinv.stride;
+        Qinv[row_offset+row_idx].real(Qinv[row_offset+row_idx].real() - 1);
+
+    }
+
+    // multiply by -1 the elements of (Qinv - 1) and store the result in the corresponding rows of A
+    matrix A(Qinv.rows, Qinv.cols);
+    __m256d neg = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
+    size_t number_of_modes = Qinv.rows/2;
+    for (size_t row_idx = 0; row_idx<number_of_modes ; row_idx++) {
+
+        size_t row_offset1 = row_idx*Qinv.stride;
+        size_t row_offset2 = (row_idx+number_of_modes)*Qinv.stride;
+
+         // rows 1:N form (1-Qinv) to rows N+1:2N in A --- effect of X
+        for (size_t col_idx = 0; col_idx<Qinv.cols; col_idx=col_idx+2) {
+
+            __m256d Qinv_vec = _mm256_loadu_pd((double*)&Qinv[row_offset1 + col_idx]);
+            Qinv_vec = _mm256_mul_pd(Qinv_vec, neg);
+            _mm256_storeu_pd((double*)&A[row_offset2 + col_idx], Qinv_vec);
+
+        }
+
+        // rows N+1:2N form (1-Qinv) to rows 1:N in A --- effect of X
+        for (size_t col_idx = 0; col_idx<Qinv.cols; col_idx=col_idx+2) {
+
+            __m256d Qinv_vec = _mm256_loadu_pd((double*)&Qinv[row_offset2 + col_idx]);
+            Qinv_vec = _mm256_mul_pd(Qinv_vec, neg);
+            _mm256_storeu_pd((double*)&A[row_offset1 + col_idx], Qinv_vec);
+
+        }
+
+
+
+    }
+
+    A.print_matrix();
+
+
+
+    return A;
 
 }
 

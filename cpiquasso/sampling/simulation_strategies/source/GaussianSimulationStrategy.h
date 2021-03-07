@@ -131,6 +131,14 @@ protected:
 PicState_int64 getSample();
 
 
+/**
+@brief Call to get the Hamilton matrix A defined by Eq. (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017).
+@param state An instance of Gaussian state in the Fock representation. (If the Gaussian state is in quadrature representation, than it is transformed into Fock-space representation)
+@return Returns with the Hamilton matrix A.
+*/
+matrix getHamiltonMatrix( GaussianState_Cov& state );
+
+
 }; //GaussianSimulationStrategy
 
 
