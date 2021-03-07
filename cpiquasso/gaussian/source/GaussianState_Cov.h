@@ -78,6 +78,13 @@ matrix get_covariance_matrix();
 
 
 /**
+@brief Call to get the displacement m
+@return Returns with a matrix instance containing the m displacement.
+*/
+matrix get_m();
+
+
+/**
 @brief Call to get the representation type of the Gaussian state.
 @return Returns with the representation type of the Gaussian state.
 */

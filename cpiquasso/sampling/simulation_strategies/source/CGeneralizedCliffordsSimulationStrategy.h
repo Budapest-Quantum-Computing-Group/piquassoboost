@@ -13,14 +13,6 @@ namespace pic {
 
 
 
-
-/**
-@brief Call to calculate sum of integers stored in a container
-@param vec a container if integers
-@return Returns with the sum of the elements of the container
-*/
-static int64_t sum( PicState_int64 &vec);
-
 /**
 @brief Class representing a generalized Cliffords simulation strategy
 */
@@ -122,14 +114,6 @@ void sample_from_latest_pmf( PicState_int64& sample );
 }; //CGeneralizedCliffordsSimulationStrategy
 
 
-
-
-/**
-@brief Function to calculate factorial of a number.
-@param n The input number
-@return Returns with the factorial of the number
-*/
-double factorial(int64_t n);
 
 
 /**

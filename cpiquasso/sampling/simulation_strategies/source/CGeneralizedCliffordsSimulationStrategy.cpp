@@ -12,6 +12,52 @@ namespace pic {
             0.874288, 0.656594, 0.287817, 0.484918, 0.854716, 0.31408, 0.516911, 0.374158, 0.0124914, 0.878496, 0.322593, 0.699271, 0.0583747, 0.56629, 0.195314, 0.00059639, 0.443711, 0.652659, 0.350379, 0.839752, 0.710161, 0.28553};
     int rand_num_idx = 0;
 */
+
+/**
+@brief Function to calculate factorial of a number.
+@param n The input number
+@return Returns with the factorial of the number
+*/
+static double factorial(int64_t n) {
+
+
+
+    if ( n == 0 ) return 1;
+    if ( n == 1 ) return 1;
+
+    int64_t ret=1;
+
+    for (int64_t idx=2; idx<=n; idx++) {
+        ret = ret*idx;
+    }
+
+    return (double) ret;
+
+
+}
+
+
+
+/**
+@brief Call to calculate sum of integers stored in a PicState
+@param vec a container if integers
+@return Returns with the sum of the elements of the container
+*/
+static inline int64_t
+sum( PicState_int64 &vec) {
+
+    int64_t ret=0;
+
+    size_t element_num = vec.cols;
+    int64_t* data = vec.get_data();
+    for (size_t idx=0; idx<element_num; idx++ ) {
+        ret = ret + data[idx];
+    }
+    return ret;
+}
+
+
+
 /**
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
@@ -342,23 +388,6 @@ CGeneralizedCliffordsSimulationStrategy::sample_from_latest_pmf( PicState_int64&
 }
 
 
-/**
-@brief Call to calculate sum of integers stored in a PicState
-@param vec a container if integers
-@return Returns with the sum of the elements of the container
-*/
-inline int64_t
-sum( PicState_int64 &vec) {
-
-    int64_t ret=0;
-
-    size_t element_num = vec.cols;
-    int64_t* data = vec.get_data();
-    for (size_t idx=0; idx<element_num; idx++ ) {
-        ret = ret + data[idx];
-    }
-    return ret;
-}
 
 
 
@@ -454,28 +483,7 @@ double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 
 
 
 
-/**
-@brief Function to calculate factorial of a number.
-@param n The input number
-@return Returns with the factorial of the number
-*/
-double factorial(int64_t n) {
 
-
-
-    if ( n == 0 ) return 1;
-    if ( n == 1 ) return 1;
-
-    int64_t ret=1;
-
-    for (int64_t idx=2; idx<=n; idx++) {
-        ret = ret*idx;
-    }
-
-    return (double) ret;
-
-
-}
 
 
 

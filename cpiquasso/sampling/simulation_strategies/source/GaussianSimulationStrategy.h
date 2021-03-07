@@ -132,11 +132,49 @@ PicState_int64 getSample();
 
 
 /**
-@brief Call to get the Hamilton matrix A defined by Eq. (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017).
+@brief Call to calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595
 @param state An instance of Gaussian state in the Fock representation. (If the Gaussian state is in quadrature representation, than it is transformed into Fock-space representation)
 @return Returns with the Hamilton matrix A.
 */
-matrix getHamiltonMatrix( GaussianState_Cov& state );
+matrix calc_Qinv( GaussianState_Cov& state );
+
+/**
+@brief Call to calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595 and the determinant of Q.
+Since the determinant can be calculated by LU factorization, which is also necessary to calculate the inverse, we
+calculatet the inverse and the determiant in one shot.
+@param state An instance of Gaussian state in the Fock representation. (If the Gaussian state is in quadrature representation, than it is transformed into Fock-space representation)
+@param Qdet The calculated determinant of the matrix Q is stored into this value.
+@return Returns with the Hamilton matrix A.
+*/
+matrix calc_Qinv( GaussianState_Cov& state, double& Qdet );
+
+
+/**
+@brief Call to calculate the Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+@param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
+@return Returns with the Hamilton matrix A.
+*/
+matrix calc_HamiltonMatrix( matrix& Qinv );
+
+
+/**
+@brief Call to calculate the probability associated with observing output state given by current_output
+@param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
+@param Qdet The determinant of matrix Q.
+@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+@param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
+@param current output The fock representation of the current output for which the probability is calculated
+@return Returns with the calculated probability
+*/
+double calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output );
+
+
+/**
+@brief Call to sample from a probability array.
+@param probabilities Array of probabilities from which the sampling should be taken
+@return Returns with the index of the chosen probability value
+*/
+size_t sample_from_probabilities( matrix_base<double>& probabilities );
 
 
 }; //GaussianSimulationStrategy

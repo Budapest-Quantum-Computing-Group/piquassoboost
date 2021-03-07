@@ -44,8 +44,7 @@ GaussianState_Cov::GaussianState_Cov( matrix &covariance_matrix_in, representati
     Update_covariance_matrix( covariance_matrix_in );
 
     // set the displacement to zero
-    m = matrix(1,covariance_matrix_in.rows);
-    memset(m.get_data(), 0, m.size()*sizeof(Complex16));
+    m = matrix(0,0);
 
     repr = repr_in;
 
@@ -86,8 +85,12 @@ GaussianState_Cov::getReducedGaussianState( PicState_int64 &modes ) {
     Complex16* covariance_matrix_reduced_data = covariance_matrix_reduced.get_data();
     Complex16* covariance_matrix_data = covariance_matrix.get_data();
 
-    // allocate data for the reduced displacement
-    matrix m_reduced(1, number_of_modes*2);
+    matrix m_reduced;
+    if (m.size() > 0) {
+        // allocate data for the reduced displacement
+        m_reduced = matrix(1, number_of_modes*2);
+    }
+
     Complex16* m_reduced_data = m_reduced.get_data();
     Complex16* m_data = m.get_data();
 
@@ -153,8 +156,10 @@ GaussianState_Cov::getReducedGaussianState( PicState_int64 &modes ) {
         }
 
         // extract modes from the displacement
-        memcpy(m_reduced_data + mode_idx, m_data + col_idx, col_range*sizeof(Complex16)); // q quadratires
-        memcpy(m_reduced_data + mode_idx + number_of_modes, m_data + col_idx + total_number_of_modes, col_range*sizeof(Complex16)); // p quadratures
+        if (m.size() > 0) {
+            memcpy(m_reduced_data + mode_idx, m_data + col_idx, col_range*sizeof(Complex16)); // q quadratires
+            memcpy(m_reduced_data + mode_idx + number_of_modes, m_data + col_idx + total_number_of_modes, col_range*sizeof(Complex16)); // p quadratures
+        }
 
         mode_idx = mode_idx + col_range;
         col_range = 1;
@@ -189,24 +194,26 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
         return;
     }
 
-    // get the mean values of the creation/annihilation operators from the quadrature displacement
-    size_t total_number_of_modes = m.cols/2;
-    matrix displacement_a(1, m.cols);
+    if (m.size()>0) {
+        // get the mean values of the creation/annihilation operators from the quadrature displacement
+        size_t total_number_of_modes = m.cols/2;
+        matrix displacement_a(1, m.cols);
 
-    matrix q(m.get_data(), 1, total_number_of_modes);
-    matrix p(m.get_data()+total_number_of_modes, 1, total_number_of_modes);
-    for (size_t idx=0; idx < total_number_of_modes; idx++) {
+        matrix q(m.get_data(), 1, total_number_of_modes);
+        matrix p(m.get_data()+total_number_of_modes, 1, total_number_of_modes);
+        for (size_t idx=0; idx < total_number_of_modes; idx++) {
 
-        // set the expectation values for a_1, a_2, .... a_N
-        displacement_a[idx] = (q[idx] + Complex16(0.0,1.0)*p[idx])/sqrt(2);
+            // set the expectation values for a_1, a_2, .... a_N
+            displacement_a[idx] = (q[idx] + Complex16(0.0,1.0)*p[idx])/sqrt(2);
 
-        // set the expectation values for a^\dagger_1, a^\dagger_2, .... a^\dagger_N
-        displacement_a[idx+total_number_of_modes] = std::conj(displacement_a[idx]);
+            // set the expectation values for a^\dagger_1, a^\dagger_2, .... a^\dagger_N
+            displacement_a[idx+total_number_of_modes] = std::conj(displacement_a[idx]);
+        }
     }
 
 
     //get the representation of the covariance matrix in the creation/annihilation operator basis
-    total_number_of_modes = covariance_matrix.rows/2;
+    size_t total_number_of_modes = covariance_matrix.rows/2;
 
     // get the matrices of the quadratures with strides
     matrix qq( /* pointer to the origin of the data = */ covariance_matrix.get_data(),
@@ -458,6 +465,18 @@ GaussianState_Cov::get_covariance_matrix() {
 
 }
 
+
+
+/**
+@brief Call to get the displacement m
+@return Returns with a matrix instance containing the m displacement.
+*/
+matrix
+GaussianState_Cov::get_m() {
+
+    return m.copy();
+
+}
 
 
 
