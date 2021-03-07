@@ -43,8 +43,18 @@ BruteForceHafnian::calculate() {
         return Complex16(0,0);
     }
 
+    if (mtx.rows == 0) {
+        // the hafnian of an empty matrix is 1 by definition
+        return Complex16(1,0);
+    }
+    else if (mtx.rows % 2 != 0) {
+        // the hafnian of odd shaped matrix is 0 by definition
+        return Complex16(0.0, 0.0);
+    }
+
 
     Complex16 hafnian( 0.0, 0.0 );
+
 
     // create initial logical row indices to start task iterations
     PicVector<char> row_logicals(dim,0);
