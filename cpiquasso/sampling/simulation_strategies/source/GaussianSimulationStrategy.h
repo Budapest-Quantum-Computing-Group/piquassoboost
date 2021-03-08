@@ -163,10 +163,19 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 @param Qdet The determinant of matrix Q.
 @param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
 @param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
-@param current output The fock representation of the current output for which the probability is calculated
+@param current_output The fock representation of the current output for which the probability is calculated
 @return Returns with the calculated probability
 */
 double calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output );
+
+
+/**
+@brief Call to create matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
+@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+@param current_output The fock representation of the current output for which the probability is calculated
+@return Returns with the A_S matrix
+*/
+matrix create_A_S( matrix& A, PicState_int64& current_output );
 
 
 /**

@@ -506,7 +506,7 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 @param Qdet The determinant of matrix Q.
 @param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
 @param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
-@param current output The fock representation of the current output for which the probability is calculated
+@param current_output The fock representation of the current output for which the probability is calculated
 @return Returns with the calculated probability
 */
 double
@@ -552,6 +552,42 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
 
 
     // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
+    matrix&& A_S = create_A_S( A, current_output );
+
+
+
+    // calculate the hafnian of A_S
+    Complex16 hafnian;
+    if (A_S.rows <= 10) {
+        BruteForceHafnian hafnian_calculator = BruteForceHafnian(A_S);
+        hafnian = hafnian_calculator.calculate();
+    }
+    else {
+        PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
+        hafnian = hafnian_calculator.calculate();
+    }
+
+
+
+    //std::cout << "hafnian: " << hafnian << std::endl;
+
+    // calculate the probability associated with the current output
+    double prob = Normalization*hafnian.real();
+
+    return prob;
+
+}
+
+
+
+/**
+@brief Call to create matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
+@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+@param current_output The fock representation of the current output for which the probability is calculated
+@return Returns with the A_S matrix
+*/
+matrix
+GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_output ) {
 
     size_t dim_A_S = sum(current_output);
     size_t dim_A = current_output.size();
@@ -614,29 +650,9 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
     //A.print_matrix();
     //A_S.print_matrix();
 
-
-    // calculate the hafnian of A_S
-    Complex16 hafnian;
-    if (A_S.rows <= 10) {
-        BruteForceHafnian hafnian_calculator = BruteForceHafnian(A_S);
-        hafnian = hafnian_calculator.calculate();
-    }
-    else {
-        PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
-        hafnian = hafnian_calculator.calculate();
-    }
-
-
-
-    //std::cout << "hafnian: " << hafnian << std::endl;
-
-    // calculate the probability associated with the current output
-    double prob = Normalization*hafnian.real();
-
-    return prob;
+    return A_S;
 
 }
-
 
 
 /**
