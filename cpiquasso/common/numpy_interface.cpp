@@ -97,6 +97,10 @@ PyObject* PicState_int64_to_numpy( pic::PicState_int64 &cstate ) {
 pic::matrix
 numpy2matrix(PyObject *arr) {
 
+    if ( arr == Py_None ) {
+        return pic::matrix(0,0);
+    }
+
     // test C-style contiguous memory allocation of the arrays
     if ( !PyArray_IS_C_CONTIGUOUS(arr) ) {
         std::cout << "array is not memory contiguous" << std::endl;
