@@ -118,7 +118,7 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
 
 
     // establish memory contiguous arrays for C calculations
-    if ( PyArray_IS_C_CONTIGUOUS(interferometer_matrix_arg) ) {
+    if ( PyArray_IS_C_CONTIGUOUS(interferometer_matrix_arg) && PyArray_TYPE(covariance_matrix_arg) == NPY_COMPLEX128 ) {
         self->interferometer_matrix = interferometer_matrix_arg;
         Py_INCREF(self->interferometer_matrix);
     }
