@@ -1,6 +1,7 @@
 #include <iostream>
 #include "GaussianSimulationStrategy.h"
 #include "PowerTraceHafnian.h"
+#include "PowerTraceLoopHafnian.h"
 #include "BruteForceHafnian.h"
 #include <math.h>
 #include <tbb/tbb.h>
@@ -24,9 +25,6 @@ int LAPACKE_zgetri( int matrix_layout, int n, pic::Complex16* a, int lda, const 
 
 namespace pic {
 
-    double rand_nums[40] = {0.929965, 0.961441, 0.46097, 0.090787, 0.137104, 0.499059, 0.951187, 0.373533, 0.634074, 0.0886671, 0.0856861, 0.999702, 0.419755, 0.376557, 0.947568, 0.705106, 0.0520666, 0.45318,
-            0.874288, 0.656594, 0.287817, 0.484918, 0.854716, 0.31408, 0.516911, 0.374158, 0.0124914, 0.878496, 0.322593, 0.699271, 0.0583747, 0.56629, 0.195314, 0.00059639, 0.443711, 0.652659, 0.350379, 0.839752, 0.710161, 0.28553};
-    int rand_num_idx = 0;
 
 
 /**
@@ -129,6 +127,9 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
 
     setCutoff( cutoff );
     setMaxPhotons( max_photons );
+
+    dim = covariance_matrix.rows;
+    dim_over_2 = dim/2;
 
     hbar = 2.0;
 
@@ -257,7 +258,6 @@ GaussianSimulationStrategy::getSample() {
         // create array for the new output state
         PicState_int64 current_output(output_sample.size()+1, 0);
         memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
-
 
 
         // get the probabilities for different photon counts on the output mode mode_idx
@@ -393,7 +393,6 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state, double& Qdet ) 
     // calculate A matrix from Eq (4) in arXiv 2010.15595v3)
     matrix Qinv = Q; //just to reuse the memory of Q for the inverse
 
-
     // calculate the inverse of matrix Q
     int* ipiv = (int*)scalable_aligned_malloc( Q.stride*sizeof(int), CACHELINE);
     LAPACKE_zgetrf( LAPACK_ROW_MAJOR, Q.rows, Q.cols, Q.get_data(), Q.stride, ipiv );
@@ -415,7 +414,7 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state, double& Qdet ) 
     scalable_aligned_free( ipiv );
 
     if ( info <0 ) {
-        std::cout << "inversion was not successfull. Exiting" << std::endl;
+        std::cout << "inversion was not successful. Exiting" << std::endl;
         exit(-1);
     }
 
@@ -423,14 +422,13 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state, double& Qdet ) 
     // for checking the inversion
     matrix C = dot(Qinv, Qcopy);
     for (size_t idx=0; idx<C.rows; idx++) {
-        C[idx.C.stride+idx].real( C[idx.C.stride+idx].real() - 1.0);
+        C[idx*C.stride+idx].real( C[idx*C.stride+idx].real() - 1.0);
     }
-    double diff=0.0;
+
     for (size_t idx=0; idx<C.size(); idx++) {
         assert( abs(C[idx]) > 1e-9);
     }
 #endif // DEBUG
-
 
     return Qinv;
 
@@ -447,18 +445,10 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state, double& Qdet ) 
 matrix
 GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
-
     //calculate A = X (1-Qinv)    X=(0,1;1,0)
 
-    // subtract identity from Qinv
-    for (size_t row_idx = 0; row_idx<Qinv.rows ; row_idx++) {
-
-        size_t row_offset = row_idx*Qinv.stride;
-        Qinv[row_offset+row_idx].real(Qinv[row_offset+row_idx].real() - 1);
-
-    }
-
-    // multiply by -1 the elements of (Qinv - 1) and store the result in the corresponding rows of A
+    // calculate -XQinv
+    // multiply by -1 the elements of Qinv and store the result in the corresponding rows of A
     matrix A(Qinv.rows, Qinv.cols);
     __m256d neg = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
     Complex16* Qinv_data_d = Qinv.get_data();
@@ -491,8 +481,14 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
     }
 
-    //A.print_matrix();
+    // calculate X-XQinv
+    // add X to the matrix eleemnts of -XQinv
+    for (size_t row_idx = 0; row_idx<number_of_modes; row_idx++) {
 
+        A[row_idx*A.stride+row_idx+number_of_modes].real(A[row_idx*A.stride+row_idx+number_of_modes].real() + 1);
+        A[(row_idx+number_of_modes)*A.stride+row_idx].real(A[(row_idx+number_of_modes)*A.stride+row_idx].real() + 1);
+
+    }
 
 
     return A;
@@ -515,19 +511,20 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
 
     // calculate the normalization factor defined by Eq. (10) in arXiv 2010.15595v3
     double Normalization = 1.0/sqrt(Qdet);
+
     if (m.size()>0) {
 
         // calculate Q_inv * conj(alpha)
-        matrix tmp(m.size(),1,0);
+        matrix tmp(m.size(),1);
         for (size_t row_idx=0; row_idx<m.size(); row_idx++) {
-
+            tmp[row_idx] = Complex16(0.0,0.0);
             size_t row_offset = row_idx*Qinv.stride;
 
             for (size_t col_idx=0; col_idx<m.size(); col_idx++) {
                 tmp[row_idx] = tmp[row_idx] + mult_a_bconj( Qinv[row_offset+col_idx], m[col_idx] );
             }
-
         }
+
 
         // calculate alpha * Qinv * conj(alpha)
         Complex16 inner_prod(0.0,0.0);
@@ -535,10 +532,9 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
             inner_prod = inner_prod + m[idx]*tmp[idx];
         }
 
-        std::cout << "inner prod: " << inner_prod << std::endl;
+        Normalization = exp(-0.5*inner_prod.real())*Normalization;
 
 
-        Normalization = inner_prod.real()*Normalization;
     }
 
 
@@ -548,34 +544,90 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
     }
 
 
-    //std::cout << "Normnalization: " << Normalization << std::endl;
-
-
     // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
     matrix&& A_S = create_A_S( A, current_output );
 
 
-
     // calculate the hafnian of A_S
     Complex16 hafnian;
-    if (A_S.rows <= 10) {
-        BruteForceHafnian hafnian_calculator = BruteForceHafnian(A_S);
-        hafnian = hafnian_calculator.calculate();
+    if (m.size()==0) {
+        // gaussian state without displacement
+        if (A_S.rows <= 10) {
+            BruteForceHafnian hafnian_calculator = BruteForceHafnian(A_S);
+            hafnian = hafnian_calculator.calculate();
+        }
+        else {
+            PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
+            hafnian = hafnian_calculator.calculate();
+        }
     }
     else {
-        PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
+        // gaussian state with displacement
+
+        // calculate gamma according to Eq (9) of arXiv 2010.15595v3 and set them into the diagonal of A_S
+        diag_correction_of_A_S( A_S, Qinv, m, current_output );
+/*
+        if (A_S.rows <= 10) {
+            BruteForceHafnian hafnian_calculator = BruteForceHafnian(A_S);
+            hafnian = hafnian_calculator.calculate();
+        }
+        else {
+            PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
+            hafnian = hafnian_calculator.calculate();
+        }
+*/
+
+        PowerTraceLoopHafnian hafnian_calculator = PowerTraceLoopHafnian(A_S);
         hafnian = hafnian_calculator.calculate();
     }
 
 
-
-    //std::cout << "hafnian: " << hafnian << std::endl;
 
     // calculate the probability associated with the current output
     double prob = Normalization*hafnian.real();
 
     return prob;
 
+}
+
+/**
+@brief Call to add correction coming from the displacement to the diagonal elements of A_S (see Eq. (11) in arXiv 2010.15595)
+@param A_S Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+(The output is returned via this variable)
+@param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
+@param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
+@param current_output The Fock representation of the current output for which the probability is calculated
+*/
+void
+GaussianSimulationStrategy::diag_correction_of_A_S( matrix& A_S, matrix& Qinv, matrix& m, PicState_int64& current_output ) {
+
+    matrix gamma(Qinv.rows, 1);
+    for (size_t row_idx=0; row_idx<Qinv.rows; row_idx++) {
+
+        size_t row_offset = row_idx*Qinv.stride;
+        gamma[row_idx] = Complex16(0.0,0.0);
+
+        for (size_t col_idx=0; col_idx<Qinv.rows; col_idx++) {
+            gamma[row_idx] = gamma[row_idx] + mult_a_bconj( Qinv[row_offset + col_idx], m[col_idx] );
+        }
+    }
+    // store gamma values into matrix A_S
+    size_t num_of_modes = current_output.size();
+    size_t num_of_repeated_modes = A_S.rows/2;
+    size_t row_idx = 0;
+    for (size_t idx=0; idx<num_of_modes; idx++) {
+        for (size_t row_repeat=0; row_repeat<current_output[idx]; row_repeat++) {
+
+            A_S[row_idx*A_S.stride + row_idx] = gamma[idx];
+            A_S[(row_idx+num_of_repeated_modes)*A_S.stride + row_idx + num_of_repeated_modes] = gamma[idx+num_of_modes];
+
+
+            row_idx++;
+        }
+    }
+
+
+    return;
 }
 
 
@@ -591,7 +643,6 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
 
     size_t dim_A_S = sum(current_output);
     size_t dim_A = current_output.size();
-    //std::cout << "dimensions: " << dim_A_S << std::endl;
 
     matrix A_S(2*dim_A_S, 2*dim_A_S);
     size_t row_idx = 0;
@@ -647,9 +698,6 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
 
     }
 
-    //A.print_matrix();
-    //A_S.print_matrix();
-
     return A_S;
 
 }
@@ -668,8 +716,6 @@ GaussianSimulationStrategy::sample_from_probabilities( matrix_base<double>& prob
 
     // create a random double
     double rand_num = distribution(generator);
-   //double rand_num = rand_nums[rand_num_idx];//distribution(generator);
-    //rand_num_idx = rand_num_idx + 1;
 
 
     // determine the random index according to the distribution described by probabilities

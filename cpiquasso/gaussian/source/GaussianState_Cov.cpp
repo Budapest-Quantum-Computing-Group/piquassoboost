@@ -63,7 +63,7 @@ GaussianState_Cov::getReducedGaussianState( PicState_int64 &modes ) {
     size_t total_number_of_modes = covariance_matrix.rows/2;
 
     if (total_number_of_modes == 0) {
-        std::cout << "There is no covariance matrix to be reduced. Exiting" << std::endl;
+        std::cout << "GaussianState_Cov::getReducedGaussianState: There is no covariance matrix to be reduced. Exiting" << std::endl;
         exit(-1);
     }
 
@@ -73,8 +73,8 @@ GaussianState_Cov::getReducedGaussianState( PicState_int64 &modes ) {
     if (number_of_modes == total_number_of_modes) {
         return GaussianState_Cov(covariance_matrix, m, repr);
     }
-    else if ( number_of_modes >= total_number_of_modes) {
-        std::cout << "The number of modes to be extracted is larger than the posibble number of modes. Exiting" << std::endl;
+    else if ( number_of_modes > total_number_of_modes) {
+        std::cout << "GaussianState_Cov::getReducedGaussianState: The number of modes to be extracted is larger than the possible number of modes. Exiting" << std::endl;
         exit(-1);
     }
 
@@ -166,7 +166,6 @@ GaussianState_Cov::getReducedGaussianState( PicState_int64 &modes ) {
 
     }
 
-
     // creating the reduced Gaussian state
     GaussianState_Cov ret(covariance_matrix_reduced, m_reduced, repr);
 
@@ -190,15 +189,16 @@ void
 GaussianState_Cov::ConvertToComplexAmplitudes() {
 
 
+
     if (repr==fock_space) {
         return;
     }
 
     if (m.size()>0) {
-        // get the mean values of the creation/annihilation operators from the quadrature displacement
-        size_t total_number_of_modes = m.cols/2;
-        matrix displacement_a(1, m.cols);
 
+        // get the mean values of the creation/annihilation operators from the quadrature displacement
+        size_t total_number_of_modes = m.size()/2;
+        matrix displacement_a(1, m.size());
         matrix q(m.get_data(), 1, total_number_of_modes);
         matrix p(m.get_data()+total_number_of_modes, 1, total_number_of_modes);
         for (size_t idx=0; idx < total_number_of_modes; idx++) {
@@ -209,6 +209,9 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
             // set the expectation values for a^\dagger_1, a^\dagger_2, .... a^\dagger_N
             displacement_a[idx+total_number_of_modes] = std::conj(displacement_a[idx]);
         }
+
+        m = displacement_a;
+
     }
 
 
