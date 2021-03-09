@@ -102,10 +102,11 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     setCutoff( cutoff );
     setMaxPhotons( max_photons );
 
+
+
     dim = covariance_matrix.rows;
     dim_over_2 = dim/2;
 
-    hbar = 2.0;
 
     // seeding the random number generator
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -130,8 +131,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
 
     dim = covariance_matrix.rows;
     dim_over_2 = dim/2;
-
-    hbar = 2.0;
 
     // seeding the random number generator
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -255,22 +254,25 @@ GaussianSimulationStrategy::getSample() {
         matrix m = reduced_state.get_m();
 
 
-        // create array for the new output state
-        PicState_int64 current_output(output_sample.size()+1, 0);
-        memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
+
 
 
         // get the probabilities for different photon counts on the output mode mode_idx
-        for (size_t photon_num=0; photon_num<cutoff; photon_num++) {
+        tbb::parallel_for( (size_t)0, cutoff, (size_t)1, [&](size_t photon_num) {
+        //for (size_t photon_num=0; photon_num<cutoff; photon_num++) {
+
+            // create array for the new output state
+            PicState_int64 current_output(output_sample.size()+1, 0);
+            memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
+
 
             // set the number of photons in the last mode do be sampled
             current_output[mode_idx-1] = photon_num;
-            //current_output.print_matrix();
 
             // calculate the probability associated with observing current_output
             probabilities[photon_num] = calc_probability(Qinv, Qdet, A, m, current_output);
 
-        }
+        });
 
         // renormalize the calculated probabilities with the probability of the previously chosen state
         double prob_sum = 0.0;
@@ -286,6 +288,8 @@ GaussianSimulationStrategy::getSample() {
         size_t&& chosen_index = sample_from_probabilities( probabilities );
 
         // The sampled current state:
+        PicState_int64 current_output(output_sample.size()+1, 0);
+        memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
         current_output[mode_idx-1] = chosen_index;
 
         // updatet the probability of the current sampled state
