@@ -1,14 +1,8 @@
 #include <iostream>
 #include "PowerTraceHafnian.h"
-#include "dot.h"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
 #include <math.h>
-
-#pragma GCC optimize("O3","unroll-loops","omit-frame-pointer","inline") //Optimization flags
-#pragma GCC option("arch=native","tune=native","no-zero-upper") //Enable AVX
-#pragma GCC target("avx")  //Enable AVX
-#include <x86intrin.h> //AVX/SSE Extensions
 
 extern "C" {
 
@@ -19,16 +13,14 @@ int LAPACKE_zgehrd( int matrix_layout, int n, int ilo, int ihi, pic::Complex16* 
 
 }
 
-
+/*
 tbb::spin_mutex my_mutex;
 
 double time_nominator = 0.0;
 double time_nevezo = 0.0;
-
+*/
 
 namespace pic {
-
-typedef unsigned char Byte;
 
 
 
@@ -37,7 +29,7 @@ typedef unsigned char Byte;
 @param n An natural number
 @return Returns with the n-th power of 2.
 */
-unsigned long long power_of_2(unsigned long long n) {
+static unsigned long long power_of_2(unsigned long long n) {
   if (n == 0) return 1;
   if (n == 1) return 2;
 
@@ -47,13 +39,9 @@ unsigned long long power_of_2(unsigned long long n) {
 
 
 
-
-
-
-
 /**
 @brief Default constructor of the class.
-@param mtx_in The effective scattering matrix of a boson sampling instance
+@param mtx_in The covariance matrix of the Gaussian state.
 @return Returns with the instance of the class.
 */
 PowerTraceHafnian::PowerTraceHafnian( matrix &mtx_in ) {
@@ -63,7 +51,12 @@ PowerTraceHafnian::PowerTraceHafnian( matrix &mtx_in ) {
 }
 
 
+/**
+@brief Default destructor of the class.
+*/
+PowerTraceHafnian::~PowerTraceHafnian() {
 
+}
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
@@ -156,7 +149,6 @@ PowerTraceHafnian::calculate() {
             }
         }
 
-
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
         matrix traces(dim_over_2, 1);
@@ -168,6 +160,7 @@ PowerTraceHafnian::calculate() {
             // this occurs once during the calculations
             memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex16));
         }
+
 
 
         // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
@@ -182,10 +175,6 @@ PowerTraceHafnian::calculate() {
         aux0[0] = 1.0;
         // pointers to the auxiliary data arrays
         Complex16 *p_aux0=NULL, *p_aux1=NULL;
-
-        matrix comb(2 * (dim_over_2 + 1),1);
-        memset( comb.get_data(), 0.0, comb.rows*comb.cols*sizeof(Complex16));
-        comb[0] = 1.0;
 
         for (size_t idx = 1; idx <= dim_over_2; idx++) {
 
@@ -258,26 +247,43 @@ PowerTraceHafnian::calculate() {
 
 /**
 @brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$.
-@param mtx an instance of class matrix.
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
 @param pow_max maximum matrix power when calculating the power trace.
 @return a vector containing the power traces of matrix `z` to power \f$1\leq j \leq l\f$.
 */
 matrix
-PowerTraceHafnian::calc_power_traces(matrix &mtx, size_t pow_max) {
+PowerTraceHafnian::calc_power_traces(matrix &AZ, size_t pow_max) {
 
-  // transform the matrix mtx into an upper hessenberg format by calling lapack function
-  int N = mtx.rows;
-  int ILO = 1;
-  int IHI = N;
-  int LDA = N;
-  matrix tau(N-1,1);
-  LAPACKE_zgehrd(LAPACK_ROW_MAJOR, N, ILO, IHI, mtx.get_data(), LDA, tau.get_data() );
+    // The lapack function is more efficient for larger matrices
+    if ( mtx.rows > 10) {
 
-  // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-  matrix coeffs_labudde = calc_characteristic_polynomial_coeffs(mtx, mtx.rows);
+        // transform the matrix mtx into an upper hessenberg format by calling lapack function
+        int N = AZ.rows;
+        int ILO = 1;
+        int IHI = N;
+        int LDA = N;
+        matrix tau(N-1,1);
+        LAPACKE_zgehrd(LAPACK_ROW_MAJOR, N, ILO, IHI, AZ.get_data(), LDA, tau.get_data() );
 
-  // calculate the power traces of the matrix mtx using LeVerrier recursion relation
-  return powtrace_from_charpoly(coeffs_labudde, pow_max);
+    }
+    else {
+        transform_matrix_to_hessenberg(AZ);
+    }
+
+/*
+{
+            tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+            time_nominator = time_nominator  + (t1-t0).seconds();
+            time_nevezo = time_nevezo  + (t3-t2).seconds();
+            std::cout << time_nominator/time_nevezo << std::endl;
+        }
+*/
+
+    // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
+    matrix coeffs_labudde = calc_characteristic_polynomial_coeffs(AZ, AZ.rows);
+
+    // calculate the power traces of the matrix AZ using LeVerrier recursion relation
+    return powtrace_from_charpoly(coeffs_labudde, pow_max);
 }
 
 
@@ -287,7 +293,7 @@ PowerTraceHafnian::calc_power_traces(matrix &mtx, size_t pow_max) {
 @brief Call to determine the first \f$ k \f$ coefficients of the characteristic polynomial using the Algorithm 2 of LaBudde method.
  See [arXiv:1104.3769](https://arxiv.org/abs/1104.3769v1) for further details.
 @param mtx matrix in upper Hessenberg form.
-@param highest_orde the order of the highest order coefficient to be calculated (k <= n)
+@param highest_order the order of the highest order coefficient to be calculated (k <= n)
 @return Returns with the calculated coefficients of the characteristic polynomial.
  *
  */
@@ -424,7 +430,7 @@ PowerTraceHafnian::calc_characteristic_polynomial_coeffs(matrix &mtx, size_t hig
     }
 
 
-  return coeffs;
+    return coeffs;
 }
 
 
@@ -454,12 +460,14 @@ PowerTraceHafnian::powtrace_from_charpoly(matrix &coeffs, size_t pow) {
   matrix traces(pow,1);
 
 
-
+  // Tr(A)
   traces[0] = -coeffs[(dim - 1) * dim];
 
   // Calculate power traces using the LeVerrier recursion relation
-  for (size_t idx = 2; idx <= pow; idx++) {
+  size_t kdx_max = pow < dim ? pow : dim;
+  for (size_t idx = 2; idx <= kdx_max; idx++) {
 
+    // Tr(A^idx)
     size_t element_offset = (dim - 1) * dim + idx - 1;
     traces[idx - 1] = -(double)idx * coeffs[element_offset];
 
@@ -468,6 +476,7 @@ PowerTraceHafnian::powtrace_from_charpoly(matrix &coeffs, size_t pow) {
     }
 
   }
+
 
   // Appendix B optimization
   if (pow > dim) {
@@ -485,17 +494,6 @@ PowerTraceHafnian::powtrace_from_charpoly(matrix &coeffs, size_t pow) {
 
   } // if
 
-/*
-        {
-            tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-//std::cout <<   (t2-t1).seconds()/(t1-t0).seconds() << std::endl;
-//time_nominator = time_nominator + (t2-t1).seconds();
-//time_nevezo = time_nevezo + (t1-t0).seconds();
-//std::cout <<   time_nominator/time_nevezo << std::endl;
-  //traces2.print_matrix();
-  //traces.print_matrix();
-        }
-*/
 
   return traces;
 
@@ -506,8 +504,137 @@ PowerTraceHafnian::powtrace_from_charpoly(matrix &coeffs, size_t pow) {
 
 
 /**
+/@brief Determine the reflection vector for Householder transformation used in the upper Hessenberg transformation algorithm
+@param mtx The matrix instance on which the Hessenberg transformation should be applied
+@param offset Starting index (i.e. offset index) of rows/columns from which the householder transformation should be applied
+@return Returns with the calculated reflection vector
+ */
+matrix PowerTraceHafnian::get_reflection_vector(matrix &mtx, size_t offset) {
+
+  size_t mtx_size = mtx.rows;
+
+  size_t sizeH = mtx_size - offset;
+
+
+  double sigma(0.0);
+  matrix reflect_vector(sizeH,1);
+  for (size_t idx = 0; idx < sizeH; idx++) {
+    reflect_vector[idx] = mtx[(idx + offset) * mtx_size + offset - 1];
+    sigma = sigma + std::norm(reflect_vector[idx]); //adding the squared magnitude
+  }
+  sigma = sqrt(sigma);
+
+  if (reflect_vector[0] != Complex16(0.0,0.0)){
+    double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
+    reflect_vector[0] = reflect_vector[0] + sigma*std::polar(1.0, angle);
+  }
+  else {
+    reflect_vector[0].real( reflect_vector[0].real() + sigma );
+  }
+
+
+  return reflect_vector;
+}
+
+/**
+@brief Apply householder transformation on a matrix A' = (1 - 2*v o v/v^2) A for one specific reflection vector v
+@param A matrix on which the householder transformation is applied. (The output is returned via this matrix)
+@param v A matrix instance of the reflection vector
+@param offset Starting index (i.e. offset index) of rows/columns from which the householder transformation should be applied
+*/
+void PowerTraceHafnian::apply_householder(matrix &A, matrix &v, size_t offset) {
+
+
+  double norm_v_sqr = 0.0;
+  for (size_t idx=0; idx<v.size(); idx++) {
+      norm_v_sqr = norm_v_sqr + std::norm(v[idx]);
+  }
+
+
+  if (norm_v_sqr == 0.0)
+    return;
+
+
+  size_t sizeH = v.size();
+  size_t size_A = A.rows;
+
+  // calculate A^~ = (1-2vov)A
+
+  // allocate memory for the vector-matrix product v^+ A
+  matrix vH_times_A(size_A - offset + 1, 1);
+  memset(vH_times_A.get_data(), 0, vH_times_A.size()*sizeof(Complex16) );
+
+  // calculate the vector-matrix product (v^+) * A
+  for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
+
+    size_t offset_A_data =  (offset + row_idx) * size_A + offset - 1;
+    Complex16* data_A = A.get_data() + offset_A_data;
+
+    for (size_t j = 0; j < size_A - offset + 1; j++) {
+      vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+    }
+
+
+  }
+
+
+
+
+  // calculate the vector-vector product v * ((v^+) * A))
+  for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
+
+    size_t offset_data_A =  (offset + row_idx) * size_A + offset - 1;
+    Complex16* data_A = A.get_data() + offset_data_A;
+
+    Complex16 factor = (v[row_idx]/norm_v_sqr)*2.0;
+    for (size_t j = 0; j < size_A - offset + 1; j++) {
+      data_A[j] = data_A[j] - factor * vH_times_A[j];
+    }
+  }
+
+
+  // calculate A^~(1-2vov)
+  for (size_t idx = 0; idx < size_A; idx++) {
+    size_t offset_data_A = (idx)*size_A + offset;
+    Complex16* data_A = A.get_data() + offset_data_A;
+
+    Complex16 factor(0.0,0.0);
+    for (size_t v_idx = 0; v_idx < sizeH; v_idx++) {
+        factor = factor + data_A[v_idx] * v[v_idx];
+    }
+
+    factor = 2.0*factor/norm_v_sqr;
+    for (int jdx=sizeH-1; jdx>=0; jdx--) {
+        data_A[jdx] = data_A[jdx] - mult_a_bconj(factor, v[jdx]);
+    }
+
+  }
+
+
+  return;
+
+
+}
+
+/**
+@brief Reduce a general matrix to upper Hessenberg form.
+@param matrix matrix to be reduced to upper Hessenberg form. The reduced matrix is returned via this input
+*/
+void PowerTraceHafnian::transform_matrix_to_hessenberg(matrix &mtx) {
+
+  // apply recursive Hauseholder transformation to eliminate the matrix elements column by column
+  for (size_t idx = 1; idx < mtx.rows - 1; idx++) {
+    matrix reflect_vector = get_reflection_vector(mtx, idx);
+    apply_householder(mtx, reflect_vector, idx);
+  }
+}
+
+
+
+
+/**
 @brief Call to update the memory address of the matrix mtx
-@param mtx_in Input matrix defined by
+@param mtx_in The new covariance matrix
 */
 void
 PowerTraceHafnian::Update_mtx( matrix &mtx_in) {

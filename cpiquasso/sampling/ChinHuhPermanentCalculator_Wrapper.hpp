@@ -8,11 +8,6 @@
 #include "CChinHuhPermanentCalculator.h"
 #include "numpy_interface.h"
 
-/**
-This file contains the implementation of the python wrapper object for the C++ class ChinHuhPermanentCalculator_wrapper. 
-It is included by the file Boson_Sampling_Utilities_wrapper.cpp
-*/
-
 
 
 /**
@@ -33,15 +28,12 @@ typedef struct ChinHuhPermanentCalculator_wrapper {
 
 /**
 @brief Creates an instance of class ChinHuhPermanentCalculator and return with a pointer pointing to the class instance (C++ linking is needed)
-@param matrix_mtx The permanent is calculated for the subset of this matrix.
-@param input_state_mtx The input state represented by a pic::PicState_int64 instance
-@param output_state_mtx The output state represented by a pic::PicState_int64 instance
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
 pic::CChinHuhPermanentCalculator*
-create_ChinHuhPermanentCalculator( pic::matrix &matrix_mtx, pic::PicState_int64 &input_state_mtx, pic::PicState_int64 &output_state_mtx ) {
+create_ChinHuhPermanentCalculator() {
 
-    return new pic::CChinHuhPermanentCalculator(matrix_mtx, input_state_mtx, output_state_mtx);
+    return new pic::CChinHuhPermanentCalculator();
 }
 
 /**
@@ -107,10 +99,8 @@ ChinHuhPermanentCalculator_wrapper_new(PyTypeObject *type, PyObject *args, PyObj
 /**
 @brief Method called when a python instance of the class ChinHuhPermanentCalculator_wrapper is initialized
 @param self A pointer pointing to an instance of the class ChinHuhPermanentCalculator_wrapper.
-@param args A tuple of the input arguments: matrix (np.ndarray), input_state  (np.ndarray), output_state (np.ndarray)
-matrix: The permanent is calculated for the subset of this matrix.
-input_state: The input state represented by a pic::PicState_int64 instance
-output_state: The output state represented by a pic::PicState_int64 instance
+@param args A tuple of the input arguments: qbit_num (integer)
+qbit_num: the number of qubits spanning the operations
 @param kwds A tuple of keywords
 */
 static int
@@ -159,16 +149,10 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
         self->output_state = PyArray_FROM_OTF(output_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
     }
 
-
-
-
-    // create PIC version of the input matrices
-    pic::matrix matrix_mtx = numpy2matrix(self->matrix);
-    pic::PicState_int64 input_state_mtx = numpy2PicState_int64(self->input_state);
-    pic::PicState_int64 output_state_mtx = numpy2PicState_int64(self->output_state);
+  
 
     // create instance of class ChinHuhPermanentCalculator
-    self->calculator = create_ChinHuhPermanentCalculator( matrix_mtx, input_state_mtx, output_state_mtx );
+    self->calculator = create_ChinHuhPermanentCalculator();
 
     return 0;
 }
@@ -178,14 +162,20 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
 /**
 @brief Wrapper function to call the calculate method of C++ class CChinHuhPermanentCalculator
 @param self A pointer pointing to an instance of the class ChinHuhPermanentCalculator_Wrapper.
-@return Returns with a PyObject containing the calculated hafnian.
+@param args A tuple of the input arguments: ??????????????
+@param kwds A tuple of keywords
 */
 static PyObject *
 ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper *self)
 {
 
+    // create PIC version of the input matrices
+    pic::matrix matrix_mtx = numpy2matrix(self->matrix);
+    pic::PicState_int64 input_state_mtx = numpy2PicState_int64(self->input_state);
+    pic::PicState_int64 output_state_mtx = numpy2PicState_int64(self->output_state);
+
     // start the calculation of the permanent
-    pic::Complex16 ret = self->calculator->calculate();
+    pic::Complex16 ret = self->calculator->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
 
     return Py_BuildValue("D", &ret);
 }
@@ -195,9 +185,6 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
 
 /**
 @brief Method to call get attribute matrix
-@param self A pointer pointing to an instance of the structure ChinHuhPermanentCalculator_Wrapper
-@param closure Set to NULL pointer
-@return Returns with a PyObject containing matrix.
 */
 static PyObject *
 ChinHuhPermanentCalculator_wrapper_getmatrix(ChinHuhPermanentCalculator_wrapper *self, void *closure)
@@ -208,10 +195,6 @@ ChinHuhPermanentCalculator_wrapper_getmatrix(ChinHuhPermanentCalculator_wrapper 
 
 /**
 @brief Method to call set attribute matrix
-@param self A pointer pointing to an instance of the structure ChinHuhPermanentCalculator_Wrapper
-@param matrix_arg A PyObject containing the matrix.
-@param closure Set to NULL pointer
-@return Returns with 0 in case of success.
 */
 static int
 ChinHuhPermanentCalculator_wrapper_setmatrix(ChinHuhPermanentCalculator_wrapper *self, PyObject *matrix_arg, void *closure)
@@ -228,14 +211,6 @@ ChinHuhPermanentCalculator_wrapper_setmatrix(ChinHuhPermanentCalculator_wrapper 
         self->matrix = PyArray_FROM_OTF(matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
 
-
-    // create PIC version of the input matrices
-    pic::matrix matrix_mtx = numpy2matrix(self->matrix);
-
-    // update data on the C++ side
-    self->calculator->Update_mtx( matrix_mtx );
-
-
     return 0;
 }
 
@@ -245,9 +220,6 @@ ChinHuhPermanentCalculator_wrapper_setmatrix(ChinHuhPermanentCalculator_wrapper 
 
 /**
 @brief Method to call get the input_state
-@param self A pointer pointing to an instance of the structure ChinHuhPermanentCalculator_Wrapper
-@param closure Set to NULL pointer
-@return Returns with a PyObject containing the input state.
 */
 static PyObject *
 ChinHuhPermanentCalculator_wrapper_getinput_state(ChinHuhPermanentCalculator_wrapper *self, void *closure)
@@ -258,10 +230,6 @@ ChinHuhPermanentCalculator_wrapper_getinput_state(ChinHuhPermanentCalculator_wra
 
 /**
 @brief Method to call set the input_state
-@param self A pointer pointing to an instance of the structure ChinHuhPermanentCalculator_Wrapper
-@param input_state_arg A PyObject containing the input state.
-@param closure Set to NULL pointer
-@return Returns with 0 in case of success.
 */
 static int
 ChinHuhPermanentCalculator_wrapper_setinput_state(ChinHuhPermanentCalculator_wrapper *self, PyObject *input_state_arg, void *closure)
@@ -277,13 +245,6 @@ ChinHuhPermanentCalculator_wrapper_setinput_state(ChinHuhPermanentCalculator_wra
         self->input_state = PyArray_FROM_OTF(input_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
     }
 
-    // create PIC version of the input matrices
-    pic::PicState_int64 input_state_mtx = numpy2PicState_int64(self->input_state);
-
-    // update data on the C++ side
-    self->calculator->Update_input_state( input_state_mtx );
-
-
     return 0;
 }
 
@@ -292,9 +253,6 @@ ChinHuhPermanentCalculator_wrapper_setinput_state(ChinHuhPermanentCalculator_wra
 
 /**
 @brief Method to call get the output_state
-@param self A pointer pointing to an instance of the structure ChinHuhPermanentCalculator_Wrapper
-@param closure Set to NULL pointer
-@return Returns with a PyObject containing output state.
 */
 static PyObject *
 ChinHuhPermanentCalculator_wrapper_getoutput_state(ChinHuhPermanentCalculator_wrapper *self, void *closure)
@@ -304,11 +262,7 @@ ChinHuhPermanentCalculator_wrapper_getoutput_state(ChinHuhPermanentCalculator_wr
 }
 
 /**
-@brief Method to call set the output state
-@param self A pointer pointing to an instance of the structure ChinHuhPermanentCalculator_Wrapper
-@param input_state_arg A PyObject containing the output state.
-@param closure Set to NULL pointer
-@return Returns with 0 in case of success.
+@brief Method to call set matrix mean
 */
 static int
 ChinHuhPermanentCalculator_wrapper_setoutput_state(ChinHuhPermanentCalculator_wrapper *self, PyObject *output_state_arg, void *closure)
@@ -325,20 +279,11 @@ ChinHuhPermanentCalculator_wrapper_setoutput_state(ChinHuhPermanentCalculator_wr
         self->output_state = PyArray_FROM_OTF(output_state_arg, NPY_INT64, NPY_ARRAY_IN_ARRAY);
     }
 
-    // create PIC version of the input matrices
-    pic::PicState_int64 output_state_mtx = numpy2PicState_int64(self->output_state);
-
-    // update data on the C++ side
-    self->calculator->Update_output_state( output_state_mtx );
-
-
     return 0;
 }
 
 
-/**
-@brief list of set and get function implementations for the python object ChinHuhPermanentCalculator_wrapper
-*/
+
 static PyGetSetDef ChinHuhPermanentCalculator_wrapper_getsetters[] = {
     {"matrix", (getter) ChinHuhPermanentCalculator_wrapper_getmatrix, (setter) ChinHuhPermanentCalculator_wrapper_setmatrix,
      "matrix", NULL},

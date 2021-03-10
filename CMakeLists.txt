@@ -18,10 +18,13 @@ include(CheckIncludeFileCXX)
 set(CXX_FLAGS_DEBUG)
 set(CXX_FLAGS_RELEASE)
 set(TBB_LIBS)
+set(PYTHON_LIBS)
 set(EXTRA_INCLUDES)
 set(BLAS_LIBRARIES)
 set(NUMPY_BLAS_LIB_DIR)
 set(NUMPY_BLAS_LIB)
+set(PYTHON_DATA_PATH)
+set(TBB_INC_DIR)
 
 
 #enable test target
@@ -64,9 +67,22 @@ exec_program(
 )
 
 
+# Determine include and library path for additional dependencies
+exec_program(${PYTHON_EXECUTABLE}
+             ARGS "-c \"from sysconfig import get_paths; info = get_paths(); data_path=info.get('data',' '); print(data_path)\""
+             OUTPUT_VARIABLE PYTHON_DATA_PATH
+             RETURN_VALUE DATA_PATH_NOT_FOUND
+            )
+if(NUMPY_NOT_FOUND)
+    message(FATAL_ERROR "Python DATA not found")
+endif()
+
 find_package(PythonExtensions REQUIRED)
 
 
+# setting paths for library dependencies
+set(PYTHON_LIBS "${PYTHON_DATA_PATH}/lib" )
+set(TBB_INC_DIR "${PYTHON_DATA_PATH}/include/")
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -150,19 +166,19 @@ if(DEFINED ENV{TBB_LIB_DIR})
 
 else()
 
-  find_library(TBB_LIB tbb)
+  find_library(TBB_LIB tbb PATH ${PYTHON_LIBS})
 
   if(NOT TBB_LIB)
     message(FATAL_ERROR "TBB library not found")
   endif()
 
-  find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy )
+  find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy PATH ${PYTHON_LIBS} )
 
   if(NOT TBBMALLOC_PROXY_LIB)
     message(FATAL_ERROR "TBBMALLOC_PROXY library not found")
   endif()
 
-  list(APPEND TBB_LIBS "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
+  list(APPEND TBB_LIBS "-Wl,-rpath=${PYTHON_LIBS}" "-L${PYTHON_LIBS}" "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
 
 endif()
 
@@ -183,10 +199,11 @@ if(DEFINED ENV{TBB_INC_DIR})
 
 else()
 
-  check_include_file_cxx(tbb/tbb.h TBB_HEADER)
+  check_include_file_cxx(tbb/tbb.h TBB_HEADER "-I${TBB_INC_DIR}")
+  list(APPEND EXTRA_INCLUDES "${TBB_INC_DIR}") 
 
   if(NOT TBB_HEADER)
-    message(FATAL_ERROR "TBB header tbb.h not found")
+    #message(FATAL_ERROR "TBB header tbb.h not found")
   endif()
 
 
@@ -201,10 +218,15 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/CGaussianState.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/GaussianState_Cov.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceHafnian.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
 )
 
 # adding compile options
@@ -223,22 +245,28 @@ target_link_libraries(cpiquasso PRIVATE
 target_include_directories(cpiquasso PRIVATE
                             .
                             ./cpiquasso/common/source
+                            ./cpiquasso/gaussian/source
                             ./cpiquasso/sampling/source
                             ${EXTRA_INCLUDES})
 
 set_target_properties(cpiquasso PROPERTIES
     VERSION ${PROJECT_VERSION}
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.hpp
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dependency_graph.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/CGaussianState.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/GaussianState_Cov.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceHafnian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.h
 )
 
 configure_file(${PROJECT_SOURCE_DIR}/cpiquasso/common/source/Config.h.in

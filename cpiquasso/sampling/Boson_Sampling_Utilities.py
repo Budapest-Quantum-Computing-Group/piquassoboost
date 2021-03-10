@@ -9,6 +9,7 @@ import numpy as np
 
 from .Boson_Sampling_Utilities_wrapper import ChinHuhPermanentCalculator_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceHafnian_wrapper
+from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnian_wrapper
 
 
 class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
@@ -81,5 +82,33 @@ class PowerTraceHafnian(PowerTraceHafnian_wrapper):
         # call the permanent calculator of the parent class
         return super(PowerTraceHafnian, self).calculate()
 
+
+
+class PowerTraceLoopHafnian(PowerTraceLoopHafnian_wrapper):
+    """
+        This class is designed to calculate the loop hafnian of a symetrix matrix using the power trace method.
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        super(PowerTraceLoopHafnian, self).__init__(matrix=matrix)
+        pass
+
+       
+    def calculate(self):
+        """
+            This is the main method of the calculator. Assuming that input state, output state and the matrix are
+            defined correctly (that is we've got m x m matrix, and vectors of with length m) this calculates the
+            permanent of an effective scattering matrix related to probability of obtaining output state from given
+            input state.
+            :return: Permanent of effective scattering matrix.
+        """
+
+
+
+        # call the permanent calculator of the parent class
+        return super(PowerTraceLoopHafnian, self).calculate()
 
 

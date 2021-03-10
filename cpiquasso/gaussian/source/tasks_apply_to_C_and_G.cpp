@@ -179,13 +179,13 @@ Extract_Corner::operator()(const tbb::flow::continue_msg &msg) {
         }
 
         // the column index in the matrix from we are bout the extract columns to be transformed
-        int col_idx = (int)modes[transform_col_idx];
+        size_t col_idx = modes[transform_col_idx];
 
         // row-wise parallelized loop to extract the columns to be transformed
-        int N = (int)(transform_col_num);
-        tbb::parallel_for(0, N, 1, [mtx_data, cols_data, &col_idx, &transform_col_idx, &col_range, &col_num, &transform_col_num](int i) {
-            int mtx_offset = i*col_num + col_idx;
-            int cols_offset = i*transform_col_num + transform_col_idx;
+        size_t N = transform_col_num;
+        tbb::parallel_for((size_t)0, N, (size_t)1, [mtx_data, cols_data, &col_idx, &transform_col_idx, &col_range, &col_num, &transform_col_num](size_t i) {
+            size_t mtx_offset = i*col_num + col_idx;
+            size_t cols_offset = i*transform_col_num + transform_col_idx;
             memcpy(cols_data+cols_offset, mtx_data+mtx_offset, col_range*sizeof(Complex16));
         }); // TBB
 

@@ -15,35 +15,6 @@ namespace pic {
 */
 CChinHuhPermanentCalculator::CChinHuhPermanentCalculator() {}
 
-/**
-@brief Constructor of the class.
-@param C_in Input matrix defined by
-@param G_in Input matrix defined by
-@param mean_in Input matrix defined by
-@return Returns with the instance of the class.
-*/
-CChinHuhPermanentCalculator::CChinHuhPermanentCalculator( matrix &mtx_in, PicState_int64 &input_state_in, PicState_int64 &output_state_in) {
-
-    Update( mtx_in, input_state_in, output_state_in);
-}
-
-
-
-
-/**
-@brief Call to update the memroy addresses of the stored matrices
-@param C_in Input matrix defined by
-@param G_in Input matrix defined by
-@param mean_in Input matrix defined by
-*/
-void
-CChinHuhPermanentCalculator::Update( matrix &mtx_in, PicState_int64 &input_state_in, PicState_int64 &output_state_in) {
-
-    mtx = mtx_in;
-    input_state = input_state_in;
-    output_state = output_state_in;
-
-}
 
 
 
@@ -52,10 +23,13 @@ CChinHuhPermanentCalculator::Update( matrix &mtx_in, PicState_int64 &input_state
 defined correctly (that is we've got m x m matrix, and vectors of with length m) this calculates the
 permanent of an effective scattering matrix related to probability of obtaining output state from given
 input state.
+@param mtx_in The effective scattering matrix of a boson sampling instance
+@param input_state_in The input state
+@param output_state_in The output state
 @return Returns with the calculated permanent
 */
 Complex16
-CChinHuhPermanentCalculator::calculate() {
+CChinHuhPermanentCalculator::calculate(matrix &mtx, PicState_int64 &input_state, PicState_int64 &output_state) {
 
 
     // determine the number of v_vectors
@@ -70,110 +44,32 @@ CChinHuhPermanentCalculator::calculate() {
     }
 
     // calculate the permanent
-
-    // creating the root of the iteration containers for parallel_do
-    vectors<int> iter_values;
-    iter_values.reserve( input_state[input_state_inidices[0]]+1 );
-    for (int idx=0; idx<=input_state[input_state_inidices[0]]; idx++) {
-        PicVector<int> value( input_state_inidices.size(), 0);
-        value[0] = idx;
-        iter_values.push_back( value );
-    }
-
-    // number of columns
-    size_t col_num = mtx.cols;
-    // raw pointer to the stored data in matrix mtx
-    Complex16* mtx_data = mtx.get_data();
-//mtx.print_matrix();
+    tbb::task_group tg;
 
 
-    // parameters to be captured by the lambda function
-    PicState_int64 &input_state_loc = input_state;
-    PicState_int64 &output_state_loc = output_state;
-
+    // thread local storage for partial permanent
     tbb::combinable<Complex16> priv_addend{[](){return Complex16(0,0);}};
 
-    //tbb::spin_mutex my_mutex;
-    tbb::parallel_do( iter_values, [&](PicVector<int>& iter_value, tbb::parallel_do_feeder<PicVector<int>>& feeder) {
 
-            // creating the v_vector
-            PicVector<int> v_vector(input_state_loc.size(),0);
-            size_t idx_max = 0;
-            for ( size_t idx=0; idx<iter_value.size(); idx++) {
-                if ( iter_value[idx] > 0 ) {
-                    v_vector[input_state_inidices[idx]] = iter_value[idx];
-                    idx_max = idx;
-                }
+    // creating the root of the iteration containers for tasks spawned by task_group
+    for (int idx=0; idx<=input_state[input_state_inidices[0]]; idx++) {
 
-            }
+        PartialPermanentTask* calc_task = new PartialPermanentTask();
+        calc_task->iter_value = PicVector<int>( input_state_inidices.size(), 0);
+        calc_task->iter_value[0] = idx;
 
-/*
-        {
-            tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-            print_state(v_vector);
-        }
-*/
+        // spawn the task for the current iter value
+        tg.run([&tg, &mtx, &input_state, &input_state_inidices, &output_state, &priv_addend, calc_task]() {
+            calc_task->execute(mtx, input_state, input_state_inidices, output_state, priv_addend, tg);
+            delete calc_task;
+        });
 
-            int v_sum = sum(v_vector);
-            Complex16 addend(pow(-1.0, v_sum), 0.0);
-
-            // Binomials calculation
-            for (size_t idx=0; idx<input_state_loc.size(); idx++) { //} i in range(len(v_vector)):
-                double tmp = (double)binomialCoeff( input_state_loc[idx], v_vector[idx]);
-                //std::cout << "tmp: " << tmp << std::endl;
-                addend.real(addend.real()*tmp);
-            }
+    }
 
 
-            // product calculation
-            Complex16 product(1.0, 0.0);
-            for ( size_t idx=0; idx<input_state_loc.size(); idx++) {
-                if (output_state_loc[idx] == 0 ) { // There's no reason to calculate the sum if t_j = 0
-                    continue;
-                }
+    // wait for all task to be completed
+    tg.wait();
 
-                // Otherwise we calculate the sum
-                Complex16 product_part(0.0, 0.0);
-                for ( size_t jdx=0; jdx<input_state_loc.size(); jdx++) {
-                    size_t mtx_offset = idx*col_num + jdx;
-                    Complex16 element = mtx_data[mtx_offset];
-                    double coeff = (double) (input_state_loc[jdx] - 2 * v_vector[jdx]);
-                    product_part.real( product_part.real() + coeff*element.real()); //(input_state_loc[jdx] - 2 * v_vector[jdx]) * self.__matrix[j][i]
-                    product_part.imag( product_part.imag() + coeff*element.imag());
-                    //std::cout << "product_part:" << product_part.real << " +i*" << product_part.imag << std::endl;
-                }
-                product_part = pow(product_part, output_state_loc[idx]);
-/*
-        {
-            tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-            std::cout << product_part << std::endl;
-        }
-*/
-                product = product*product_part;
-            }
-
-            addend = addend*product;
-            Complex16 &addend_priv = priv_addend.local();
-            addend_priv = addend_priv + addend;
-
-
-            // adding new v_vectors to the do cycle
-            for ( size_t idx=idx_max+1; idx<iter_value.size(); idx++) {
-                for ( int jdx=1; jdx<=input_state_loc[input_state_inidices[idx]]; jdx++) {
-                //for ( int jdx=1; jdx<=1; jdx++) {
-                    PicVector<int> iter_value_next = iter_value;
-                    iter_value_next[idx] = jdx;
-                    feeder.add(iter_value_next);
-                }
-            }
-
-
-
-
-        } // parallel_do body
-
-
-    ); // parallel_do
 
     Complex16 permanent( 0.0, 0.0 );
     priv_addend.combine_each([&](Complex16 a) {
@@ -191,40 +87,109 @@ CChinHuhPermanentCalculator::calculate() {
 }
 
 
-/**
-@brief Call to update the memory address of the matrix mtx
-@param mtx_in Input matrix defined by
-*/
-void
-CChinHuhPermanentCalculator::Update_mtx( matrix &mtx_in) {
 
-    mtx = mtx_in;
+
+
+
+
+
+/**
+@brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
+PartialPermanentTask::PartialPermanentTask() {
 
 }
 
 
 /**
-@brief Call to update the memory address of the input_state
-@param input_state_in The input state
+@brief Call to execute the task to calculate the partial permanent, and spwans additional tasks to calculate partial permanents. The calculated partial permanents are stored within
+thread local storages.
+@param The current tbb::task_group object from which tasks are spawned
 */
 void
-CChinHuhPermanentCalculator::Update_input_state(PicState_int64 &input_state_in) {
+PartialPermanentTask::execute(matrix &mtx, PicState_int64 &input_state, PicVector<int>& input_state_inidices, PicState_int64 &output_state, tbb::combinable<Complex16>& priv_addend, tbb::task_group &tg) {
 
-    input_state = input_state_in;
+
+            // creating the v_vector
+            PicVector<int> v_vector(input_state.size(),0);
+            size_t idx_max = 0;
+            for ( size_t idx=0; idx<iter_value.size(); idx++) {
+                if ( iter_value[idx] > 0 ) {
+                    v_vector[input_state_inidices[idx]] = iter_value[idx];
+                    idx_max = idx;
+                }
+
+            }
+
+
+            int v_sum = sum(v_vector);
+            Complex16 addend(pow(-1.0, v_sum), 0.0);
+
+            // Binomials calculation
+            for (size_t idx=0; idx<input_state.size(); idx++) { //} i in range(len(v_vector)):
+                double tmp = (double)binomialCoeff( input_state[idx], v_vector[idx]);
+                //std::cout << "tmp: " << tmp << std::endl;
+                addend.real(addend.real()*tmp);
+            }
+
+
+            // product calculation
+            Complex16 product(1.0, 0.0);
+            for ( size_t idx=0; idx<input_state.size(); idx++) {
+                if (output_state[idx] == 0 ) { // There's no reason to calculate the sum if t_j = 0
+                    continue;
+                }
+
+                // Otherwise we calculate the sum
+                Complex16 product_part(0.0, 0.0);
+                for ( size_t jdx=0; jdx<input_state.size(); jdx++) {
+                    size_t mtx_offset = idx*mtx.stride + jdx;
+                    Complex16 element = mtx[mtx_offset];
+                    double coeff = (double) (input_state[jdx] - 2 * v_vector[jdx]);
+                    product_part.real( product_part.real() + coeff*element.real()); //(input_state_loc[jdx] - 2 * v_vector[jdx]) * self.__matrix[j][i]
+                    product_part.imag( product_part.imag() + coeff*element.imag());
+                    //std::cout << "product_part:" << product_part.real << " +i*" << product_part.imag << std::endl;
+                }
+                product_part = std::pow(product_part, output_state[idx]);
+
+                product = product*product_part;
+            }
+
+            addend = addend*product;
+            Complex16 &addend_priv = priv_addend.local();
+            addend_priv = addend_priv + addend;
+
+
+            // spawning new v_vectors to the do cycle
+            for ( size_t idx=idx_max+1; idx<iter_value.size(); idx++) {
+                for ( int jdx=1; jdx<=input_state[input_state_inidices[idx]]; jdx++) {
+
+                    PartialPermanentTask* calc_task = new PartialPermanentTask();
+                    calc_task->iter_value = iter_value;
+                    calc_task->iter_value[idx] = jdx;
+
+                    // spawn the task for the current iter value
+                    tg.run([&tg, &mtx, &input_state, &input_state_inidices, &output_state, &priv_addend, calc_task]() {
+                        calc_task->execute(mtx, input_state, input_state_inidices, output_state, priv_addend, tg);
+                        delete calc_task;
+                    });
+
+                }
+            }
+
+
 
 }
 
 
-/**
-@brief Call to update the memory address of the output_state
-@param output_state_in The output state
-*/
-void
-CChinHuhPermanentCalculator::Update_output_state(PicState_int64 &output_state_in) {
 
-    output_state = output_state_in;
 
-}
+
+
+
+
+
 
 
 /**

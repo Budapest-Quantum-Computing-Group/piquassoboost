@@ -5,7 +5,7 @@
 #include "matrix.h"
 
 #ifndef CPYTHON
-#include <tbb/task.h>
+#include <tbb/tbb.h>
 #endif
 
 #ifdef __cplusplus
@@ -120,26 +120,6 @@ struct col_indices {
 };
 
 
-/**
-@brief Empty task class to utilize task continuation for saving stack space.
-*/
-class Cont_Empty_Task: public tbb::task {
-
-public:
-
-/**
-@brief Default constructor of the class.
-@return Returns with the instance of the class.
-*/
-Cont_Empty_Task();
-
-/**
-@brief Overriden execute function of class tbb::task
-@return Returns with a pointer to a tbb::task instance or with a null pointer.
-*/
-tbb::task* execute();
-
-};
 
 
 /**
@@ -165,6 +145,7 @@ public:
 
 
 public:
+
 
 /**
 @brief Constructor of the class. (In this case the row/col limits are extracted from matrices A,B,C).
@@ -196,23 +177,27 @@ void zgemm_chunk();
 /**
 @brief Class to calculate a matrix product C=A*B in parallel. The parallelism follow the strategy of divide-and-conquer.
 */
-class zgemm_Task: public tbb::task, public zgemm_Task_serial {
+class zgemm_Task: public zgemm_Task_serial {
+
 
 
 public:
-    // reuse the constructors of class zgemm3m_Task_serial
-    using zgemm_Task_serial::zgemm_Task_serial;
+
+
+// reuseing the constructor of zgemm_Task_serial
+using zgemm_Task_serial::zgemm_Task_serial;
 
 
 /**
 @brief This function is called when a task is spawned. It divides the work into chunks following the strategy of divide-and-conquer until the problem size meets a predefined treshold.
 @return Returns with a pointer to a tbb::task instance or with a null pointer.
 */
-tbb::task* execute();
+void execute(tbb::task_group &g);
 
 
 
 }; // zgemm_Task
+
 
 #endif // CPYTHON
 

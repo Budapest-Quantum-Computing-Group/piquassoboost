@@ -27,7 +27,7 @@ typedef struct GeneralizedCliffordsSimulationStrategy_wrapper {
 @param interferometer_matrix
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
-pic::CGeneralizedCliffordsSimulationStrategy* 
+pic::CGeneralizedCliffordsSimulationStrategy*
 cerate_ChinHuhPermanentCalculator( pic::matrix &interferometer_matrix_mtx ) {
 
     return new pic::CGeneralizedCliffordsSimulationStrategy(interferometer_matrix_mtx);
@@ -118,9 +118,9 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
 
 
     // establish memory contiguous arrays for C calculations
-    if ( PyArray_IS_C_CONTIGUOUS(interferometer_matrix_arg) ) {
+    if ( PyArray_IS_C_CONTIGUOUS(interferometer_matrix_arg) && PyArray_TYPE(interferometer_matrix_arg) == NPY_COMPLEX128 ) {
         self->interferometer_matrix = interferometer_matrix_arg;
-        Py_INCREF(self->interferometer_matrix); 
+        Py_INCREF(self->interferometer_matrix);
     }
     else {
         self->interferometer_matrix = PyArray_FROM_OTF(interferometer_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
@@ -128,11 +128,11 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
 
 
     // create PIC version of the input matrices
-    pic::matrix interferometer_matrix_mtx = numpy2matrix(self->interferometer_matrix); 
+    pic::matrix interferometer_matrix_mtx = numpy2matrix(self->interferometer_matrix);
 
     // create instance of class ChinHuhPermanentCalculator
     self->simulation_strategy = cerate_ChinHuhPermanentCalculator( interferometer_matrix_mtx );
-   
+
     return 0;
 }
 
@@ -160,22 +160,22 @@ GeneralizedCliffordsSimulationStrategy_wrapper_simulate(GeneralizedCliffordsSimu
     if ( input_state_arg == NULL ) return Py_BuildValue("i", -1);
 
     // establish memory contiguous arrays for C calculations
-    PyObject* input_state = NULL;  
+    PyObject* input_state = NULL;
 
     if ( PyArray_IS_C_CONTIGUOUS(input_state_arg) ) {
         input_state = input_state_arg;
-        Py_INCREF(input_state); 
+        Py_INCREF(input_state);
     }
     else {
         input_state = PyArray_FROM_OTF(input_state_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
-    
+
 
     // create PIC version of the input matrices
-    pic::PicState_int64 input_state_mtx = numpy2PicState_int64(input_state);  
-   
+    pic::PicState_int64 input_state_mtx = numpy2PicState_int64(input_state);
 
-    
+
+
     // call the C++ variant of the sampling method
     std::vector<pic::PicState_int64> samples = self->simulation_strategy->simulate(input_state_mtx, sample_num);
 
@@ -185,14 +185,18 @@ GeneralizedCliffordsSimulationStrategy_wrapper_simulate(GeneralizedCliffordsSimu
 
 
     for ( int idx = 0; idx < samples.size(); idx++ ) {
+        // release the C++ array from the ownership of the calculated data
+        samples[idx].set_owner(false);
+
+        // convert output samples to numpy arrays
         PyObject *PySample = PicState_int64_to_numpy( samples[idx] );
         PyTuple_SetItem(PySamples, idx, PySample);
 
     }
 
-    Py_DECREF(input_state);   
+    Py_DECREF(input_state);
 
-    return PySamples;  
+    return PySamples;
 
 }
 
@@ -215,19 +219,19 @@ static int
 GeneralizedCliffordsSimulationStrategy_wrapper_setinterferometer_matrix(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *interferometer_matrix_arg, void *closure)
 {
     // set matrin on the Pyhon side
-    Py_DECREF(self->interferometer_matrix); 
+    Py_DECREF(self->interferometer_matrix);
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(interferometer_matrix_arg) ) {
         self->interferometer_matrix = interferometer_matrix_arg;
-        Py_INCREF(self->interferometer_matrix); 
+        Py_INCREF(self->interferometer_matrix);
     }
     else {
         self->interferometer_matrix = PyArray_FROM_OTF(interferometer_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
 
     // create PIC version of the input matrices
-    pic::matrix interferometer_matrix_mtx = numpy2matrix(self->interferometer_matrix);     
+    pic::matrix interferometer_matrix_mtx = numpy2matrix(self->interferometer_matrix);
 
     // update data on the C++ side
     self->simulation_strategy->Update_interferometer_matrix( interferometer_matrix_mtx );

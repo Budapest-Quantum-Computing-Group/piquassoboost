@@ -14,7 +14,7 @@ setup(
         "numpy>=1.19.4",
         "quantum-blackbird>=0.2.4",
         "BoSS-Tomev>=0.0.6",
-        "tbb"
+        "tbb-devel"
     ],
     tests_require=["pytest"],
     description='The C++ binding for the Piquasso project',

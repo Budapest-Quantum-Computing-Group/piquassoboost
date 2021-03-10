@@ -28,6 +28,8 @@ CGaussianState::CGaussianState( matrix &C_in, matrix &G_in, matrix &m_in) {
 
 
 
+
+
 /**
 @brief Applies the matrix T to the C and G.
 @param T The matrix of the transformation.
@@ -161,9 +163,6 @@ CGaussianState::apply_to_C_and_G( matrix &T, std::vector<size_t> modes ) {
 }
 
 
-
-
-
 /**
 @brief Call to update the memory addresses of the stored matrices
 @param C_in Input matrix defined by
@@ -206,8 +205,8 @@ CGaussianState::Update_G(matrix &G_in) {
 
 
 /**
-@brief Call to update the memory address of the matrix m
-@param C_m Input matrix defined by
+@brief Call to update the memory address of the vector containing the displacements
+@param m_in The new displacement vector
 */
 void
 CGaussianState::Update_m(matrix &m_in) {
@@ -215,7 +214,6 @@ CGaussianState::Update_m(matrix &m_in) {
     m = m_in;
 
 }
-
 
 
 

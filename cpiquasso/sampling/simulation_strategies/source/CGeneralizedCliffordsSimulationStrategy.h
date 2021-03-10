@@ -13,14 +13,6 @@ namespace pic {
 
 
 
-
-/**
-@brief Call to calculate sum of integers stored in a container
-@param vec a container if integers
-@return Returns with the sum of the elements of the container
-*/
-int64_t sum( PicState_int64 &vec);
-
 /**
 @brief Class representing a generalized Cliffords simulation strategy
 */
@@ -90,6 +82,13 @@ void get_sorted_possible_states();
 
 
 /**
+@brief Call to recursively add substates to the hashmap of labeled states.
+*/
+void
+append_substate_to_labeled_states( PicState_int64& iter_value);
+
+
+/**
 @brief Call to calculate and fill the output states for the individual shots.
 @param sample The current sample state represented by a PicState_int64 class
 */
@@ -115,14 +114,6 @@ void sample_from_latest_pmf( PicState_int64& sample );
 }; //CGeneralizedCliffordsSimulationStrategy
 
 
-
-
-/**
-@brief Function to calculate factorial of a number.
-@param n The input number
-@return Returns with the factorial of the number
-*/
-double factorial(int64_t n);
 
 
 /**

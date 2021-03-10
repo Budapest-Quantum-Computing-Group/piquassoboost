@@ -2,6 +2,7 @@
 #define CGaussianState_H
 
 #include "matrix.h"
+#include "PicState.h"
 #include <vector>
 
 
@@ -18,7 +19,7 @@ protected:
     matrix C;
     /// The matrix which is defined by
     matrix G;
-    /// The vector which is defined by
+    /// The displacement of the Gaussian state
     matrix m;
 
 public:
@@ -28,6 +29,7 @@ public:
 @return Returns with the instance of the class.
 */
 CGaussianState();
+
 
 /**
 @brief Constructor of the class.
@@ -61,10 +63,11 @@ void Update_G(matrix &G_in);
 
 
 /**
-@brief Call to update the memory address of the matrix m
-@param C_m Input matrix defined by
+@brief Call to update the memory address of the vector containing the displacements
+@param m_in The new displacement vector
 */
 void Update_m(matrix &m_in);
+
 
 
 /**
@@ -74,6 +77,7 @@ void Update_m(matrix &m_in);
 @return Returns with 0 in case of success.
 */
 int apply_to_C_and_G( matrix &T, std::vector<size_t> modes );
+
 
 
 

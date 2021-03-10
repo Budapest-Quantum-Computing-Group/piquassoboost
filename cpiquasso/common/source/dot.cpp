@@ -80,11 +80,15 @@ dot( matrix &A, matrix &B ) {
         calc_task.zgemm_chunk();
     }
     else {
-        // creating the task object
-        zgemm_Task& calc_task = *new(tbb::task::allocate_root()) zgemm_Task( A, B, C );
 
-        // starting parallel calculations
-        tbb::task::spawn_root_and_wait(calc_task);
+        // creating the task object
+        tbb::task_group g;
+        g.run_and_wait([&A, &B, &C, &g]() {
+                       zgemm_Task calc_task = zgemm_Task( A, B, C );
+                       calc_task.execute(g);
+        });
+
+
     }
 
 
@@ -183,26 +187,6 @@ get_cblas_transpose( matrix &A, CBLAS_TRANSPOSE &transpose ) {
 
 
 /**
-@brief Default constructor of the class.
-@return Returns with the instance of the class.
-*/
-Cont_Empty_Task::Cont_Empty_Task() {
-}
-
-
-/**
-@brief Overriden execute function of class tbb::task
-@return Returns with a pointer to a tbb::task instance or with a null pointer.
-*/
-tbb::task*
-Cont_Empty_Task::execute() {
-        return nullptr;
-}
-
-
-
-
-/**
 @brief Constructor of the class. (In this case the row/col limits are extracted from matrices A,B,C).
 @param A_in The object representing matrix A.
 @param B_in The object representing matrix B.
@@ -272,9 +256,9 @@ zgemm_Task_serial::zgemm_chunk() {
     get_cblas_transpose( A, Atranspose );
     get_cblas_transpose( B, Btranspose );
 
-    Complex16* A_zgemm_data = A.get_data()+rows.Arows_start*A.cols+cols.Acols_start;
-    Complex16* B_zgemm_data = B.get_data()+rows.Brows_start*B.cols+cols.Bcols_start;
-    Complex16* C_zgemm_data = C.get_data()+rows.Crows_start*C.cols+cols.Ccols_start;
+    Complex16* A_zgemm_data = A.get_data()+rows.Arows_start*A.stride+cols.Acols_start;
+    Complex16* B_zgemm_data = B.get_data()+rows.Brows_start*B.stride+cols.Bcols_start;
+    Complex16* C_zgemm_data = C.get_data()+rows.Crows_start*C.stride+cols.Ccols_start;
 
 
     // zgemm parameters
@@ -283,26 +267,26 @@ zgemm_Task_serial::zgemm_chunk() {
     if ( A.is_transposed() ) {
         m = cols.Acols;
         k = rows.Arows;
-        lda = A.cols;
+        lda = A.stride;
     }
     else {
         m = rows.Arows;
         k = cols.Acols;
-        lda = A.cols;
+        lda = A.stride;
     }
 
 
 
     if (B.is_transposed()) {
         n = rows.Brows;
-        ldb = B.cols;
+        ldb = B.stride;
     }
     else {
         n = cols.Bcols;
-        ldb = B.cols;
+        ldb = B.stride;
     }
 
-    ldc = C.cols;
+    ldc = C.stride;
 
     // parameters alpha and beta for the cblas_zgemm3m function (the input matrices are not scaled)
     Complex16 alpha(1.0, 0.0);
@@ -317,12 +301,15 @@ zgemm_Task_serial::zgemm_chunk() {
 }
 
 
+
+
+
 /**
 @brief This function is called when a task is spawned. It divides the work into chunks following the strategy of divide-and-conquer until the problem size meets a predefined treshold.
 @return Returns with a pointer to a tbb::task instance or with a null pointer.
 */
-tbb::task*
-zgemm_Task::execute() {
+void
+zgemm_Task::execute(tbb::task_group& g) {
 
 
 
@@ -333,25 +320,30 @@ zgemm_Task::execute() {
         size_t rows_end = rows.Arows_end;
         size_t rows_mid = (rows_end+rows_start)/2;
 
-        row_indices rows_child2 = rows;
-        rows_child2.Arows_start = rows_mid;
-        rows_child2.Arows = rows_end-rows_mid;
-        rows_child2.Crows_start = rows_mid;
-        rows_child2.Crows = rows_end-rows_mid;
 
-        Cont_Empty_Task& cont = *new(allocate_continuation()) Cont_Empty_Task();
-        zgemm_Task& calc_task = *new(cont.allocate_child()) zgemm_Task( A, B, C, rows_child2, cols );
+        // dispatching task to divide the current task into two pieces
+        zgemm_Task* calc_task = new zgemm_Task( A, B, C );
+        calc_task->cols = cols;
+        calc_task->rows = rows;
 
-        recycle_as_child_of(cont);
+        calc_task->rows.Arows_start = rows_mid;
+        calc_task->rows.Arows = rows_end-rows_mid;
+        calc_task->rows.Crows_start = rows_mid;
+        calc_task->rows.Crows = rows_end-rows_mid;        
+        
+        g.run([calc_task, &g](){
+            calc_task->execute(g); 
+            delete calc_task;
+        });
 
+        // recycling the present task
         rows.Arows_end = rows_mid;
         rows.Arows = rows_mid-rows_start;
         rows.Crows_end = rows_mid;
         rows.Crows = rows_mid-rows_start;
 
-        cont.set_ref_count(2);
-        tbb::task::spawn(calc_task);;
-        return this;
+        execute(g);
+        return;
 
     }
 
@@ -363,116 +355,117 @@ zgemm_Task::execute() {
         size_t cols_end = cols.Acols_end;
         size_t cols_mid = (cols_end+cols_start)/2;
 
-        col_indices cols_child2 = cols;
-        cols_child2.Acols_start = cols_mid;
-        cols_child2.Acols = cols_end-cols_mid;
 
-        row_indices rows_child2 = rows;
-        rows_child2.Crows_start = cols_mid;
-        rows_child2.Crows = cols_end-cols_mid;
+        // dispatching task to divide the current task into two pieces
+        zgemm_Task* calc_task = new zgemm_Task( A, B, C );
+        calc_task->cols = cols;
+        calc_task->rows = rows;
 
-        // creating continuation task
-        Cont_Empty_Task& cont = *new(allocate_continuation()) Cont_Empty_Task();
+        calc_task->cols.Acols_start = cols_mid;
+        calc_task->cols.Acols = cols_end-cols_mid;
 
-        // creating child task 2
-        zgemm_Task& calc_task = *new(cont.allocate_child()) zgemm_Task( A, B, C, rows_child2, cols_child2);
+        calc_task->rows.Crows_start = cols_mid;
+        calc_task->rows.Crows = cols_end-cols_mid;
+      
+        
+        g.run([calc_task, &g](){
+            calc_task->execute(g); 
+            delete calc_task;
+        });
 
-        // recycling the present task as task1
-        recycle_as_child_of(cont);
 
+        // recycling the present task
         cols.Acols_end = cols_mid;
         cols.Acols = cols_mid-cols_start;
-
         rows.Crows_end = cols_mid;
         rows.Crows = cols_mid-cols_start;
 
-        // spawning task2 and continue with task1 on the same thread
-        cont.set_ref_count(2);
-        tbb::task::spawn(calc_task);
-        return this;
-
+        execute(g);
+        return;
     }
 
 
     else if ( !B.is_transposed() && cols.Bcols > B.cols/8 && cols.Bcols > SERIAL_CUTOFF  ) {
     // *********** divide cols of B into sub-tasks*********
 
+
         size_t cols_start = cols.Bcols_start;
         size_t cols_end = cols.Bcols_end;
         size_t cols_mid = (cols_end+cols_start)/2;
 
-        col_indices cols_child2 = cols;
-        cols_child2.Bcols_start = cols_mid;
-        cols_child2.Bcols = cols_end-cols_mid;
-        cols_child2.Ccols_start = cols_mid;
-        cols_child2.Ccols = cols_end-cols_mid;
 
-        // creating continuation task
-        Cont_Empty_Task& cont = *new(allocate_continuation()) Cont_Empty_Task();
+        // dispatching task to divide the current task into two pieces
+        zgemm_Task* calc_task = new zgemm_Task( A, B, C );
+        calc_task->cols = cols;
+        calc_task->rows = rows;
 
-        // creating child task 2
-        zgemm_Task& calc_task = *new(cont.allocate_child()) zgemm_Task( A, B, C, rows, cols_child2);
+        calc_task->cols.Bcols_start = cols_mid;
+        calc_task->cols.Bcols = cols_end-cols_mid;
+        calc_task->cols.Ccols_start = cols_mid;
+        calc_task->cols.Ccols = cols_end-cols_mid;
+      
+        
+        g.run([calc_task, &g](){
+            calc_task->execute(g); 
+            delete calc_task;
+        });
 
-        // recycling the present task as task1
-        recycle_as_child_of(cont);
-
+        // recycling the present task
         cols.Bcols_end = cols_mid;
         cols.Bcols = cols_mid-cols_start;
         cols.Ccols_end = cols_mid;
         cols.Ccols = cols_mid-cols_start;
 
-        // spawning task2 and continue with task1 on the same thread
-        cont.set_ref_count(2);
-        tbb::task::spawn(calc_task);
-        return this;
-
+        execute(g);
+        return;
     }
 
 
-    if ( B.is_transposed() && rows.Brows > B.rows/8 && rows.Brows > SERIAL_CUTOFF ) {
+    else if ( B.is_transposed() && rows.Brows > B.rows/8 && rows.Brows > SERIAL_CUTOFF ) {
         // *********** divide rows of B into sub-tasks*********
 
         size_t rows_start = rows.Brows_start;
         size_t rows_end = rows.Brows_end;
         size_t rows_mid = (rows_end+rows_start)/2;
 
-        row_indices rows_child2 = rows;
-        rows_child2.Brows_start = rows_mid;
-        rows_child2.Brows = rows_end-rows_mid;
+        // dispatching task to divide the current task into two pieces
+        zgemm_Task* calc_task = new zgemm_Task( A, B, C );
+        calc_task->cols = cols;
+        calc_task->rows = rows;
 
-        col_indices cols_child2 = cols;
-        cols_child2.Ccols_start = rows_mid;
-        cols_child2.Ccols = rows_end-rows_mid;
+        calc_task->rows.Brows_start = rows_mid;
+        calc_task->rows.Brows = rows_end-rows_mid;
 
-        Cont_Empty_Task& cont = *new(allocate_continuation()) Cont_Empty_Task();
-        zgemm_Task& calc_task = *new(cont.allocate_child()) zgemm_Task( A, B, C, rows_child2, cols_child2 );
+        calc_task->cols.Ccols_start = rows_mid;
+        calc_task->cols.Ccols = rows_end-rows_mid;
+   
+        
+        g.run([calc_task, &g](){
+            calc_task->execute(g); 
+            delete calc_task;
+        });
 
-        recycle_as_child_of(cont);
-
+        // recycling the present task
         rows.Brows_end = rows_mid;
         rows.Brows = rows_mid-rows_start;
-
         cols.Ccols_end = rows_mid;
         cols.Ccols = rows_mid-rows_start;
 
-        cont.set_ref_count(2);
-        tbb::task::spawn(calc_task);;
-        return this;
-
+        execute(g);
+        return;
     }
+
     else {
         zgemm_chunk();
-        return nullptr;
+        return;
     }
 
 
-    return nullptr;
+    return;
 
 
 
 } //execute
-
-
 
 
 

@@ -1,16 +1,62 @@
 #include <iostream>
 #include "CGeneralizedCliffordsSimulationStrategy.h"
-#include "./../../source/CChinHuhPermanentCalculator.h"
+#include "CChinHuhPermanentCalculator.h"
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
 
 
 namespace pic {
-
+/*
     double rand_nums[40] = {0.929965, 0.961441, 0.46097, 0.090787, 0.137104, 0.499059, 0.951187, 0.373533, 0.634074, 0.0886671, 0.0856861, 0.999702, 0.419755, 0.376557, 0.947568, 0.705106, 0.0520666, 0.45318,
             0.874288, 0.656594, 0.287817, 0.484918, 0.854716, 0.31408, 0.516911, 0.374158, 0.0124914, 0.878496, 0.322593, 0.699271, 0.0583747, 0.56629, 0.195314, 0.00059639, 0.443711, 0.652659, 0.350379, 0.839752, 0.710161, 0.28553};
     int rand_num_idx = 0;
+*/
+
+/**
+@brief Function to calculate factorial of a number.
+@param n The input number
+@return Returns with the factorial of the number
+*/
+static double factorial(int64_t n) {
+
+
+
+    if ( n == 0 ) return 1;
+    if ( n == 1 ) return 1;
+
+    int64_t ret=1;
+
+    for (int64_t idx=2; idx<=n; idx++) {
+        ret = ret*idx;
+    }
+
+    return (double) ret;
+
+
+}
+
+
+
+/**
+@brief Call to calculate sum of integers stored in a PicState
+@param vec a container if integers
+@return Returns with the sum of the elements of the container
+*/
+static inline int64_t
+sum( PicState_int64 &vec) {
+
+    int64_t ret=0;
+
+    size_t element_num = vec.cols;
+    int64_t* data = vec.get_data();
+    for (size_t idx=0; idx<element_num; idx++ ) {
+        ret = ret + data[idx];
+    }
+    return ret;
+}
+
+
 
 /**
 @brief Default constructor of the class.
@@ -80,8 +126,6 @@ CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_i
 
         PicState_int64 sample(input_state_in.cols, 0);
         sample.number_of_photons = 0;
-        // the ownership of the resulting data would be given to the python side
-        sample.set_owner( false );
         samples.push_back(sample);
     }
 
@@ -103,7 +147,6 @@ CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_i
 void
 CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
 
-    int64_t* input_state_data = input_state.get_data();
 
     // locate nonzero elements of input state and count the number of photons
     number_of_input_photons = 0;
@@ -111,26 +154,11 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
     input_state_inidices.number_of_photons = 0;
 
     for ( size_t idx = 0; idx<input_state.rows*input_state.cols; idx++) {
-        if ( input_state_data[idx] > 0 ) {
+        if ( input_state[idx] > 0 ) {
             input_state_inidices.push_back(idx);
             input_state_inidices.number_of_photons++;
-            number_of_input_photons = number_of_input_photons + input_state_data[idx];
+            number_of_input_photons = number_of_input_photons + input_state[idx];
         }
-    }
-
-    // creating the root of the iteration containers for parallel_do
-    PicStates iter_values;
-    iter_values.reserve( input_state_data[input_state_inidices[0]]+1 );
-    for (int idx=0; idx<=input_state_data[input_state_inidices[0]]; idx++) {
-        PicState_int64 value( input_state_inidices.size(), 0);
-        value[0] = idx;
-        if (idx>0) {
-            value.number_of_photons = idx;
-        }
-        else{
-            value.number_of_photons = 0;
-        }
-        iter_values.push_back( value );
     }
 
 
@@ -141,19 +169,34 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
         labeled_states.push_back(tmp);
     }
 
+    // creaint recursively possible output states
+    tbb::parallel_for ((int64_t)0, input_state[input_state_inidices[0]], (int64_t)1, [&](int64_t idx){
 
-    // parameters to be captured by the lambda function
-    PicState_int64 &input_state_loc = input_state;
+        PicState_int64 iter_value( input_state_inidices.size(), 0);
+        iter_value[0] = idx;
+        if (idx>0) {
+            iter_value.number_of_photons = idx;
+        }
+        else{
+            iter_value.number_of_photons = 0;
+        }
+
+        append_substate_to_labeled_states( iter_value );
+
+    });
 
 
-    //tbb::spin_mutex my_mutex;
+}
 
-    // determine the subsattes and calculate their weight for the calculation of the probabilities
-    tbb::parallel_do( iter_values, [&](PicState_int64& iter_value, tbb::parallel_do_feeder<PicState_int64>& feeder) {
 
+/**
+@brief Call to recursively add substates to the hashmap of labeled states.
+*/
+void
+CGeneralizedCliffordsSimulationStrategy::append_substate_to_labeled_states( PicState_int64& iter_value) {
 
         // creating the v_vector
-        PicState_int64 substate(input_state_loc.cols,0);
+        PicState_int64 substate(input_state.cols,0);
         size_t idx_max = 0;
         for ( size_t idx=0; idx<iter_value.size(); idx++) {
             if ( iter_value[idx] > 0 ) {
@@ -162,26 +205,21 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
             }
             substate.number_of_photons = iter_value.number_of_photons;
         }
-/*
-        {
-            tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-            std::cout<< "substate with " <<  substate.number_of_photons << " particles: ";
-            print_state(substate);
-        }
-*/
+
         labeled_states[substate.number_of_photons].push_back(substate);
 
+
         // adding new substates to the do cycle
-        for ( size_t idx=idx_max+1; idx<iter_value.size(); idx++) {
-            for ( int jdx=1; jdx<=input_state_data[input_state_inidices[idx]]; jdx++) {
+        tbb::parallel_for ( idx_max+1, iter_value.size(), (size_t)1, [&](size_t idx) {
+            for ( int jdx=1; jdx<=input_state[input_state_inidices[idx]]; jdx++) {
                 PicState_int64 iter_value_next = iter_value.copy();
                 iter_value_next[idx] = jdx;
                 iter_value_next.number_of_photons = iter_value.number_of_photons + 1;
-                feeder.add(iter_value_next);
-            }
-        }
 
-    });
+                append_substate_to_labeled_states( iter_value_next );
+                //feeder.add(iter_value_next);
+            }
+        });
 
 
 
@@ -261,13 +299,7 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
     for (size_t idx=0; idx<multinomial_coefficients.size(); idx++ ) {
         multinomial_coefficients[idx] = multinomial_coefficients[idx]/weight_norm_total;
     }
-/*
-for (size_t idx=0; idx<multinomial_coefficients.size(); idx++) {
-    std::cout << multinomial_coefficients[idx];
-}
-std::cout << std::endl;*/
-    // calculate the probability layer for the individual output states
-tbb::spin_mutex my_mutex;
+
     // container to store the new layer of output probabilities
     matrix_base<double> pmf(1, possible_outputs.size());
     tbb::combinable<double> probability_sum{0.0};
@@ -356,23 +388,6 @@ CGeneralizedCliffordsSimulationStrategy::sample_from_latest_pmf( PicState_int64&
 }
 
 
-/**
-@brief Call to calculate sum of integers stored in a PicState
-@param vec a container if integers
-@return Returns with the sum of the elements of the container
-*/
-inline int64_t
-sum( PicState_int64 &vec) {
-
-    int64_t ret=0;
-
-    size_t element_num = vec.cols;
-    int64_t* data = vec.get_data();
-    for (size_t idx=0; idx<element_num; idx++ ) {
-        ret = ret + data[idx];
-    }
-    return ret;
-}
 
 
 
@@ -445,8 +460,8 @@ generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, P
 */
 double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state) {
 
-    CChinHuhPermanentCalculator permanent_calculator( interferometer_mtx, input_state, output_state);
-    Complex16 permanent = permanent_calculator.calculate();
+    CChinHuhPermanentCalculator permanent_calculator;
+    Complex16 permanent = permanent_calculator.calculate( interferometer_mtx, input_state, output_state);
 
     double probability = norm(permanent); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
 
@@ -468,28 +483,7 @@ double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 
 
 
 
-/**
-@brief Function to calculate factorial of a number.
-@param n The input number
-@return Returns with the factorial of the number
-*/
-double factorial(int64_t n) {
 
-
-
-    if ( n == 0 ) return 1;
-    if ( n == 1 ) return 1;
-
-    int64_t ret=1;
-
-    for (int64_t idx=2; idx<=n; idx++) {
-        ret = ret*idx;
-    }
-
-    return (double) ret;
-
-
-}
 
 
 
