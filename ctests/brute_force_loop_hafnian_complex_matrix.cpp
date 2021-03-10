@@ -1,18 +1,18 @@
 #include <stdio.h>
 #include <random>
 #include "matrix.h"
-#include "BruteForceHafnian.h"
-#include "PowerTraceHafnian.h"
+#include "BruteForceLoopHafnian.h"
+#include "PowerTraceLoopHafnian.h"
 #include "tbb/tbb.h"
 
 
 /**
-@brief Unit test case for the hafnian of complex symmetric matrices: compare brute force method with power trace method
+@brief Unit test case for the loop hafnian of complex symmetric matrices: compare brute force method with power trace method
 */
 int main() {
 
     printf("\n\n****************************************************************************\n");
-    printf("Test of hafnian of random complex random matrix: compare brute force method with power trace method\n");
+    printf("Test of loop hafnian of random complex random matrix: compare brute force method with power trace method\n");
     printf("********************************************************************************\n\n\n");
 
     // initialize random generator
@@ -47,18 +47,28 @@ int main() {
 
 tbb::tick_count t0 = tbb::tick_count::now();
     // set the expected outcome for the hafnian
-    pic::Complex16 hafnian_expected = mtx[1] * mtx[11] + mtx[2] * mtx[7] + mtx[3] * mtx[6];
+    pic::Complex16 hafnian_expected = mtx[0*mtx.stride + 1] * mtx[2*mtx.stride + 3]
+                                    + mtx[0*mtx.stride + 2] * mtx[1*mtx.stride + 3]
+                                    + mtx[0*mtx.stride + 3] * mtx[1*mtx.stride + 2]
+                                    + mtx[0*mtx.stride + 0] * mtx[1*mtx.stride + 1] * mtx[2*mtx.stride + 3]
+                                    + mtx[0*mtx.stride + 1] * mtx[2*mtx.stride + 2] * mtx[3*mtx.stride + 3]
+                                    + mtx[0*mtx.stride + 2] * mtx[1*mtx.stride + 1] * mtx[3*mtx.stride + 3]
+                                    + mtx[0*mtx.stride + 0] * mtx[2*mtx.stride + 2] * mtx[1*mtx.stride + 3]
+                                    + mtx[0*mtx.stride + 0] * mtx[3*mtx.stride + 3] * mtx[1*mtx.stride + 2]
+                                    + mtx[0*mtx.stride + 3] * mtx[1*mtx.stride + 1] * mtx[2*mtx.stride + 2]
+                                    + mtx[0*mtx.stride + 0] * mtx[1*mtx.stride + 1] * mtx[2*mtx.stride + 2] * mtx[3*mtx.stride + 3];
+
 tbb::tick_count t1 = tbb::tick_count::now();
 
 tbb::tick_count t2 = tbb::tick_count::now();
-    // calculate the hafnian by the brute force method
-    pic::BruteForceHafnian hafnian_calculator = pic::BruteForceHafnian( mtx );
+    // calculate the hafnian by brute force method
+    pic::BruteForceLoopHafnian hafnian_calculator = pic::BruteForceLoopHafnian( mtx );
     pic::Complex16 hafnian_brute_forcen = hafnian_calculator.calculate();
 tbb::tick_count t3 = tbb::tick_count::now();
 
 tbb::tick_count t4 = tbb::tick_count::now();
     // calculate the hafnian by the eigenvalue method
-    pic::PowerTraceHafnian hafnian_calculator_powertrace = pic::PowerTraceHafnian( mtx );
+    pic::PowerTraceLoopHafnian hafnian_calculator_powertrace = pic::PowerTraceLoopHafnian( mtx );
     pic::Complex16 hafnian_power_trace = hafnian_calculator_powertrace.calculate();
 tbb::tick_count t5 = tbb::tick_count::now();
 

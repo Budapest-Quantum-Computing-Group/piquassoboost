@@ -224,6 +224,7 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceHafnian.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
 )
@@ -263,6 +264,7 @@ set_target_properties(cpiquasso PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceHafnian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.h
 )
