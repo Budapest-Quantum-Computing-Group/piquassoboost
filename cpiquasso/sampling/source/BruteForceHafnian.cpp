@@ -6,10 +6,8 @@
 
 namespace pic {
 
-
-
 /**
-@brief Default constructor of the class.
+@brief Constructor of the class.
 @param mtx_in The covariance matrix of the Gaussian state.
 @return Returns with the instance of the class.
 */
@@ -46,6 +44,9 @@ BruteForceHafnian::calculate() {
     if (mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return Complex16(1,0);
+    }
+    else if (mtx.rows == 2) {
+        return mtx[1];
     }
     else if (mtx.rows % 2 != 0) {
         // the hafnian of odd shaped matrix is 0 by definition
