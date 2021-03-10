@@ -196,7 +196,10 @@ GaussianSimulationStrategy::simulate( int samples_number ) {
     std::vector<PicState_int64> samples;
     samples.reserve(samples_number);
     for (size_t idx=0; idx < samples_number; idx++) {
-        samples.push_back(getSample());
+        PicState_int64&& sample = getSample();
+        if (sample.size() > 0 ) {
+            samples.push_back(sample);
+        }
     }
 
     return samples;
@@ -217,6 +220,7 @@ GaussianSimulationStrategy::getSample() {
 
 
     PicState_int64 output_sample(0);
+    output_sample.number_of_photons = 0;
 
     // probability of the sampled state
     double current_state_probability = 1.0;
@@ -292,12 +296,16 @@ GaussianSimulationStrategy::getSample() {
         PicState_int64 current_output(output_sample.size()+1, 0);
         memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
         current_output[mode_idx-1] = chosen_index;
+        current_output.number_of_photons = output_sample.number_of_photons + chosen_index;
+
+        if (current_output.number_of_photons > max_photons) {
+            return PicState_int64(0);
+        }
 
         // updatet the probability of the current sampled state
         current_state_probability = probabilities[chosen_index];
 
         output_sample = current_output;
-
 
     }
 

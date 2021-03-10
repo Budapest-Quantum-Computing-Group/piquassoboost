@@ -191,8 +191,7 @@ GaussianSimulationStrategy_wrapper_simulate(GaussianSimulationStrategy_wrapper *
 
 
     // preallocate Python list to hold the calculated samples
-    PyObject* PySamples = PyTuple_New( (Py_ssize_t) sample_num );
-
+    PyObject* PySamples = PyTuple_New( (Py_ssize_t) samples.size() );
 
     for ( int idx = 0; idx < samples.size(); idx++ ) {
         // release the C++ array from the ownership of the calculated data
