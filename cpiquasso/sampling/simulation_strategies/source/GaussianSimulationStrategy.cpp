@@ -3,6 +3,7 @@
 #include "PowerTraceHafnian.h"
 #include "PowerTraceLoopHafnian.h"
 #include "BruteForceHafnian.h"
+#include "BruteForceLoopHafnian.h"
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
@@ -570,19 +571,18 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
 
         // calculate gamma according to Eq (9) of arXiv 2010.15595v3 and set them into the diagonal of A_S
         diag_correction_of_A_S( A_S, Qinv, m, current_output );
-/*
-        if (A_S.rows <= 10) {
-            BruteForceHafnian hafnian_calculator = BruteForceHafnian(A_S);
+
+        if (A_S.rows <= 6) {
+            BruteForceLoopHafnian hafnian_calculator = BruteForceLoopHafnian(A_S);
             hafnian = hafnian_calculator.calculate();
         }
         else {
-            PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
+            PowerTraceLoopHafnian hafnian_calculator = PowerTraceLoopHafnian(A_S);
             hafnian = hafnian_calculator.calculate();
         }
-*/
 
-        PowerTraceLoopHafnian hafnian_calculator = PowerTraceLoopHafnian(A_S);
-        hafnian = hafnian_calculator.calculate();
+
+
     }
 
 

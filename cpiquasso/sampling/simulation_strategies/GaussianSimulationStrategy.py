@@ -9,7 +9,7 @@ from .GaussianSimulationStrategy_wrapper import (
 class GaussianSimulationStrategy(
     GaussianSimulationStrategy_wrapper
 ):
-    def __init__(self, covariance_matrix, m=None, fock_cutoff=6, max_photons=20):
+    def __init__(self, covariance_matrix, m=None, fock_cutoff=5, max_photons=20):
 
         super().__init__(covariance_matrix=covariance_matrix, m=m, fock_cutoff=fock_cutoff, max_photons=max_photons)
 
