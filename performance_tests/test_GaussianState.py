@@ -4,7 +4,6 @@ import numpy as np
 
 import piquasso as pq
 
-from piquasso import constants
 import random
 
 

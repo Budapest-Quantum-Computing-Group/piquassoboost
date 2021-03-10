@@ -4,4 +4,4 @@ from cpiquasso.sampling.circuit import SamplingCircuit
 
 
 class SamplingState(pq.SamplingState):
-    _circuit_class = SamplingCircuit
+    circuit_class = SamplingCircuit
