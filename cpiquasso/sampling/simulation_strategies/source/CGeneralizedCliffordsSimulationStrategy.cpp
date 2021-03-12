@@ -170,7 +170,7 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
     }
 
     // creaint recursively possible output states
-    tbb::parallel_for ((int64_t)0, input_state[input_state_inidices[0]], (int64_t)1, [&](int64_t idx){
+    tbb::parallel_for ((int64_t)0, input_state[input_state_inidices[0]]+1, (int64_t)1, [&](int64_t idx){
 
         PicState_int64 iter_value( input_state_inidices.size(), 0);
         iter_value[0] = idx;
