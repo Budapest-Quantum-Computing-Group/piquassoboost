@@ -196,7 +196,10 @@ GaussianSimulationStrategy::simulate( int samples_number ) {
     std::vector<PicState_int64> samples;
     samples.reserve(samples_number);
     for (size_t idx=0; idx < samples_number; idx++) {
-        samples.push_back(getSample());
+        PicState_int64&& sample = getSample();
+        if (sample.size() > 0 ) {
+            samples.push_back(sample);
+        }
     }
 
     return samples;
@@ -211,12 +214,11 @@ GaussianSimulationStrategy::simulate( int samples_number ) {
 PicState_int64
 GaussianSimulationStrategy::getSample() {
 
-    // convert the sampled Gaussian state into complex amplitude represenattion
+    // convert the sampled Gaussian state into complex amplitude representation
     state.ConvertToComplexAmplitudes();
-//std::cout << dim_over_2 << std::endl;
-
 
     PicState_int64 output_sample(0);
+    output_sample.number_of_photons = 0;
 
     // probability of the sampled state
     double current_state_probability = 1.0;
@@ -237,7 +239,6 @@ GaussianSimulationStrategy::getSample() {
         for (size_t idx=0; idx<mode_idx; idx++) {
             indices_2_extract[idx] = idx;
         }
-        //indices_2_extract.print_matrix();
 
         // get the reduced gaussian state describing the first mode_idx modes
         GaussianState_Cov reduced_state = state.getReducedGaussianState( indices_2_extract );
@@ -257,7 +258,6 @@ GaussianSimulationStrategy::getSample() {
 
 
 
-
         // get the probabilities for different photon counts on the output mode mode_idx
         tbb::parallel_for( (size_t)0, cutoff, (size_t)1, [&](size_t photon_num) {
         //for (size_t photon_num=0; photon_num<cutoff; photon_num++) {
@@ -271,33 +271,48 @@ GaussianSimulationStrategy::getSample() {
             current_output[mode_idx-1] = photon_num;
 
             // calculate the probability associated with observing current_output
-            probabilities[photon_num] = calc_probability(Qinv, Qdet, A, m, current_output);
+            double prob = calc_probability(Qinv, Qdet, A, m, current_output);
 
+            // sometimes the probability is negative which is coming from a negative hafnian.
+            probabilities[photon_num] = prob > 0 ? prob : 0;
+
+        //}
         });
+
+        matrix_base<double> probabilities_renormalized(1,probabilities.size());
 
         // renormalize the calculated probabilities with the probability of the previously chosen state
         double prob_sum = 0.0;
-        for (size_t idx=0; idx<probabilities.size()-1; idx++) {
-            probabilities[idx] = probabilities[idx]/current_state_probability;
-            prob_sum = prob_sum + probabilities[idx];
+        for (size_t idx=0; idx<probabilities_renormalized.size()-1; idx++) {
+            probabilities_renormalized[idx] = probabilities[idx]/current_state_probability;
+            prob_sum = prob_sum + probabilities_renormalized[idx];
         }
-        probabilities[probabilities.size()-1] = 1.0-prob_sum;
-//probabilities.print_matrix();
+        probabilities_renormalized[probabilities.size()-1] = 1.0-prob_sum;
 
 
+//probabilities_renormalized.print_matrix();
         // sample from porbabilities
-        size_t&& chosen_index = sample_from_probabilities( probabilities );
+        size_t chosen_index = sample_from_probabilities( probabilities_renormalized );
+        if (chosen_index == cutoff) {
+            // when the chosen index corresponds to the cutoff the number of photons cannot be determined, so we return from the sampling
+            return PicState_int64(0);
+        }
 
         // The sampled current state:
         PicState_int64 current_output(output_sample.size()+1, 0);
         memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
         current_output[mode_idx-1] = chosen_index;
+        current_output.number_of_photons = output_sample.number_of_photons + chosen_index;
 
-        // updatet the probability of the current sampled state
+        if (current_output.number_of_photons > max_photons) {
+            return PicState_int64(0);
+        }
+
+
+        // update the probability of the current sampled state
         current_state_probability = probabilities[chosen_index];
 
         output_sample = current_output;
-
 
     }
 
@@ -321,11 +336,14 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state ) {
         state.ConvertToComplexAmplitudes();
     }
 
+
     // calculate Q matrix from Eq (3) in arXiv 2010.15595v3)
     matrix Q = state.get_covariance_matrix();
+
     for (size_t idx=0; idx<Q.rows; idx++) {
         Q[idx*Q.stride+idx].real( Q[idx*Q.stride+idx].real() + 0.5 );
     }
+
 
 #ifdef DEBUG
     // for checking the matrix inversion
@@ -405,7 +423,7 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state, double& Qdet ) 
     //  calculate the determinant of Q
     Complex16 Qdet_cmplx(1.0,0.0);
     for (size_t idx=0; idx<Q.rows; idx++) {
-        if (ipiv[idx] != idx) {
+        if (ipiv[idx] != idx+1) {
             Qdet_cmplx = -Qdet_cmplx * Q[idx*Q.stride + idx];
         }
         else {
@@ -513,9 +531,15 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 double
 GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output ) {
 
-
     // calculate the normalization factor defined by Eq. (10) in arXiv 2010.15595v3
     double Normalization = 1.0/sqrt(Qdet);
+
+#ifdef DEBUG
+    if (Qdet<0) {
+        std::cout << "Determinant of matrix Q is negative" << std::endl;
+        exit(-1);
+    }
+#endif
 
     if (m.size()>0) {
 
@@ -548,10 +572,8 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
         Normalization = Normalization/factorial(current_output[idx]);
     }
 
-
     // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
     matrix&& A_S = create_A_S( A, current_output );
-
 
     // calculate the hafnian of A_S
     Complex16 hafnian;
@@ -586,9 +608,9 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
     }
 
 
-
     // calculate the probability associated with the current output
     double prob = Normalization*hafnian.real();
+
 
     return prob;
 
