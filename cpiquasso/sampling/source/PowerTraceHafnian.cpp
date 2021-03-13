@@ -38,6 +38,14 @@ static unsigned long long power_of_2(unsigned long long n) {
 
 
 
+/**
+@brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
+PowerTraceHafnian::PowerTraceHafnian() {
+
+}
+
 
 /**
 @brief Default constructor of the class.

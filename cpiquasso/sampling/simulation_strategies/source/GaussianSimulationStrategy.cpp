@@ -272,6 +272,7 @@ GaussianSimulationStrategy::getSample() {
 
             // calculate the probability associated with observing current_output
             double prob = calc_probability(Qinv, Qdet, A, m, current_output);
+if (prob<0) std::cout << prob << std::endl;
 
             // sometimes the probability is negative which is coming from a negative hafnian.
             probabilities[photon_num] = prob > 0 ? prob : 0;

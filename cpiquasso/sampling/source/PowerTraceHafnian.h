@@ -23,6 +23,12 @@ public:
 
 /**
 @brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
+PowerTraceHafnian();
+
+/**
+@brief Constructor of the class.
 @param mtx_in The covariance matrix of the Gaussian state.
 @return Returns with the instance of the class.
 */
