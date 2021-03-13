@@ -19,7 +19,7 @@ class PowerTraceHafnianRecursive : public PowerTraceHafnian {
 protected:
     /// An array describing the modes to be used to calculate the hafnian. The i-th mode is repeated modes[i] times.
     PicState_int64 modes;
-    /// covariance matrix ordered in q1,p1,q2,p2 ... qi,pi format
+    /// covariance matrix ordered in a1,a1*,a2,a2* ... ai,ai* format
     matrix mtx_permuted;
 
 public:
@@ -53,6 +53,16 @@ void IterateOverSelectedModes( std::vector<unsigned char>& selected_modes, PicSt
 
 
 Complex16 CalculatePartialHafnian( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors );
+
+
+/**
+@brief ??????????????????
+@return Returns with the calculated hafnian
+*/
+matrix
+CreateAZ( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors, const size_t& total_num_of_modes );
+
+
 
 /**
 @brief ??????????????????

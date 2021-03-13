@@ -31,22 +31,22 @@ sum( pic::PicState_int64 &vec) {
 
 
 pic::matrix
-create_repeated_mtx( pic::matrix& A, pic::PicState_int64& current_output ) {
+create_repeated_mtx( pic::matrix& A, pic::PicState_int64& filling_factors ) {
 
-    size_t dim_A_S = sum(current_output);
-    size_t dim_A = current_output.size();
+    size_t dim_A_S = sum(filling_factors);
+    size_t dim_A = filling_factors.size();
 
     pic::matrix A_S(2*dim_A_S, 2*dim_A_S);
     size_t row_idx = 0;
-    for (size_t idx=0; idx<current_output.size(); idx++) {
-        for (size_t row_repeat=0; row_repeat<current_output[idx]; row_repeat++) {
+    for (size_t idx=0; idx<filling_factors.size(); idx++) {
+        for (size_t row_repeat=0; row_repeat<filling_factors[idx]; row_repeat++) {
 
             size_t row_offset = row_idx*A_S.stride;
             size_t row_offset_A = idx*A.stride;
             size_t col_idx = 0;
             // insert column elements
-            for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+            for (size_t jdx=0; jdx<filling_factors.size(); jdx++) {
+                for (size_t col_repeat=0; col_repeat<filling_factors[jdx]; col_repeat++) {
                     A_S[row_offset + col_idx] = A[row_offset_A + jdx];
                     col_idx++;
                 }
@@ -54,8 +54,8 @@ create_repeated_mtx( pic::matrix& A, pic::PicState_int64& current_output ) {
 
             col_idx = 0;
             // insert column elements
-            for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+            for (size_t jdx=0; jdx<filling_factors.size(); jdx++) {
+                for (size_t col_repeat=0; col_repeat<filling_factors[jdx]; col_repeat++) {
                     A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
                     col_idx++;
                 }
@@ -66,8 +66,8 @@ create_repeated_mtx( pic::matrix& A, pic::PicState_int64& current_output ) {
             row_offset_A = (idx+dim_A)*A.stride;
             col_idx = 0;
             // insert column elements
-            for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+            for (size_t jdx=0; jdx<filling_factors.size(); jdx++) {
+                for (size_t col_repeat=0; col_repeat<filling_factors[jdx]; col_repeat++) {
                     A_S[row_offset + col_idx] = A[row_offset_A + jdx];
                     col_idx++;
                 }
@@ -75,8 +75,8 @@ create_repeated_mtx( pic::matrix& A, pic::PicState_int64& current_output ) {
 
             col_idx = 0;
             // insert column elements
-            for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+            for (size_t jdx=0; jdx<filling_factors.size(); jdx++) {
+                for (size_t col_repeat=0; col_repeat<filling_factors[jdx]; col_repeat++) {
                     A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
                     col_idx++;
                 }
@@ -95,6 +95,41 @@ create_repeated_mtx( pic::matrix& A, pic::PicState_int64& current_output ) {
 }
 
 
+
+pic::matrix getPermutedMatrix( pic::matrix& mtx) {
+
+
+    pic::matrix res(mtx.rows, mtx.cols);
+
+
+    size_t num_of_modes = mtx.rows/2;
+
+    for (size_t row_idx=0; row_idx<num_of_modes; row_idx++ ) {
+
+        size_t row_offset_q_orig = row_idx*mtx.stride;
+        size_t row_offset_p_orig = (row_idx+num_of_modes)*mtx.stride;
+
+        size_t row_offset_q_permuted = 2*row_idx*res.stride;
+        size_t row_offset_p_permuted = (2*row_idx+1)*res.stride;
+
+        for (size_t col_idx=0; col_idx<num_of_modes; col_idx++ ) {
+
+            res[row_offset_q_permuted + col_idx*2] = mtx[row_offset_q_orig + col_idx];
+            res[row_offset_q_permuted + col_idx*2 + 1] = mtx[row_offset_q_orig + num_of_modes + col_idx];
+
+            res[row_offset_p_permuted + col_idx*2] = mtx[row_offset_p_orig + col_idx];
+            res[row_offset_p_permuted + col_idx*2 + 1] = mtx[row_offset_p_orig + num_of_modes + col_idx];
+
+        }
+
+    }
+
+    //res.print_matrix();
+
+    return res;
+
+}
+
 /**
 @brief Unit test case for the recursive hafnian of complex symmetric matrices
 */
@@ -111,7 +146,7 @@ int main() {
 
 
     // allocate matrix array for the larger matrix
-    size_t dim = 8;
+    size_t dim = 4;
     pic::matrix mtx = pic::matrix(dim, dim);
 
     // fill up matrix with random elements
@@ -124,26 +159,38 @@ int main() {
         }
     }
 
-    // array of modes describing the number of photons in the individual modes
-    pic::PicState_int64 modes(dim/2);
-    modes[0] = 1;
-    modes[1] = 1;
 
+    // array of modes describing the number of photons in the individual modes
+    pic::PicState_int64 filling_factors(dim/2);
+    filling_factors[0] = 3;
+    filling_factors[1] = 2;
+
+
+
+    pic::matrix&& mtx_repeated = create_repeated_mtx(mtx, filling_factors);
+
+
+    pic::PicState_int64 filling_factors2(mtx_repeated.rows/2);
+    for (size_t idx=0; idx< filling_factors2.size(); idx++) {
+        filling_factors2[idx] = 1;
+    }
 
 
     // print the matrix on standard output
     mtx.print_matrix();
 
 
+    mtx_repeated.print_matrix();
 
-    // hafnian calculated by algorithm PowerTraceHafnian
-    pic::PowerTraceHafnian hafnian_calculator = pic::PowerTraceHafnian( mtx );
+   // hafnian calculated by algorithm PowerTraceHafnian
+    pic::PowerTraceHafnian hafnian_calculator = pic::PowerTraceHafnian( mtx_repeated );
     pic::Complex16 hafnian_powertrace = hafnian_calculator.calculate();
+
 
     // calculate the hafnian by the recursive method
 
     // now calculated the hafnian of the whole matrix using the value calculated for the submatrix
-    pic::PowerTraceHafnianRecursive hafnian_calculator_recursive = pic::PowerTraceHafnianRecursive( mtx, modes );
+    pic::PowerTraceHafnianRecursive hafnian_calculator_recursive = pic::PowerTraceHafnianRecursive( mtx, filling_factors );
     pic::Complex16 hafnian_powertrace_recursive = hafnian_calculator_recursive.calculate();
 
 

@@ -56,6 +56,26 @@ static unsigned long long power_of_2(unsigned long long n) {
 
 
 
+
+/**
+@brief Call to calculate the Binomial Coefficient C(n, k)
+@param n The integer n
+@param k The integer k
+@return Returns with the Binomial Coefficient C(n, k).
+*/
+static int BinomialCoeff(int n, int k) {
+   int C[k+1];
+   memset(C, 0, sizeof(C));
+   C[0] = 1;
+   for (int i = 1; i <= n; i++) {
+      for (int j = std::min(i, k); j > 0; j--)
+         C[j] = C[j] + C[j-1];
+   }
+   return C[k];
+
+}
+
+
 /**
 @brief Default constructor of the class.
 @param mtx_in The covariance matrix of the Gaussian state.
@@ -94,11 +114,14 @@ PowerTraceHafnianRecursive::calculate() {
     int NumThreads = openblas_get_num_threads();
     openblas_set_num_threads(1);
 #endif
-
-    //mtx = getPermutedMatrix();
-    //return calculate_tmp();
-
+/*
+    mtx = getPermutedMatrix();
+std::cout << "permuted matrix " << std::endl;
+mtx.print_matrix();
+    return calculate_tmp();
+*/
     mtx_permuted = getPermutedMatrix();
+
 
     size_t num_of_modes = modes.size();
 
@@ -138,12 +161,6 @@ PowerTraceHafnianRecursive::calculate() {
             }
         }
         size_t number_of_modes = selected_modes.size();
-
-std::cout << "selected modes: ";
-for (size_t idx=0; idx<selected_modes.size(); idx++) {
-    std::cout << (short) selected_modes[idx];
-}
-std::cout << std::endl;
 
 
         // spawn iterations over the occupied numbers of the modes
@@ -205,10 +222,18 @@ PowerTraceHafnianRecursive::IterateOverSelectedModes( std::vector<unsigned char>
     }
 
 
-filling_factors.print_matrix();
-
     // calculate the partial hafnian for the given filling factors of the selected modes
-    hafnian = hafnian + CalculatePartialHafnian( selected_modes, filling_factors);
+    Complex16 partial_hafnian = CalculatePartialHafnian( selected_modes, filling_factors);
+
+    // add partial hafnian to the sum including the combinatorial factors
+    double combinatorial_fact(1.0);
+    for (size_t idx=0; idx < selected_modes.size(); idx++) {
+        combinatorial_fact = combinatorial_fact * BinomialCoeff(modes[selected_modes[idx]], // the maximal filling factor
+                                                                 filling_factors[idx] // the current filling factor
+                                                                 );
+    }
+
+    hafnian = hafnian + partial_hafnian * combinatorial_fact;
 
 
 
@@ -225,35 +250,25 @@ filling_factors.print_matrix();
 Complex16
 PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors ) {
 
-    size_t dim = mtx.rows;
-    size_t dim_over_2 = mtx.rows/2;
+
+    //size_t dim_over_2 = mtx.rows/2;
 
     //Complex16 &summand = summands.local();
     Complex16 summand(0.0,0.0);
 
+    size_t num_of_modes = sum(filling_factors);
+    size_t total_num_of_modes = sum(modes);
+    size_t dim = total_num_of_modes*2;
+
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
-    // the elements of mtx=A indexed by the rows and colums, where the binary representation of
-    // permutation_idx was 1
-    // for details see the text below Eq.(3.20) of arXiv 1805.12498
-    size_t total_num_of_modes = sum(filling_factors);
-    matrix B(total_num_of_modes*2, total_num_of_modes*2);
-    for (size_t idx = 0; idx < total_num_of_modes; idx++) {
-
-
-        for (size_t jdx = 0; jdx < total_num_of_modes; jdx++) {
-            B[2*idx*B.stride + jdx*2]   = mtx_permuted[2*selected_modes[idx]*mtx.stride + ((selected_modes[jdx]*2) ^ 1)];
-            B[2*idx*B.stride + jdx*2+1] = mtx_permuted[2*selected_modes[idx]*mtx.stride + ((selected_modes[jdx]*2+1) ^ 1)];
-            B[(2*idx+1)*B.stride + jdx*2]   = mtx_permuted[(2*selected_modes[idx]+1)*mtx.stride + ((selected_modes[jdx]*2) ^ 1)];
-            B[(2*idx+1)*B.stride + jdx*2+1] = mtx_permuted[(2*selected_modes[idx]+1)*mtx.stride + ((selected_modes[jdx]*2+1) ^ 1)];
-        }
-    }
+    matrix&& B = CreateAZ(selected_modes, filling_factors, num_of_modes);
 
 
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-    matrix traces(dim_over_2, 1);
+    matrix traces(total_num_of_modes, 1);
     if (total_num_of_modes != 0) {
-        traces = calc_power_traces(B, dim_over_2);
+        traces = calc_power_traces(B, total_num_of_modes);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -262,21 +277,20 @@ PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>&
     }
 
 
-
     // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
-    bool fact = ((dim_over_2 - total_num_of_modes) % 2);
+    bool fact = ((total_num_of_modes - num_of_modes) % 2);
 
 
     // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-    matrix aux0(dim_over_2 + 1, 1);
-    matrix aux1(dim_over_2 + 1, 1);
-    memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex16));
-    memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex16));
+    matrix aux0(total_num_of_modes + 1, 1);
+    matrix aux1(total_num_of_modes + 1, 1);
+    memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex16));
+    memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex16));
     aux0[0] = 1.0;
     // pointers to the auxiliary data arrays
     Complex16 *p_aux0=NULL, *p_aux1=NULL;
 
-    for (size_t idx = 1; idx <= dim_over_2; idx++) {
+    for (size_t idx = 1; idx <= total_num_of_modes; idx++) {
 
 
         Complex16 factor = traces[idx - 1] / (2.0 * idx);
@@ -293,12 +307,13 @@ PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>&
             p_aux1 = aux0.get_data();
         }
 
-        memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex16) );
+        memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(Complex16) );
 
         for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
             powfactor = powfactor * factor / ((double)jdx);
 
-            for (size_t kdx = idx * jdx + 1; kdx <= dim_over_2 + 1; kdx++) {
+
+            for (size_t kdx = idx * jdx + 1; kdx <= total_num_of_modes + 1; kdx++) {
                 p_aux1[kdx-1] += p_aux0[kdx-idx*jdx - 1]*powfactor;
             }
 
@@ -311,10 +326,10 @@ PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>&
 
 
     if (fact) {
-        summand = summand - p_aux1[dim_over_2];
+        summand = summand - p_aux1[total_num_of_modes];
     }
     else {
-        summand = summand + p_aux1[dim_over_2];
+        summand = summand + p_aux1[total_num_of_modes];
     }
 
 
@@ -322,6 +337,89 @@ PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>&
 
 
 }
+
+
+
+/**
+@brief ??????????????????
+@return Returns with the calculated hafnian
+*/
+matrix
+PowerTraceHafnianRecursive::CreateAZ( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors, const size_t& num_of_modes ) {
+
+
+    // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
+    // the elements of mtx=A indexed by the rows and colums, where the binary representation of
+    // permutation_idx was 1
+    // for details see the text below Eq.(3.20) of arXiv 1805.12498
+    matrix B(num_of_modes*2, num_of_modes*2);
+
+    size_t row_idx = 0;
+    for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
+
+        size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*mtx.stride;
+        size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*mtx.stride;
+
+        for (size_t filling_factor_row=1; filling_factor_row<=filling_factors[mode_idx]; filling_factor_row++) {
+
+            size_t row_offset_B_a = 2*row_idx*B.stride;
+            size_t row_offset_B_aconj = (2*row_idx+1)*B.stride;
+
+
+            size_t col_idx = 0;
+
+            for (size_t mode_jdx = 0; mode_jdx < selected_modes.size(); mode_jdx++) {
+
+
+                for (size_t filling_factor_col=1; filling_factor_col<=filling_factors[mode_jdx]; filling_factor_col++) {
+
+                    B[row_offset_B_a + col_idx*2]   = mtx_permuted[row_offset_mtx_a + ((selected_modes[mode_jdx]*2) ^ 1)];
+                    B[row_offset_B_a + col_idx*2+1] = mtx_permuted[row_offset_mtx_a + ((selected_modes[mode_jdx]*2+1) ^ 1)];
+                    B[row_offset_B_aconj + col_idx*2]   = mtx_permuted[row_offset_mtx_aconj + ((selected_modes[mode_jdx]*2) ^ 1)];
+                    B[row_offset_B_aconj + col_idx*2+1] = mtx_permuted[row_offset_mtx_aconj + ((selected_modes[mode_jdx]*2+1) ^ 1)];
+
+                    col_idx++;
+                }
+            }
+
+
+            row_idx++;
+        }
+
+    }
+
+
+
+/*
+    // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
+    // the elements of mtx=A indexed by the rows and colums, where the binary representation of
+    // permutation_idx was 1
+    // for details see the text below Eq.(3.20) of arXiv 1805.12498
+    matrix B(total_num_of_modes*2, total_num_of_modes*2);
+    for (size_t idx = 0; idx < total_num_of_modes; idx++) {
+
+        size_t row_offset_B_a = 2*idx*B.stride;
+        size_t row_offset_B_aconj = (2*idx+1)*B.stride;
+
+        size_t row_offset_mtx_a = 2*selected_modes[idx]*mtx.stride;
+        size_t row_offset_mtx_aconj = (2*selected_modes[idx]+1)*mtx.stride;
+
+        for (size_t jdx = 0; jdx < total_num_of_modes; jdx++) {
+            B[row_offset_B_a + jdx*2]   = mtx_permuted[row_offset_mtx_a + ((selected_modes[jdx]*2) ^ 1)];
+            B[row_offset_B_a + jdx*2+1] = mtx_permuted[row_offset_mtx_a + ((selected_modes[jdx]*2+1) ^ 1)];
+            B[row_offset_B_aconj + jdx*2]   = mtx_permuted[row_offset_mtx_aconj + ((selected_modes[jdx]*2) ^ 1)];
+            B[row_offset_B_aconj + jdx*2+1] = mtx_permuted[row_offset_mtx_aconj + ((selected_modes[jdx]*2+1) ^ 1)];
+        }
+    }
+*/
+
+    return B;
+
+
+}
+
+
+
 
 /**
 @brief ??????????????????
