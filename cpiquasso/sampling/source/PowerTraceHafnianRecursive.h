@@ -19,6 +19,8 @@ class PowerTraceHafnianRecursive : public PowerTraceHafnian {
 protected:
     /// An array describing the modes to be used to calculate the hafnian. The i-th mode is repeated modes[i] times.
     PicState_int64 modes;
+    /// covariance matrix ordered in q1,p1,q2,p2 ... qi,pi format
+    matrix mtx_permuted;
 
 public:
 

@@ -111,7 +111,7 @@ int main() {
 
 
     // allocate matrix array for the larger matrix
-    size_t dim = 4;
+    size_t dim = 8;
     pic::matrix mtx = pic::matrix(dim, dim);
 
     // fill up matrix with random elements

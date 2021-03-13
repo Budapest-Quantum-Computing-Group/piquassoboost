@@ -98,7 +98,7 @@ PowerTraceHafnianRecursive::calculate() {
     //mtx = getPermutedMatrix();
     //return calculate_tmp();
 
-    matrix&& mtx_permuted = getPermutedMatrix();
+    mtx_permuted = getPermutedMatrix();
 
     size_t num_of_modes = modes.size();
 
@@ -238,11 +238,13 @@ PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>&
     size_t total_num_of_modes = sum(filling_factors);
     matrix B(total_num_of_modes*2, total_num_of_modes*2);
     for (size_t idx = 0; idx < total_num_of_modes; idx++) {
+
+
         for (size_t jdx = 0; jdx < total_num_of_modes; jdx++) {
-            B[2*idx*B.stride + jdx*2]   = mtx[2*selected_modes[idx]*mtx.stride + ((selected_modes[jdx]*2) ^ 1)];
-            B[2*idx*B.stride + jdx*2+1] = mtx[2*selected_modes[idx]*mtx.stride + ((selected_modes[jdx]*2+1) ^ 1)];
-            B[(2*idx+1)*B.stride + jdx*2]   = mtx[(2*selected_modes[idx]+1)*mtx.stride + ((selected_modes[jdx]*2) ^ 1)];
-            B[(2*idx+1)*B.stride + jdx*2+1] = mtx[(2*selected_modes[idx]+1)*mtx.stride + ((selected_modes[jdx]*2+1) ^ 1)];
+            B[2*idx*B.stride + jdx*2]   = mtx_permuted[2*selected_modes[idx]*mtx.stride + ((selected_modes[jdx]*2) ^ 1)];
+            B[2*idx*B.stride + jdx*2+1] = mtx_permuted[2*selected_modes[idx]*mtx.stride + ((selected_modes[jdx]*2+1) ^ 1)];
+            B[(2*idx+1)*B.stride + jdx*2]   = mtx_permuted[(2*selected_modes[idx]+1)*mtx.stride + ((selected_modes[jdx]*2) ^ 1)];
+            B[(2*idx+1)*B.stride + jdx*2+1] = mtx_permuted[(2*selected_modes[idx]+1)*mtx.stride + ((selected_modes[jdx]*2+1) ^ 1)];
         }
     }
 
