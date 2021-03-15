@@ -120,7 +120,7 @@ void execute(matrix &mtx, PicState_int64 &input_state, PicVector<int>& input_sta
 
 
 
-}; // zgemm_Task
+}; // partial permanent_Task
 
 
 #endif // CPYTHON

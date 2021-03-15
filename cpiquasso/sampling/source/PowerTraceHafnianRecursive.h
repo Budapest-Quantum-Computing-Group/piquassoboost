@@ -3,6 +3,8 @@
 
 #include "PowerTraceHafnian.h"
 #include "PicState.h"
+#include "tbb/tbb.h"
+
 
 
 namespace pic {
@@ -19,6 +21,12 @@ class PowerTraceHafnianRecursive : public PowerTraceHafnian {
 protected:
     /// An array describing the occupancy to be used to calculate the hafnian. The i-th mode is repeated occupancy[i] times.
     PicState_int64 occupancy;
+    /// The maximal number of spawned tasks living at the same time
+    short max_task_num;
+    /// The current number of spawned tasks
+    int task_num;
+    /// mutual exclusion to count the spawned tasks
+    tbb::spin_mutex* task_count_mutex;
 
 public:
 
@@ -47,10 +55,10 @@ virtual Complex16 calculate();
 @brief ??????????????????
 @return Returns with the calculated hafnian
 */
-void IterateOverSelectedoccupancy( std::vector<unsigned char>& selected_occupancy, PicState_int64& filling_factors, size_t mode_to_iterate, Complex16& hafnian );
+void IterateOverSelectedoccupancy( const std::vector<unsigned char>& selected_occupancy, const PicState_int64& filling_factors, size_t mode_to_iterate, tbb::combinable<Complex16>& priv_addend, tbb::task_group &tg );
 
 
-Complex16 CalculatePartialHafnian( std::vector<unsigned char>& selected_occupancy, PicState_int64& filling_factors );
+Complex16 CalculatePartialHafnian( const std::vector<unsigned char>& selected_occupancy, const  PicState_int64& filling_factors );
 
 
 /**
@@ -58,7 +66,7 @@ Complex16 CalculatePartialHafnian( std::vector<unsigned char>& selected_occupanc
 @return Returns with the calculated hafnian
 */
 matrix
-CreateAZ( std::vector<unsigned char>& selected_occupancy, PicState_int64& filling_factors, const size_t& total_num_of_occupancy );
+CreateAZ( const std::vector<unsigned char>& selected_occupancy, const PicState_int64& filling_factors, const size_t& total_num_of_occupancy );
 
 
 
@@ -77,6 +85,12 @@ protected:
 
 
 }; //PowerTraceHafnianRecursive
+
+
+
+
+
+
 
 
 } // PIC

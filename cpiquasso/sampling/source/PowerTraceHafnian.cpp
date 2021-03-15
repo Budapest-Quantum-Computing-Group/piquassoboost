@@ -83,6 +83,15 @@ PowerTraceHafnian::calculate() {
         return Complex16(0,0);
     }
 
+    if (mtx.rows == 0) {
+        // the hafnian of an empty matrix is 1 by definition
+        return Complex16(1,0);
+    }
+    else if (mtx.rows % 2 != 0) {
+        // the hafnian of odd shaped matrix is 0 by definition
+        return Complex16(0.0, 0.0);
+    }
+
 #if BLAS==0 // undefined BLAS
     int NumThreads = omp_get_max_threads();
     omp_set_num_threads(1);
@@ -97,14 +106,7 @@ PowerTraceHafnian::calculate() {
     size_t dim = mtx.rows;
 
 
-    if (mtx.rows == 0) {
-        // the hafnian of an empty matrix is 1 by definition
-        return Complex16(1,0);
-    }
-    else if (mtx.rows % 2 != 0) {
-        // the hafnian of odd shaped matrix is 0 by definition
-        return Complex16(0.0, 0.0);
-    }
+
 
 
     size_t dim_over_2 = mtx.rows / 2;

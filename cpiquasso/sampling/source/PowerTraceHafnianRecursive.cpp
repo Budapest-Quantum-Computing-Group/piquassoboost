@@ -100,6 +100,14 @@ PowerTraceHafnianRecursive::PowerTraceHafnianRecursive( matrix &mtx_in, PicState
         exit(-1);
     }
 
+    // set the maximal number of spawned tasks living at the same time
+    max_task_num = 300;
+    // The current number of spawned tasks
+    task_num = 0;
+    // mutual exclusion to count the spawned tasks
+    task_count_mutex = new tbb::spin_mutex();
+
+
 }
 
 
@@ -107,6 +115,8 @@ PowerTraceHafnianRecursive::PowerTraceHafnianRecursive( matrix &mtx_in, PicState
 @brief Destructor of the class.
 */
 PowerTraceHafnianRecursive::~PowerTraceHafnianRecursive() {
+
+    delete task_count_mutex;
 
 }
 
@@ -116,6 +126,12 @@ PowerTraceHafnianRecursive::~PowerTraceHafnianRecursive() {
 */
 Complex16
 PowerTraceHafnianRecursive::calculate() {
+
+
+    if (mtx.rows == 0) {
+        // the hafnian of an empty matrix is 1 by definition
+        return Complex16(1,0);
+    }
 
 #if BLAS==0 // undefined BLAS
     int NumThreads = omp_get_max_threads();
@@ -129,56 +145,99 @@ PowerTraceHafnianRecursive::calculate() {
 #endif
 
 
-
+    // number of modes spanning the gaussian state
     size_t num_of_modes = occupancy.size();
-
-
-    if (mtx.rows == 0) {
-        // the hafnian of an empty matrix is 1 by definition
-        return Complex16(1,0);
-    }
-
-
 
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
 
-    // for cycle over the combinations of occupancy -- TODO make parallel (possible entrance point of MPI)
-    Complex16 hafnian(0.0,0.0);
 
+    // create task group to spawn tasks
+    tbb::task_group tg;
+
+    // thread local storage for partial hafnian
+    tbb::combinable<Complex16> priv_addend{[](){return Complex16(0,0);}};
+
+    // for cycle over the combinations of occupancy
     for (unsigned long long permutation_idx = 1; permutation_idx < permutation_idx_max; permutation_idx++) {
 
 
+            // select occupancy corresponding to the binary representation of permutation_idx
+            std::vector<unsigned char> bin_rep;
+            std::vector<unsigned char> selected_modes;
+            bin_rep.reserve(num_of_modes);
+            selected_modes.reserve(num_of_modes);
+            for (int i = 1 << (num_of_modes-1); i > 0; i = i / 2) {
+                if (permutation_idx & i) {
+                    bin_rep.push_back(1);
+                    selected_modes.push_back((bin_rep.size()-1));
+                }
+                else {
+                    bin_rep.push_back(0);
+                }
+            }
 
-        // select occupancy corresponding to the binary representation of permutation_idx
-        std::vector<unsigned char> bin_rep;
-        std::vector<unsigned char> selected_modes;
-        bin_rep.reserve(num_of_modes);
-        selected_modes.reserve(num_of_modes);
-        for (int i = 1 << (num_of_modes-1); i > 0; i = i / 2) {
-            if (permutation_idx & i) {
-                bin_rep.push_back(1);
-                selected_modes.push_back((bin_rep.size()-1));
+
+            // spawn iterations over the occupied numbers of the occupancy
+
+            // initial filling of the occupancy
+            bool skip_contribution = false; //if the maximal occupancy of one mode is zero, we skip this contribution
+            PicState_int64 filling_factors(selected_modes.size());
+            for (size_t idx=0;idx<selected_modes.size(); idx++) {
+                if (occupancy[selected_modes[idx]] > 0 ) {
+                     filling_factors[idx] = 1;
+                }
+                else {
+                    skip_contribution = true;
+                    break;
+                }
+            }
+
+            if (skip_contribution) {
+
+                continue;
+            }
+
+            // prevent the exponential explosion of spawned tasks (and save the stack space)
+            // and spawn new task only if the current number of tasks is smaller than a cutoff
+            if (task_num < max_task_num) {
+
+
+                {
+                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                    task_num++;
+                    //std::cout << "task num root: " << task_num << std::endl;
+                }
+
+
+                tg.run( [this, selected_modes, filling_factors, &priv_addend, &tg]() {
+
+                    IterateOverSelectedoccupancy( selected_modes, filling_factors, 0, priv_addend, tg );
+
+                    {
+                        tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                        task_num--;
+                    }
+                    return;
+
+                });
+
             }
             else {
-                bin_rep.push_back(0);
+                // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
+                IterateOverSelectedoccupancy( selected_modes, filling_factors, 0, priv_addend, tg );
             }
-        }
-        size_t number_of_occupancy = selected_modes.size();
-
-
-        // spawn iterations over the occupied numbers of the occupancy
-
-        // initial filling of the occupancy
-        PicState_int64 filling_factors(selected_modes.size());
-        for (size_t idx=0;idx<selected_modes.size(); idx++) {
-            filling_factors[idx] = 1;
-        }
-
-        IterateOverSelectedoccupancy( selected_modes, filling_factors, 0, hafnian );
-
 
 
     }
+
+    // wait until all spawned tasks are completed
+    tg.wait();
+
+
+    Complex16 hafnian( 0.0, 0.0 );
+    priv_addend.combine_each([&](Complex16 a) {
+        hafnian = hafnian + a;
+    });
 
 
     //Complex16 res = summand;
@@ -201,29 +260,96 @@ PowerTraceHafnianRecursive::calculate() {
 @return Returns with the calculated hafnian
 */
 void
-PowerTraceHafnianRecursive::IterateOverSelectedoccupancy( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors, size_t mode_to_iterate, Complex16& hafnian ) {
+PowerTraceHafnianRecursive::IterateOverSelectedoccupancy( const std::vector<unsigned char>& selected_modes, const PicState_int64& filling_factors, size_t mode_to_iterate, tbb::combinable<Complex16>& priv_addend, tbb::task_group &tg ) {
+
 
 
     // spawn iteration over the next mode if available
     size_t new_mode_to_iterate = mode_to_iterate+1;
     while ( new_mode_to_iterate < selected_modes.size() ) {
 
-        if ( filling_factors[new_mode_to_iterate] < occupancy[selected_modes[new_mode_to_iterate]]) {
-            PicState_int64 filling_factors_new = filling_factors.copy();
-            filling_factors_new[new_mode_to_iterate]++;
-            IterateOverSelectedoccupancy( selected_modes, filling_factors_new, new_mode_to_iterate, hafnian ); // TODO use task_group for this
+
+        // prevent the exponential explosion of spawned tasks (and save the stack space)
+        // and spawn new task only if the current number of tasks is smaller than a cutoff
+        if (task_num < max_task_num) {
+
+            {
+                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                task_num++;
+                //std::cout << "task num: " << task_num << std::endl;
+            }
+
+            tg.run( [this, new_mode_to_iterate, selected_modes, filling_factors, &priv_addend, &tg ](){
+
+
+                if ( filling_factors[new_mode_to_iterate] < occupancy[selected_modes[new_mode_to_iterate]]) {
+                    PicState_int64 filling_factors_new = filling_factors.copy();
+                    filling_factors_new[new_mode_to_iterate]++;
+                    IterateOverSelectedoccupancy( selected_modes, filling_factors_new, new_mode_to_iterate, priv_addend, tg );
+                }
+
+                {
+                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                    task_num--;
+                }
+
+                return;
+
+            });
+
+        }
+        else {
+           // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
+           if ( filling_factors[new_mode_to_iterate] < occupancy[selected_modes[new_mode_to_iterate]]) {
+                PicState_int64 filling_factors_new = filling_factors.copy();
+                filling_factors_new[new_mode_to_iterate]++;
+                IterateOverSelectedoccupancy( selected_modes, filling_factors_new, new_mode_to_iterate, priv_addend, tg );
+            }
+
+
         }
 
-         new_mode_to_iterate++;
+        new_mode_to_iterate++;
+
+
     }
+
 
     // spawn task on the next filling factor value of the mode labeled by mode_to_iterate
     if ( filling_factors[mode_to_iterate] < occupancy[selected_modes[mode_to_iterate]]) {
-        PicState_int64 filling_factors_new = filling_factors.copy();
-        filling_factors_new[mode_to_iterate]++;
-        IterateOverSelectedoccupancy( selected_modes, filling_factors_new, mode_to_iterate, hafnian ); // TODO use task_group for this
+
+        // prevent the exponential explosion of spawned tasks (and save the stack space)
+        // and spawn new task only if the current number of tasks is smaller than a cutoff
+        if (task_num < max_task_num) {
+            {
+                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                task_num++;
+                //std::cout << "task num: " << task_num << std::endl;
+            }
+
+            tg.run( [this, mode_to_iterate, selected_modes, filling_factors, &priv_addend, &tg ](){
+
+                PicState_int64 filling_factors_new = filling_factors.copy();
+                filling_factors_new[mode_to_iterate]++;
+                IterateOverSelectedoccupancy( selected_modes, filling_factors_new, mode_to_iterate, priv_addend, tg );
+                {
+                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                    task_num--;
+                }
+
+                return;
+            });
+
+        }
+        else {
+            // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
+            PicState_int64 filling_factors_new = filling_factors.copy();
+            filling_factors_new[mode_to_iterate]++;
+            IterateOverSelectedoccupancy( selected_modes, filling_factors_new, mode_to_iterate, priv_addend, tg );
+        }
 
     }
+
 /*
 std::cout << std::endl;
 std::cout << "mode_to_iterate " << mode_to_iterate << " " << "number of selected modes " << selected_modes.size() << std::endl;
@@ -251,8 +377,11 @@ std::cout << std::endl;
                                                                  filling_factors[idx] // the current occupancy
                                                                  );
     }
+
+    Complex16 &hafnian_priv = priv_addend.local();
 //std::cout << "combinatorial_fact " << combinatorial_fact << std::endl;
-    hafnian = hafnian + partial_hafnian * combinatorial_fact;
+//std::cout << "partial_hafnian " << partial_hafnian << std::endl;
+    hafnian_priv = hafnian_priv + partial_hafnian * combinatorial_fact;
 
 
 
@@ -267,7 +396,7 @@ std::cout << std::endl;
 @return Returns with the calculated hafnian
 */
 Complex16
-PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors ) {
+PowerTraceHafnianRecursive::CalculatePartialHafnian( const std::vector<unsigned char>& selected_modes, const PicState_int64& filling_factors ) {
 
 
     //size_t dim_over_2 = mtx.rows/2;
@@ -279,14 +408,15 @@ PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>&
     size_t total_num_of_modes = sum(occupancy);
     size_t dim = total_num_of_modes*2;
 
+
+
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
     matrix&& B = CreateAZ(selected_modes, filling_factors, num_of_modes);
-
 
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
     matrix traces(total_num_of_modes, 1);
-    if (total_num_of_modes != 0) {
+    if (num_of_modes != 0) {
         traces = calc_power_traces(B, total_num_of_modes);
     }
     else{
@@ -366,7 +496,7 @@ PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>&
 @return Returns with the calculated hafnian
 */
 matrix
-PowerTraceHafnianRecursive::CreateAZ( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors, const size_t& num_of_modes ) {
+PowerTraceHafnianRecursive::CreateAZ( const std::vector<unsigned char>& selected_modes, const PicState_int64& filling_factors, const size_t& num_of_modes ) {
 
 
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from

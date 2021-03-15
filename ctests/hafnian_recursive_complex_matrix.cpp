@@ -152,7 +152,7 @@ int main() {
 
 
     // allocate matrix array for the larger matrix
-    size_t dim = 8;
+    size_t dim = 20;
     pic::matrix mtx = pic::matrix(dim, dim);
 
     // fill up matrix with random elements
@@ -168,11 +168,16 @@ int main() {
 
     // array of modes describing the occupancy of the individual modes
     pic::PicState_int64 filling_factors(dim/2);
-    filling_factors[0] = 6;
-    filling_factors[1] = 6;
-    filling_factors[2] = 5;
-    filling_factors[3] = 4;
-
+    for (size_t idx=0; idx<filling_factors.size(); idx++) {
+        filling_factors[idx] = 1;
+    }
+    filling_factors[0] = 2;
+    filling_factors[1] = 0;
+    filling_factors[2] = 2;
+    filling_factors[3] = 3;
+    filling_factors[6] = 2;
+    filling_factors[10] = 3;
+    filling_factors[14] = 4;
 
     // matrix containing the repeated rows and columns
     pic::matrix&& mtx_repeated = create_repeated_mtx(mtx, filling_factors);
