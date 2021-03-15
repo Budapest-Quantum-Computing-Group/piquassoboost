@@ -77,16 +77,29 @@ static int BinomialCoeff(int n, int k) {
 
 
 /**
-@brief Default constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
-@param modes An array describing the modes to be used to calculate the hafnian. The i-th mode is repeated modes[i] times.
+@brief Constructor of the class.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_1^*,a_1, a_1^*, ... a_n, a_n^* \f$ ordered covariance matrix of the Gaussian state,
+where \f$ n \f$ is the number of occupancy i n the Gaussian state).
+@param occupancy An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
+(The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-PowerTraceHafnianRecursive::PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& modes_in ) : PowerTraceHafnian( mtx_in ) {
+PowerTraceHafnianRecursive::PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in ) : PowerTraceHafnian( mtx_in ) {
 
-    modes = modes_in;
+    occupancy = occupancy_in;
 
-    //TODO check num_of modes with mtx size
+    if (mtx.rows != 2*occupancy.size()) {
+        std::cout << "The length of array occupancy should be equal to the half of the dimension of the input matrix mtx. Exiting" << std::endl;
+        exit(-1);
+    }
+
+    if (mtx.rows % 2 != 0) {
+        // The dimensions of the matrix should be even
+        std::cout << "In PowerTraceHafnianRecursive algorithm the dimensions of the matrix should strictly be even. Exiting" << std::endl;
+        exit(-1);
+    }
+
 }
 
 
@@ -114,39 +127,29 @@ PowerTraceHafnianRecursive::calculate() {
     int NumThreads = openblas_get_num_threads();
     openblas_set_num_threads(1);
 #endif
-/*
-    mtx = getPermutedMatrix();
-std::cout << "permuted matrix " << std::endl;
-mtx.print_matrix();
-    return calculate_tmp();
-*/
-    mtx_permuted = getPermutedMatrix();
 
 
-    size_t num_of_modes = modes.size();
+
+    size_t num_of_modes = occupancy.size();
 
 
     if (mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return Complex16(1,0);
     }
-/*
-    else if (mtx.rows % 2 != 0) {
-        // the hafnian of odd shaped matrix is 0 by definition
-        return Complex16(0.0, 0.0);
-    }
-*/
+
+
 
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
 
-    // for cycle over the combinations of modes -- TODO make parallel (possible entrance point of MPI)
+    // for cycle over the combinations of occupancy -- TODO make parallel (possible entrance point of MPI)
     Complex16 hafnian(0.0,0.0);
 
     for (unsigned long long permutation_idx = 1; permutation_idx < permutation_idx_max; permutation_idx++) {
 
 
 
-        // select modes corresponding to the binary representation of permutation_idx
+        // select occupancy corresponding to the binary representation of permutation_idx
         std::vector<unsigned char> bin_rep;
         std::vector<unsigned char> selected_modes;
         bin_rep.reserve(num_of_modes);
@@ -160,19 +163,18 @@ mtx.print_matrix();
                 bin_rep.push_back(0);
             }
         }
-        size_t number_of_modes = selected_modes.size();
+        size_t number_of_occupancy = selected_modes.size();
 
 
-        // spawn iterations over the occupied numbers of the modes
+        // spawn iterations over the occupied numbers of the occupancy
 
-        // initial filling of the modes
+        // initial filling of the occupancy
         PicState_int64 filling_factors(selected_modes.size());
         for (size_t idx=0;idx<selected_modes.size(); idx++) {
             filling_factors[idx] = 1;
         }
-//filling_factors.print_matrix();
 
-        IterateOverSelectedModes( selected_modes, filling_factors, 0, hafnian );
+        IterateOverSelectedoccupancy( selected_modes, filling_factors, 0, hafnian );
 
 
 
@@ -199,40 +201,57 @@ mtx.print_matrix();
 @return Returns with the calculated hafnian
 */
 void
-PowerTraceHafnianRecursive::IterateOverSelectedModes( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors, size_t mode_to_iterate, Complex16& hafnian ) {
+PowerTraceHafnianRecursive::IterateOverSelectedoccupancy( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors, size_t mode_to_iterate, Complex16& hafnian ) {
+
 
     // spawn iteration over the next mode if available
-    if ( mode_to_iterate+1 < selected_modes.size()) {
+    size_t new_mode_to_iterate = mode_to_iterate+1;
+    while ( new_mode_to_iterate < selected_modes.size() ) {
 
-        size_t new_mode_to_iterate = mode_to_iterate+1;
-        if ( filling_factors[new_mode_to_iterate] < modes[selected_modes[new_mode_to_iterate]]) {
+        if ( filling_factors[new_mode_to_iterate] < occupancy[selected_modes[new_mode_to_iterate]]) {
             PicState_int64 filling_factors_new = filling_factors.copy();
             filling_factors_new[new_mode_to_iterate]++;
-            IterateOverSelectedModes( selected_modes, filling_factors_new, new_mode_to_iterate, hafnian ); // TODO use task_group for this
+            IterateOverSelectedoccupancy( selected_modes, filling_factors_new, new_mode_to_iterate, hafnian ); // TODO use task_group for this
         }
 
+         new_mode_to_iterate++;
     }
 
     // spawn task on the next filling factor value of the mode labeled by mode_to_iterate
-    if ( filling_factors[mode_to_iterate] < modes[selected_modes[mode_to_iterate]]) {
+    if ( filling_factors[mode_to_iterate] < occupancy[selected_modes[mode_to_iterate]]) {
         PicState_int64 filling_factors_new = filling_factors.copy();
         filling_factors_new[mode_to_iterate]++;
-        IterateOverSelectedModes( selected_modes, filling_factors_new, mode_to_iterate, hafnian ); // TODO use task_group for this
+        IterateOverSelectedoccupancy( selected_modes, filling_factors_new, mode_to_iterate, hafnian ); // TODO use task_group for this
 
     }
+/*
+std::cout << std::endl;
+std::cout << "mode_to_iterate " << mode_to_iterate << " " << "number of selected modes " << selected_modes.size() << std::endl;
+
+std::cout << "selected modes ";
+for (size_t idx=0; idx<selected_modes.size(); idx++) {
+std::cout << (short)selected_modes[idx];
+}
+std::cout << std::endl;
+std::cout << "filling_factors ";
+for (size_t idx=0; idx<filling_factors.size(); idx++) {
+std::cout << filling_factors[idx];
+}
+std::cout << std::endl;
+*/
 
 
-    // calculate the partial hafnian for the given filling factors of the selected modes
+    // calculate the partial hafnian for the given filling factors of the selected occupancy
     Complex16 partial_hafnian = CalculatePartialHafnian( selected_modes, filling_factors);
 
     // add partial hafnian to the sum including the combinatorial factors
     double combinatorial_fact(1.0);
     for (size_t idx=0; idx < selected_modes.size(); idx++) {
-        combinatorial_fact = combinatorial_fact * BinomialCoeff(modes[selected_modes[idx]], // the maximal filling factor
-                                                                 filling_factors[idx] // the current filling factor
+        combinatorial_fact = combinatorial_fact * BinomialCoeff(occupancy[selected_modes[idx]], // the maximal allowed occupancy
+                                                                 filling_factors[idx] // the current occupancy
                                                                  );
     }
-
+//std::cout << "combinatorial_fact " << combinatorial_fact << std::endl;
     hafnian = hafnian + partial_hafnian * combinatorial_fact;
 
 
@@ -257,7 +276,7 @@ PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>&
     Complex16 summand(0.0,0.0);
 
     size_t num_of_modes = sum(filling_factors);
-    size_t total_num_of_modes = sum(modes);
+    size_t total_num_of_modes = sum(occupancy);
     size_t dim = total_num_of_modes*2;
 
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
@@ -327,9 +346,11 @@ PowerTraceHafnianRecursive::CalculatePartialHafnian( std::vector<unsigned char>&
 
     if (fact) {
         summand = summand - p_aux1[total_num_of_modes];
+//std::cout << -p_aux1[total_num_of_modes] << std::endl;
     }
     else {
         summand = summand + p_aux1[total_num_of_modes];
+//std::cout << p_aux1[total_num_of_modes] << std::endl;
     }
 
 
@@ -373,10 +394,10 @@ PowerTraceHafnianRecursive::CreateAZ( std::vector<unsigned char>& selected_modes
 
                 for (size_t filling_factor_col=1; filling_factor_col<=filling_factors[mode_jdx]; filling_factor_col++) {
 
-                    B[row_offset_B_a + col_idx*2]   = mtx_permuted[row_offset_mtx_a + ((selected_modes[mode_jdx]*2) ^ 1)];
-                    B[row_offset_B_a + col_idx*2+1] = mtx_permuted[row_offset_mtx_a + ((selected_modes[mode_jdx]*2+1) ^ 1)];
-                    B[row_offset_B_aconj + col_idx*2]   = mtx_permuted[row_offset_mtx_aconj + ((selected_modes[mode_jdx]*2) ^ 1)];
-                    B[row_offset_B_aconj + col_idx*2+1] = mtx_permuted[row_offset_mtx_aconj + ((selected_modes[mode_jdx]*2+1) ^ 1)];
+                    B[row_offset_B_a + col_idx*2]   = mtx[row_offset_mtx_a + ((selected_modes[mode_jdx]*2) ^ 1)];
+                    B[row_offset_B_a + col_idx*2+1] = mtx[row_offset_mtx_a + ((selected_modes[mode_jdx]*2+1) ^ 1)];
+                    B[row_offset_B_aconj + col_idx*2]   = mtx[row_offset_mtx_aconj + ((selected_modes[mode_jdx]*2) ^ 1)];
+                    B[row_offset_B_aconj + col_idx*2+1] = mtx[row_offset_mtx_aconj + ((selected_modes[mode_jdx]*2+1) ^ 1)];
 
                     col_idx++;
                 }
@@ -405,10 +426,10 @@ PowerTraceHafnianRecursive::CreateAZ( std::vector<unsigned char>& selected_modes
         size_t row_offset_mtx_aconj = (2*selected_modes[idx]+1)*mtx.stride;
 
         for (size_t jdx = 0; jdx < total_num_of_modes; jdx++) {
-            B[row_offset_B_a + jdx*2]   = mtx_permuted[row_offset_mtx_a + ((selected_modes[jdx]*2) ^ 1)];
-            B[row_offset_B_a + jdx*2+1] = mtx_permuted[row_offset_mtx_a + ((selected_modes[jdx]*2+1) ^ 1)];
-            B[row_offset_B_aconj + jdx*2]   = mtx_permuted[row_offset_mtx_aconj + ((selected_modes[jdx]*2) ^ 1)];
-            B[row_offset_B_aconj + jdx*2+1] = mtx_permuted[row_offset_mtx_aconj + ((selected_modes[jdx]*2+1) ^ 1)];
+            B[row_offset_B_a + jdx*2]   = mtx[row_offset_mtx_a + ((selected_modes[jdx]*2) ^ 1)];
+            B[row_offset_B_a + jdx*2+1] = mtx[row_offset_mtx_a + ((selected_modes[jdx]*2+1) ^ 1)];
+            B[row_offset_B_aconj + jdx*2]   = mtx[row_offset_mtx_aconj + ((selected_modes[jdx]*2) ^ 1)];
+            B[row_offset_B_aconj + jdx*2+1] = mtx[row_offset_mtx_aconj + ((selected_modes[jdx]*2+1) ^ 1)];
         }
     }
 */
@@ -421,44 +442,7 @@ PowerTraceHafnianRecursive::CreateAZ( std::vector<unsigned char>& selected_modes
 
 
 
-/**
-@brief ??????????????????
-@return Returns with the calculated hafnian
-*/
-matrix
-PowerTraceHafnianRecursive::getPermutedMatrix() {
 
-
-    matrix res(mtx.rows, mtx.cols);
-
-
-    size_t num_of_modes = modes.size();
-
-    for (size_t row_idx=0; row_idx<num_of_modes; row_idx++ ) {
-
-        size_t row_offset_q_orig = row_idx*mtx.stride;
-        size_t row_offset_p_orig = (row_idx+num_of_modes)*mtx.stride;
-
-        size_t row_offset_q_permuted = 2*row_idx*res.stride;
-        size_t row_offset_p_permuted = (2*row_idx+1)*res.stride;
-
-        for (size_t col_idx=0; col_idx<num_of_modes; col_idx++ ) {
-
-            res[row_offset_q_permuted + col_idx*2] = mtx[row_offset_q_orig + col_idx];
-            res[row_offset_q_permuted + col_idx*2 + 1] = mtx[row_offset_q_orig + num_of_modes + col_idx];
-
-            res[row_offset_p_permuted + col_idx*2] = mtx[row_offset_p_orig + col_idx];
-            res[row_offset_p_permuted + col_idx*2 + 1] = mtx[row_offset_p_orig + num_of_modes + col_idx];
-
-        }
-
-    }
-
-    //res.print_matrix();
-
-    return res;
-
-}
 
 /**
 @brief Call to calculate the hafnian of a complex matrix

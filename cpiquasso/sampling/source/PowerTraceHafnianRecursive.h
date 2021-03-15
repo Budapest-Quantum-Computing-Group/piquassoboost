@@ -11,26 +11,24 @@ namespace pic {
 
 /**
 @brief Class to calculate the hafnian of a complex matrix by the power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
-purpose hafnian calculator. This algorithm accounts for the repeated modes in the covariance matrix.
+purpose hafnian calculator. This algorithm accounts for the repeated occupancy in the covariance matrix.
 */
 class PowerTraceHafnianRecursive : public PowerTraceHafnian {
 
 
 protected:
-    /// An array describing the modes to be used to calculate the hafnian. The i-th mode is repeated modes[i] times.
-    PicState_int64 modes;
-    /// covariance matrix ordered in a1,a1*,a2,a2* ... ai,ai* format
-    matrix mtx_permuted;
+    /// An array describing the occupancy to be used to calculate the hafnian. The i-th mode is repeated occupancy[i] times.
+    PicState_int64 occupancy;
 
 public:
 
 /**
 @brief Constructor of the class.
 @param mtx_in The covariance matrix of the Gaussian state.
-@param modes An array describing the modes to be used to calculate the hafnian. The i-th mode is repeated modes[i] times.
+@param occupancy An array describing the occupancy to be used to calculate the hafnian. The i-th mode is repeated occupancy[i] times.
 @return Returns with the instance of the class.
 */
-PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& modes_in );
+PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in );
 
 
 /**
@@ -49,10 +47,10 @@ virtual Complex16 calculate();
 @brief ??????????????????
 @return Returns with the calculated hafnian
 */
-void IterateOverSelectedModes( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors, size_t mode_to_iterate, Complex16& hafnian );
+void IterateOverSelectedoccupancy( std::vector<unsigned char>& selected_occupancy, PicState_int64& filling_factors, size_t mode_to_iterate, Complex16& hafnian );
 
 
-Complex16 CalculatePartialHafnian( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors );
+Complex16 CalculatePartialHafnian( std::vector<unsigned char>& selected_occupancy, PicState_int64& filling_factors );
 
 
 /**
@@ -60,15 +58,10 @@ Complex16 CalculatePartialHafnian( std::vector<unsigned char>& selected_modes, P
 @return Returns with the calculated hafnian
 */
 matrix
-CreateAZ( std::vector<unsigned char>& selected_modes, PicState_int64& filling_factors, const size_t& total_num_of_modes );
+CreateAZ( std::vector<unsigned char>& selected_occupancy, PicState_int64& filling_factors, const size_t& total_num_of_occupancy );
 
 
 
-/**
-@brief ??????????????????
-@return Returns with the calculated hafnian
-*/
-matrix getPermutedMatrix();
 
 
 /**

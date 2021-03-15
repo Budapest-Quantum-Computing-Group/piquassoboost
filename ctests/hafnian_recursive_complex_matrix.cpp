@@ -95,8 +95,14 @@ create_repeated_mtx( pic::matrix& A, pic::PicState_int64& filling_factors ) {
 }
 
 
-
-pic::matrix getPermutedMatrix( pic::matrix& mtx) {
+/**
+@brief Transforms the covariance matrix in the basis \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ...  a_n^* \f$  into the basis \f$ a_1, a_1^*,a_2, a_2^*, ... a_n, a_n^* \f$ suitable for
+the PowerTraceHafnianRecursive algorithm.
+@param mtx A covariance matrix in the basis \f$ a_1, a_2, ... a_n,, a_1^*, a_2^*, ...  a_n^* \f$.
+@return Returns with the covariance matrix in the basis \f$ a_1, a_1^*,a_2, a_2^*, ... a_n, a_n^* \f$.
+*/
+pic::matrix
+getPermutedMatrix( pic::matrix& mtx) {
 
 
     pic::matrix res(mtx.rows, mtx.cols);
@@ -146,7 +152,7 @@ int main() {
 
 
     // allocate matrix array for the larger matrix
-    size_t dim = 4;
+    size_t dim = 8;
     pic::matrix mtx = pic::matrix(dim, dim);
 
     // fill up matrix with random elements
@@ -160,42 +166,46 @@ int main() {
     }
 
 
-    // array of modes describing the number of photons in the individual modes
+    // array of modes describing the occupancy of the individual modes
     pic::PicState_int64 filling_factors(dim/2);
-    filling_factors[0] = 3;
-    filling_factors[1] = 2;
+    filling_factors[0] = 6;
+    filling_factors[1] = 6;
+    filling_factors[2] = 5;
+    filling_factors[3] = 4;
 
 
-
+    // matrix containing the repeated rows and columns
     pic::matrix&& mtx_repeated = create_repeated_mtx(mtx, filling_factors);
 
 
-    pic::PicState_int64 filling_factors2(mtx_repeated.rows/2);
-    for (size_t idx=0; idx< filling_factors2.size(); idx++) {
-        filling_factors2[idx] = 1;
-    }
-
 
     // print the matrix on standard output
-    mtx.print_matrix();
+    //mtx.print_matrix();
+    //mtx_repeated.print_matrix();
+    //mtx_repeated=getPermutedMatrix(mtx_repeated);
 
-
-    mtx_repeated.print_matrix();
-
-   // hafnian calculated by algorithm PowerTraceHafnian
+    // hafnian calculated by algorithm PowerTraceHafnian
+    tbb::tick_count t0 = tbb::tick_count::now();
     pic::PowerTraceHafnian hafnian_calculator = pic::PowerTraceHafnian( mtx_repeated );
     pic::Complex16 hafnian_powertrace = hafnian_calculator.calculate();
+    tbb::tick_count t1 = tbb::tick_count::now();
 
 
     // calculate the hafnian by the recursive method
 
     // now calculated the hafnian of the whole matrix using the value calculated for the submatrix
-    pic::PowerTraceHafnianRecursive hafnian_calculator_recursive = pic::PowerTraceHafnianRecursive( mtx, filling_factors );
+    pic::matrix &&mtx_permuted = getPermutedMatrix(mtx);
+    tbb::tick_count t2 = tbb::tick_count::now();
+    pic::PowerTraceHafnianRecursive hafnian_calculator_recursive = pic::PowerTraceHafnianRecursive( mtx_permuted, filling_factors );
     pic::Complex16 hafnian_powertrace_recursive = hafnian_calculator_recursive.calculate();
+    tbb::tick_count t3 = tbb::tick_count::now();
 
 
     std::cout << "the calculated hafnian with the power trace method: " << hafnian_powertrace << std::endl;
     std::cout << "the calculated hafnian with the recursive powertrace method: " << hafnian_powertrace_recursive << std::endl;
+
+
+    std::cout << (t1-t0).seconds() << " " << (t3-t2).seconds() << " " << (t1-t0).seconds()/(t3-t2).seconds() << std::endl;
 
 
 

@@ -56,6 +56,8 @@ PowerTraceHafnian::PowerTraceHafnian( matrix &mtx_in ) {
 
     mtx = mtx_in;
 
+    //TODO  in debug mode check whether the input matrix is symmetric
+
 }
 
 
@@ -221,9 +223,11 @@ PowerTraceHafnian::calculate() {
 
         if (fact) {
             summand = summand - p_aux1[dim_over_2];
+//std::cout << -p_aux1[dim_over_2] << std::endl;
         }
         else {
             summand = summand + p_aux1[dim_over_2];
+//std::cout << p_aux1[dim_over_2] << std::endl;
         }
 
         }
