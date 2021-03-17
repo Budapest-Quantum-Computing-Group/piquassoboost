@@ -116,7 +116,7 @@ PowerTraceLoopHafnian_wrapper_init(PowerTraceLoopHafnian_wrapper *self, PyObject
     if ( matrix_arg == NULL ) return -1;
 
     // establish memory contiguous arrays for C calculations
-    if ( PyArray_IS_C_CONTIGUOUS(matrix_arg) ) {
+    if ( PyArray_IS_C_CONTIGUOUS(matrix_arg)  && PyArray_TYPE(matrix_arg) == NPY_COMPLEX128 ) {
         self->matrix = matrix_arg;
         Py_INCREF(self->matrix);
     }

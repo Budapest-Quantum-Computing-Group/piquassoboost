@@ -1,5 +1,6 @@
 #include <iostream>
 #include "PowerTraceLoopHafnian.h"
+#include "PowerTraceHafnianUtilities.h"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
 #include <math.h>

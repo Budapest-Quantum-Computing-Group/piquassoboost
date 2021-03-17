@@ -18,6 +18,7 @@ target_compile_options(Boson_Sampling_Utilities_wrapper PRIVATE
     ${CXX_FLAGS}
     "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+    "-DCPYTHON"
 )
 
 

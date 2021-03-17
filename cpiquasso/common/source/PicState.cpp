@@ -11,6 +11,7 @@ namespace pic {
 */
 PicState_int64::PicState_int64() : matrix_base<int64_t>() {
     rows = 1;
+    cols = 0;
 }
 
 /**

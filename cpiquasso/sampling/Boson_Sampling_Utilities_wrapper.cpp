@@ -4,6 +4,7 @@
 #include <numpy/arrayobject.h>
 #include "ChinHuhPermanentCalculator_Wrapper.hpp"
 #include "PowerTraceHafnian_Wrapper.hpp"
+#include "PowerTraceHafnianRecursive_Wrapper.hpp"
 #include "PowerTraceLoopHafnian_Wrapper.hpp"
 
 
@@ -38,6 +39,9 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     if (PyType_Ready(&PowerTraceHafnian_wrapper_Type) < 0)
         return NULL;
 
+    if (PyType_Ready(&PowerTraceHafnianRecursive_wrapper_Type) < 0)
+        return NULL;
+
     if (PyType_Ready(&PowerTraceLoopHafnian_wrapper_Type) < 0)
         return NULL;
 
@@ -56,6 +60,14 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     Py_INCREF(&PowerTraceHafnian_wrapper_Type);
     if (PyModule_AddObject(m, "PowerTraceHafnian_wrapper", (PyObject *) &PowerTraceHafnian_wrapper_Type) < 0) {
         Py_DECREF(&PowerTraceHafnian_wrapper_Type);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+
+    Py_INCREF(&PowerTraceHafnianRecursive_wrapper_Type);
+    if (PyModule_AddObject(m, "PowerTraceHafnianRecursive_wrapper", (PyObject *) &PowerTraceHafnianRecursive_wrapper_Type) < 0) {
+        Py_DECREF(&PowerTraceHafnianRecursive_wrapper_Type);
         Py_DECREF(m);
         return NULL;
     }
