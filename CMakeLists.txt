@@ -221,6 +221,7 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/GaussianState_Cov.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianRecursive.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.cpp
@@ -262,6 +263,7 @@ set_target_properties(cpiquasso PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/GaussianState_Cov.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianUtilities.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianRecursive.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.h
