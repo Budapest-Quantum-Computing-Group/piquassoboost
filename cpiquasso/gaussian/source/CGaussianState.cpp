@@ -1,10 +1,15 @@
 #include <iostream>
 #include "CGaussianState.h"
-#include "tasks_apply_to_C_and_G.h"
 #include "dot.h"
 #include <memory.h>
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
+#include "tasks_apply_to_C_and_G/extract_rows.h"
+#include "tasks_apply_to_C_and_G/transform_rows.h"
+#include "tasks_apply_to_C_and_G/extract_corner.h"
+#include "tasks_apply_to_C_and_G/transform_cols.h"
+#include "tasks_apply_to_C_and_G/insert_transformed_cols.h"
+#include "tasks_apply_to_C_and_G/insert_transformed_rows.h"
 
 namespace pic {
 

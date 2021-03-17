@@ -23,7 +23,7 @@ from libcpp cimport bool #import bool type
 cimport piquasso.common.tbb as tbb
 
 # cimport the header of the class to be tested
-from piquasso.gaussian.source.tasks_apply_to_C_and_G cimport Extract_Rows
+from piquasso.gaussian.source.tasks_apply_to_C_and_G.extract_rows cimport Extract_Rows
 
 
 # create an interface to numpy-C++ wrapper functions
