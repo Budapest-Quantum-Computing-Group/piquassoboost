@@ -184,7 +184,7 @@ void
 GaussianState_Cov::ConvertToComplexAmplitudes() {
 
 
-    if (repr==fock_space) {
+    if (repr==complex_amplitudes) {
         return;
     }
 
@@ -404,7 +404,7 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
 
 
     // indicate that the representation was converted to Fock-space
-    repr = fock_space;
+    repr = complex_amplitudes;
 
 
 }

@@ -214,6 +214,7 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dependency_graph.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix32.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.cpp
@@ -234,6 +235,7 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.cpp
 )
 
 # adding compile options
@@ -261,6 +263,7 @@ set_target_properties(cpiquasso PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.hpp
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dependency_graph.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix32.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.h
@@ -281,6 +284,7 @@ set_target_properties(cpiquasso PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.h
 )
 
 configure_file(${PROJECT_SOURCE_DIR}/cpiquasso/common/source/Config.h.in

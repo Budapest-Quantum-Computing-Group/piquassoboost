@@ -332,7 +332,7 @@ matrix
 GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state ) {
 
 
-    if ( state.get_representation() != fock_space ) {
+    if ( state.get_representation() != complex_amplitudes ) {
         state.ConvertToComplexAmplitudes();
     }
 
@@ -397,7 +397,7 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state, double& Qdet ) 
 
 
 
-    if ( state.get_representation() != fock_space ) {
+    if ( state.get_representation() != complex_amplitudes ) {
         state.ConvertToComplexAmplitudes();
     }
 

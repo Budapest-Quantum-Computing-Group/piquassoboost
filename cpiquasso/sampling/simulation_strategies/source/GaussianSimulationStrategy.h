@@ -150,7 +150,7 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 @param current_output The fock representation of the current output for which the probability is calculated
 @return Returns with the calculated probability
 */
-double calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output );
+virtual double calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output );
 
 
 /**
