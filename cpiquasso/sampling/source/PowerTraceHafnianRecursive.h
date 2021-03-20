@@ -62,8 +62,14 @@ class PowerTraceHafnianRecursive_Tasks {
 
 
 protected:
-    /// The symmetric matrix for which the hafnian is calculated (i.e. the covariance matrix of the Gaussian state.)
+    /// The symmetric matrix for which the hafnian is calculated (i.e. the covariance matrix of the Gaussian state.)/// The input matrix. Must be symmetric
+    matrix mtx_orig;
+    /** The scaled input matrix for which the calculations are performed.
+    If the mean magnitude of the matrix elements is one, the treshold of quad precision can be set to higher values.
+    */
     matrix mtx;
+    /// The scale factor of the input matric
+    double scale_factor;
     /// An array describing the occupancy to be used to calculate the hafnian. The i-th mode is repeated occupancy[i] times.
     PicState_int64 occupancy;
     /// The maximal number of spawned tasks living at the same time
@@ -106,7 +112,7 @@ protected:
 @param priv_addend Therad local storage for the partial hafnians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<Complex16>& priv_addend, tbb::task_group &tg );
+void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<Complex32>& priv_addend, tbb::task_group &tg );
 
 
 /**
@@ -115,7 +121,7 @@ void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicS
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-Complex16 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
+Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
 
 
 /**

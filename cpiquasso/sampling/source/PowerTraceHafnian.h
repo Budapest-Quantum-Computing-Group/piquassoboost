@@ -2,6 +2,7 @@
 #define PowerTraceHafnian_H
 
 #include "matrix.h"
+#include "matrix32.h"
 
 
 namespace pic {
@@ -14,8 +15,14 @@ namespace pic {
 class PowerTraceHafnian {
 
 protected:
-    /// The covariance matrix of the Gaussian state.
+    /// The input matrix. Must be symmetric
+    matrix mtx_orig;
+    /** The scaled input matrix for which the calculations are performed.
+    If the mean magnitude of the matrix elements is one, the treshold of quad precision can be set to higher values.
+    */
     matrix mtx;
+    /// The scale factor of the input matric
+    double scale_factor;
 
 
 public:

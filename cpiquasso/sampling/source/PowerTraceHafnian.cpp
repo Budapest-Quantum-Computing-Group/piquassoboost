@@ -1,6 +1,6 @@
 #include <iostream>
 #include "PowerTraceHafnian.h"
-#include "PowerTraceHafnianUtilities.h"
+#include "PowerTraceHafnianUtilities.hpp"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
 #include <math.h>
@@ -55,7 +55,9 @@ PowerTraceHafnian::PowerTraceHafnian() {
 */
 PowerTraceHafnian::PowerTraceHafnian( matrix &mtx_in ) {
 
-    mtx = mtx_in;
+    Update_mtx( mtx_in);
+
+
 
     //TODO  in debug mode check whether the input matrix is symmetric
 
@@ -115,17 +117,17 @@ PowerTraceHafnian::calculate() {
 
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
-    tbb::combinable<Complex16> summands{[](){return Complex16(0.0,0.0);}};
+    tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
 
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
 
-        Complex16 &summand = summands.local();
+        Complex32 &summand = summands.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
 /*
-    Complex16 summand(0.0,0.0);
+    Complex32 summand(0.0,0.0);
 
     for (unsigned long long permutation_idx = 0; permutation_idx < permutation_idx_max; permutation_idx++) {
 */
@@ -164,14 +166,14 @@ PowerTraceHafnian::calculate() {
 
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-        matrix traces(dim_over_2, 1);
+        matrix32 traces(dim_over_2, 1);
         if (number_of_ones != 0) {
-            traces = calc_power_traces(B, dim_over_2);
+            traces = calc_power_traces<matrix32, Complex32>(B, dim_over_2);
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
             // this occurs once during the calculations
-            memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex16));
+            memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
         }
 
 
@@ -181,19 +183,19 @@ PowerTraceHafnian::calculate() {
 
 
         // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-        matrix aux0(dim_over_2 + 1, 1);
-        matrix aux1(dim_over_2 + 1, 1);
-        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex16));
-        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex16));
+        matrix32 aux0(dim_over_2 + 1, 1);
+        matrix32 aux1(dim_over_2 + 1, 1);
+        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
+        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
         aux0[0] = 1.0;
         // pointers to the auxiliary data arrays
-        Complex16 *p_aux0=NULL, *p_aux1=NULL;
+        Complex32 *p_aux0=NULL, *p_aux1=NULL;
 
         for (size_t idx = 1; idx <= dim_over_2; idx++) {
 
 
-            Complex16 factor = traces[idx - 1] / (2.0 * idx);
-            Complex16 powfactor(1.0,0.0);
+            Complex32 factor = traces[idx - 1] / (2.0 * idx);
+            Complex32 powfactor(1.0,0.0);
 
 
 
@@ -206,7 +208,7 @@ PowerTraceHafnian::calculate() {
                 p_aux1 = aux0.get_data();
             }
 
-            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex16) );
+            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex32) );
 
             for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
                 powfactor = powfactor * factor / ((double)jdx);
@@ -238,8 +240,8 @@ PowerTraceHafnian::calculate() {
     });
 
     // the resulting Hafnian of matrix mat
-    Complex16 res(0,0);
-    summands.combine_each([&res](Complex16 a) {
+    Complex32 res(0,0);
+    summands.combine_each([&res](Complex32 a) {
         res = res + a;
     });
 
@@ -254,8 +256,11 @@ PowerTraceHafnian::calculate() {
     openblas_set_num_threads(NumThreads);
 #endif
 
+    // scale the result by the appropriate facto according to Eq (2.11) of in arXiv 1805.12498
+    res = res * pow(scale_factor, dim_over_2);
 
-    return res;
+
+    return (Complex16)res;
 }
 
 
@@ -267,7 +272,33 @@ PowerTraceHafnian::calculate() {
 void
 PowerTraceHafnian::Update_mtx( matrix &mtx_in) {
 
-    mtx = mtx_in;
+    mtx_orig = mtx_in;
+
+
+    // scale the matrix to have the mean magnitudes matrix elements equal to one.
+    if ( mtx_in.rows <= 10) {
+        mtx = mtx_in;
+        scale_factor = 1.0;
+    }
+    else {
+
+        // determine the scale factor
+        scale_factor = 0.0;
+        for (size_t idx; idx<mtx_in.size(); idx++) {
+            scale_factor = scale_factor + std::sqrt( mtx_in[idx].real()*mtx_in[idx].real() + mtx_in[idx].imag()*mtx_in[idx].imag() );
+        }
+        scale_factor = scale_factor/mtx_in.size()/std::sqrt(2);
+
+        mtx = mtx_in.copy();
+
+        double inverse_scale_factor = 1/scale_factor;
+
+        // scaling the matrix elements
+        for (size_t idx; idx<mtx_in.size(); idx++) {
+            mtx[idx] = mtx[idx]*inverse_scale_factor;
+        }
+
+    }
 
 }
 

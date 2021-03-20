@@ -227,7 +227,6 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_cols.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianRecursive.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.cpp

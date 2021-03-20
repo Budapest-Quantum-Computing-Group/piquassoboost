@@ -136,6 +136,7 @@ Complex_base<scalar> operator*( const Complex_base<scalar> &value) {
 
 };
 
+
 /**
 @brief Override operator * of the STL complex class.
 @param value A double valued input.

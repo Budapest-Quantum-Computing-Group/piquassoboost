@@ -1,6 +1,6 @@
 #include <iostream>
 #include "PowerTraceLoopHafnian.h"
-#include "PowerTraceHafnianUtilities.h"
+#include "PowerTraceHafnianUtilities.hpp"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
 #include <math.h>
@@ -74,12 +74,12 @@ PowerTraceLoopHafnian::calculate() {
 
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
-    tbb::combinable<Complex16> summands{[](){return Complex16(0.0,0.0);}};
+    tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
 
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
 
-        Complex16 &summand = summands.local();
+        Complex32 &summand = summands.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
@@ -133,19 +133,19 @@ PowerTraceLoopHafnian::calculate() {
         }
 
         // calculate the loop correction elements for the loop hafnian
-        matrix loop_corrections = calculate_loop_correction(diag_elements, cx_diag_elements, AZ);
+        matrix32 loop_corrections = calculate_loop_correction(diag_elements, cx_diag_elements, AZ);
 
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-        matrix traces(dim_over_2, 1);
+        matrix32 traces(dim_over_2, 1);
         if (number_of_ones != 0) {
             // here we need to make a copy since B will be transformed, but we need to use B in other calculations
-            traces = calc_power_traces(AZ, dim_over_2);
+            traces = calc_power_traces<matrix32, Complex32>(AZ, dim_over_2);
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
             // this occurs once during the calculations
-            memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex16));
+            memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
         }
 
 
@@ -155,19 +155,19 @@ PowerTraceLoopHafnian::calculate() {
 
 
         // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-        matrix aux0(dim_over_2 + 1, 1);
-        matrix aux1(dim_over_2 + 1, 1);
-        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex16));
-        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex16));
+        matrix32 aux0(dim_over_2 + 1, 1);
+        matrix32 aux1(dim_over_2 + 1, 1);
+        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
+        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
         aux0[0] = 1.0;
         // pointers to the auxiliary data arrays
-        Complex16 *p_aux0=NULL, *p_aux1=NULL;
+        Complex32 *p_aux0=NULL, *p_aux1=NULL;
 
         for (size_t idx = 1; idx <= dim_over_2; idx++) {
 
 
-            Complex16 factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
-            Complex16 powfactor(1.0,0.0);
+            Complex32 factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
+            Complex32 powfactor(1.0,0.0);
 
 
             if (idx%2 == 1) {
@@ -179,7 +179,7 @@ PowerTraceLoopHafnian::calculate() {
                 p_aux1 = aux0.get_data();
             }
 
-            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex16) );
+            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex32) );
 
             for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
                 powfactor = powfactor * factor / ((double)jdx);
@@ -207,8 +207,8 @@ PowerTraceLoopHafnian::calculate() {
     });
 
     // the resulting Hafnian of matrix mat
-    Complex16 res(0,0);
-    summands.combine_each([&res](Complex16 a) {
+    Complex32 res(0,0);
+    summands.combine_each([&res](Complex32 a) {
         res = res + a;
     });
 
@@ -224,7 +224,7 @@ PowerTraceLoopHafnian::calculate() {
 #endif
 
 
-    return res;
+    return (Complex16)res;
 }
 
 
@@ -235,7 +235,7 @@ PowerTraceLoopHafnian::calculate() {
 @param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
 @return Returns with the calculated loop correction
 */
-matrix
+matrix32
 PowerTraceLoopHafnian::calculate_loop_correction( matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ) {
 
     size_t dim_over_2 = mtx.rows/2;
@@ -267,9 +267,14 @@ PowerTraceLoopHafnian::calculate_loop_correction( matrix &diag_elements, matrix&
          memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(Complex16));
 
     }
+//TODO!!!!!!!!!!!!!!!!!!!!!!!
+    matrix32 loop_correction32(dim_over_2, 1);
+    for (size_t idx=1; idx <loop_correction.size(); idx++ ) {
+        loop_correction32[idx].real( loop_correction[idx].real() );
+        loop_correction32[idx].imag( loop_correction[idx].imag() );
+    }
 
-
-    return loop_correction;
+    return loop_correction32;
 
 }
 

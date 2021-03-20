@@ -33,7 +33,7 @@ Complex16 calculate();
 @param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
 @return Returns with the calculated loop correction
 */
-matrix calculate_loop_correction(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ);
+matrix32 calculate_loop_correction(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ);
 
 
 
