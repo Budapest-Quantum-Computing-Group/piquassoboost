@@ -19,13 +19,37 @@ public:
     /// The number of nonzero elements. Must be set manually
     int64_t number_of_photons = -1;
 
-    // inheriting all the constructors of std::vector
-    using std::vector<T,tbb::cache_aligned_allocator<T>>::vector;
-
-    // inheriting the overloaded assignment operator
-    //using std::vector<T,tbb::cache_aligned_allocator<T>>::operator=;
 
 public:
+
+/**
+@brief Nullary constructor of the class
+@return Returns with the instance of the class.
+*/
+PicVector() : std::vector<T,tbb::cache_aligned_allocator<T>>() {
+
+}
+
+/**
+@brief Constructor of the class
+@param num number of elements to be reserved
+@return Returns with the instance of the class.
+*/
+PicVector( size_t num ) : std::vector<T,tbb::cache_aligned_allocator<T>>(num) {
+
+}
+
+
+/**
+@brief Constructor of the class
+@param num number of elements to be reserved
+@param value The value that is used to fill up the initial container
+@return Returns with the instance of the class.
+*/
+PicVector( size_t num, T value ) : std::vector<T,tbb::cache_aligned_allocator<T>>(num, value) {
+
+}
+
 /**
 @brief Overloaded assignment operator
 @param vec An instance of PicVector

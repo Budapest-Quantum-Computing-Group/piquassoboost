@@ -33,13 +33,13 @@ get_reflection_vector(matrix_type &mtx, size_t offset) {
   matrix_type reflect_vector(sizeH,1);
   for (size_t idx = 0; idx < sizeH; idx++) {
     reflect_vector[idx] = mtx[(idx + offset) * mtx_size + offset - 1];
-    sigma = sigma + std::norm(reflect_vector[idx]); //adding the squared magnitude
+    sigma = sigma + reflect_vector[idx].real()*reflect_vector[idx].real() + reflect_vector[idx].imag()*reflect_vector[idx].imag(); //adding the squared magnitude
   }
   sigma = sqrt(sigma);
 
   if (reflect_vector[0] != complex_type(0.0,0.0)){
-    double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
-    auto addend = sigma*std::polar(1.0, angle);
+    //double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
+    auto addend = reflect_vector[0]/std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() )*sigma;
     reflect_vector[0].real( reflect_vector[0].real() + addend.real());
     reflect_vector[0].imag( reflect_vector[0].imag() + addend.imag());
   }
@@ -64,7 +64,7 @@ apply_householder(matrix_type &A, matrix_type &v, size_t offset) {
 
   double norm_v_sqr = 0.0;
   for (size_t idx=0; idx<v.size(); idx++) {
-      norm_v_sqr = norm_v_sqr + std::norm(v[idx]);
+      norm_v_sqr = norm_v_sqr + v[idx].real()*v[idx].real() + v[idx].imag()*v[idx].imag();
   }
 
 

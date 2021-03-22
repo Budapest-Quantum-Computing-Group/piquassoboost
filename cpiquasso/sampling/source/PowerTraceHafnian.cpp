@@ -50,7 +50,7 @@ PowerTraceHafnian::PowerTraceHafnian() {
 
 /**
 @brief Default constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
+@param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 @return Returns with the instance of the class.
 */
 PowerTraceHafnian::PowerTraceHafnian( matrix &mtx_in ) {
@@ -73,7 +73,6 @@ PowerTraceHafnian::~PowerTraceHafnian() {
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
-@param mtx The matrix
 @return Returns with the calculated hafnian
 */
 Complex16
@@ -260,14 +259,14 @@ PowerTraceHafnian::calculate() {
     res = res * pow(scale_factor, dim_over_2);
 
 
-    return (Complex16)res;
+    return Complex16(res.real(), res.imag() );
 }
 
 
 
 /**
 @brief Call to update the memory address of the matrix mtx
-@param mtx_in The new covariance matrix
+@param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 */
 void
 PowerTraceHafnian::Update_mtx( matrix &mtx_in) {
@@ -294,7 +293,7 @@ PowerTraceHafnian::Update_mtx( matrix &mtx_in) {
         double inverse_scale_factor = 1/scale_factor;
 
         // scaling the matrix elements
-        for (size_t idx; idx<mtx_in.size(); idx++) {
+        for (size_t idx=0; idx<mtx_in.size(); idx++) {
             mtx[idx] = mtx[idx]*inverse_scale_factor;
         }
 

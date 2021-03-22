@@ -61,8 +61,40 @@ class Complex_base : public std::complex<scalar> {
 
 public:
 
-// reusing the constructors of the parent class
-using std::complex<scalar>::complex;
+
+/**
+@brief Nullary Contructor of the class
+@return Returns with the created class instance
+*/
+Complex_base<scalar> () {
+
+};
+
+/**
+@brief Contructor of the class
+@param a The real part of the complex number
+@param b The imaginary part of the complex number
+@return Returns with the created class instance
+*/
+Complex_base<scalar> ( scalar a, scalar b) {
+
+    this->real(a);
+    this->imag(b);
+
+};
+
+
+/**
+@brief Contructor of the class
+@param a The real part of the complex number (The imaginary part is set to zero)
+@return Returns with the created class instance
+*/
+Complex_base<scalar> ( scalar a) {
+
+    this->real(a);
+    this->imag(0.0);
+
+};
 
 
 /**
@@ -71,6 +103,18 @@ using std::complex<scalar>::complex;
 @return Returns with the calculated value represented by an instance of the Complex16 class.
 */
 Complex_base<scalar> operator/( const double &value) {
+
+    return Complex_base<scalar>(this->real()/value, this->imag()/value);
+
+};
+
+
+/**
+@brief Override operator / of the STL complex class.
+@param value A double valued input.
+@return Returns with the calculated value represented by an instance of the Complex16 class.
+*/
+Complex_base<scalar> operator/( const long double &value) {
 
     return Complex_base<scalar>(this->real()/value, this->imag()/value);
 

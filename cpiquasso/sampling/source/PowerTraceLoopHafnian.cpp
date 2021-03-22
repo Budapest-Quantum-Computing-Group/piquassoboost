@@ -29,7 +29,24 @@ static unsigned long long power_of_2(unsigned long long n) {
 }
 
 
+/**
+@brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
+PowerTraceLoopHafnian::PowerTraceLoopHafnian() : PowerTraceHafnian() {
 
+}
+
+/**
+@brief Constructor of the class.
+@param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
+@return Returns with the instance of the class.
+*/
+PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {//} : PowerTraceHafnian( mtx_in ) {
+
+    Update_mtx( mtx_in );
+
+}
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
@@ -84,7 +101,7 @@ PowerTraceLoopHafnian::calculate() {
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
 /*
-    Complex16 summand(0.0,0.0);
+    Complex32 summand(0.0,0.0);
 
     for (unsigned long long permutation_idx = 0; permutation_idx < permutation_idx_max; permutation_idx++) {
 */
@@ -169,7 +186,6 @@ PowerTraceLoopHafnian::calculate() {
             Complex32 factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
             Complex32 powfactor(1.0,0.0);
 
-
             if (idx%2 == 1) {
                 p_aux0 = aux0.get_data();
                 p_aux1 = aux1.get_data();
@@ -223,8 +239,10 @@ PowerTraceLoopHafnian::calculate() {
     openblas_set_num_threads(NumThreads);
 #endif
 
+    // scale the result by the appropriate facto according to Eq (2.11) of in arXiv 1805.12498
+    res = res * pow(scale_factor, dim_over_2);
 
-    return (Complex16)res;
+    return Complex16(res.real(), res.imag() );
 }
 
 
@@ -267,9 +285,11 @@ PowerTraceLoopHafnian::calculate_loop_correction( matrix &diag_elements, matrix&
          memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(Complex16));
 
     }
+
+
 //TODO!!!!!!!!!!!!!!!!!!!!!!!
     matrix32 loop_correction32(dim_over_2, 1);
-    for (size_t idx=1; idx <loop_correction.size(); idx++ ) {
+    for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
         loop_correction32[idx].real( loop_correction[idx].real() );
         loop_correction32[idx].imag( loop_correction[idx].imag() );
     }
@@ -277,6 +297,59 @@ PowerTraceLoopHafnian::calculate_loop_correction( matrix &diag_elements, matrix&
     return loop_correction32;
 
 }
+
+
+
+
+/**
+@brief Call to update the memory address of the matrix mtx
+@param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
+*/
+void
+PowerTraceLoopHafnian::Update_mtx( matrix &mtx_in) {
+
+    mtx_orig = mtx_in;
+
+
+    // scale the matrix to have the mean magnitudes matrix elements equal to one.
+    if ( mtx_in.rows <= 10) {
+        mtx = mtx_in;
+        scale_factor = 1.0;
+    }
+    else {
+
+        // determine the scale factor
+        scale_factor = 0.0;
+        for (size_t idx; idx<mtx_in.size(); idx++) {
+            scale_factor = scale_factor + std::sqrt( mtx_in[idx].real()*mtx_in[idx].real() + mtx_in[idx].imag()*mtx_in[idx].imag() );
+        }
+        scale_factor = scale_factor/mtx_in.size()/std::sqrt(2);
+
+        mtx = mtx_in.copy();
+
+        double inverse_scale_factor = 1/scale_factor;
+
+        // scaling the matrix elements
+        for (size_t row_idx=0; row_idx<mtx_in.rows; row_idx++) {
+
+            size_t row_offset = row_idx*mtx.stride;
+
+            for (size_t col_idx=0; col_idx<mtx_in.cols; col_idx++) {
+                if (col_idx == row_idx ) {
+                    mtx[row_offset+col_idx] = mtx[row_offset+col_idx]*sqrt(inverse_scale_factor);
+                }
+                else {
+                    mtx[row_offset+col_idx] = mtx[row_offset+col_idx]*inverse_scale_factor;
+                }
+
+            }
+        }
+
+    }
+
+}
+
+
 
 
 } // PIC

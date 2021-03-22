@@ -15,11 +15,8 @@ int main() {
     printf("Test of hafnian of random complex random matrix: compare brute force method with power trace method\n");
     printf("********************************************************************************\n\n\n");
 
-    // initialize random generator
-    std::default_random_engine generator;
-    generator.seed(time(NULL));
-    std::uniform_real_distribution<double> distribution(0.0, 1.0);
-
+    // seed the random generator
+    srand ( time ( NULL));
 
     // allocate matrix array
     size_t dim = 4;
@@ -29,8 +26,8 @@ int main() {
     double max_value = 0.0;
     for (size_t row_idx = 0; row_idx < dim; row_idx++) {
         for (size_t col_idx = 0; col_idx <= row_idx; col_idx++) {
-            double randnum1 = distribution(generator);
-            double randnum2 = distribution(generator);
+            double randnum1 = ((double)rand()/RAND_MAX*2 - 1.0);
+            double randnum2 = ((double)rand()/RAND_MAX*2 - 1.0);
             mtx[row_idx * dim + col_idx] = pic::Complex16(randnum1, randnum2);
             mtx[col_idx* dim + row_idx] = mtx[row_idx * dim + col_idx];
 

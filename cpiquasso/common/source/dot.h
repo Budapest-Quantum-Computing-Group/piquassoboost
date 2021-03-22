@@ -184,8 +184,24 @@ class zgemm_Task: public zgemm_Task_serial {
 public:
 
 
-// reuseing the constructor of zgemm_Task_serial
-using zgemm_Task_serial::zgemm_Task_serial;
+/**
+@brief Constructor of the class. (In this case the row/col limits are extracted from matrices A,B,C).
+@param A_in The object representing matrix A.
+@param B_in The object representing matrix B.
+@param C_in The object representing matrix C.
+*/
+zgemm_Task( matrix &A_in, matrix &B_in, matrix &C_in);
+
+/**
+@brief Constructor of the class.
+@param A_in The object representing matrix A.
+@param B_in The object representing matrix B.
+@param C_in The object representing matrix C.
+@param rows_in Structure containing row limits for the partitioning of the matrix product calculations.
+@param cols_in Structure containing column limits for the partitioning of the matrix product calculations.
+*/
+zgemm_Task( matrix &A_in, matrix &B_in, matrix &C_in, row_indices& rows_in, col_indices& cols_in);
+
 
 
 /**

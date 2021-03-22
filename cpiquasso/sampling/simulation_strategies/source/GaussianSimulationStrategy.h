@@ -39,8 +39,6 @@ protected:
     size_t dim;
     /// The number of the input modes stored by the covariance matrix
     size_t dim_over_2;
-    /// random number generator
-    std::default_random_engine generator;
 
 
 public:

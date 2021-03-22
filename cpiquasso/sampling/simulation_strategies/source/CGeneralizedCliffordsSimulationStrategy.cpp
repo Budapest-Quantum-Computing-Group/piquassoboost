@@ -63,10 +63,8 @@ sum( PicState_int64 &vec) {
 @return Returns with the instance of the class.
 */
 CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy() {
-
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
+   // seed the random generator
+   srand ( time ( NULL));
 
 }
 
@@ -80,9 +78,9 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 
     Update_interferometer_matrix( interferometer_matrix_in );
 
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
+    // seed the random generator
+    srand ( time ( NULL));
+
 }
 
 
@@ -355,11 +353,12 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
 void
 CGeneralizedCliffordsSimulationStrategy::sample_from_latest_pmf( PicState_int64& sample ) {
 
-    // uniform distribution of reals between 0 and 1
-    std::uniform_real_distribution<double> distribution(0.0,1.0);
+
+
+
 
     // create a random double
-    double rand_num = distribution(generator);
+    double rand_num = (double)rand()/RAND_MAX;
    //double rand_num = rand_nums[rand_num_idx];//distribution(generator);
     //rand_num_idx = rand_num_idx + 1;
 
@@ -463,7 +462,7 @@ double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 
     CChinHuhPermanentCalculator permanent_calculator;
     Complex16 permanent = permanent_calculator.calculate( interferometer_mtx, input_state, output_state);
 
-    double probability = norm(permanent); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
+    double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag(); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
 
     for (size_t idx=0; idx<input_state.size(); idx++) {
         probability = probability/factorial( input_state[idx] );

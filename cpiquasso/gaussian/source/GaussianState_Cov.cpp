@@ -201,7 +201,8 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
             displacement_a[idx] = (q[idx] + Complex16(0.0,1.0)*p[idx])/sqrt(2);
 
             // set the expectation values for a^\dagger_1, a^\dagger_2, .... a^\dagger_N
-            displacement_a[idx+total_number_of_modes] = std::conj(displacement_a[idx]);
+            displacement_a[idx+total_number_of_modes].real( displacement_a[idx].real());
+            displacement_a[idx+total_number_of_modes].imag( -displacement_a[idx].imag());
         }
 
         m = displacement_a;

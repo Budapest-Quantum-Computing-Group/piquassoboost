@@ -8,6 +8,71 @@ namespace pic {
 
 
 
+/**
+@brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
+matrix32::matrix32() : matrix_base<Complex32>() {
+
+}
+
+
+/**
+@brief Constructor of the class. By default the created class instance would not be owner of the stored data.
+@param data_in The pointer pointing to the data
+@param rows_in The number of rows in the stored matrix
+@param cols_in The number of columns in the stored matrix
+@return Returns with the instance of the class.
+*/
+matrix32::matrix32( Complex32* data_in, size_t rows_in, size_t cols_in) : matrix_base<Complex32>(data_in, rows_in, cols_in) {
+
+}
+
+
+/**
+@brief Constructor of the class. By default the created class instance would not be owner of the stored data.
+@param data_in The pointer pointing to the data
+@param rows_in The number of rows in the stored matrix
+@param cols_in The number of columns in the stored matrix
+@param stride_in The column stride of the matrix array (The array elements in one row are a_0, a_1, ... a_{cols-1}, 0, 0, 0, 0. The number of zeros is stride-cols)
+@return Returns with the instance of the class.
+*/
+matrix32::matrix32( Complex32* data_in, size_t rows_in, size_t cols_in, size_t stride_in) : matrix_base<Complex32>(data_in, rows_in, cols_in, stride_in) {
+
+}
+
+/**
+@brief Constructor of the class. Allocates data for matrix rows_in times cols_in. By default the created instance would be the owner of the stored data.
+@param rows_in The number of rows in the stored matrix
+@param cols_in The number of columns in the stored matrix
+@return Returns with the instance of the class.
+*/
+matrix32::matrix32( size_t rows_in, size_t cols_in) : matrix_base<Complex32>(rows_in, cols_in) {
+
+}
+
+
+/**
+@brief Constructor of the class. Allocates data for matrix rows_in times cols_in. By default the created instance would be the owner of the stored data.
+@param rows_in The number of rows in the stored matrix
+@param cols_in The number of columns in the stored matrix
+@param stride_in The column stride of the matrix array (The array elements in one row are a_0, a_1, ... a_{cols-1}, 0, 0, 0, 0. The number of zeros is stride-cols)
+@return Returns with the instance of the class.
+*/
+matrix32::matrix32( size_t rows_in, size_t cols_in, size_t stride_in) : matrix_base<Complex32>(rows_in, cols_in, stride_in) {
+
+}
+
+/**
+@brief Copy constructor of the class. The new instance shares the stored memory with the input matrix. (Needed for TBB calls)
+@param An instance of class matrix to be copied.
+*/
+matrix32::matrix32(const matrix32 &in) : matrix_base<Complex32>(in) {
+
+}
+
+
+
 
 /**
 @brief Call to create a copy of the matrix instance.

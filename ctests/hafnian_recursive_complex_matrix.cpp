@@ -145,21 +145,19 @@ int main() {
     printf("Test of hafnian of random complex random matrix\n");
     printf("****************************************\n\n\n");
 
-    // initialize random generator
-    std::default_random_engine generator;
-    generator.seed(time(NULL));
-    std::normal_distribution<double> distribution(0.0, 1.0);
+    // seed the random generator
+    srand ( time ( NULL));
 
 
     // allocate matrix array for the larger matrix
-    size_t dim = 20;
+    size_t dim = 30;
     pic::matrix mtx = pic::matrix(dim, dim);
 
     // fill up matrix with random elements
     for (size_t row_idx = 0; row_idx < dim; row_idx++) {
         for (size_t col_idx = 0; col_idx <= row_idx; col_idx++) {
-            double randnum1 = distribution(generator);
-            double randnum2 = distribution(generator);
+            double randnum1 = ((double)rand()/RAND_MAX*2 - 1.0);
+            double randnum2 = ((double)rand()/RAND_MAX*2 - 1.0);
             mtx[row_idx * dim + col_idx] = pic::Complex16(randnum1, randnum2);
             mtx[col_idx* dim + row_idx] = mtx[row_idx * dim + col_idx];
         }
@@ -178,6 +176,8 @@ int main() {
     filling_factors[6] = 2;
     filling_factors[10] = 3;
     filling_factors[14] = 4;
+    filling_factors[15] = 4;
+    filling_factors[17] = 2;
 
     // matrix containing the repeated rows and columns
     pic::matrix&& mtx_repeated = create_repeated_mtx(mtx, filling_factors);

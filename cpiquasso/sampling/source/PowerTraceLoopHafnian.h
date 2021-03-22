@@ -16,8 +16,20 @@ class PowerTraceLoopHafnian : public PowerTraceHafnian{
 
 public:
 
-// reuse the constructor of the base class
-using PowerTraceHafnian::PowerTraceHafnian;
+
+/**
+@brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
+PowerTraceLoopHafnian();
+
+/**
+@brief Constructor of the class.
+@param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
+@return Returns with the instance of the class.
+*/
+PowerTraceLoopHafnian( matrix &mtx_in );
+
 
 /**
 @brief Call to calculate the loop hafnian of a complex matrix
@@ -35,7 +47,11 @@ Complex16 calculate();
 */
 matrix32 calculate_loop_correction(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ);
 
-
+/**
+@brief Call to update the memory address of the matrix mtx
+@param mtx_in Input matrix defined by
+*/
+void Update_mtx( matrix &mtx_in);
 
 }; //PowerTraceLoopHafnian
 

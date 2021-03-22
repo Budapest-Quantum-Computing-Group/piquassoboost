@@ -82,9 +82,8 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
     max_photons = 0;
 
 
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
+    // seed the random generator
+    srand ( time ( NULL));
 
 }
 
@@ -109,9 +108,8 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     dim_over_2 = dim/2;
 
 
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
+    // seed the random generator
+    srand ( time ( NULL));
 }
 
 
@@ -133,9 +131,8 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     dim = covariance_matrix.rows;
     dim_over_2 = dim/2;
 
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
+    // seed the random generator
+    srand ( time ( NULL));
 
 
 }
@@ -737,11 +734,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
 size_t
 GaussianSimulationStrategy::sample_from_probabilities( matrix_base<double>& probabilities ) {
 
-    // uniform distribution of reals between 0 and 1
-    std::uniform_real_distribution<double> distribution(0.0,1.0);
-
     // create a random double
-    double rand_num = distribution(generator);
+    double rand_num = (double)rand()/RAND_MAX;
 
 
     // determine the random index according to the distribution described by probabilities

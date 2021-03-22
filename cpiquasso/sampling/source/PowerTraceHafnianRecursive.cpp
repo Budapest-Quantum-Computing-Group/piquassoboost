@@ -327,7 +327,7 @@ PowerTraceHafnianRecursive_Tasks::calculate() {
     // scale the result by the appropriate facto according to Eq (2.11) of in arXiv 1805.12498
     hafnian = hafnian * pow(scale_factor, sum(occupancy));
 
-    return (Complex16)hafnian;
+    return Complex16(hafnian.real(), hafnian.imag());
 }
 
 /**

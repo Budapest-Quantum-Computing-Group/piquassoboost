@@ -36,7 +36,7 @@ PowerTraceHafnian();
 
 /**
 @brief Constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
+@param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 @return Returns with the instance of the class.
 */
 PowerTraceHafnian( matrix &mtx_in );
@@ -57,7 +57,7 @@ virtual Complex16 calculate();
 @brief Call to update the memory address of the matrix mtx
 @param mtx_in Input matrix defined by
 */
-void Update_mtx( matrix &mtx_in);
+virtual void Update_mtx( matrix &mtx_in);
 
 
 
