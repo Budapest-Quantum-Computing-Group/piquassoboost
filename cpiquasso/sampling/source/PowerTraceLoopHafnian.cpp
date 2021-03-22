@@ -7,10 +7,10 @@
 
 
 /*
-tbb::spin_mutex my_mutex;
+static tbb::spin_mutex my_mutex;
 
-double time_nominator = 0.0;
-double time_nevezo = 0.0;
+static double time_nominator = 0.0;
+static double time_nevezo = 0.0;
 */
 
 namespace pic {
@@ -42,7 +42,7 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian() : PowerTraceHafnian() {
 @param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 @return Returns with the instance of the class.
 */
-PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {//} : PowerTraceHafnian( mtx_in ) {
+PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
 
     Update_mtx( mtx_in );
 
@@ -141,7 +141,12 @@ PowerTraceLoopHafnian::calculate() {
             diag_elements[idx] = mtx[positions_of_ones[idx]*mtx.stride + positions_of_ones[idx]];
 
         }
-
+/*
+{
+      tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+      diag_elements.print_matrix();
+  }
+  */
         // select the X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
         matrix cx_diag_elements(1, number_of_ones);
         for (size_t idx = 1; idx < number_of_ones; idx=idx+2) {
@@ -150,7 +155,7 @@ PowerTraceLoopHafnian::calculate() {
         }
 
         // calculate the loop correction elements for the loop hafnian
-        matrix32 loop_corrections = calculate_loop_correction(diag_elements, cx_diag_elements, AZ);
+        matrix32 loop_corrections = CalculateLoopCorrection(diag_elements, cx_diag_elements, AZ);
 
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
@@ -184,6 +189,13 @@ PowerTraceLoopHafnian::calculate() {
 
 
             Complex32 factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
+/*
+{
+      tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+      //traces.print_matrix();
+      std::cout << factor << " " << loop_corrections[idx-1]*0.5 << std::endl;
+  }
+*/
             Complex32 powfactor(1.0,0.0);
 
             if (idx%2 == 1) {
@@ -213,9 +225,11 @@ PowerTraceLoopHafnian::calculate() {
 
         if (fact) {
             summand = summand - p_aux1[dim_over_2];
+//std::cout << -p_aux1[dim_over_2] << std::endl;
         }
         else {
             summand = summand + p_aux1[dim_over_2];
+//std::cout << p_aux1[dim_over_2] << std::endl;
         }
 
     }
@@ -254,47 +268,48 @@ PowerTraceLoopHafnian::calculate() {
 @return Returns with the calculated loop correction
 */
 matrix32
-PowerTraceLoopHafnian::calculate_loop_correction( matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ) {
+PowerTraceLoopHafnian::CalculateLoopCorrection( matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ) {
 
     size_t dim_over_2 = mtx.rows/2;
 
-    matrix loop_correction(dim_over_2, 1);
+    if (dim_over_2 < 30) {
 
-    matrix tmp_vec(1, diag_elements.size());
+        // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
+        matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(diag_elements, cx_diag_elements, AZ, dim_over_2);
 
-
-
-    for (size_t idx=0; idx<dim_over_2; idx++) {
-
-        Complex16 tmp(0.0,0.0);
-        for (size_t jdx=0; jdx<diag_elements.size(); jdx++) {
-            tmp = tmp + cx_diag_elements[jdx] * diag_elements[jdx];
+        matrix32 loop_correction32(dim_over_2, 1);
+        for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
+            loop_correction32[idx].real( loop_correction[idx].real() );
+            loop_correction32[idx].imag( loop_correction[idx].imag() );
         }
 
-        loop_correction[idx] = tmp;
+        return loop_correction32;
 
+    }
+    else{
 
-         memset(tmp_vec.get_data(), 0, tmp_vec.size()*sizeof(Complex16));
+        // for smaller matrices first convert the input matrices to 32 byte precision, than calculate the diag correction
+        matrix32 diag_elements32( diag_elements.rows, diag_elements.cols);
+        matrix32 cx_diag_elements32( cx_diag_elements.rows, cx_diag_elements.cols);
+        for (size_t idx=0; idx<diag_elements32.size(); idx++) {
+            diag_elements32[idx].real( diag_elements[idx].real() );
+            diag_elements32[idx].imag( diag_elements[idx].imag() );
 
-         for (size_t kdx=0; kdx<cx_diag_elements.size(); kdx++) {
-             for (size_t jdx=0; jdx<cx_diag_elements.size(); jdx++) {
-                  tmp_vec[jdx] = tmp_vec[jdx] + cx_diag_elements[kdx] * AZ[kdx * AZ.stride + jdx];
-             }
-         }
+            cx_diag_elements32[idx].real( cx_diag_elements[idx].real() );
+            cx_diag_elements32[idx].imag( cx_diag_elements[idx].imag() );
+        }
 
-         memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(Complex16));
+        matrix32 AZ_32( AZ.rows, AZ.cols);
+        for (size_t idx=0; idx<AZ.size(); idx++) {
+            AZ_32[idx].real( AZ[idx].real() );
+            AZ_32[idx].imag( AZ[idx].imag() );
+        }
+
+        return calculate_loop_correction<matrix32, Complex32>(diag_elements32, cx_diag_elements32, AZ_32, dim_over_2);
+
 
     }
 
-
-//TODO!!!!!!!!!!!!!!!!!!!!!!!
-    matrix32 loop_correction32(dim_over_2, 1);
-    for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
-        loop_correction32[idx].real( loop_correction[idx].real() );
-        loop_correction32[idx].imag( loop_correction[idx].imag() );
-    }
-
-    return loop_correction32;
 
 }
 
@@ -310,31 +325,46 @@ PowerTraceLoopHafnian::Update_mtx( matrix &mtx_in) {
 
     mtx_orig = mtx_in;
 
+    // scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
+    ScaleMatrix();
+
+
+
+}
+
+
+
+/**
+@brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
+@param mtx_in Input matrix defined by
+*/
+void
+PowerTraceLoopHafnian::ScaleMatrix() {
 
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
-    if ( mtx_in.rows <= 10) {
-        mtx = mtx_in;
+    if ( mtx_orig.rows <= 10) {
+        mtx = mtx_orig;
         scale_factor = 1.0;
     }
     else {
 
         // determine the scale factor
         scale_factor = 0.0;
-        for (size_t idx; idx<mtx_in.size(); idx++) {
-            scale_factor = scale_factor + std::sqrt( mtx_in[idx].real()*mtx_in[idx].real() + mtx_in[idx].imag()*mtx_in[idx].imag() );
+        for (size_t idx; idx<mtx_orig.size(); idx++) {
+            scale_factor = scale_factor + std::sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
         }
-        scale_factor = scale_factor/mtx_in.size()/std::sqrt(2);
+        scale_factor = scale_factor/mtx_orig.size()/std::sqrt(2);
 
-        mtx = mtx_in.copy();
+        mtx = mtx_orig.copy();
 
         double inverse_scale_factor = 1/scale_factor;
 
         // scaling the matrix elements
-        for (size_t row_idx=0; row_idx<mtx_in.rows; row_idx++) {
+        for (size_t row_idx=0; row_idx<mtx_orig.rows; row_idx++) {
 
             size_t row_offset = row_idx*mtx.stride;
 
-            for (size_t col_idx=0; col_idx<mtx_in.cols; col_idx++) {
+            for (size_t col_idx=0; col_idx<mtx_orig.cols; col_idx++) {
                 if (col_idx == row_idx ) {
                     mtx[row_offset+col_idx] = mtx[row_offset+col_idx]*sqrt(inverse_scale_factor);
                 }
@@ -348,7 +378,6 @@ PowerTraceLoopHafnian::Update_mtx( matrix &mtx_in) {
     }
 
 }
-
 
 
 

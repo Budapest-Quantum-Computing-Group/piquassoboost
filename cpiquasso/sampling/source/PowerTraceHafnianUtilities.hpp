@@ -400,7 +400,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
     // The lapack function to calculate the Hessenberg transformation is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
     // quad precision
-    else if ( AZ.rows < 30) {
+    else if ( (AZ.rows < 30 && (sizeof(complex_type) > sizeof(Complex16))) || (sizeof(complex_type) == sizeof(Complex16)) ) {
 
 
         // transform the matrix mtx into an upper Hessenberg format by calling lapack function
@@ -431,13 +431,13 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
 
         // matrix size for which quad precision is necessary
 
-        matrix32 AZ32( AZ.rows, AZ.cols);
+        matrix_type AZ32( AZ.rows, AZ.cols);
         for (size_t idx=0; idx<AZ.size(); idx++) {
-            AZ32[idx].real( (long double)AZ[idx].real() );
-            AZ32[idx].imag( (long double)AZ[idx].imag() );
+            AZ32[idx].real( AZ[idx].real() );
+            AZ32[idx].imag( AZ[idx].imag() );
         }
 
-        transform_matrix_to_hessenberg<matrix32, Complex32>(AZ32);
+        transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ32);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
         matrix_type coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, complex_type>(AZ32, AZ.rows);
@@ -465,6 +465,49 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
 }
 
 
+
+
+/**
+@brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
+@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
+@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@return Returns with the calculated loop correction
+*/
+template<class matrix_type, class complex_type>
+matrix_type
+calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elements, matrix_type& AZ, size_t num_of_modes) {
+
+    matrix_type loop_correction(num_of_modes, 1);
+    matrix_type tmp_vec(1, diag_elements.size());
+
+
+    for (size_t idx=0; idx<num_of_modes; idx++) {
+
+        complex_type tmp(0.0,0.0);
+        for (size_t jdx=0; jdx<diag_elements.size(); jdx++) {
+            tmp = tmp + cx_diag_elements[jdx] * diag_elements[jdx];
+        }
+
+        loop_correction[idx] = tmp;
+
+
+         memset(tmp_vec.get_data(), 0, tmp_vec.size()*sizeof(complex_type));
+
+         for (size_t kdx=0; kdx<cx_diag_elements.size(); kdx++) {
+             for (size_t jdx=0; jdx<cx_diag_elements.size(); jdx++) {
+                  tmp_vec[jdx] = tmp_vec[jdx] + cx_diag_elements[kdx] * AZ[kdx * AZ.stride + jdx];
+             }
+         }
+
+         memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+
+    }
+
+
+    return loop_correction;
+
+}
 
 
 

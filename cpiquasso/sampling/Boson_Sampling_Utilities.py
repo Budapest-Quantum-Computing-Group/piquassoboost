@@ -11,6 +11,7 @@ from .Boson_Sampling_Utilities_wrapper import ChinHuhPermanentCalculator_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceHafnian_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceHafnianRecursive_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnian_wrapper
+from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnianRecursive_wrapper
 
 
 class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
@@ -133,5 +134,31 @@ class PowerTraceLoopHafnian(PowerTraceLoopHafnian_wrapper):
 
         # call the permanent calculator of the parent class
         return super(PowerTraceLoopHafnian, self).calculate()
+
+
+
+class PowerTraceLoopHafnianRecursive(PowerTraceLoopHafnianRecursive_wrapper):
+    """
+        This class is designed to calculate the hafnian of a symetrix matrix using the power trace method.
+    """
+    
+
+    def __init__(self, matrix, occupancy):
+
+        # call the constructor of the wrapper class
+        super(PowerTraceLoopHafnianRecursive, self).__init__(matrix=matrix, occupancy=occupancy)
+        pass
+
+       
+    def calculate(self):
+        """
+            ?????????????????.
+            :return: The hafnian of the matrix.
+        """
+
+
+
+        # call the permanent calculator of the parent class
+        return super(PowerTraceLoopHafnianRecursive, self).calculate()
 
 

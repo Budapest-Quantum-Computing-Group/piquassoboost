@@ -5,14 +5,6 @@
 #include "tbb/tbb.h"
 #include <math.h>
 
-extern "C" {
-
-#define LAPACK_ROW_MAJOR               101
-
-/// Definition of the LAPACKE_zgehrd function from LAPACKE to calculate the upper triangle hessenberg transformation of a matrix
-int LAPACKE_zgehrd( int matrix_layout, int n, int ilo, int ihi, pic::Complex16* a, int lda, pic::Complex16* tau );
-
-}
 
 /*
 tbb::spin_mutex my_mutex;
@@ -125,7 +117,20 @@ PowerTraceHafnianRecursive::calculate() {
 
 
 
+/**
+@brief Nullary constructor of the class.
+@return Returns with the instance of the class.
+*/
+PowerTraceHafnianRecursive_Tasks::PowerTraceHafnianRecursive_Tasks() {
 
+    // set the maximal number of spawned tasks living at the same time
+    max_task_num = 300;
+    // The current number of spawned tasks
+    task_num = 0;
+    // mutual exclusion to count the spawned tasks
+    task_count_mutex = new tbb::spin_mutex();
+
+}
 
 
 
@@ -141,35 +146,10 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 */
 PowerTraceHafnianRecursive_Tasks::PowerTraceHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in ) {
 
-    mtx_orig = mtx_in;
-
-    // scale the matrix to have the mean magnitudes matrix elements equal to one.
-    if ( mtx_in.rows <= 10) {
-        mtx = mtx_in;
-        scale_factor = 1.0;
-    }
-    else {
-
-        // determine the scale factor
-        scale_factor = 0.0;
-        for (size_t idx; idx<mtx_in.size(); idx++) {
-            scale_factor = scale_factor + std::sqrt( mtx_in[idx].real()*mtx_in[idx].real() + mtx_in[idx].imag()*mtx_in[idx].imag() );
-        }
-        scale_factor = scale_factor/(mtx_in.size()*std::sqrt(2));
-
-        mtx = mtx_in.copy();
-
-        double inverse_scale_factor = 1/scale_factor;
-
-        // scaling the matrix elements
-        for (size_t idx; idx<mtx_in.size(); idx++) {
-            mtx[idx] = mtx[idx]*inverse_scale_factor;
-        }
-
-    }
-
+    Update_mtx( mtx_in );
 
     occupancy = occupancy_in;
+
 
     if (mtx.rows != 2*occupancy.size()) {
         std::cout << "The length of array occupancy should be equal to the half of the dimension of the input matrix mtx. Exiting" << std::endl;
@@ -651,7 +631,16 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 }
 
 
+/**
+@brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
+@param mtx_in Input matrix defined by
+*/
+void
+PowerTraceHafnianRecursive_Tasks::ScaleMatrix() {
+std::cout << "scale matrix base" << std::endl;
+    PowerTraceHafnian::ScaleMatrix();
 
+}
 
 
 

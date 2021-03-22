@@ -38,6 +38,23 @@ PowerTraceLoopHafnian( matrix &mtx_in );
 Complex16 calculate();
 
 
+
+
+/**
+@brief Call to update the memory address of the matrix mtx
+@param mtx_in Input matrix defined by
+*/
+void Update_mtx( matrix &mtx_in);
+
+protected:
+
+/**
+@brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
+@param mtx_in Input matrix defined by
+*/
+virtual void ScaleMatrix();
+
+
 /**
 @brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
 @param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
@@ -45,13 +62,9 @@ Complex16 calculate();
 @param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
 @return Returns with the calculated loop correction
 */
-matrix32 calculate_loop_correction(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ);
+virtual matrix32 CalculateLoopCorrection(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ);
 
-/**
-@brief Call to update the memory address of the matrix mtx
-@param mtx_in Input matrix defined by
-*/
-void Update_mtx( matrix &mtx_in);
+
 
 }; //PowerTraceLoopHafnian
 

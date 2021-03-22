@@ -57,7 +57,16 @@ virtual Complex16 calculate();
 @brief Call to update the memory address of the matrix mtx
 @param mtx_in Input matrix defined by
 */
-virtual void Update_mtx( matrix &mtx_in);
+void Update_mtx( matrix &mtx_in);
+
+
+protected:
+
+/**
+@brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
+@param mtx_in Input matrix defined by
+*/
+virtual void ScaleMatrix();
 
 
 
