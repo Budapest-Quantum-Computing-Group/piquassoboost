@@ -134,7 +134,7 @@ CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_o
 }; //PowerTraceHafnianRecursive_Tasks
 
 
-#endif
+#endif // CPYTHON
 
 
 

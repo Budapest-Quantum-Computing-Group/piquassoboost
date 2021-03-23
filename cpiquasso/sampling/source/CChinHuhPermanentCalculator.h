@@ -21,28 +21,6 @@ namespace pic {
 template <typename Container>
 void print_state( Container state );
 
-/**
-@brief Call to calculate sum of integers stored in a container
-@param vec a container if integers
-@return Returns with the sum of the elements of the container
-*/
-template <typename scalar>
-int sum( PicVector<scalar> vec);
-
-/**
-@brief Call to calculate sum of integers stored in a container
-@param vec a PicState_int64 instance
-@return Returns with the sum of the elements of the container
-*/
-int sum( PicState_int64 vec);
-
-/**
-@brief Call to calculate the Binomial Coefficient C(n, k)
-@param n The integer n
-@param k The integer k
-@return Returns with the Binomial Coefficient C(n, k).
-*/
-int binomialCoeff(int n, int k);
 
 /**
 @brief Class representing a matrix Chin-Huh permanent calculator

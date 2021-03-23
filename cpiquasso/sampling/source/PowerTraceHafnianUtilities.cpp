@@ -1,5 +1,6 @@
 #include <iostream>
 #include "PowerTraceHafnianUtilities.h"
+#include "common_functionalities.h"
 #include <math.h>
 
 extern "C" {

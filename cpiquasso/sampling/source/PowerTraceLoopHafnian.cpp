@@ -3,6 +3,7 @@
 #include "PowerTraceHafnianUtilities.h"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
+#include "common_functionalities.h"
 #include <math.h>
 
 
@@ -14,20 +15,6 @@ double time_nevezo = 0.0;
 */
 
 namespace pic {
-
-
-/**
-@brief Calculates the n-th power of 2.
-@param n An natural number
-@return Returns with the n-th power of 2.
-*/
-static unsigned long long power_of_2(unsigned long long n) {
-  if (n == 0) return 1;
-  if (n == 1) return 2;
-
-  return 2 * power_of_2(n-1);
-}
-
 
 
 
