@@ -1,5 +1,10 @@
 // Ctest 2021
 
+// undefine NDEBUG macro to be able to perform asserts
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
 #include <vector>
 #include <random>
 #include "constants_tests.h"
@@ -85,24 +90,16 @@ int main() {
     // Comparing expected and resulted matrix elements
     for (size_t elem_idx = 0; elem_idx < dimX_expected * dimY_cut; elem_idx++) {
         pic::Complex16 diff = cols_out[elem_idx] - cols_out_expected[elem_idx];
-        assert(std::abs(diff) < epsilon);
+        assert(std::abs(diff) < pic::epsilon);
+        //std::cout << diff <<std::endl;
         
-        assert(cols_out[elem_idx] == cols_out_expected[elem_idx]);
+        //assert(cols_out[elem_idx] == cols_out_expected[elem_idx]);
     }
     // Comparing expected and resulted logical outputs
     for (size_t col_idx = 0; col_idx < dim; col_idx++){
         assert(cols_logical[col_idx] == cols_logical_expected[col_idx]);
     }
 
-    // print out the elements of the logical values
-    /*for (size_t col_idx = 0; col_idx < dim; col_idx++){
-        std::cout << cols_logical[col_idx];
-    }
-    std::cout << std::endl;
-    for (size_t col_idx = 0; col_idx < dim; col_idx++){
-        std::cout << cols_logical_expected[col_idx];
-    }
-    std::cout << std::endl;*/
     
     
     std::cout << "Test passed. " << std::endl;

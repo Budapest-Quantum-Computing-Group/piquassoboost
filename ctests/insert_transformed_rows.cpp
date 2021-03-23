@@ -1,5 +1,11 @@
 // Ctest 2021
 
+// undefine NDEBUG macro to be able to perform asserts
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+
 #include <vector>
 #include <random>
 #include "constants_tests.h"
@@ -110,10 +116,10 @@ int main() {
         for (size_t col_idx = 0; col_idx < dim; col_idx++){
             size_t elem_idx = modes_in[modes_idx] * dim + col_idx;
             pic::Complex16 diff = mtx_out_expected[elem_idx] - mtx_out[elem_idx];
-            assert(std::abs(diff) < epsilon);
+            assert(std::abs(diff) < pic::epsilon);
             //std::cout << diff << std::endl;
          
-            assert(mtx_out[elem_idx] == mtx_out_expected[elem_idx]);
+            //assert(mtx_out[elem_idx] == mtx_out_expected[elem_idx]);
         }
     }
     std::cout << "Test passed. " << std::endl;
