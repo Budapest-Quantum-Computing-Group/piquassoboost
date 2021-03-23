@@ -13,11 +13,11 @@
 typedef struct GaussianState_Wrapper {
     PyObject_HEAD
     /// pointer to numpy matrix C to keep it alive
-    PyObject *C=NULL;
+    PyObject *_C=NULL;
     /// pointer to numpy matrix G to keep it alive
-    PyObject *G=NULL;
+    PyObject *_G=NULL;
     /// pointer to numpy matrix m to keep it alive
-    PyObject *m=NULL;
+    PyObject *_m=NULL;
     /// The C++ variant of class GaussianState
     pic::CGaussianState* state=NULL;
 } GaussianState_Wrapper;
@@ -71,9 +71,9 @@ GaussianState_Wrapper_dealloc(GaussianState_Wrapper *self)
     release_CGaussianState( self->state );
 
     // release numpy arrays
-    if ( self->C != NULL ) Py_DECREF(self->C);
-    if ( self->G != NULL ) Py_DECREF(self->G);
-    if ( self->m != NULL ) Py_DECREF(self->m);
+    if ( self->_C != NULL ) Py_DECREF(self->_C);
+    if ( self->_G != NULL ) Py_DECREF(self->_G);
+    if ( self->_m != NULL ) Py_DECREF(self->_m);
 
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
@@ -90,9 +90,9 @@ GaussianState_Wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     if (self != NULL) {}
 
     self->state = NULL;
-    self->C = NULL;
-    self->G = NULL;
-    self->m = NULL;
+    self->_C = NULL;
+    self->_G = NULL;
+    self->_m = NULL;
 
     return (PyObject *) self;
 }
@@ -128,35 +128,35 @@ GaussianState_Wrapper_init(GaussianState_Wrapper *self, PyObject *args, PyObject
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(C_arg) ) {
-        self->C = C_arg;
-        Py_INCREF(self->C); 
+        self->_C = C_arg;
+        Py_INCREF(self->_C); 
     }
     else {
-        self->C = PyArray_FROM_OTF(C_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->_C = PyArray_FROM_OTF(C_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
 
     if ( PyArray_IS_C_CONTIGUOUS(G_arg) ) {
-        self->G = G_arg;
-        Py_INCREF(self->G); 
+        self->_G = G_arg;
+        Py_INCREF(self->_G); 
     }
     else {
-        self->G = PyArray_FROM_OTF(G_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->_G = PyArray_FROM_OTF(G_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
 
 
     if ( PyArray_IS_C_CONTIGUOUS(m_arg) ) {
-        self->m = m_arg;
-        Py_INCREF(self->m); 
+        self->_m = m_arg;
+        Py_INCREF(self->_m); 
     }
     else {
-        self->m = PyArray_FROM_OTF(m_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->_m = PyArray_FROM_OTF(m_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
     
 
     // create PIC version of the input matrices
-    pic::matrix C_mtx = numpy2matrix(self->C); 
-    pic::matrix G_mtx = numpy2matrix(self->G);  
-    pic::matrix m_mtx = numpy2matrix(self->m);  
+    pic::matrix C_mtx = numpy2matrix(self->_C); 
+    pic::matrix G_mtx = numpy2matrix(self->_G);  
+    pic::matrix m_mtx = numpy2matrix(self->_m);  
 
     // create instance of class CGaussianState
     self->state = create_GaussianState( C_mtx, G_mtx, m_mtx );
@@ -248,8 +248,8 @@ GaussianState_Wrapper_apply_to_C_and_G(GaussianState_Wrapper *self, PyObject *ar
 static PyObject *
 GaussianState_Wrapper_getC(GaussianState_Wrapper *self, void *closure)
 {
-    Py_INCREF(self->C);
-    return self->C;
+    Py_INCREF(self->_C);
+    return self->_C;
 }
 
 /**
@@ -259,20 +259,20 @@ static int
 GaussianState_Wrapper_setC(GaussianState_Wrapper *self, PyObject *C_arg, void *closure)
 {
     // set the mytrix on Python side
-    Py_DECREF(self->C); 
+    Py_DECREF(self->_C); 
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(C_arg) ) {
-        self->C = C_arg;
-        Py_INCREF(self->C); 
+        self->_C = C_arg;
+        Py_INCREF(self->_C); 
     }
     else {
-        self->C = PyArray_FROM_OTF(C_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->_C = PyArray_FROM_OTF(C_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
 
 
     // create PIC version of the input matrices
-    pic::matrix C_mtx = numpy2matrix(self->C);     
+    pic::matrix C_mtx = numpy2matrix(self->_C);     
 
     // update data on the C++ side
     self->state->Update_C( C_mtx );
@@ -291,8 +291,8 @@ GaussianState_Wrapper_setC(GaussianState_Wrapper *self, PyObject *C_arg, void *c
 static PyObject *
 GaussianState_Wrapper_getG(GaussianState_Wrapper *self, void *closure)
 {
-    Py_INCREF(self->G);
-    return self->G;
+    Py_INCREF(self->_G);
+    return self->_G;
 }
 
 /**
@@ -302,19 +302,19 @@ static int
 GaussianState_Wrapper_setG(GaussianState_Wrapper *self, PyObject *G_arg, void *closure)
 {
     // set the array on the Python side
-    Py_DECREF(self->G); 
+    Py_DECREF(self->_G); 
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(G_arg) ) {
-        self->G = G_arg;
-        Py_INCREF(self->G); 
+        self->_G = G_arg;
+        Py_INCREF(self->_G); 
     }
     else {
-        self->G = PyArray_FROM_OTF(G_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->_G = PyArray_FROM_OTF(G_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
 
     // create PIC version of the input matrices
-    pic::matrix G_mtx = numpy2matrix(self->G); ;    
+    pic::matrix G_mtx = numpy2matrix(self->_G); ;    
 
     // update data on the C++ side
     self->state->Update_G( G_mtx );
@@ -332,8 +332,8 @@ GaussianState_Wrapper_setG(GaussianState_Wrapper *self, PyObject *G_arg, void *c
 static PyObject *
 GaussianState_Wrapper_getm(GaussianState_Wrapper *self, void *closure)
 {
-    Py_INCREF(self->m);
-    return self->m;
+    Py_INCREF(self->_m);
+    return self->_m;
 }
 
 /**
@@ -343,20 +343,20 @@ static int
 GaussianState_Wrapper_setm(GaussianState_Wrapper *self, PyObject *m_arg, void *closure)
 {
     // set the array on the Python side
-    Py_DECREF(self->m); 
+    Py_DECREF(self->_m); 
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(m_arg) ) {
-        self->m = m_arg;
-        Py_INCREF(self->m); 
+        self->_m = m_arg;
+        Py_INCREF(self->_m); 
     }
     else {
-        self->m = PyArray_FROM_OTF(m_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->_m = PyArray_FROM_OTF(m_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
 
 
     // create PIC version of the input matrices
-    pic::matrix m_mtx = numpy2matrix(self->m);    
+    pic::matrix m_mtx = numpy2matrix(self->_m);    
 
     // update data on the C++ side
     self->state->Update_m( m_mtx );
@@ -368,11 +368,11 @@ GaussianState_Wrapper_setm(GaussianState_Wrapper *self, PyObject *m_arg, void *c
 
 
 static PyGetSetDef GaussianState_Wrapper_getsetters[] = {
-    {"C", (getter) GaussianState_Wrapper_getC, (setter) GaussianState_Wrapper_setC,
+    {"_C", (getter) GaussianState_Wrapper_getC, (setter) GaussianState_Wrapper_setC,
      "C matrix", NULL},
-    {"G", (getter) GaussianState_Wrapper_getG, (setter) GaussianState_Wrapper_setG,
+    {"_G", (getter) GaussianState_Wrapper_getG, (setter) GaussianState_Wrapper_setG,
      "G matrix", NULL},
-    {"m", (getter) GaussianState_Wrapper_getm, (setter) GaussianState_Wrapper_setm,
+    {"_m", (getter) GaussianState_Wrapper_getm, (setter) GaussianState_Wrapper_setm,
      "m matrix", NULL},
     {NULL}  /* Sentinel */
 };

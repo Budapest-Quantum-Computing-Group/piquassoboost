@@ -115,11 +115,11 @@ class TestGaussianState:
             G_cpp = np.copy( G )
 
             # create an instance of the Gaussioan state
-            state = pq.GaussianState(
-                C=C_cpp,
-                G=G_cpp,
-                m=m,
-            )
+            state = pq.GaussianState(d=C_size)
+
+            state._C = C_cpp
+            state._G = G_cpp
+            state._m = m
 
             # start measuring the time
             start = time.time()   
