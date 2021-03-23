@@ -560,12 +560,9 @@ matrix
 PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes ) {
 
 
-    // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
-    // the elements of mtx=A indexed by the rows and colums, where the binary representation of
-    // permutation_idx was 1
-    // for details see the text below Eq.(3.20) of arXiv 1805.12498
-    matrix B(num_of_modes*2, num_of_modes*2);
-
+//std::cout << "B2" << std::endl;
+    matrix A(num_of_modes*2, num_of_modes*2);
+    memset(A.get_data(), 0, A.size()*sizeof(Complex16));
     size_t row_idx = 0;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
 
@@ -574,8 +571,8 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 
         for (size_t filling_factor_row=1; filling_factor_row<=current_occupancy[mode_idx]; filling_factor_row++) {
 
-            size_t row_offset_B_a = 2*row_idx*B.stride;
-            size_t row_offset_B_aconj = (2*row_idx+1)*B.stride;
+            size_t row_offset_A_a = 2*row_idx*A.stride;
+            size_t row_offset_A_aconj = (2*row_idx+1)*A.stride;
 
 
             size_t col_idx = 0;
@@ -585,11 +582,15 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 
                 for (size_t filling_factor_col=1; filling_factor_col<=current_occupancy[mode_jdx]; filling_factor_col++) {
 
-                    B[row_offset_B_a + col_idx*2]   = mtx[row_offset_mtx_a + ((selected_modes[mode_jdx]*2) ^ 1)];
-                    B[row_offset_B_a + col_idx*2+1] = mtx[row_offset_mtx_a + ((selected_modes[mode_jdx]*2+1) ^ 1)];
-                    B[row_offset_B_aconj + col_idx*2]   = mtx[row_offset_mtx_aconj + ((selected_modes[mode_jdx]*2) ^ 1)];
-                    B[row_offset_B_aconj + col_idx*2+1] = mtx[row_offset_mtx_aconj + ((selected_modes[mode_jdx]*2+1) ^ 1)];
+                    if ( (row_idx == col_idx) || (mode_idx != mode_jdx) ) {
 
+                        A[row_offset_A_a + col_idx*2]   = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
+                        A[row_offset_A_aconj + col_idx*2+1] = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
+
+                    }
+
+                    A[row_offset_A_a + col_idx*2+1] = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2+1)];
+                    A[row_offset_A_aconj + col_idx*2]   = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2)];
                     col_idx++;
                 }
             }
@@ -600,6 +601,18 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 
     }
 
+    //B2.print_matrix();
+
+
+    // A^(Z), i.e. to the square matrix constructed from the input matrix
+    // for details see the text below Eq.(3.20) of arXiv 1805.12498
+    matrix AZ(num_of_modes*2, num_of_modes*2);
+
+    for (size_t idx = 0; idx < 2*num_of_modes; idx++) {
+        for (size_t jdx = 0; jdx < 2*num_of_modes; jdx++) {
+            AZ[idx*AZ.stride + jdx] = A[idx*A.stride + (jdx ^ 1)];
+        }
+    }
 
 
 /*
@@ -625,7 +638,7 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
     }
 */
 
-    return B;
+    return AZ;
 
 
 }
@@ -637,7 +650,6 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 */
 void
 PowerTraceHafnianRecursive_Tasks::ScaleMatrix() {
-std::cout << "scale matrix base" << std::endl;
     PowerTraceHafnian::ScaleMatrix();
 
 }

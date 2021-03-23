@@ -90,6 +90,24 @@ double calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m,
 matrix ExtractModes( matrix& A, PicState_int64& selected_modes );
 
 
+/**
+@brief Call to add correction coming from the displacement to the diagonal elements of A_S (see Eq. (11) in arXiv 2010.15595)
+@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+(The output is returned via this variable)
+@param gamma The diagonal correction according to see Eq. (11) in arXiv 2010.15595. Here gamma is ordered as a_1, a_1^* ,a_2, a_2^*, ...
+*/
+void diag_correction_of_A( matrix& A, matrix& gamma );
+
+
+/**
+@brief Call to calculate gamma according to Eq (9) of arXiv 2010.15595v3 in ordering a_1, a_1^*, a_2, a_2^* ....
+@param Qinv An instace of matrix class containing the inverse of matrix Q calculated by method get_Qinv.
+@param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
+@param current_output The Fock representation of the current output for which the probability is calculated
+*/
+matrix CalcGamma( matrix& Qinv, matrix& m, PicState_int64& selected_modes );
+
+
 }; //GaussianSimulationStrategy
 
 

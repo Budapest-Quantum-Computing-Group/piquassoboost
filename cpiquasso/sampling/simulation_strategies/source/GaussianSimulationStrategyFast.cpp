@@ -1,6 +1,7 @@
 #include <iostream>
 #include "GaussianSimulationStrategyFast.h"
 #include "PowerTraceHafnianRecursive.h"
+#include "PowerTraceLoopHafnianRecursive.h"
 #include "PowerTraceLoopHafnian.h"
 #include "BruteForceHafnian.h"
 #include "BruteForceLoopHafnian.h"
@@ -118,6 +119,7 @@ sum( PicState_int64 &vec) {
 */
 GaussianSimulationStrategyFast::GaussianSimulationStrategyFast() : GaussianSimulationStrategy() {
 
+
 }
 
 /**
@@ -129,6 +131,7 @@ GaussianSimulationStrategyFast::GaussianSimulationStrategyFast() : GaussianSimul
 */
 GaussianSimulationStrategyFast::GaussianSimulationStrategyFast( matrix &covariance_matrix_in, const size_t& cutoff, const size_t& max_photons ) :
     GaussianSimulationStrategy(covariance_matrix_in, cutoff, max_photons) {
+
 
 }
 
@@ -210,8 +213,26 @@ GaussianSimulationStrategyFast::calc_probability( matrix& Qinv, const double& Qd
         Normalization = Normalization/factorial(current_output[idx]);
     }
 
-    // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
-    //matrix&& A_S = create_A_S( A, current_output );
+
+    // determine number of modes with nonzero occupancy
+    size_t num_of_modes = 0;
+    for (size_t idx=0; idx<current_output.size(); idx++) {
+        if (current_output[idx]>0) {
+            num_of_modes++;
+        }
+    }
+
+    PicState_int64 selected_modes(num_of_modes,0);
+    PicState_int64 occupancy(num_of_modes);
+    size_t occupancy_idx = 0;
+    for (size_t idx=0; idx<current_output.size(); idx++) {
+        if (current_output[idx]>0) {
+            occupancy[occupancy_idx] = current_output[idx];
+            selected_modes[occupancy_idx] = idx;
+            occupancy_idx++;
+        }
+    }
+
 
     // calculate the hafnian of A_S
     Complex16 hafnian;
@@ -223,25 +244,6 @@ GaussianSimulationStrategyFast::calc_probability( matrix& Qinv, const double& Qd
         PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
         hafnian = hafnian_calculator.calculate();
 */
-
-        // determine number of modes with nonzero occupancy
-        size_t num_of_modes = 0;
-        for (size_t idx=0; idx<current_output.size(); idx++) {
-            if (current_output[idx]>0) {
-                num_of_modes++;
-            }
-        }
-
-        PicState_int64 selected_modes(num_of_modes,0);
-        PicState_int64 occupancy(num_of_modes);
-        size_t occupancy_idx = 0;
-        for (size_t idx=0; idx<current_output.size(); idx++) {
-            if (current_output[idx]>0) {
-                occupancy[occupancy_idx] = current_output[idx];
-                selected_modes[occupancy_idx] = idx;
-                occupancy_idx++;
-            }
-        }
 
         // get rid of modes with zero occupancy
         matrix&& A_selected_modes = ExtractModes( A, selected_modes);
@@ -275,16 +277,54 @@ else {
     }
     else {
         // gaussian state with displacement
-            // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
-            matrix&& A_S = create_A_S( A, current_output );
+/*
+        // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
+        matrix&& A_S = create_A_S( A, current_output );
+
         // calculate gamma according to Eq (9) of arXiv 2010.15595v3 and set them into the diagonal of A_S
         diag_correction_of_A_S( A_S, Qinv, m, current_output );
 
 
         PowerTraceLoopHafnian hafnian_calculator = PowerTraceLoopHafnian(A_S);
         hafnian = hafnian_calculator.calculate();
+*/
 
 
+
+        // get rid of modes with zero occupancy
+        matrix&& A_selected_modes = ExtractModes( A, selected_modes);
+
+        // calculate gamma according to Eq (9) of arXiv 2010.15595v3 in ordering a_1, a_1^*, a_2, a_2^* ....
+        matrix&& gamma = CalcGamma( Qinv, m, selected_modes );
+
+        // add the diagonal correction to the Hamilton's matrix
+        diag_correction_of_A( A_selected_modes, gamma );
+
+
+        PowerTraceLoopHafnianRecursive hafnian_calculator_recursive = PowerTraceLoopHafnianRecursive(A_selected_modes, occupancy);
+        hafnian = hafnian_calculator_recursive.calculate();
+        //Complex16 hafnian2 = hafnian_calculator_recursive.calculate();
+
+/*
+{
+    tbb::spin_mutex::scoped_lock my_lock{mymutex};
+if ( std::abs(hafnian - hafnian2)/std::abs(hafnian) > 0.01) {
+std::cout << "hafnaian diff: " << hafnian - hafnian2 << " hafnian: " << hafnian << " hafnian2: " << hafnian2 <<std::endl;
+occupancy.print_matrix();
+selected_modes.print_matrix();
+//current_output.print_matrix();
+
+//A.print_matrix();
+A_selected_modes.print_matrix();
+A_S.print_matrix();
+//A_S_recursive.print_matrix();
+
+}
+else {
+    std::cout << " hafnian2: " << hafnian2 <<std::endl;
+}
+}
+*/
 
 
     }
@@ -347,6 +387,62 @@ GaussianSimulationStrategyFast::ExtractModes( matrix& A, PicState_int64& selecte
 
     return ret;
 
+}
+
+
+/**
+@brief Call to add correction coming from the displacement to the diagonal elements of A_S (see Eq. (11) in arXiv 2010.15595)
+@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+(The output is returned via this variable)
+@param gamma The diagonal correction according to see Eq. (11) in arXiv 2010.15595. Here gamma is ordered as a_1, a_1^* ,a_2, a_2^*, ...
+*/
+void
+GaussianSimulationStrategyFast::diag_correction_of_A( matrix& A, matrix& gamma ) {
+
+    // store gamma values into matrix A
+    for (size_t row_idx=0; row_idx<A.rows; row_idx++) {
+        A[row_idx*A.stride + row_idx] = gamma[row_idx];
+    }
+
+
+    return;
+}
+
+/**
+@brief Call to calculate gamma according to Eq (9) of arXiv 2010.15595v3 in ordering a_1, a_1^*, a_2, a_2^* ....
+@param Qinv An instace of matrix class containing the inverse of matrix Q calculated by method get_Qinv.
+@param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
+@param current_output The Fock representation of the current output for which the probability is calculated
+@return Returns with the diagonal corrections.
+*/
+matrix
+GaussianSimulationStrategyFast::CalcGamma( matrix& Qinv, matrix& m, PicState_int64& selected_modes ) {
+//std::cout << "GaussianSimulationStrategyFast::diag_correction_of_A " << A.rows << " " << Qinv.rows << " " << Qinv.cols << " " << m.size() << std::endl;
+//selected_modes.print_matrix();
+
+    matrix gamma(Qinv.rows, 1);
+    //memset(gamma.get_data(), 0, gamma.size()*sizeof(Complex16));
+    for (size_t row_idx=0; row_idx<Qinv.rows; row_idx++) {
+
+        size_t row_offset = row_idx*Qinv.stride;
+        gamma[row_idx] = Complex16(0.0,0.0);
+
+        for (size_t col_idx=0; col_idx<Qinv.rows; col_idx++) {
+            gamma[row_idx] = gamma[row_idx] + mult_a_bconj( Qinv[row_offset + col_idx], m[col_idx] );
+        }
+    }
+
+    // reorder the gamma matrix into a_1, a_1^*, a_2, a_2^* ...
+    matrix gamma_reordered(Qinv.rows, 1);
+    size_t num_of_modes = selected_modes.size();
+    size_t total_number_of_modes = m.size()/2;
+    for (size_t idx=0; idx<num_of_modes; idx++) {
+        gamma_reordered[2*idx] = gamma[selected_modes[idx]];
+        gamma_reordered[2*idx+1] = gamma[selected_modes[idx]+total_number_of_modes];
+    }
+
+
+    return gamma_reordered;
 }
 
 } // PIC

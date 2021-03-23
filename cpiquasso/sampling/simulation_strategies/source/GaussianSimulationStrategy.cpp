@@ -82,9 +82,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
     max_photons = 0;
 
 
-    // seed the random generator
-    srand ( time ( NULL));
-
 }
 
 
@@ -108,8 +105,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     dim_over_2 = dim/2;
 
 
-    // seed the random generator
-    srand ( time ( NULL));
 }
 
 
@@ -187,6 +182,9 @@ GaussianSimulationStrategy::setMaxPhotons( const size_t& max_photons_in ) {
 */
 std::vector<PicState_int64>
 GaussianSimulationStrategy::simulate( int samples_number ) {
+
+    // seed the random generator
+    srand ( time ( NULL));
 
 
     // preallocate the memory for the output states
@@ -668,6 +666,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
     size_t dim_A = current_output.size();
 
     matrix A_S(2*dim_A_S, 2*dim_A_S);
+    memset(A_S.get_data(), 0, A_S.size()*sizeof(Complex16));
+
     size_t row_idx = 0;
     for (size_t idx=0; idx<current_output.size(); idx++) {
         for (size_t row_repeat=0; row_repeat<current_output[idx]; row_repeat++) {
@@ -736,7 +736,6 @@ GaussianSimulationStrategy::sample_from_probabilities( matrix_base<double>& prob
 
     // create a random double
     double rand_num = (double)rand()/RAND_MAX;
-
 
     // determine the random index according to the distribution described by probabilities
     size_t random_index=0;

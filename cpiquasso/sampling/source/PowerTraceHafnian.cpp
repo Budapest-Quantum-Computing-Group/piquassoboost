@@ -278,7 +278,7 @@ PowerTraceHafnian::Update_mtx( matrix &mtx_in) {
 */
 void
 PowerTraceHafnian::ScaleMatrix() {
-std::cout << "scale matrix base base" << std::endl;
+
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
     if ( mtx_orig.rows <= 10) {
         mtx = mtx_orig;

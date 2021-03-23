@@ -150,12 +150,14 @@ int main() {
 
 
     // allocate matrix array for the larger matrix
-    size_t dim = 30;
+    size_t dim = 20;
     pic::matrix mtx = pic::matrix(dim, dim);
 
     // fill up matrix with random elements
     for (size_t row_idx = 0; row_idx < dim; row_idx++) {
         for (size_t col_idx = 0; col_idx <= row_idx; col_idx++) {
+            if ( row_idx == col_idx ) continue;
+
             double randnum1 = ((double)rand()/RAND_MAX*2 - 1.0);
             double randnum2 = ((double)rand()/RAND_MAX*2 - 1.0);
             mtx[row_idx * dim + col_idx] = pic::Complex16(randnum1, randnum2);
@@ -170,7 +172,7 @@ int main() {
         filling_factors[idx] = 1;
     }
     filling_factors[0] = 2;
-    filling_factors[1] = 0;
+    filling_factors[1] = 1;
     filling_factors[2] = 2;
     filling_factors[3] = 3;
     filling_factors[6] = 2;
@@ -186,15 +188,14 @@ int main() {
 
     // print the matrix on standard output
     //mtx.print_matrix();
-    //mtx_repeated.print_matrix();
     //mtx_repeated=getPermutedMatrix(mtx_repeated);
+    //mtx_repeated.print_matrix();
 
     // hafnian calculated by algorithm PowerTraceHafnian
     tbb::tick_count t0 = tbb::tick_count::now();
     pic::PowerTraceHafnian hafnian_calculator = pic::PowerTraceHafnian( mtx_repeated );
     pic::Complex16 hafnian_powertrace = hafnian_calculator.calculate();
     tbb::tick_count t1 = tbb::tick_count::now();
-
 
     // calculate the hafnian by the recursive method
 

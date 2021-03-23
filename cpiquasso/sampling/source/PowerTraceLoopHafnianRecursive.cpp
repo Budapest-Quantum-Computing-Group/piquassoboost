@@ -185,7 +185,6 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
     size_t dim = total_num_of_modes*2;
 
 
-
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
     matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes);
 
