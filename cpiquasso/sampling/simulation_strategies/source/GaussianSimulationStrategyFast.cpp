@@ -237,7 +237,6 @@ GaussianSimulationStrategyFast::calc_probability( matrix& Qinv, const double& Qd
     // calculate the hafnian of A_S
     Complex16 hafnian;
     if (m.size()==0) {
-
 /*
         // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
         matrix&& A_S = create_A_S( A, current_output );
@@ -256,7 +255,7 @@ GaussianSimulationStrategyFast::calc_probability( matrix& Qinv, const double& Qd
 {
     tbb::spin_mutex::scoped_lock my_lock{mymutex};
 if ( std::abs(hafnian - hafnian2)/std::abs(hafnian) > 0.01) {
-std::cout << "hafnaian diff: " << hafnian - hafnian2 << " hafnian: " << hafnian << " hafnian2: " << hafnian2 <<std::endl;
+std::cout << "hafnaian diff: " << std::abs(hafnian - hafnian2)/std::abs(hafnian)*100 << " % hafnian: " << hafnian << " hafnian2: " << hafnian2 <<std::endl;
 //occupancy.print_matrix();
 //selected_modes.print_matrix();
 //current_output.print_matrix();
@@ -310,13 +309,13 @@ else {
     tbb::spin_mutex::scoped_lock my_lock{mymutex};
 if ( std::abs(hafnian - hafnian2)/std::abs(hafnian) > 0.01) {
 std::cout << "hafnaian diff: " << hafnian - hafnian2 << " hafnian: " << hafnian << " hafnian2: " << hafnian2 <<std::endl;
-occupancy.print_matrix();
-selected_modes.print_matrix();
+//occupancy.print_matrix();
+//selected_modes.print_matrix();
 //current_output.print_matrix();
 
 //A.print_matrix();
-A_selected_modes.print_matrix();
-A_S.print_matrix();
+//A_selected_modes.print_matrix();
+//A_S.print_matrix();
 //A_S_recursive.print_matrix();
 
 }

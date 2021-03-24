@@ -194,6 +194,18 @@ Complex_base<scalar> operator*( const double &value) {
 
 
 /**
+@brief Override operator * of the STL complex class.
+@param value A double valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
+*/
+Complex_base<scalar> operator*( const long double &value) {
+
+    return Complex_base<scalar>(this->real()*value, this->imag()*value);
+
+};
+
+
+/**
 @brief Override operator -* of the STL complex class.
 @param value A std::complex valued input.
 @return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.

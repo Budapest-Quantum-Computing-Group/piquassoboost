@@ -1,3 +1,7 @@
+#ifndef USE_LAPACK
+#define USE_LAPACK 1
+#endif // USE_LAPACK
+
 #include <iostream>
 #include "PowerTraceHafnian.h"
 #include "PowerTraceHafnianUtilities.hpp"

@@ -8,6 +8,10 @@
 #include <tbb/tbb.h>
 #include <chrono>
 #include "dot.h"
+
+#include<stdio.h>
+#include<stdlib.h>
+
 //#include "lapacke.h"
 
 extern "C" {
@@ -285,7 +289,20 @@ GaussianSimulationStrategy::getSample() {
         probabilities_renormalized[probabilities.size()-1] = 1.0-prob_sum;
 
 
-//probabilities_renormalized.print_matrix();
+/*
+if ( prob_sum > 1 ) {
+probabilities_renormalized.print_matrix();
+FILE *fp = fopen("bad_matrix", "wb");
+fwrite( &A.rows, sizeof(size_t), 1, fp);
+fwrite( &A.cols, sizeof(size_t), 1, fp);
+fwrite( A.get_data(), sizeof(Complex16), A.size(), fp);
+fwrite( &output_sample.cols, sizeof(size_t), 1, fp);
+fwrite( output_sample.get_data(), sizeof(int64_t), output_sample.size(), fp);
+fclose(fp);
+exit(-1);
+
+}
+*/
         // sample from porbabilities
         size_t chosen_index = sample_from_probabilities( probabilities_renormalized );
         if (chosen_index == cutoff) {
