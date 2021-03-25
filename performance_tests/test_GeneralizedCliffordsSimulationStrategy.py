@@ -56,7 +56,7 @@ class TestGeneralizedCliffordSimulationStrategy:
             shots = 10000
 
             with program:
-                pq.Sampling(shots=shots)
+                pq.Q() | pq.Sampling(shots=shots)
 
             t0 = time.time()
 
