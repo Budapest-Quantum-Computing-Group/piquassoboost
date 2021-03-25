@@ -400,7 +400,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
     // The lapack function to calculate the Hessenberg transformation is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
     // quad precision
-    else if ( (AZ.rows < 30 && (sizeof(complex_type) > sizeof(Complex16))) || (sizeof(complex_type) == sizeof(Complex16)) ) {
+    else if ( (AZ.rows < 40 && (sizeof(complex_type) > sizeof(Complex16))) || (sizeof(complex_type) == sizeof(Complex16)) ) {
 
 
         // transform the matrix mtx into an upper Hessenberg format by calling lapack function
@@ -466,38 +466,6 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
 
 
 
-
-/**
-@brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$.
-This function is dedicated to be called from the recursive power trace hafnian algorithm, since there is very important to perform all the calculations in
-quad precision for numerical stability.
-@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
-@param pow_max maximum matrix power when calculating the power trace.
-@return a vector containing the power traces of matrix `z` to power \f$1\leq j \leq l\f$.
-*/
-template<class matrix_type, class complex_type>
-matrix_type
-calc_power_traces_for_recursive(matrix &AZ, size_t pow_max) {
-
-    matrix_type AZ32( AZ.rows, AZ.cols);
-    for (size_t idx=0; idx<AZ.size(); idx++) {
-        AZ32[idx].real( AZ[idx].real() );
-        AZ32[idx].imag( AZ[idx].imag() );
-    }
-
-    transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ32);
-
-    // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-    matrix_type coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, complex_type>(AZ32, AZ.rows);
-
-    // calculate the power traces of the matrix AZ using LeVerrier recursion relation
-    return powtrace_from_charpoly<matrix_type>(coeffs_labudde, pow_max);
-
-
-
-
-
-}
 
 
 
