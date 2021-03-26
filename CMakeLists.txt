@@ -236,6 +236,7 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/RepeatedColumnPairs.cpp
 )
 
 # adding compile options
@@ -286,6 +287,7 @@ set_target_properties(cpiquasso PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/RepeatedColumnPairs.h
 )
 
 configure_file(${PROJECT_SOURCE_DIR}/cpiquasso/common/source/Config.h.in

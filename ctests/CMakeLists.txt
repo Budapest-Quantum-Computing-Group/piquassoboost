@@ -28,6 +28,7 @@ target_include_directories(hafnian_complex_matrix PRIVATE
 target_include_directories(hafnian_recursive_complex_matrix PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
+                            ../cpiquasso/sampling/simulation_strategies/source
                             ${EXTRA_INCLUDES})
 
 target_include_directories(loop_hafnian_recursive_complex_matrix PRIVATE
