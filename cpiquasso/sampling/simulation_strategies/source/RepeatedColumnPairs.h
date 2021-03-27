@@ -18,9 +18,17 @@ public:
     /// The degeneracy (occupancy) of the given mode
     size_t degeneracy;
 
+/**
+@brief Nullary constructor of the class
+*/
 SingleMode();
 
-SingleMode(size_t mode_, size_t degeneracy_);
+/**
+@brief Constructor of the class
+@param mode_in The label of the mode
+@param degeneracy_in The number describing how many times the mode pair is repeated
+*/
+SingleMode(size_t mode_in, size_t degeneracy_in);
 
 };
 
@@ -55,14 +63,19 @@ ModePair(size_t mode1_in, size_t mode2_in, size_t degeneracy_in);
 };
 
 
-
-void SortModes( PicState_int64& modes, PicState_int64& sorted_modes, PicState_int64& inverse_permutation);
-
+/**
+@brief Call to sort the modes in descent order and obtain the inverse permutation indices.
+@param sorted_modes The array of mode occupacies to be sorted. The sorted array is returned by this reference.
+@param inverse_permutation The inverse permutation indices are returned via this reference. For initial value 1,2,3,4... should be given.
+@param start_idx Starting index;
+@param end_idx The last index + 1
+*/
+void SortModes( PicState_int64& sorted_modes, PicState_int64& inverse_permutation, size_t start_idx, size_t end_idx);
 /**
 @brief Call to determine mode pairs and single modes for the recursive hafnian algorithm
 @param single_modes The single modes are returned by this vector
 @param mode_pairs The mode pairs are returned by this vector
-@param modes The mode occupancy for which the mode pairs are determined.
+@param modes The mode occupancies for which the mode pairs are determined.
 */
 void DetermineModePairs(std::vector<SingleMode>& single_modes, std::vector<ModePair>& mode_pairs, PicState_int64& modes );
 
@@ -82,7 +95,7 @@ void PermuteRow( matrix row, std::vector<SingleMode>& single_modes, std::vector<
 @param mtx The input matrix for which the repeated matrix should be constructed.
 @param single_modes The single modes determined by DetermineModePairs.
 @param mode_pairs The mode pairs determined by DetermineModePairs.
-@param mtx_out A matrix (not preallocated) to reference the constructed permuted row elements.
+@param mtx_out A matrix (not preallocated) to reference the constructed matrix.
 @param repeated_column_pairs An array (not preallocated) to reference the constructed  repeating factors.
 */
 void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes, std::vector<ModePair>& mode_pairs,
@@ -90,7 +103,42 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
 
 
 
+/**
+@brief Call to replace the diagonal elements of the constructed repeated matrix by the array gamma.
+(The elements of gamma are permuted and repeated in the same fashion as the elements of the original matrix)
+ The modes corresponding to a given mode pair are placed next to each other.
+@param mtx The input matrix for which the diagonal elements should be replaced
+@param gamma The diagonal elements that are about to be used in the replacement
+@param single_modes The single modes determined by DetermineModePairs.
+@param mode_pairs The mode pairs determined by DetermineModePairs.
+@param inverse_permutation The array containing the permutation indices determined by SortModes
+*/
+void ReplaceDiagonalForDisplacedGBS(matrix &mtx, matrix& gamma, std::vector<SingleMode>& single_modes, std::vector<ModePair>& mode_pairs, PicState_int64& inverse_permutation);
+
+
+
+/**
+@brief Call to construct the matrix containing repeated mode pairs and the array containing the repeating factors of the column pairs.
+ The modes corresponding to a given mode pair are placed next to each other.
+@param mtx The input matrix for which the repeated matrix should be constructed.
+@param modes The mode occupancies for which the mode pairs are determined.
+@param mtx_out A matrix (not preallocated) to reference the constructed matrix.
+@param repeated_column_pairs An array containing the repeating factors of the successive column pairs is returned by this reference.
+*/
 void ConstructMatrixForRecursivePowerTrace(matrix &mtx, PicState_int64& modes, matrix &mtx_out, PicState_int64& repeated_column_pairs);
+
+
+
+
+/**
+@brief Call to construct the matrix containing repeated mode pairs and the array containing the repeating factors of the column pairs.
+ The modes corresponding to a given mode pair are placed next to each other.
+@param mtx The input matrix for which the repeated matrix should be constructed.
+@param modes The mode occupancies for which the mode pairs are determined.
+@param mtx_out A matrix (not preallocated) to reference the constructed matrix.
+@param repeated_column_pairs An array containing the repeating factors of the successive column pairs is returned by this reference.
+*/
+void ConstructMatrixForRecursiveLoopPowerTrace(matrix &mtx, matrix& gamma, PicState_int64& modes, matrix &mtx_out, PicState_int64& repeated_column_pairs);
 
 
 } //PIC

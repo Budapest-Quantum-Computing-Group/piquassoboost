@@ -11,9 +11,9 @@
 #include <math.h>
 
 
-/*
-tbb::spin_mutex my_mutex;
 
+static tbb::spin_mutex mymutex;
+/*
 double time_nominator = 0.0;
 double time_nevezo = 0.0;
 */
@@ -605,9 +605,12 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
         }
 
     }
-
-    //A.print_matrix();
-
+/*
+{
+    tbb::spin_mutex::scoped_lock my_lock{mymutex};
+    A.print_matrix();
+}
+*/
     // A^(Z), i.e. to the square matrix constructed from the input matrix
     // for details see the text below Eq.(3.20) of arXiv 1805.12498
     matrix AZ(num_of_modes*2, num_of_modes*2);

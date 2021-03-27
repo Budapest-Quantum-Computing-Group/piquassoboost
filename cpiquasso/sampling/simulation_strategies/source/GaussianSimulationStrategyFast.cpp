@@ -5,6 +5,7 @@
 #include "PowerTraceLoopHafnian.h"
 #include "BruteForceHafnian.h"
 #include "BruteForceLoopHafnian.h"
+#include "RepeatedColumnPairs.h"
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
@@ -244,27 +245,21 @@ GaussianSimulationStrategyFast::calc_probability( matrix& Qinv, const double& Qd
         hafnian = hafnian_calculator.calculate();
 */
 
-        // get rid of modes with zero occupancy
-        matrix&& A_selected_modes = ExtractModes( A, selected_modes);
+        // prepare input matrix for recursive hafnian algorithm
+        matrix mtx_permuted;
+        PicState_int64 repeated_column_pairs;
 
-        PowerTraceHafnianRecursive hafnian_calculator_recursive = PowerTraceHafnianRecursive(A_selected_modes, occupancy);
+        ConstructMatrixForRecursivePowerTrace(A, current_output, mtx_permuted, repeated_column_pairs);
+
+        PowerTraceHafnianRecursive hafnian_calculator_recursive = PowerTraceHafnianRecursive(mtx_permuted, repeated_column_pairs);
         hafnian = hafnian_calculator_recursive.calculate();
         //Complex16 hafnian2 = hafnian_calculator_recursive.calculate();
 
 /*
 {
     tbb::spin_mutex::scoped_lock my_lock{mymutex};
-if ( std::abs(hafnian - hafnian2)/std::abs(hafnian) > 0.01) {
+if ( std::abs(hafnian - hafnian2)/std::abs(hafnian) > 0.10) {
 std::cout << "hafnaian diff: " << std::abs(hafnian - hafnian2)/std::abs(hafnian)*100 << " % hafnian: " << hafnian << " hafnian2: " << hafnian2 <<std::endl;
-//occupancy.print_matrix();
-//selected_modes.print_matrix();
-//current_output.print_matrix();
-
-//A.print_matrix();
-//A_selected_modes.print_matrix();
-//A_S.print_matrix();
-//A_S_recursive.print_matrix();
-
 }
 else {
     std::cout << " hafnian2: " << hafnian2 <<std::endl;
@@ -289,35 +284,28 @@ else {
 */
 
 
+        // prepare input matrix for recursive hafnian algorithm
+        matrix mtx_permuted;
+        PicState_int64 repeated_column_pairs;
 
-        // get rid of modes with zero occupancy
-        matrix&& A_selected_modes = ExtractModes( A, selected_modes);
-
-        // calculate gamma according to Eq (9) of arXiv 2010.15595v3 in ordering a_1, a_1^*, a_2, a_2^* ....
+        // calculate gamma according to Eq (9) of arXiv 2010.15595v3
         matrix&& gamma = CalcGamma( Qinv, m, selected_modes );
 
-        // add the diagonal correction to the Hamilton's matrix
-        diag_correction_of_A( A_selected_modes, gamma );
+
+        ConstructMatrixForRecursiveLoopPowerTrace(A, gamma, current_output, mtx_permuted, repeated_column_pairs);
 
 
-        PowerTraceLoopHafnianRecursive hafnian_calculator_recursive = PowerTraceLoopHafnianRecursive(A_selected_modes, occupancy);
+        PowerTraceLoopHafnianRecursive hafnian_calculator_recursive = PowerTraceLoopHafnianRecursive(mtx_permuted, repeated_column_pairs);
         hafnian = hafnian_calculator_recursive.calculate();
         //Complex16 hafnian2 = hafnian_calculator_recursive.calculate();
+
 
 /*
 {
     tbb::spin_mutex::scoped_lock my_lock{mymutex};
+
 if ( std::abs(hafnian - hafnian2)/std::abs(hafnian) > 0.01) {
-std::cout << "hafnaian diff: " << hafnian - hafnian2 << " hafnian: " << hafnian << " hafnian2: " << hafnian2 <<std::endl;
-//occupancy.print_matrix();
-//selected_modes.print_matrix();
-//current_output.print_matrix();
-
-//A.print_matrix();
-//A_selected_modes.print_matrix();
-//A_S.print_matrix();
-//A_S_recursive.print_matrix();
-
+std::cout << "hafnaian diff: " << std::abs(hafnian - hafnian2)/std::abs(hafnian)*100 << "% hafnian: " << hafnian << " hafnian2: " << hafnian2 <<std::endl;;
 }
 else {
     std::cout << " hafnian2: " << hafnian2 <<std::endl;
@@ -431,6 +419,8 @@ GaussianSimulationStrategyFast::CalcGamma( matrix& Qinv, matrix& m, PicState_int
         }
     }
 
+    return gamma;
+/*
     // reorder the gamma matrix into a_1, a_1^*, a_2, a_2^* ...
     matrix gamma_reordered(Qinv.rows, 1);
     size_t num_of_modes = selected_modes.size();
@@ -442,6 +432,7 @@ GaussianSimulationStrategyFast::CalcGamma( matrix& Qinv, matrix& m, PicState_int
 
 
     return gamma_reordered;
+    */
 }
 
 } // PIC

@@ -289,9 +289,9 @@ GaussianSimulationStrategy::getSample() {
         probabilities_renormalized[probabilities.size()-1] = 1.0-prob_sum;
 
 
-/*
 if ( prob_sum > 1 ) {
 probabilities_renormalized.print_matrix();
+/*
 FILE *fp = fopen("bad_matrix", "wb");
 fwrite( &A.rows, sizeof(size_t), 1, fp);
 fwrite( &A.cols, sizeof(size_t), 1, fp);
@@ -300,9 +300,9 @@ fwrite( &output_sample.cols, sizeof(size_t), 1, fp);
 fwrite( output_sample.get_data(), sizeof(int64_t), output_sample.size(), fp);
 fclose(fp);
 exit(-1);
-
-}
 */
+}
+
         // sample from porbabilities
         size_t chosen_index = sample_from_probabilities( probabilities_renormalized );
         if (chosen_index == cutoff) {
@@ -606,7 +606,7 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
         // calculate gamma according to Eq (9) of arXiv 2010.15595v3 and set them into the diagonal of A_S
         diag_correction_of_A_S( A_S, Qinv, m, current_output );
 
-        if (A_S.rows <= 6) {
+        if (A_S.rows <= 2) {
             BruteForceLoopHafnian hafnian_calculator = BruteForceLoopHafnian(A_S);
             hafnian = hafnian_calculator.calculate();
         }
@@ -695,7 +695,9 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
-                    A_S[row_offset + col_idx] = A[row_offset_A + jdx];
+                    if ( (row_idx == col_idx) || (idx != jdx) ) {
+                        A_S[row_offset + col_idx] = A[row_offset_A + jdx];
+                    }
                     col_idx++;
                 }
             }
@@ -725,7 +727,9 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
-                    A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
+                    if ( (row_idx == col_idx) || (idx != jdx) ) {
+                        A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
+                    }
                     col_idx++;
                 }
 
