@@ -291,7 +291,6 @@ else {
         // calculate gamma according to Eq (9) of arXiv 2010.15595v3
         matrix&& gamma = CalcGamma( Qinv, m, selected_modes );
 
-
         ConstructMatrixForRecursiveLoopPowerTrace(A, gamma, current_output, mtx_permuted, repeated_column_pairs);
 
 
@@ -326,77 +325,8 @@ else {
 }
 
 
-
 /**
-@brief Call to extract selected modes from the covariance matrix in \$f a_1, a_1^*, a_2, a_2^* ... \f$ ordering.
-@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
-@param selected_modes An array of labels containing the selected modes
-@return Returns with the matrix containing the selected modes
-*/
-matrix
-GaussianSimulationStrategyFast::ExtractModes( matrix& A, PicState_int64& selected_modes ) {
-
-    size_t dim_ret = selected_modes.size();
-    size_t dim_A = A.rows/2;
-
-    matrix ret(2*dim_ret, 2*dim_ret);
-    for (size_t row_idx=0; row_idx<dim_ret; row_idx++) {
-
-        size_t row_offset = 2*row_idx*ret.stride;
-        size_t row_offset_A = selected_modes[row_idx]*A.stride;
-
-        // insert column elements
-        for (size_t col_idx=0; col_idx<dim_ret; col_idx++) {
-            ret[row_offset + 2*col_idx] = A[row_offset_A + selected_modes[col_idx]];
-        }
-
-        // insert column elements
-        for (size_t col_idx=0; col_idx<dim_ret; col_idx++) {
-            ret[row_offset + 2*col_idx+1] = A[row_offset_A + selected_modes[col_idx] + dim_A];
-        }
-
-
-        row_offset = (2*row_idx+1)*ret.stride;
-        row_offset_A = (selected_modes[row_idx]+dim_A)*A.stride;
-
-        // insert column elements
-        for (size_t col_idx=0; col_idx<dim_ret; col_idx++) {
-            ret[row_offset + 2*col_idx] = A[row_offset_A + selected_modes[col_idx]];
-        }
-
-        // insert column elements
-        for (size_t col_idx=0; col_idx<dim_ret; col_idx++) {
-            ret[row_offset + 2*col_idx+1] = A[row_offset_A + selected_modes[col_idx] + dim_A];
-        }
-
-
-    }
-
-    return ret;
-
-}
-
-
-/**
-@brief Call to add correction coming from the displacement to the diagonal elements of A_S (see Eq. (11) in arXiv 2010.15595)
-@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
-(The output is returned via this variable)
-@param gamma The diagonal correction according to see Eq. (11) in arXiv 2010.15595. Here gamma is ordered as a_1, a_1^* ,a_2, a_2^*, ...
-*/
-void
-GaussianSimulationStrategyFast::diag_correction_of_A( matrix& A, matrix& gamma ) {
-
-    // store gamma values into matrix A
-    for (size_t row_idx=0; row_idx<A.rows; row_idx++) {
-        A[row_idx*A.stride + row_idx] = gamma[row_idx];
-    }
-
-
-    return;
-}
-
-/**
-@brief Call to calculate gamma according to Eq (9) of arXiv 2010.15595v3 in ordering a_1, a_1^*, a_2, a_2^* ....
+@brief Call to calculate gamma according to Eq (9) of arXiv 2010.15595v3
 @param Qinv An instace of matrix class containing the inverse of matrix Q calculated by method get_Qinv.
 @param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
 @param current_output The Fock representation of the current output for which the probability is calculated
@@ -420,19 +350,7 @@ GaussianSimulationStrategyFast::CalcGamma( matrix& Qinv, matrix& m, PicState_int
     }
 
     return gamma;
-/*
-    // reorder the gamma matrix into a_1, a_1^*, a_2, a_2^* ...
-    matrix gamma_reordered(Qinv.rows, 1);
-    size_t num_of_modes = selected_modes.size();
-    size_t total_number_of_modes = m.size()/2;
-    for (size_t idx=0; idx<num_of_modes; idx++) {
-        gamma_reordered[2*idx] = gamma[selected_modes[idx]];
-        gamma_reordered[2*idx+1] = gamma[selected_modes[idx]+total_number_of_modes];
-    }
 
-
-    return gamma_reordered;
-    */
 }
 
 } // PIC

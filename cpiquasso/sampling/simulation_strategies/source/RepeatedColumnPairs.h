@@ -87,7 +87,7 @@ void DetermineModePairs(std::vector<SingleMode>& single_modes, std::vector<ModeP
 @param mode_pairs The mode pairs determined by DetermineModePairs.
 @param row_permuted A preallocated array for the permuted row elements.
 */
-void PermuteRow( matrix row, std::vector<SingleMode>& single_modes, std::vector<ModePair>& mode_pairs, matrix& row_permuted, PicState_int64& inverse_permutation);
+void PermuteRow( matrix row, const size_t& row_mode, const bool &is_mode_conjugated, std::vector<SingleMode>& single_modes, std::vector<ModePair>& mode_pairs, matrix& row_permuted, PicState_int64& inverse_permutation);
 
 /**
 @brief Call to construct the matrix containing repeated mode pairs and the array containing the repeating factors of the column pairs.

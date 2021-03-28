@@ -240,9 +240,11 @@ void DetermineModePairs(std::vector<SingleMode>& single_modes, std::vector<ModeP
 @param mode_pairs The mode pairs determined by DetermineModePairs.
 @param row_permuted A preallocated array for the permuted row elements.
 */
-void PermuteRow( matrix row, std::vector<SingleMode>& single_modes, std::vector<ModePair>& mode_pairs, matrix& row_permuted, PicState_int64& inverse_permutation) {
+void PermuteRow( matrix row, const size_t& row_mode, const bool &is_row_mode_conjugated, std::vector<SingleMode>& single_modes, std::vector<ModePair>& mode_pairs, matrix& row_permuted, PicState_int64& inverse_permutation) {
 
     size_t dim_over_2 = row.size()/2;
+
+    memset( row_permuted.get_data(), 0, row_permuted.size()*sizeof(Complex16));
 /*
 for (size_t idx=0; idx<dim_over_2; idx++ ) {
     std::cout << row[idx];
@@ -258,10 +260,10 @@ std::cout << std::endl;
 
         ModePair& mode_pair = mode_pairs[idx];
 
-        row_permuted[4*idx] = row[inverse_permutation[mode_pair.mode1]];
-        row_permuted[4*idx+1] = row[inverse_permutation[mode_pair.mode2]];
-        row_permuted[4*idx+2] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
-        row_permuted[4*idx+3] = row[inverse_permutation[mode_pair.mode2] + dim_over_2];
+        if ( is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[4*idx] = row[inverse_permutation[mode_pair.mode1]];
+        if ( is_row_mode_conjugated || (row_mode != mode_pair.mode2) ) row_permuted[4*idx+1] = row[inverse_permutation[mode_pair.mode2]];
+        if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[4*idx+2] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
+        if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode2) ) row_permuted[4*idx+3] = row[inverse_permutation[mode_pair.mode2] + dim_over_2];
 
     }
 
@@ -282,10 +284,11 @@ std::cout << std::endl;
 
 
         if (tmp == 2) {
-            row_permuted[offset]   = row[inverse_permutation[mode_pair.mode1]];
-            row_permuted[offset+1] = row[inverse_permutation[mode_pair.mode2]];
-            row_permuted[offset+2] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
-            row_permuted[offset+3] = row[inverse_permutation[mode_pair.mode2] + dim_over_2];
+
+            if ( is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[offset]   = row[inverse_permutation[mode_pair.mode1]];
+            if ( is_row_mode_conjugated || (row_mode != mode_pair.mode2) ) row_permuted[offset+1] = row[inverse_permutation[mode_pair.mode2]];
+            if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[offset+2] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
+            if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode2) ) row_permuted[offset+3] = row[inverse_permutation[mode_pair.mode2] + dim_over_2];
             offset = offset + 4;
             tmp = 0;
         }
@@ -296,8 +299,9 @@ std::cout << std::endl;
 
 
     if (tmp == 1) {
-        row_permuted[offset]   = row[inverse_permutation[mode_pair.mode1]];
-        row_permuted[offset+1] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
+
+        if ( is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[offset]   = row[inverse_permutation[mode_pair.mode1]];
+        if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[offset+1] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
     }
 
 
@@ -351,7 +355,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
         matrix row_permuted( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
         // permute the selected row according to the single modes and mode pairs
-        PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+        PermuteRow( row, mode_pair.mode1, false, single_modes, mode_pairs, row_permuted, inverse_permutation);
 
         ///////////////////////////////////////////////////////////////////////////
 
@@ -362,7 +366,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
         row_permuted = matrix( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
         // permute the selected row according to the single modes and mode pairs
-        PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+        PermuteRow( row, mode_pair.mode2, false, single_modes, mode_pairs, row_permuted, inverse_permutation);
 
 
         ///////////////////////////////////////////////////////////////////////////
@@ -374,7 +378,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
         row_permuted = matrix( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
         // permute the selected row according to the single modes and mode pairs
-        PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+        PermuteRow( row, mode_pair.mode1, true, single_modes, mode_pairs, row_permuted, inverse_permutation);
 
 
         ///////////////////////////////////////////////////////////////////////////
@@ -386,7 +390,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
         row_permuted = matrix( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
         // permute the selected row according to the single modes and mode pairs
-        PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+        PermuteRow( row, mode_pair.mode2, true, single_modes, mode_pairs, row_permuted, inverse_permutation);
 
     }
 
@@ -416,7 +420,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
             matrix row_permuted( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
             // permute the selected row according to the single modes and mode pairs
-            PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+            PermuteRow( row, mode_pair.mode1, false, single_modes, mode_pairs, row_permuted, inverse_permutation);
 
             ///////////////////////////////////////////////////////////////
 
@@ -427,7 +431,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
             row_permuted = matrix( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
             // permute the selected row according to the single modes and mode pairs
-            PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+            PermuteRow( row, mode_pair.mode2, false, single_modes, mode_pairs, row_permuted, inverse_permutation);
 
 
             ///////////////////////////////////////////////////////////////
@@ -439,7 +443,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
             row_permuted = matrix( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
             // permute the selected row according to the single modes and mode pairs
-            PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+            PermuteRow( row, mode_pair.mode1, true, single_modes, mode_pairs, row_permuted, inverse_permutation);
 
 
             ///////////////////////////////////////////////////////////////
@@ -451,7 +455,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
             row_permuted = matrix( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
             // permute the selected row according to the single modes and mode pairs
-            PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+            PermuteRow( row, mode_pair.mode2, true, single_modes, mode_pairs, row_permuted, inverse_permutation);
 
             offset = offset + 4;
 
@@ -475,7 +479,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
         matrix row_permuted( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
         // permute the selected row according to the single modes and mode pairs
-        PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+        PermuteRow( row, mode_pair.mode1, false, single_modes, mode_pairs, row_permuted, inverse_permutation);
 
 
         ///////////////////////////////////////////////////////////////
@@ -487,7 +491,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
         row_permuted = matrix( mtx_out.get_data() + row_offset_out, 1, mtx_out.cols );
 
         // permute the selected row according to the single modes and mode pairs
-        PermuteRow( row, single_modes, mode_pairs, row_permuted, inverse_permutation);
+        PermuteRow( row, mode_pair.mode1, true, single_modes, mode_pairs, row_permuted, inverse_permutation);
     }
 
 
