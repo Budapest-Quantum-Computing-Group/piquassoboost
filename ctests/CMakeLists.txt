@@ -9,9 +9,6 @@ add_test(brute_force_hafnian_complex_matrix brute_force_hafnian_complex_matrix .
 add_test(brute_force_loop_hafnian_complex_matrix brute_force_loop_hafnian_complex_matrix ...)
 add_test(dot_stride dot_stride ...)
 
-
-# Add executable called "decomposition_test" that is built from the source files
-# "decomposition_test.cpp". The extensions are automatically found.
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
 add_executable (hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix.cpp)
 add_executable (loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix.cpp)
