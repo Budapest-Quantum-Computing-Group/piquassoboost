@@ -16,57 +16,6 @@ double time_nevezo = 0.0;
 namespace pic {
 
 
-/**
-@brief Call to calculate sum of integers stored in a container
-@param vec a PicState_int64 instance
-@return Returns with the sum of the elements of the container
-*/
-static inline int
-sum( PicState_int64 vec) {
-
-    int ret = 0;
-    for (size_t idx=0; idx<vec.size(); idx++) {
-        if ( vec[idx] == 0) {
-            continue;
-        }
-        ret = ret + vec[idx];
-    }
-    return ret;
-}
-
-
-/**
-@brief Calculates the n-th power of 2.
-@param n An natural number
-@return Returns with the n-th power of 2.
-*/
-static unsigned long long power_of_2(unsigned long long n) {
-  if (n == 0) return 1;
-  if (n == 1) return 2;
-
-  return 2 * power_of_2(n-1);
-}
-
-
-
-
-/**
-@brief Call to calculate the Binomial Coefficient C(n, k)
-@param n The integer n
-@param k The integer k
-@return Returns with the Binomial Coefficient C(n, k).
-*/
-static int BinomialCoeff(int n, int k) {
-   int C[k+1];
-   memset(C, 0, sizeof(C));
-   C[0] = 1;
-   for (int i = 1; i <= n; i++) {
-      for (int j = std::min(i, k); j > 0; j--)
-         C[j] = C[j] + C[j-1];
-   }
-   return C[k];
-
-}
 
 
 /**

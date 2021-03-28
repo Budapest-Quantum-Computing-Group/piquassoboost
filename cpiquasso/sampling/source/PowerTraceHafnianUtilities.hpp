@@ -1,5 +1,6 @@
 #include "PowerTraceHafnianUtilities.h"
 #include <iostream>
+#include "common_functionalities.h"
 #include <math.h>
 
 /*

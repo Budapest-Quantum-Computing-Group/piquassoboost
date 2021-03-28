@@ -2,6 +2,7 @@
 #include "CChinHuhPermanentCalculator.h"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
+#include "common_functionalities.h"
 #include <math.h>
 
 namespace pic {
@@ -188,66 +189,6 @@ PartialPermanentTask::execute(matrix &mtx, PicState_int64 &input_state, PicVecto
 
 
 
-
-
-
-
-/**
-@brief Call to calculate sum of integers stored in a container
-@param vec a container if integers
-@return Returns with the sum of the elements of the container
-*/
-template <typename scalar>
-inline int
-sum( PicVector<scalar> vec) {
-
-    int ret = 0;
-    for (auto it=vec.begin(); it!=vec.end(); it++) {
-        if ( *it == 0) {
-            continue;
-        }
-        ret = ret + *it;
-    }
-    return ret;
-}
-
-/**
-@brief Call to calculate sum of integers stored in a container
-@param vec a PicState_int64 instance
-@return Returns with the sum of the elements of the container
-*/
-inline int
-sum( PicState_int64 vec) {
-
-    int ret = 0;
-    for (size_t idx=0; idx<vec.size(); idx++) {
-        if ( vec[idx] == 0) {
-            continue;
-        }
-        ret = ret + vec[idx];
-    }
-    return ret;
-}
-
-
-
-/**
-@brief Call to calculate the Binomial Coefficient C(n, k)
-@param n The integer n
-@param k The integer k
-@return Returns with the Binomial Coefficient C(n, k).
-*/
-int binomialCoeff(int n, int k) {
-   int C[k+1];
-   memset(C, 0, sizeof(C));
-   C[0] = 1;
-   for (int i = 1; i <= n; i++) {
-      for (int j = std::min(i, k); j > 0; j--)
-         C[j] = C[j] + C[j-1];
-   }
-   return C[k];
-
-}
 
 
 

@@ -147,7 +147,7 @@ virtual void ScaleMatrix();
 }; //PowerTraceHafnianRecursive_Tasks
 
 
-#endif
+#endif // CPYTHON
 
 
 
