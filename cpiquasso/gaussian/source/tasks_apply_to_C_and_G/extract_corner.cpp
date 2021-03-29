@@ -71,11 +71,7 @@ Extract_Corner::operator()(const tbb::flow::continue_msg &msg) {
                 break;
             }
             else {
-                if (transform_col_idx+col_range+1 >= transform_col_num) {
-                    break;
-                }
                 col_range = col_range + 1;
-
             }
 
         }
