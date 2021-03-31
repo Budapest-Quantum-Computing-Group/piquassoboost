@@ -482,6 +482,36 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
     //calculate A = X (1-Qinv)    X=(0,1;1,0)
 
+/*
+    // calculate -XQinv
+    // multiply by -1 the elements of Qinv and store the result in the corresponding rows of A
+    matrix A(Qinv.rows, Qinv.cols);
+    double* Qinv_data_d = (double*)Qinv.get_data();
+    double* A_data_d    = (double*)A.get_data();
+    size_t number_of_modes = Qinv.rows/2;
+    for (size_t row_idx = 0; row_idx<number_of_modes ; row_idx++) {
+
+        size_t row_offset1 = row_idx*Qinv.stride*2;
+        size_t row_offset2 = (row_idx+number_of_modes)*Qinv.stride*2;
+
+         // rows 1:N from (-Qinv) to rows N+1:2N in A --- effect of X
+        for (size_t col_idx = 0; col_idx<2*Qinv.cols; col_idx++) {
+
+            A_data_d[row_offset2 + col_idx] = -Qinv_data_d[row_offset1 + col_idx];
+
+        }
+
+        // rows N+1:2N from (-Qinv) to rows 1:N in A --- effect of X
+        for (size_t col_idx = 0; col_idx<2*Qinv.cols; col_idx++) {
+
+            A_data_d[row_offset1 + col_idx] = -Qinv_data_d[row_offset2 + col_idx];
+
+        }
+
+
+
+    }
+*/
     // calculate -XQinv
     // multiply by -1 the elements of Qinv and store the result in the corresponding rows of A
     matrix A(Qinv.rows, Qinv.cols);
@@ -494,7 +524,7 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
         size_t row_offset1 = row_idx*Qinv.stride;
         size_t row_offset2 = (row_idx+number_of_modes)*Qinv.stride;
 
-         // rows 1:N form (1-Qinv) to rows N+1:2N in A --- effect of X
+         // rows 1:N form (-Qinv) to rows N+1:2N in A --- effect of X
         for (size_t col_idx = 0; col_idx<Qinv.cols; col_idx=col_idx+2) {
 
             __m256d Qinv_vec = _mm256_loadu_pd((double*)(Qinv_data_d + row_offset1 + col_idx));
@@ -503,7 +533,7 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
         }
 
-        // rows N+1:2N form (1-Qinv) to rows 1:N in A --- effect of X
+        // rows N+1:2N from (-Qinv) to rows 1:N in A --- effect of X
         for (size_t col_idx = 0; col_idx<Qinv.cols; col_idx=col_idx+2) {
 
             __m256d Qinv_vec = _mm256_loadu_pd((double*)(Qinv_data_d + row_offset2 + col_idx));
@@ -516,14 +546,17 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
     }
 
+
     // calculate X-XQinv
-    // add X to the matrix eleemnts of -XQinv
+    // add X to the matrix elements of -XQinv
     for (size_t row_idx = 0; row_idx<number_of_modes; row_idx++) {
 
         A[row_idx*A.stride+row_idx+number_of_modes].real(A[row_idx*A.stride+row_idx+number_of_modes].real() + 1);
         A[(row_idx+number_of_modes)*A.stride+row_idx].real(A[(row_idx+number_of_modes)*A.stride+row_idx].real() + 1);
 
     }
+
+
 
 
     return A;
