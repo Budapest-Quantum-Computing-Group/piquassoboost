@@ -41,6 +41,7 @@ create_repeated_mtx( pic::matrix& A, pic::PicState_int64& filling_factors ) {
     size_t dim_A = filling_factors.size();
 
     pic::matrix A_S(2*dim_A_S, 2*dim_A_S);
+    memset( A_S.get_data(), 0, A_S.size()*sizeof(pic::Complex16));
     size_t row_idx = 0;
     for (size_t idx=0; idx<filling_factors.size(); idx++) {
         for (size_t row_repeat=0; row_repeat<filling_factors[idx]; row_repeat++) {
