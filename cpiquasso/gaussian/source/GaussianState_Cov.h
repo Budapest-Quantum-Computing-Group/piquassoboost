@@ -10,7 +10,7 @@
 namespace pic {
 
 /// enumeration labeling the representation of a gaussian state
-enum representation { qudratures /* i.e. q_1, q_2, q_3, ... p_1, p_2 ... p_N */ , fock_space /*i.e. a_1, a_2, ... , a^+_1, ... a^+_N */ };
+enum representation { qudratures /* i.e. q_1, q_2, q_3, ... p_1, p_2 ... p_N */ , complex_amplitudes /*i.e. a_1, a_2, ... , a^+_1, ... a^+_N */ };
 
 
 /**
@@ -24,7 +24,7 @@ protected:
     matrix m;
     /// The covariance matrix \f$ M_{ij (xp)} = \langle Y_i Y_j + Y_j Y_i \rangle_\rho \f$, where \f$ Y = (\overline{q}, \overline{p}) \f$,
     matrix covariance_matrix;
-    /// representation basis of the gaussian state (with quadratures or with the complex_amplitudes)
+    /// representation type of the gaussian state (quadratures or complex_amplitudes)
     representation repr;
 
 public:

@@ -41,7 +41,14 @@ PicState_int64::PicState_int64( size_t cols_in) : matrix_base<int64_t>(1, cols_i
 */
 PicState_int64::PicState_int64( size_t cols_in, int64_t value) : matrix_base<int64_t>(1, cols_in) {
 
-    memset(data, value, cols*sizeof(int64_t));
+    if (value == 0) {
+        memset(data, value, cols*sizeof(int64_t));
+    }
+    else {
+        for (size_t idx=0; idx < size(); idx ++) {
+            data[idx] = value;
+        }
+    }
 
 }
 

@@ -46,7 +46,7 @@ namespace pic {
 
 
 /// @brief Alias for the standard STL complex type
-using Complex_Base = std::complex<double>;
+//using std::complex<scalar> = std::complex<scalar>;
 
 
 /**
@@ -54,14 +54,47 @@ using Complex_Base = std::complex<double>;
 This enables better performance than the STL version of the complex number.
 Since std::complex<double> is a template class, the implementation of the Complex16 class must be in the header file
 */
-class Complex16 : public Complex_Base {
+template<class scalar>
+class Complex_base : public std::complex<scalar> {
 
 
 
 public:
 
-// reusing the constructors of the parent class
-using Complex_Base::Complex_Base;
+
+/**
+@brief Nullary Contructor of the class
+@return Returns with the created class instance
+*/
+Complex_base<scalar> () {
+
+};
+
+/**
+@brief Contructor of the class
+@param a The real part of the complex number
+@param b The imaginary part of the complex number
+@return Returns with the created class instance
+*/
+Complex_base<scalar> ( scalar a, scalar b) {
+
+    this->real(a);
+    this->imag(b);
+
+};
+
+
+/**
+@brief Contructor of the class
+@param a The real part of the complex number (The imaginary part is set to zero)
+@return Returns with the created class instance
+*/
+Complex_base<scalar> ( scalar a) {
+
+    this->real(a);
+    this->imag(0.0);
+
+};
 
 
 /**
@@ -69,9 +102,21 @@ using Complex_Base::Complex_Base;
 @param value A double valued input.
 @return Returns with the calculated value represented by an instance of the Complex16 class.
 */
-Complex16 operator/( const double &value) {
+Complex_base<scalar> operator/( const double &value) {
 
-    return Complex16(this->real()/value, this->imag()/value);
+    return Complex_base<scalar>(this->real()/value, this->imag()/value);
+
+};
+
+
+/**
+@brief Override operator / of the STL complex class.
+@param value A double valued input.
+@return Returns with the calculated value represented by an instance of the Complex16 class.
+*/
+Complex_base<scalar> operator/( const long double &value) {
+
+    return Complex_base<scalar>(this->real()/value, this->imag()/value);
 
 };
 
@@ -81,89 +126,102 @@ Complex16 operator/( const double &value) {
 @param value A Complex16 valued input.
 @return Returns with the calculated value represented by an instance of the Complex16 class.
 */
-Complex16 operator/( const Complex16 &value) {
+Complex_base<scalar> operator/( const Complex_base<scalar> &value) {
 
     double norm_input = value.real()*value.real() + value.imag()*value.imag();
 
-    return Complex16((this->real()*value.real() + this->imag()*value.imag())/norm_input, (this->imag()*value.real() - this->real()*value.imag())/norm_input);
+    return Complex_base<scalar>((this->real()*value.real() + this->imag()*value.imag())/norm_input, (this->imag()*value.real() - this->real()*value.imag())/norm_input);
 
 };
 
 
 /**
 @brief Override operator + of the STL complex class.
-@param value A Complex_Base valued input.
+@param value An std::complex valued input.
 @return Returns with the calculated value represented by an instance of the Complex16 class.
 */
-Complex16 operator+( const Complex_Base &value) {
+Complex_base<scalar> operator+( const std::complex<scalar> &value) {
 
-    return Complex16(this->real() + value.real(), this->imag() + value.imag());
+    return Complex_base<scalar>(this->real() + value.real(), this->imag() + value.imag());
 
 };
 
 /**
 @brief Override operator + of the STL complex class.
-@param value A Complex16 valued input.
-@return Returns with the calculated value represented by an instance of the Complex16 class.
+@param value A Complex_base<scalar> valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
 */
-Complex16 operator+( const Complex16 &value) {
+Complex_base<scalar> operator+( const Complex_base<scalar> &value) {
 
-    return Complex16(this->real() + value.real(), this->imag() + value.imag());
+    return Complex_base<scalar>(this->real() + value.real(), this->imag() + value.imag());
 
 };
 
 
 /**
 @brief Override operator * of the STL complex class.
-@param value A Complex_Base valued input.
-@return Returns with the calculated value represented by an instance of the Complex16 class.
+@param value A std::complex valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
 */
-Complex16 operator*( const Complex_Base &value) {
+Complex_base<scalar> operator*( const std::complex<scalar> &value) {
 
-    return Complex16(this->real()*value.real() - this->imag()*value.imag(), this->real()*value.imag() + this->imag()*value.real());
+    return Complex_base<scalar>(this->real()*value.real() - this->imag()*value.imag(), this->real()*value.imag() + this->imag()*value.real());
 
 };
 
 /**
 @brief Override operator * of the STL complex class.
-@param value A Complex16 valued input.
-@return Returns with the calculated value represented by an instance of the Complex16 class.
+@param value A Complex_base<scalar> valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
 */
-Complex16 operator*( const Complex16 &value) {
+Complex_base<scalar> operator*( const Complex_base<scalar> &value) {
 
-    return Complex16(this->real()*value.real() - this->imag()*value.imag(), this->real()*value.imag() + this->imag()*value.real());
+    return Complex_base<scalar>(this->real()*value.real() - this->imag()*value.imag(), this->real()*value.imag() + this->imag()*value.real());
 
 };
+
 
 /**
 @brief Override operator * of the STL complex class.
 @param value A double valued input.
-@return Returns with the calculated value represented by an instance of the Complex16 class.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
 */
-Complex16 operator*( const double &value) {
+Complex_base<scalar> operator*( const double &value) {
 
-    return Complex16(this->real()*value, this->imag()*value);
+    return Complex_base<scalar>(this->real()*value, this->imag()*value);
+
+};
+
+
+/**
+@brief Override operator * of the STL complex class.
+@param value A double valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
+*/
+Complex_base<scalar> operator*( const long double &value) {
+
+    return Complex_base<scalar>(this->real()*value, this->imag()*value);
 
 };
 
 
 /**
 @brief Override operator -* of the STL complex class.
-@param value A Complex_Base valued input.
-@return Returns with the calculated value represented by an instance of the Complex16 class.
+@param value A std::complex valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
 */
-Complex16 operator-( const Complex_Base &value) {
+Complex_base<scalar> operator-( const std::complex<scalar> &value) {
 
-    return Complex16(this->real() - value.real(), this->imag() - value.imag());
+    return Complex_base<scalar>(this->real() - value.real(), this->imag() - value.imag());
 
 };
 
 
 /**
 @brief Override operator = of the STL complex class.
-@param value A Complex_Base valued input.
+@param value A std::complex valued input.
 */
-void operator=( const Complex_Base &value) {
+void operator=( const std::complex<scalar> &value) {
     this->real(value.real());
     this->imag(value.imag());
     return;
@@ -173,9 +231,9 @@ void operator=( const Complex_Base &value) {
 
 /**
 @brief Override operator + of the STL complex class.
-@param value A Complex16 valued input.
+@param value A Complex_base<scalar> valued input.
 */
-void operator=( const Complex16 &value) {
+void operator=( const Complex_base<scalar> &value) {
     this->real(value.real());
     this->imag(value.imag());
     return;
@@ -196,10 +254,26 @@ void operator=( const double &value) {
 };
 
 
-inline Complex16 mult_a_bconj( Complex16 &a, Complex16 &b) {
-    return Complex16(a.real()*b.real() + a.imag()*b.imag(), a.imag()*b.real() - a.real()*b.imag() );
+
+
+/**
+@brief Calculates the product of two complex numbers, where one of them is conjugated.
+Thus an extra operation of conjugation can be saved in the calculations.
+@param a A complex number
+@param b A complex number to be conjugated when calculating the product
+@return Returns with the calculated product
+*/
+template<class complex>
+inline complex mult_a_bconj( complex &a, complex &b) {
+    return complex(a.real()*b.real() + a.imag()*b.imag(), a.imag()*b.real() - a.real()*b.imag() );
 }
 
+
+/// aliasing the representation 16 byte Complex numbers
+using Complex16 = Complex_base<double>;
+
+/// aliasing the representation 32 byte Complex numbers
+using Complex32 = Complex_base<long double>;
 
 }  //PIC
 

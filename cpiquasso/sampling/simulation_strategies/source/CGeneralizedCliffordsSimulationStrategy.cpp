@@ -1,6 +1,7 @@
 #include <iostream>
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
+#include "common_functionalities.h"
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
@@ -12,29 +13,6 @@ namespace pic {
             0.874288, 0.656594, 0.287817, 0.484918, 0.854716, 0.31408, 0.516911, 0.374158, 0.0124914, 0.878496, 0.322593, 0.699271, 0.0583747, 0.56629, 0.195314, 0.00059639, 0.443711, 0.652659, 0.350379, 0.839752, 0.710161, 0.28553};
     int rand_num_idx = 0;
 */
-
-/**
-@brief Function to calculate factorial of a number.
-@param n The input number
-@return Returns with the factorial of the number
-*/
-static double factorial(int64_t n) {
-
-
-
-    if ( n == 0 ) return 1;
-    if ( n == 1 ) return 1;
-
-    int64_t ret=1;
-
-    for (int64_t idx=2; idx<=n; idx++) {
-        ret = ret*idx;
-    }
-
-    return (double) ret;
-
-
-}
 
 
 
@@ -63,10 +41,8 @@ sum( PicState_int64 &vec) {
 @return Returns with the instance of the class.
 */
 CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy() {
-
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
+   // seed the random generator
+   srand ( time ( NULL));
 
 }
 
@@ -80,9 +56,9 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 
     Update_interferometer_matrix( interferometer_matrix_in );
 
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
+    // seed the random generator
+    srand ( time ( NULL));
+
 }
 
 
@@ -355,11 +331,12 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
 void
 CGeneralizedCliffordsSimulationStrategy::sample_from_latest_pmf( PicState_int64& sample ) {
 
-    // uniform distribution of reals between 0 and 1
-    std::uniform_real_distribution<double> distribution(0.0,1.0);
+
+
+
 
     // create a random double
-    double rand_num = distribution(generator);
+    double rand_num = (double)rand()/RAND_MAX;
    //double rand_num = rand_nums[rand_num_idx];//distribution(generator);
     //rand_num_idx = rand_num_idx + 1;
 
@@ -463,7 +440,7 @@ double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 
     CChinHuhPermanentCalculator permanent_calculator;
     Complex16 permanent = permanent_calculator.calculate( interferometer_mtx, input_state, output_state);
 
-    double probability = norm(permanent); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
+    double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag(); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
 
     for (size_t idx=0; idx<input_state.size(); idx++) {
         probability = probability/factorial( input_state[idx] );

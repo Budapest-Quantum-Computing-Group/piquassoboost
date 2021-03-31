@@ -8,6 +8,10 @@
 #include <tbb/tbb.h>
 #include <chrono>
 #include "dot.h"
+
+#include<stdio.h>
+#include<stdlib.h>
+
 //#include "lapacke.h"
 
 extern "C" {
@@ -82,10 +86,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
     max_photons = 0;
 
 
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
-
 }
 
 
@@ -109,9 +109,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     dim_over_2 = dim/2;
 
 
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
 }
 
 
@@ -133,9 +130,8 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     dim = covariance_matrix.rows;
     dim_over_2 = dim/2;
 
-    // seeding the random number generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed);
+    // seed the random generator
+    srand ( time ( NULL));
 
 
 }
@@ -190,6 +186,9 @@ GaussianSimulationStrategy::setMaxPhotons( const size_t& max_photons_in ) {
 */
 std::vector<PicState_int64>
 GaussianSimulationStrategy::simulate( int samples_number ) {
+
+    // seed the random generator
+    srand ( time ( NULL));
 
 
     // preallocate the memory for the output states
@@ -289,8 +288,21 @@ GaussianSimulationStrategy::getSample() {
         }
         probabilities_renormalized[probabilities.size()-1] = 1.0-prob_sum;
 
+/*
+if ( prob_sum > 1 ) {
+probabilities_renormalized.print_matrix();
 
-//probabilities_renormalized.print_matrix();
+FILE *fp = fopen("bad_matrix", "wb");
+fwrite( &A.rows, sizeof(size_t), 1, fp);
+fwrite( &A.cols, sizeof(size_t), 1, fp);
+fwrite( A.get_data(), sizeof(Complex16), A.size(), fp);
+fwrite( &output_sample.cols, sizeof(size_t), 1, fp);
+fwrite( output_sample.get_data(), sizeof(int64_t), output_sample.size(), fp);
+fclose(fp);
+exit(-1);
+
+}
+*/
         // sample from porbabilities
         size_t chosen_index = sample_from_probabilities( probabilities_renormalized );
         if (chosen_index == cutoff) {
@@ -332,7 +344,7 @@ matrix
 GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state ) {
 
 
-    if ( state.get_representation() != fock_space ) {
+    if ( state.get_representation() != complex_amplitudes ) {
         state.ConvertToComplexAmplitudes();
     }
 
@@ -397,7 +409,7 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state, double& Qdet ) 
 
 
 
-    if ( state.get_representation() != fock_space ) {
+    if ( state.get_representation() != complex_amplitudes ) {
         state.ConvertToComplexAmplitudes();
     }
 
@@ -470,6 +482,36 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
     //calculate A = X (1-Qinv)    X=(0,1;1,0)
 
+/*
+    // calculate -XQinv
+    // multiply by -1 the elements of Qinv and store the result in the corresponding rows of A
+    matrix A(Qinv.rows, Qinv.cols);
+    double* Qinv_data_d = (double*)Qinv.get_data();
+    double* A_data_d    = (double*)A.get_data();
+    size_t number_of_modes = Qinv.rows/2;
+    for (size_t row_idx = 0; row_idx<number_of_modes ; row_idx++) {
+
+        size_t row_offset1 = row_idx*Qinv.stride*2;
+        size_t row_offset2 = (row_idx+number_of_modes)*Qinv.stride*2;
+
+         // rows 1:N from (-Qinv) to rows N+1:2N in A --- effect of X
+        for (size_t col_idx = 0; col_idx<2*Qinv.cols; col_idx++) {
+
+            A_data_d[row_offset2 + col_idx] = -Qinv_data_d[row_offset1 + col_idx];
+
+        }
+
+        // rows N+1:2N from (-Qinv) to rows 1:N in A --- effect of X
+        for (size_t col_idx = 0; col_idx<2*Qinv.cols; col_idx++) {
+
+            A_data_d[row_offset1 + col_idx] = -Qinv_data_d[row_offset2 + col_idx];
+
+        }
+
+
+
+    }
+*/
     // calculate -XQinv
     // multiply by -1 the elements of Qinv and store the result in the corresponding rows of A
     matrix A(Qinv.rows, Qinv.cols);
@@ -482,7 +524,7 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
         size_t row_offset1 = row_idx*Qinv.stride;
         size_t row_offset2 = (row_idx+number_of_modes)*Qinv.stride;
 
-         // rows 1:N form (1-Qinv) to rows N+1:2N in A --- effect of X
+         // rows 1:N form (-Qinv) to rows N+1:2N in A --- effect of X
         for (size_t col_idx = 0; col_idx<Qinv.cols; col_idx=col_idx+2) {
 
             __m256d Qinv_vec = _mm256_loadu_pd((double*)(Qinv_data_d + row_offset1 + col_idx));
@@ -491,7 +533,7 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
         }
 
-        // rows N+1:2N form (1-Qinv) to rows 1:N in A --- effect of X
+        // rows N+1:2N from (-Qinv) to rows 1:N in A --- effect of X
         for (size_t col_idx = 0; col_idx<Qinv.cols; col_idx=col_idx+2) {
 
             __m256d Qinv_vec = _mm256_loadu_pd((double*)(Qinv_data_d + row_offset2 + col_idx));
@@ -504,14 +546,17 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
     }
 
+
     // calculate X-XQinv
-    // add X to the matrix eleemnts of -XQinv
+    // add X to the matrix elements of -XQinv
     for (size_t row_idx = 0; row_idx<number_of_modes; row_idx++) {
 
         A[row_idx*A.stride+row_idx+number_of_modes].real(A[row_idx*A.stride+row_idx+number_of_modes].real() + 1);
         A[(row_idx+number_of_modes)*A.stride+row_idx].real(A[(row_idx+number_of_modes)*A.stride+row_idx].real() + 1);
 
     }
+
+
 
 
     return A;
@@ -594,7 +639,7 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
         // calculate gamma according to Eq (9) of arXiv 2010.15595v3 and set them into the diagonal of A_S
         diag_correction_of_A_S( A_S, Qinv, m, current_output );
 
-        if (A_S.rows <= 6) {
+        if (A_S.rows <= 2) {
             BruteForceLoopHafnian hafnian_calculator = BruteForceLoopHafnian(A_S);
             hafnian = hafnian_calculator.calculate();
         }
@@ -671,6 +716,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
     size_t dim_A = current_output.size();
 
     matrix A_S(2*dim_A_S, 2*dim_A_S);
+    memset(A_S.get_data(), 0, A_S.size()*sizeof(Complex16));
+
     size_t row_idx = 0;
     for (size_t idx=0; idx<current_output.size(); idx++) {
         for (size_t row_repeat=0; row_repeat<current_output[idx]; row_repeat++) {
@@ -681,7 +728,9 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
-                    A_S[row_offset + col_idx] = A[row_offset_A + jdx];
+                    if ( (row_idx == col_idx) || (idx != jdx) ) {
+                        A_S[row_offset + col_idx] = A[row_offset_A + jdx];
+                    }
                     col_idx++;
                 }
             }
@@ -711,7 +760,9 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
-                    A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
+                    if ( (row_idx == col_idx) || (idx != jdx) ) {
+                        A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
+                    }
                     col_idx++;
                 }
 
@@ -737,12 +788,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
 size_t
 GaussianSimulationStrategy::sample_from_probabilities( matrix_base<double>& probabilities ) {
 
-    // uniform distribution of reals between 0 and 1
-    std::uniform_real_distribution<double> distribution(0.0,1.0);
-
     // create a random double
-    double rand_num = distribution(generator);
-
+    double rand_num = (double)rand()/RAND_MAX;
 
     // determine the random index according to the distribution described by probabilities
     size_t random_index=0;

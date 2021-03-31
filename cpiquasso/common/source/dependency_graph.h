@@ -4,7 +4,6 @@
 #include "tbb/flow_graph.h"
 
 using Node = tbb::flow::continue_node<tbb::flow::continue_msg>;
-using NodePtr = std::shared_ptr<Node>;
 
 namespace pic {
 

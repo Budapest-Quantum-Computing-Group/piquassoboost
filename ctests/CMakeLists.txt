@@ -4,6 +4,7 @@
 # add tests to the build
 add_test(hafnian_complex_matrix hafnian_complex_matrix ...)
 add_test(hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix ...)
+add_test(loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix ...)
 add_test(brute_force_hafnian_complex_matrix brute_force_hafnian_complex_matrix ...)
 add_test(brute_force_loop_hafnian_complex_matrix brute_force_loop_hafnian_complex_matrix ...)
 add_test(dot_stride dot_stride ...)
@@ -12,11 +13,9 @@ add_test(extract_corner extract_corner ...)
 add_test(insert_transformed_cols insert_transformed_cols ...)
 add_test(insert_transformed_rows insert_transformed_rows ...)
 
-
-# Add executable called "decomposition_test" that is built from the source files
-# "decomposition_test.cpp". The extensions are automatically found.
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
 add_executable (hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix.cpp)
+add_executable (loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix.cpp)
 add_executable (brute_force_hafnian_complex_matrix brute_force_hafnian_complex_matrix.cpp)
 add_executable (brute_force_loop_hafnian_complex_matrix brute_force_loop_hafnian_complex_matrix.cpp)
 add_executable (dot_stride dot_stride.cpp)
@@ -32,6 +31,12 @@ target_include_directories(hafnian_complex_matrix PRIVATE
                             ${EXTRA_INCLUDES})
 
 target_include_directories(hafnian_recursive_complex_matrix PRIVATE
+                            ../cpiquasso/common/source
+                            ../cpiquasso/sampling/source
+                            ../cpiquasso/sampling/simulation_strategies/source
+                            ${EXTRA_INCLUDES})
+
+target_include_directories(loop_hafnian_recursive_complex_matrix PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
                             ${EXTRA_INCLUDES})
@@ -82,6 +87,11 @@ target_link_libraries (hafnian_complex_matrix
 
 
 target_link_libraries (hafnian_recursive_complex_matrix 
+                           cpiquasso
+                           ${TBB_LIBS}
+                           ${BLAS_LIBRARIES})
+
+target_link_libraries (loop_hafnian_recursive_complex_matrix 
                            cpiquasso
                            ${TBB_LIBS}
                            ${BLAS_LIBRARIES})

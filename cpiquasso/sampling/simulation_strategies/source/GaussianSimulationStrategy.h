@@ -39,8 +39,6 @@ protected:
     size_t dim;
     /// The number of the input modes stored by the covariance matrix
     size_t dim_over_2;
-    /// random number generator
-    std::default_random_engine generator;
 
 
 public:
@@ -150,7 +148,7 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 @param current_output The fock representation of the current output for which the probability is calculated
 @return Returns with the calculated probability
 */
-double calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output );
+virtual double calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output );
 
 
 /**

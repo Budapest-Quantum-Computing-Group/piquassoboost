@@ -6,6 +6,7 @@
 #include "PowerTraceHafnian_Wrapper.hpp"
 #include "PowerTraceHafnianRecursive_Wrapper.hpp"
 #include "PowerTraceLoopHafnian_Wrapper.hpp"
+#include "PowerTraceLoopHafnianRecursive_Wrapper.hpp"
 
 
 extern "C"
@@ -45,6 +46,9 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     if (PyType_Ready(&PowerTraceLoopHafnian_wrapper_Type) < 0)
         return NULL;
 
+    if (PyType_Ready(&PowerTraceLoopHafnianRecursive_wrapper_Type) < 0)
+        return NULL;
+
     m = PyModule_Create(&Boson_Sampling_Utilities_wrapper_Module);
     if (m == NULL)
         return NULL;
@@ -76,6 +80,13 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     Py_INCREF(&PowerTraceLoopHafnian_wrapper_Type);
     if (PyModule_AddObject(m, "PowerTraceLoopHafnian_wrapper", (PyObject *) &PowerTraceLoopHafnian_wrapper_Type) < 0) {
         Py_DECREF(&PowerTraceLoopHafnian_wrapper_Type);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    Py_INCREF(&PowerTraceLoopHafnianRecursive_wrapper_Type);
+    if (PyModule_AddObject(m, "PowerTraceLoopHafnianRecursive_wrapper", (PyObject *) &PowerTraceLoopHafnianRecursive_wrapper_Type) < 0) {
+        Py_DECREF(&PowerTraceLoopHafnianRecursive_wrapper_Type);
         Py_DECREF(m);
         return NULL;
     }

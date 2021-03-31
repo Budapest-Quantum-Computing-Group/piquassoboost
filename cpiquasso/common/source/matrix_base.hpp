@@ -212,7 +212,6 @@ matrix_base( size_t rows_in, size_t cols_in, size_t stride_in) {
 @brief Copy constructor of the class. The new instance shares the stored memory with the input matrix. (Needed for TBB calls)
 @param An instance of class matrix to be copied.
 */
-
 matrix_base(const matrix_base<scalar> &in) {
 
     data = in.data;

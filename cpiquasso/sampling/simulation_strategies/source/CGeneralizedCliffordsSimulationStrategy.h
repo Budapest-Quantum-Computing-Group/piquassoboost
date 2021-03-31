@@ -6,7 +6,8 @@
 #include "PicState.h"
 #include "PicStateHash.h"
 #include <unordered_map>
-#include <random>
+#include <stdlib.h>
+#include <time.h>
 
 
 namespace pic {
@@ -35,8 +36,6 @@ protected:
     std::vector<concurrent_PicStates> labeled_states;
     /// The vector of indices corresponding to values greater than 0 in the input state
     PicVector<int64_t> input_state_inidices;
-    /// random number generator
-    std::default_random_engine generator;
 
 
 public:

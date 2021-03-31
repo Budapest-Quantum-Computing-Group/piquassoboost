@@ -305,6 +305,28 @@ zgemm_Task_serial::zgemm_chunk() {
 
 
 /**
+@brief Constructor of the class. (In this case the row/col limits are extracted from matrices A,B,C).
+@param A_in The object representing matrix A.
+@param B_in The object representing matrix B.
+@param C_in The object representing matrix C.
+*/
+zgemm_Task::zgemm_Task( matrix &A_in, matrix &B_in, matrix &C_in) : zgemm_Task_serial(A_in, B_in, C_in) {
+
+}
+
+/**
+@brief Constructor of the class.
+@param A_in The object representing matrix A.
+@param B_in The object representing matrix B.
+@param C_in The object representing matrix C.
+@param rows_in Structure containing row limits for the partitioning of the matrix product calculations.
+@param cols_in Structure containing column limits for the partitioning of the matrix product calculations.
+*/
+zgemm_Task::zgemm_Task( matrix &A_in, matrix &B_in, matrix &C_in, row_indices& rows_in, col_indices& cols_in) : zgemm_Task_serial(A_in, B_in, C_in, rows_in, cols_in) {
+
+}
+
+/**
 @brief This function is called when a task is spawned. It divides the work into chunks following the strategy of divide-and-conquer until the problem size meets a predefined treshold.
 @return Returns with a pointer to a tbb::task instance or with a null pointer.
 */
@@ -329,10 +351,10 @@ zgemm_Task::execute(tbb::task_group& g) {
         calc_task->rows.Arows_start = rows_mid;
         calc_task->rows.Arows = rows_end-rows_mid;
         calc_task->rows.Crows_start = rows_mid;
-        calc_task->rows.Crows = rows_end-rows_mid;        
-        
+        calc_task->rows.Crows = rows_end-rows_mid;
+
         g.run([calc_task, &g](){
-            calc_task->execute(g); 
+            calc_task->execute(g);
             delete calc_task;
         });
 
@@ -366,10 +388,10 @@ zgemm_Task::execute(tbb::task_group& g) {
 
         calc_task->rows.Crows_start = cols_mid;
         calc_task->rows.Crows = cols_end-cols_mid;
-      
-        
+
+
         g.run([calc_task, &g](){
-            calc_task->execute(g); 
+            calc_task->execute(g);
             delete calc_task;
         });
 
@@ -403,10 +425,10 @@ zgemm_Task::execute(tbb::task_group& g) {
         calc_task->cols.Bcols = cols_end-cols_mid;
         calc_task->cols.Ccols_start = cols_mid;
         calc_task->cols.Ccols = cols_end-cols_mid;
-      
-        
+
+
         g.run([calc_task, &g](){
-            calc_task->execute(g); 
+            calc_task->execute(g);
             delete calc_task;
         });
 
@@ -438,10 +460,10 @@ zgemm_Task::execute(tbb::task_group& g) {
 
         calc_task->cols.Ccols_start = rows_mid;
         calc_task->cols.Ccols = rows_end-rows_mid;
-   
-        
+
+
         g.run([calc_task, &g](){
-            calc_task->execute(g); 
+            calc_task->execute(g);
             delete calc_task;
         });
 

@@ -58,12 +58,10 @@ virtual Complex16 calculate();
 @brief Class to calculate the hafnian of a complex matrix by a recursive power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
 purpose hafnian calculator. This algorithm accounts for the repeated occupancy in the covariance matrix.
 */
-class PowerTraceHafnianRecursive_Tasks {
+class PowerTraceHafnianRecursive_Tasks : public PowerTraceHafnian {
 
 
 protected:
-    /// The symmetric matrix for which the hafnian is calculated (i.e. the covariance matrix of the Gaussian state.)
-    matrix mtx;
     /// An array describing the occupancy to be used to calculate the hafnian. The i-th mode is repeated occupancy[i] times.
     PicState_int64 occupancy;
     /// The maximal number of spawned tasks living at the same time
@@ -74,6 +72,12 @@ protected:
     tbb::spin_mutex* task_count_mutex;
 
 public:
+
+/**
+@brief Nullary constructor of the class.
+@return Returns with the instance of the class.
+*/
+PowerTraceHafnianRecursive_Tasks();
 
 /**
 @brief Constructor of the class.
@@ -93,7 +97,8 @@ virtual ~PowerTraceHafnianRecursive_Tasks();
 @brief Call to calculate the hafnian of a complex matrix
 @return Returns with the calculated hafnian
 */
-virtual Complex16 calculate();
+Complex16 calculate();
+
 
 
 protected:
@@ -106,7 +111,7 @@ protected:
 @param priv_addend Therad local storage for the partial hafnians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<Complex16>& priv_addend, tbb::task_group &tg );
+void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<Complex32>& priv_addend, tbb::task_group &tg );
 
 
 /**
@@ -115,7 +120,7 @@ void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicS
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-Complex16 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
+virtual Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
 
 
 /**
@@ -131,10 +136,18 @@ CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_o
 
 
 
+/**
+@brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
+@param mtx_in Input matrix defined by
+*/
+virtual void ScaleMatrix();
+
+
+
 }; //PowerTraceHafnianRecursive_Tasks
 
 
-#endif
+#endif // CPYTHON
 
 
 

@@ -84,3 +84,49 @@ set_target_properties( GaussianSimulationStrategy_wrapper PROPERTIES
 )
 
 install(TARGETS GaussianSimulationStrategy_wrapper LIBRARY DESTINATION cpiquasso/sampling/simulation_strategies)
+
+
+
+
+##########################################################
+
+
+
+add_library( GaussianSimulationStrategyFast_wrapper MODULE
+    ${EXT_DIR}/GaussianSimulationStrategyFast_wrapper.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/common/numpy_interface.cpp
+)
+
+
+target_link_libraries(GaussianSimulationStrategyFast_wrapper cpiquasso ${BLAS_LIBRARIES})
+
+python_extension_module(GaussianSimulationStrategyFast_wrapper)
+
+ADD_DEPENDENCIES (GaussianSimulationStrategyFast_wrapper cpiquasso)
+
+
+# adding compile options
+target_compile_options(GaussianSimulationStrategy_wrapper PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+
+target_include_directories(GaussianSimulationStrategyFast_wrapper PUBLIC
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/common/
+                            ${EXTRA_INCLUDES}
+                            ${PYTHON_INCLUDE_DIR}
+                            ${NUMPY_INC_DIR})
+
+
+set_target_properties( GaussianSimulationStrategyFast_wrapper PROPERTIES
+                        INSTALL_RPATH "$ORIGIN/../.."
+                        LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
+)
+
+install(TARGETS GaussianSimulationStrategyFast_wrapper LIBRARY DESTINATION cpiquasso/sampling/simulation_strategies)

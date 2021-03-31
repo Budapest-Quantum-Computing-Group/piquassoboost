@@ -1,18 +1,15 @@
+#ifndef USE_LAPACK
+#define USE_LAPACK 1
+#endif // USE_LAPACK
+
 #include <iostream>
 #include "PowerTraceHafnian.h"
-#include "PowerTraceHafnianUtilities.h"
+#include "PowerTraceHafnianUtilities.hpp"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
+#include "common_functionalities.h"
 #include <math.h>
 
-extern "C" {
-
-#define LAPACK_ROW_MAJOR               101
-
-/// Definition of the LAPACKE_zgehrd function from LAPACKE to calculate the upper triangle hessenberg transformation of a matrix
-int LAPACKE_zgehrd( int matrix_layout, int n, int ilo, int ihi, pic::Complex16* a, int lda, pic::Complex16* tau );
-
-}
 
 /*
 tbb::spin_mutex my_mutex;
@@ -22,20 +19,6 @@ double time_nevezo = 0.0;
 */
 
 namespace pic {
-
-
-
-/**
-@brief Calculates the n-th power of 2.
-@param n An natural number
-@return Returns with the n-th power of 2.
-*/
-static unsigned long long power_of_2(unsigned long long n) {
-  if (n == 0) return 1;
-  if (n == 1) return 2;
-
-  return 2 * power_of_2(n-1);
-}
 
 
 
@@ -50,12 +33,14 @@ PowerTraceHafnian::PowerTraceHafnian() {
 
 /**
 @brief Default constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
+@param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 @return Returns with the instance of the class.
 */
 PowerTraceHafnian::PowerTraceHafnian( matrix &mtx_in ) {
 
-    mtx = mtx_in;
+    Update_mtx( mtx_in);
+
+
 
     //TODO  in debug mode check whether the input matrix is symmetric
 
@@ -71,7 +56,6 @@ PowerTraceHafnian::~PowerTraceHafnian() {
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
-@param mtx The matrix
 @return Returns with the calculated hafnian
 */
 Complex16
@@ -115,17 +99,17 @@ PowerTraceHafnian::calculate() {
 
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
-    tbb::combinable<Complex16> summands{[](){return Complex16(0.0,0.0);}};
+    tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
 
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
 
-        Complex16 &summand = summands.local();
+        Complex32 &summand = summands.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
 /*
-    Complex16 summand(0.0,0.0);
+    Complex32 summand(0.0,0.0);
 
     for (unsigned long long permutation_idx = 0; permutation_idx < permutation_idx_max; permutation_idx++) {
 */
@@ -164,14 +148,14 @@ PowerTraceHafnian::calculate() {
 
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-        matrix traces(dim_over_2, 1);
+        matrix32 traces(dim_over_2, 1);
         if (number_of_ones != 0) {
-            traces = calc_power_traces(B, dim_over_2);
+            traces = calc_power_traces<matrix32, Complex32>(B, dim_over_2);
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
             // this occurs once during the calculations
-            memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex16));
+            memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
         }
 
 
@@ -181,19 +165,19 @@ PowerTraceHafnian::calculate() {
 
 
         // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-        matrix aux0(dim_over_2 + 1, 1);
-        matrix aux1(dim_over_2 + 1, 1);
-        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex16));
-        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex16));
+        matrix32 aux0(dim_over_2 + 1, 1);
+        matrix32 aux1(dim_over_2 + 1, 1);
+        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
+        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
         aux0[0] = 1.0;
         // pointers to the auxiliary data arrays
-        Complex16 *p_aux0=NULL, *p_aux1=NULL;
+        Complex32 *p_aux0=NULL, *p_aux1=NULL;
 
         for (size_t idx = 1; idx <= dim_over_2; idx++) {
 
 
-            Complex16 factor = traces[idx - 1] / (2.0 * idx);
-            Complex16 powfactor(1.0,0.0);
+            Complex32 factor = traces[idx - 1] / (2.0 * idx);
+            Complex32 powfactor(1.0,0.0);
 
 
 
@@ -206,7 +190,7 @@ PowerTraceHafnian::calculate() {
                 p_aux1 = aux0.get_data();
             }
 
-            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex16) );
+            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex32) );
 
             for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
                 powfactor = powfactor * factor / ((double)jdx);
@@ -238,8 +222,8 @@ PowerTraceHafnian::calculate() {
     });
 
     // the resulting Hafnian of matrix mat
-    Complex16 res(0,0);
-    summands.combine_each([&res](Complex16 a) {
+    Complex32 res(0,0);
+    summands.combine_each([&res](Complex32 a) {
         res = res + a;
     });
 
@@ -254,20 +238,62 @@ PowerTraceHafnian::calculate() {
     openblas_set_num_threads(NumThreads);
 #endif
 
+    // scale the result by the appropriate factor according to Eq (2.11) of in arXiv 1805.12498
+    res = res * pow(scale_factor, dim_over_2);
 
-    return res;
+
+    return Complex16(res.real(), res.imag() );
 }
 
 
 
 /**
 @brief Call to update the memory address of the matrix mtx
-@param mtx_in The new covariance matrix
+@param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 */
 void
 PowerTraceHafnian::Update_mtx( matrix &mtx_in) {
 
-    mtx = mtx_in;
+    mtx_orig = mtx_in;
+
+    // scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
+    ScaleMatrix();
+
+
+}
+
+
+/**
+@brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
+@param mtx_in Input matrix defined by
+*/
+void
+PowerTraceHafnian::ScaleMatrix() {
+
+    // scale the matrix to have the mean magnitudes matrix elements equal to one.
+    if ( mtx_orig.rows <= 10) {
+        mtx = mtx_orig;
+        scale_factor = 1.0;
+    }
+    else {
+
+        // determine the scale factor
+        scale_factor = 0.0;
+        for (size_t idx; idx<mtx_orig.size(); idx++) {
+            scale_factor = scale_factor + std::sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
+        }
+        scale_factor = scale_factor/mtx_orig.size()/std::sqrt(2);
+
+        mtx = mtx_orig.copy();
+
+        double inverse_scale_factor = 1/scale_factor;
+
+        // scaling the matrix elements
+        for (size_t idx=0; idx<mtx_orig.size(); idx++) {
+            mtx[idx] = mtx[idx]*inverse_scale_factor;
+        }
+
+    }
 
 }
 

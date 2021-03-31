@@ -1,4 +1,4 @@
-#include "matrix.h"
+#include "matrix32.h"
 #include <cstring>
 #include <iostream>
 
@@ -7,11 +7,12 @@ namespace pic {
 
 
 
+
 /**
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-matrix::matrix() : matrix_base<Complex16>() {
+matrix32::matrix32() : matrix_base<Complex32>() {
 
 }
 
@@ -23,7 +24,7 @@ matrix::matrix() : matrix_base<Complex16>() {
 @param cols_in The number of columns in the stored matrix
 @return Returns with the instance of the class.
 */
-matrix::matrix( Complex16* data_in, size_t rows_in, size_t cols_in) : matrix_base<Complex16>(data_in, rows_in, cols_in) {
+matrix32::matrix32( Complex32* data_in, size_t rows_in, size_t cols_in) : matrix_base<Complex32>(data_in, rows_in, cols_in) {
 
 }
 
@@ -36,7 +37,7 @@ matrix::matrix( Complex16* data_in, size_t rows_in, size_t cols_in) : matrix_bas
 @param stride_in The column stride of the matrix array (The array elements in one row are a_0, a_1, ... a_{cols-1}, 0, 0, 0, 0. The number of zeros is stride-cols)
 @return Returns with the instance of the class.
 */
-matrix::matrix( Complex16* data_in, size_t rows_in, size_t cols_in, size_t stride_in) : matrix_base<Complex16>(data_in, rows_in, cols_in, stride_in) {
+matrix32::matrix32( Complex32* data_in, size_t rows_in, size_t cols_in, size_t stride_in) : matrix_base<Complex32>(data_in, rows_in, cols_in, stride_in) {
 
 }
 
@@ -46,7 +47,7 @@ matrix::matrix( Complex16* data_in, size_t rows_in, size_t cols_in, size_t strid
 @param cols_in The number of columns in the stored matrix
 @return Returns with the instance of the class.
 */
-matrix::matrix( size_t rows_in, size_t cols_in) : matrix_base<Complex16>(rows_in, cols_in) {
+matrix32::matrix32( size_t rows_in, size_t cols_in) : matrix_base<Complex32>(rows_in, cols_in) {
 
 }
 
@@ -58,7 +59,7 @@ matrix::matrix( size_t rows_in, size_t cols_in) : matrix_base<Complex16>(rows_in
 @param stride_in The column stride of the matrix array (The array elements in one row are a_0, a_1, ... a_{cols-1}, 0, 0, 0, 0. The number of zeros is stride-cols)
 @return Returns with the instance of the class.
 */
-matrix::matrix( size_t rows_in, size_t cols_in, size_t stride_in) : matrix_base<Complex16>(rows_in, cols_in, stride_in) {
+matrix32::matrix32( size_t rows_in, size_t cols_in, size_t stride_in) : matrix_base<Complex32>(rows_in, cols_in, stride_in) {
 
 }
 
@@ -66,9 +67,10 @@ matrix::matrix( size_t rows_in, size_t cols_in, size_t stride_in) : matrix_base<
 @brief Copy constructor of the class. The new instance shares the stored memory with the input matrix. (Needed for TBB calls)
 @param An instance of class matrix to be copied.
 */
-matrix::matrix(const matrix &in) : matrix_base<Complex16>(in) {
+matrix32::matrix32(const matrix32 &in) : matrix_base<Complex32>(in) {
 
 }
+
 
 
 
@@ -76,10 +78,10 @@ matrix::matrix(const matrix &in) : matrix_base<Complex16>(in) {
 @brief Call to create a copy of the matrix instance.
 @return Returns with the instance of the class.
 */
-matrix
-matrix::copy() {
+matrix32
+matrix32::copy() {
 
-  matrix ret = matrix(rows, cols, stride);
+  matrix32 ret = matrix32(rows, cols, stride);
 
   // logical variable indicating whether the matrix needs to be conjugated in CBLAS operations
   ret.conjugated = conjugated;
@@ -88,7 +90,7 @@ matrix::copy() {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   ret.owner = true;
 
-  memcpy( ret.data, data, rows*cols*sizeof(Complex16));
+  memcpy( ret.data, data, rows*cols*sizeof(Complex32));
 
   return ret;
 
@@ -101,7 +103,7 @@ matrix::copy() {
 @return Returns with true if the array has at least one NaN entry.
 */
 bool
-matrix::isnan() {
+matrix32::isnan() {
 
     for (size_t idx=0; idx < rows*cols; idx++) {
         if ( std::isnan(data[idx].real()) || std::isnan(data[idx].imag()) ) {
