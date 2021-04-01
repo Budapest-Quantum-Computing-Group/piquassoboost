@@ -98,9 +98,10 @@ PowerTraceHafnian::calculate() {
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
 
-    // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
+    // thread local storages for the partial hafnians
     tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
 
+    // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
 
@@ -279,7 +280,7 @@ PowerTraceHafnian::ScaleMatrix() {
 
         // determine the scale factor
         scale_factor = 0.0;
-        for (size_t idx; idx<mtx_orig.size(); idx++) {
+        for (size_t idx=0; idx<mtx_orig.size(); idx++) {
             scale_factor = scale_factor + std::sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
         }
         scale_factor = scale_factor/mtx_orig.size()/std::sqrt(2);
