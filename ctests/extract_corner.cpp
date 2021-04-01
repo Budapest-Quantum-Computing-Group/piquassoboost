@@ -11,10 +11,33 @@
 
 #include "tasks_apply_to_C_and_G/extract_corner.h"
 
+int test_extract_corner(size_t dim, std::vector<size_t> modes_in);
+
 /**
 @brief Unit test case for the column extractation method
 */
 int main() {
+    // Test with dimension 8 and qumodes {1, 3, 6}
+    std::vector<size_t> modes_in_1 = {1, 3, 6};
+    test_extract_corner(8, modes_in_1);
+ 
+    // Test with dimension 12 and qumodes {0, 1, 3, 4, 6, 7, 8
+    std::vector<size_t> modes_in_2 = {0, 1, 3, 4, 6, 7, 8};
+    test_extract_corner(12, modes_in_2);
+ 
+    // Test with dimension 4 and qumodes {1, 2, 3}
+    std::vector<size_t> modes_in_3 = {1, 2, 3};
+    test_extract_corner(4, modes_in_3);
+ 
+    // Test with dimension 3 and qumodes {1}
+    std::vector<size_t> modes_in_4 = {1};
+    test_extract_corner(3, modes_in_4);
+    
+    return 0;
+};
+
+
+int test_extract_corner(const size_t dim, std::vector<size_t> modes_in){
     printf("\n\n****************************************\n");
     printf("Test of corner extractation method\n");
     printf("****************************************\n\n\n");
@@ -25,13 +48,13 @@ int main() {
     std::normal_distribution<double> distribution(0.0, 1.0);
 
     // allocate memory for the modes indices
-    std::vector<size_t> modes_in = {1, 3, 6};
+    //std::vector<size_t> modes_in = {1, 3, 6};
     size_t dimY_cut = modes_in.size();
     size_t dimX_expected = modes_in.size();
 
     // allocate matrix array for input
     // note that here the matrix is already cut to the expected number of rows
-    constexpr size_t dim = 8;
+    //constexpr size_t dim = 8;
     pic::matrix mtx_in = pic::matrix(dimY_cut, dim);
     
     // fill up matrix with random elements
@@ -104,5 +127,4 @@ int main() {
     
     std::cout << "Test passed. " << std::endl;
     return 0;
-};
-
+}
