@@ -217,7 +217,6 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix32.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/SymmetrizationChecker.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/common_functionalities.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/CGaussianState.cpp
@@ -269,7 +268,6 @@ set_target_properties(cpiquasso PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix32.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/SymmetrizationChecker.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/common_functionalities.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/CGaussianState.h
