@@ -12,6 +12,7 @@ add_test(extract_rows extract_rows ...)
 add_test(extract_corner extract_corner ...)
 add_test(insert_transformed_cols insert_transformed_cols ...)
 add_test(insert_transformed_rows insert_transformed_rows ...)
+add_test(symmetrization_checker symmetrization_checker ...)
 
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
 add_executable (hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix.cpp)
@@ -23,6 +24,7 @@ add_executable (extract_rows extract_rows.cpp)
 add_executable (extract_corner extract_corner.cpp)
 add_executable (insert_transformed_cols insert_transformed_cols.cpp)
 add_executable (insert_transformed_rows insert_transformed_rows.cpp)
+add_executable (symmetrization_checker symmetrization_checker.cpp)
 
 
 target_include_directories(hafnian_complex_matrix PRIVATE
@@ -75,6 +77,10 @@ target_include_directories(insert_transformed_rows PRIVATE
                             ../cpiquasso/gaussian/source
                             ${EXTRA_INCLUDES})
 
+target_include_directories(symmetrization_checker PRIVATE
+                            ../cpiquasso/common/source
+                            ${EXTRA_INCLUDES})
+                            
 
 
 # Link the executable to the qgd library. Since the qgd library has
@@ -132,5 +138,12 @@ target_link_libraries (insert_transformed_rows
                            cpiquasso
                            ${TBB_LIBS}
                            ${BLAS_LIBRARIES})
+                           
+                           
+target_link_libraries (symmetrization_checker
+                           cpiquasso
+                           ${TBB_LIBS}
+                           ${BLAS_LIBRARIES})
+
 
 
