@@ -255,11 +255,17 @@ GaussianSimulationStrategy::getSample() {
         matrix m = reduced_state.get_m();
 
 
+        // create a random double that is used to sample from the probabilities
+        double rand_num = (double)rand()/RAND_MAX;
 
+        // the sum of the calculated probabilities
+        double prob_sum = 0.0;
+
+        // the chosen index of the probabilities
+        size_t chosen_index = 0;
 
         // get the probabilities for different photon counts on the output mode mode_idx
-        tbb::parallel_for( (size_t)0, cutoff, (size_t)1, [&](size_t photon_num) {
-        //for (size_t photon_num=0; photon_num<cutoff; photon_num++) {
+        for (size_t photon_num=0; photon_num<cutoff; photon_num++) {
 
             // create array for the new output state
             PicState_int64 current_output(output_sample.size()+1, 0);
@@ -273,20 +279,21 @@ GaussianSimulationStrategy::getSample() {
             double prob = calc_probability(Qinv, Qdet, A, m, current_output);
 
             // sometimes the probability is negative which is coming from a negative hafnian.
-            probabilities[photon_num] = prob > 0 ? prob : 0;
+            prob = prob > 0 ? prob : 0;
 
-        //}
-        });
+            prob_sum = prob_sum + prob/current_state_probability;
+            if ( prob_sum >= rand_num ) {
+                chosen_index = photon_num;
+                current_state_probability = prob;
+                break;
+            }
 
-        matrix_base<double> probabilities_renormalized(1,probabilities.size());
-
-        // renormalize the calculated probabilities with the probability of the previously chosen state
-        double prob_sum = 0.0;
-        for (size_t idx=0; idx<probabilities_renormalized.size()-1; idx++) {
-            probabilities_renormalized[idx] = probabilities[idx]/current_state_probability;
-            prob_sum = prob_sum + probabilities_renormalized[idx];
         }
-        probabilities_renormalized[probabilities.size()-1] = 1.0-prob_sum;
+
+        if (prob_sum < rand_num ) {
+            // when the chosen index corresponds to the cutoff the number of photons cannot be determined, so we return from the sampling
+            return PicState_int64(0);
+        }
 
 /*
 if ( prob_sum > 1 ) {
@@ -303,12 +310,6 @@ exit(-1);
 
 }
 */
-        // sample from porbabilities
-        size_t chosen_index = sample_from_probabilities( probabilities_renormalized );
-        if (chosen_index == cutoff) {
-            // when the chosen index corresponds to the cutoff the number of photons cannot be determined, so we return from the sampling
-            return PicState_int64(0);
-        }
 
         // The sampled current state:
         PicState_int64 current_output(output_sample.size()+1, 0);
@@ -319,10 +320,6 @@ exit(-1);
         if (current_output.number_of_photons > max_photons) {
             return PicState_int64(0);
         }
-
-
-        // update the probability of the current sampled state
-        current_state_probability = probabilities[chosen_index];
 
         output_sample = current_output;
 
