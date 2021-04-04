@@ -215,7 +215,9 @@ void DetermineModePairs(std::vector<SingleMode>& single_modes, std::vector<ModeP
                 single_modes.pop_back();
             }
 
-            single_modes.push_back( SingleMode(modes_pair.mode1, remaining_degeneracy));
+            if (remaining_degeneracy>0) {
+                single_modes.push_back( SingleMode(modes_pair.mode1, remaining_degeneracy));
+            }
 
         }
 
@@ -337,6 +339,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
 
     // preallocate the output arrays
     mtx_out = matrix(dim, dim);
+    memset(mtx_out.get_data(), 0, mtx_out.size());
     repeated_column_pairs = PicState_int64(dim_over_2, 1);
 
 
@@ -528,6 +531,17 @@ void ConstructMatrixForRecursivePowerTrace(matrix &mtx, PicState_int64& modes, m
     std::vector<pic::SingleMode> single_modes;
     std::vector<pic::ModePair> mode_pairs;
     DetermineModePairs(single_modes, mode_pairs, sorted_modes);
+/*
+for(size_t idx=0; idx<single_modes.size(); idx++) {
+    std::cout << inverse_permutation[single_modes[idx].mode] << " " << single_modes[idx].degeneracy << std::endl;
+}
+std::cout << std::endl;
+
+for(size_t idx=0; idx<mode_pairs.size(); idx++) {
+    std::cout << inverse_permutation[mode_pairs[idx].mode1] << " " << inverse_permutation[mode_pairs[idx].mode2] << " " << mode_pairs[idx].degeneracy << std::endl;
+}
+std::cout << std::endl;
+*/
 
     // construct the final matrix with repeated column pairs and the repeating factors of the column pairs
     ConstructRepeatedMatrix(mtx, single_modes, mode_pairs, inverse_permutation, mtx_out, repeated_column_pairs );
