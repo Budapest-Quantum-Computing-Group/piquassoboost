@@ -141,9 +141,24 @@ PowerTraceHafnian::calculate() {
         // permutation_idx was 1
         // for details see the text below Eq.(3.20) of arXiv 1805.12498
         matrix B(number_of_ones, number_of_ones);
+        double scale_factor_B = 0.0;
         for (size_t idx = 0; idx < number_of_ones; idx++) {
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                B[idx*number_of_ones + jdx] = mtx[positions_of_ones[idx]*dim + ((positions_of_ones[jdx]) ^ 1)];
+                Complex16& element = mtx[positions_of_ones[idx]*dim + ((positions_of_ones[jdx]) ^ 1)];
+                B[idx*number_of_ones + jdx] = element;
+                scale_factor_B = scale_factor_B + element.real()*element.real() + element.imag()*element.imag();
+            }
+        }
+
+
+        // scale matrix B -- when matrix elements of B are scaled, larger part of the computations can be kept in double precision
+        if ( scale_factor_B == 0.0 ) {
+            scale_factor_B = 1.0;
+        }
+        else {
+            scale_factor_B = std::sqrt(scale_factor_B/2)/B.size();
+            for (size_t idx=0; idx<B.size(); idx++) {
+                B[idx] = B[idx]*scale_factor_B;
             }
         }
 
@@ -159,8 +174,6 @@ PowerTraceHafnian::calculate() {
             memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
         }
 
-
-
         // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
         bool fact = ((dim_over_2 - number_of_ones/2) % 2);
 
@@ -174,10 +187,15 @@ PowerTraceHafnian::calculate() {
         // pointers to the auxiliary data arrays
         Complex32 *p_aux0=NULL, *p_aux1=NULL;
 
+        double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
         for (size_t idx = 1; idx <= dim_over_2; idx++) {
 
 
-            Complex32 factor = traces[idx - 1] / (2.0 * idx);
+            Complex32 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx);
+
+            // refresh the scaling factor
+            inverse_scale_factor = inverse_scale_factor/scale_factor_B;
+
             Complex32 powfactor(1.0,0.0);
 
 
@@ -242,7 +260,6 @@ PowerTraceHafnian::calculate() {
     // scale the result by the appropriate factor according to Eq (2.11) of in arXiv 1805.12498
     res = res * pow(scale_factor, dim_over_2);
 
-
     return Complex16(res.real(), res.imag() );
 }
 
@@ -284,6 +301,7 @@ PowerTraceHafnian::ScaleMatrix() {
             scale_factor = scale_factor + std::sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
         }
         scale_factor = scale_factor/mtx_orig.size()/std::sqrt(2);
+        //scale_factor = scale_factor*mtx_orig.rows;
 
         mtx = mtx_orig.copy();
 

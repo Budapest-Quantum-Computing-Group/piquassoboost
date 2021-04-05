@@ -38,9 +38,10 @@ get_reflection_vector(matrix_type &mtx, size_t offset) {
   }
   sigma = sqrt(sigma);
 
-  if (reflect_vector[0] != complex_type(0.0,0.0)){
+  double abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
+  if (abs_val != 0.0){
     //double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
-    auto addend = reflect_vector[0]/std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() )*sigma;
+    auto addend = reflect_vector[0]/abs_val*sigma;
     reflect_vector[0].real( reflect_vector[0].real() + addend.real());
     reflect_vector[0].imag( reflect_vector[0].imag() + addend.imag());
   }
@@ -401,7 +402,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
     // The lapack function to calculate the Hessenberg transformation is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
     // quad precision
-    else if ( (AZ.rows < 30 && (sizeof(complex_type) > sizeof(Complex16))) || (sizeof(complex_type) == sizeof(Complex16)) ) {
+    else if ( (AZ.rows < 40 && (sizeof(complex_type) > sizeof(Complex16))) || (sizeof(complex_type) == sizeof(Complex16)) ) {
 
 
         // transform the matrix mtx into an upper Hessenberg format by calling lapack function

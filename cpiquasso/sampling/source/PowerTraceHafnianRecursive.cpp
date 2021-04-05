@@ -423,7 +423,8 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
 
 
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
-    matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes);
+    double scale_factor_B = 0.0;
+    matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes, scale_factor_B);
 
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
@@ -450,12 +451,15 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
     aux0[0] = 1.0;
     // pointers to the auxiliary data arrays
     Complex32 *p_aux0=NULL, *p_aux1=NULL;
-
+    double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
     for (size_t idx = 1; idx <= total_num_of_modes; idx++) {
 
 
-        Complex32 factor = traces[idx - 1] / (2.0 * idx);
+        Complex32 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx);
         Complex32 powfactor(1.0,0.0);
+
+        // refresh the scaling factor
+        inverse_scale_factor = inverse_scale_factor/scale_factor_B;
 
 
 
@@ -507,10 +511,11 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
 @param selected_modes Selected modes over which the iterations are run
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
+@param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 matrix
-PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes ) {
+PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
 
 
 //std::cout << "A" << std::endl;
@@ -562,10 +567,24 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
     // A^(Z), i.e. to the square matrix constructed from the input matrix
     // for details see the text below Eq.(3.20) of arXiv 1805.12498
     matrix AZ(num_of_modes*2, num_of_modes*2);
-
+    scale_factor_AZ = 0.0;
     for (size_t idx = 0; idx < 2*num_of_modes; idx++) {
         for (size_t jdx = 0; jdx < 2*num_of_modes; jdx++) {
-            AZ[idx*AZ.stride + jdx] = A[idx*A.stride + (jdx ^ 1)];
+            Complex16 &element = A[idx*A.stride + (jdx ^ 1)];
+            AZ[idx*AZ.stride + jdx] = element;
+            scale_factor_AZ = scale_factor_AZ + element.real()*element.real() + element.imag()*element.imag();
+        }
+    }
+
+
+    // scale matrix AZ -- when matrix elements of AZ are scaled, larger part of the computations can be kept in double precision
+    if ( scale_factor_AZ == 0.0 ) {
+        scale_factor_AZ = 1.0;
+    }
+    else {
+        scale_factor_AZ = std::sqrt(scale_factor_AZ/2)/AZ.size();
+        for (size_t idx=0; idx<AZ.size(); idx++) {
+            AZ[idx] = AZ[idx]*scale_factor_AZ;
         }
     }
 

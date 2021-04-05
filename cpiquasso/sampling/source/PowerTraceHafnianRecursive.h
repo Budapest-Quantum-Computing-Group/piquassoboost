@@ -128,10 +128,11 @@ virtual Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes
 @param selected_modes Selected modes over which the iterations are run
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
+@param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 matrix
-CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy );
+CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
 
 
 

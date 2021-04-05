@@ -135,7 +135,8 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
 
 
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
-    matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes);
+    double scale_factor_B = 0.0;
+    matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes, scale_factor_B);
 
     // diag_elements corresponds to the diagonal elements of the input  matrix used in the loop correction
     matrix&& diag_elements = CreateDiagElements(selected_modes, current_occupancy, num_of_modes);
@@ -177,12 +178,16 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
     // pointers to the auxiliary data arrays
     Complex32 *p_aux0=NULL, *p_aux1=NULL;
 
-
+    double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
+    double inverse_scale_factor_loop = 1; // the (1/scale_factor_B)^(idx-1) power of the local scaling factor of matrix B to scale the loop correction
     for (size_t idx = 1; idx <= total_num_of_modes; idx++) {
 
-        Complex32 factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
+        Complex32 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx) + loop_corrections[idx-1] * 0.5 * inverse_scale_factor_loop;
         Complex32 powfactor(1.0,0.0);
 
+        // refresh the scaling factors
+        inverse_scale_factor = inverse_scale_factor/scale_factor_B;
+        inverse_scale_factor_loop = inverse_scale_factor_loop/scale_factor_B;
 
         if (idx%2 == 1) {
             p_aux0 = aux0.get_data();
