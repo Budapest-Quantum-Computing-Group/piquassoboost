@@ -28,6 +28,10 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 @return Returns with the instance of the class.
 */
 PowerTraceLoopHafnianRecursive::PowerTraceLoopHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in ) {
+#ifdef DEBUG
+    assert(isSymmetric(mtx_in));
+#endif
+
 
     mtx = mtx_in;
     occupancy = occupancy_in;
