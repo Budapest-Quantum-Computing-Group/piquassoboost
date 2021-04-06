@@ -3,9 +3,9 @@
 #include "common_functionalities.h"
 #include <math.h>
 
-/*
-tbb::spin_mutex my_mutex;
 
+static tbb::spin_mutex my_mutex;
+/*
 double time_nominator = 0.0;
 double time_nevezo = 0.0;
 */
@@ -14,54 +14,115 @@ namespace pic {
 
 
 
-
 /**
 /@brief Determine the reflection vector for Householder transformation used in the upper Hessenberg transformation algorithm
-@param mtx The matrix instance on which the Hessenberg transformation should be applied
-@param offset Starting index (i.e. offset index) of rows/columns from which the householder transformation should be applied
+@param input The strided input vector constructed from the k-th column of the matrix on which the Hessenberg transformation should be applied
+@param norm_v_sqr The squared norm of the created reflection matrix that is returned by reference
 @return Returns with the calculated reflection vector
  */
 template<class matrix_type, class complex_type>
 matrix_type
-get_reflection_vector(matrix_type &mtx, size_t offset) {
-
-  size_t mtx_size = mtx.rows;
-
-  size_t sizeH = mtx_size - offset;
-
+get_reflection_vector(matrix_type &input, double &norm_v_sqr) {
 
   double sigma(0.0);
-  matrix_type reflect_vector(sizeH,1);
-  for (size_t idx = 0; idx < sizeH; idx++) {
-    reflect_vector[idx] = mtx[(idx + offset) * mtx_size + offset - 1];
-    sigma = sigma + reflect_vector[idx].real()*reflect_vector[idx].real() + reflect_vector[idx].imag()*reflect_vector[idx].imag(); //adding the squared magnitude
+  norm_v_sqr = 0.0;
+  matrix_type reflect_vector(input.rows,1);
+  for (size_t idx = 0; idx < reflect_vector.size(); idx++) {
+      complex_type &element = input[idx*input.stride];
+      reflect_vector[idx] =  element;//mtx[(idx + offset) * mtx_size + offset - 1];
+      norm_v_sqr = norm_v_sqr + element.real()*element.real() + element.imag()*element.imag(); //adding the squared magnitude
   }
-  sigma = sqrt(sigma);
+  sigma = sqrt(norm_v_sqr);
+
 
   double abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
+  norm_v_sqr = 2*(norm_v_sqr + abs_val*sigma);
   if (abs_val != 0.0){
-    //double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
-    auto addend = reflect_vector[0]/abs_val*sigma;
-    reflect_vector[0].real( reflect_vector[0].real() + addend.real());
-    reflect_vector[0].imag( reflect_vector[0].imag() + addend.imag());
+      //double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
+      auto addend = reflect_vector[0]/abs_val*sigma;
+      reflect_vector[0].real( reflect_vector[0].real() + addend.real());
+      reflect_vector[0].imag( reflect_vector[0].imag() + addend.imag());
   }
   else {
-    reflect_vector[0].real( reflect_vector[0].real() + sigma );
+      reflect_vector[0].real( reflect_vector[0].real() + sigma );
   }
 
+  if (norm_v_sqr == 0.0)
+      return reflect_vector;
+
+  // normalize the reflection matrix
+  double norm_v = std::sqrt(norm_v_sqr);
+  for (size_t idx=0; idx<reflect_vector.size(); idx++) {
+      reflect_vector[idx] = reflect_vector[idx]/norm_v;
+  }
+
+  norm_v_sqr = 1.0;
 
   return reflect_vector;
 }
+
+
 
 /**
 @brief Apply householder transformation on a matrix A' = (1 - 2*v o v/v^2) A for one specific reflection vector v
 @param A matrix on which the householder transformation is applied. (The output is returned via this matrix)
 @param v A matrix instance of the reflection vector
-@param offset Starting index (i.e. offset index) of rows/columns from which the householder transformation should be applied
 */
 template<class matrix_type, class complex_type>
 void
-apply_householder(matrix_type &A, matrix_type &v, size_t offset) {
+apply_householder_rows(matrix_type &A, matrix_type &v) {
+
+
+  size_t sizeH = v.size();
+
+  // calculate A^~ = (1-2vov)A
+
+  // allocate memory for the vector-matrix product v^+ A
+  matrix_type vH_times_A(1, A.cols, A.stride);
+  memset(vH_times_A.get_data(), 0, vH_times_A.size()*sizeof(complex_type) );
+
+  // calculate the vector-matrix product (v^+) * A
+  for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
+
+      size_t offset_A_data =  row_idx * A.stride;
+      complex_type* data_A = A.get_data() + offset_A_data;
+
+      for (size_t j = 0; j < A.cols; j++) {
+        vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+      }
+
+
+  }
+
+  // calculate the vector-vector product v * ((v^+) * A))
+  for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
+
+      size_t offset_data_A =  row_idx * A.stride;
+      complex_type* data_A = A.get_data() + offset_data_A;
+
+      complex_type factor = v[row_idx]*2.0;
+      for (size_t j = 0; j < A.cols; j++) {
+        data_A[j] = data_A[j] - factor * vH_times_A[j];
+      }
+  }
+
+
+  return;
+
+
+}
+
+
+
+
+/**
+@brief Apply householder transformation on a matrix A' = (1 - 2*v o v/v^2) A for one specific reflection vector v
+@param A matrix on which the householder transformation is applied. (The output is returned via this matrix)
+@param v A matrix instance of the reflection vector
+*/
+template<class matrix_type, class complex_type>
+void
+apply_householder_cols(matrix_type &A, matrix_type &v) {
 
 
   double norm_v_sqr = 0.0;
@@ -77,44 +138,11 @@ apply_householder(matrix_type &A, matrix_type &v, size_t offset) {
   size_t sizeH = v.size();
   size_t size_A = A.rows;
 
-  // calculate A^~ = (1-2vov)A
-
-  // allocate memory for the vector-matrix product v^+ A
-  matrix_type vH_times_A(size_A - offset + 1, 1);
-  memset(vH_times_A.get_data(), 0, vH_times_A.size()*sizeof(complex_type) );
-
-  // calculate the vector-matrix product (v^+) * A
-  for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
-
-    size_t offset_A_data =  (offset + row_idx) * size_A + offset - 1;
-    complex_type* data_A = A.get_data() + offset_A_data;
-
-    for (size_t j = 0; j < size_A - offset + 1; j++) {
-      vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
-    }
-
-
-  }
-
-
-
-
-  // calculate the vector-vector product v * ((v^+) * A))
-  for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
-
-    size_t offset_data_A =  (offset + row_idx) * size_A + offset - 1;
-    complex_type* data_A = A.get_data() + offset_data_A;
-
-    complex_type factor = (v[row_idx]/norm_v_sqr)*2.0;
-    for (size_t j = 0; j < size_A - offset + 1; j++) {
-      data_A[j] = data_A[j] - factor * vH_times_A[j];
-    }
-  }
 
 
   // calculate A^~(1-2vov)
   for (size_t idx = 0; idx < size_A; idx++) {
-    size_t offset_data_A = (idx)*size_A + offset;
+    size_t offset_data_A = idx*A.stride;
     complex_type* data_A = A.get_data() + offset_data_A;
 
     complex_type factor(0.0,0.0);
@@ -122,8 +150,8 @@ apply_householder(matrix_type &A, matrix_type &v, size_t offset) {
         factor = factor + data_A[v_idx] * v[v_idx];
     }
 
-    factor = (factor/norm_v_sqr)*2.0;
-    for (int jdx=sizeH-1; jdx>=0; jdx--) {
+    factor = factor*2.0;
+    for (int jdx=0; jdx<sizeH; jdx++) {
         data_A[jdx] = data_A[jdx] - mult_a_bconj(factor, v[jdx]);
     }
 
@@ -135,6 +163,10 @@ apply_householder(matrix_type &A, matrix_type &v, size_t offset) {
 
 }
 
+
+
+
+
 /**
 @brief Reduce a general matrix to upper Hessenberg form.
 @param matrix matrix to be reduced to upper Hessenberg form. The reduced matrix is returned via this input
@@ -145,9 +177,30 @@ transform_matrix_to_hessenberg(matrix_type &mtx) {
 
   // apply recursive Hauseholder transformation to eliminate the matrix elements column by column
   for (size_t idx = 1; idx < mtx.rows - 1; idx++) {
-    matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type>(mtx, idx);
-    apply_householder<matrix_type, complex_type>(mtx, reflect_vector, idx);
+
+    // construct strided matrix containing data to get the reflection matrix
+    matrix_type ref_vector_input(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, 1, mtx.stride);
+
+    // get reflection matrix and its norm
+    double norm_v_sqr(0.0);
+    matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type>(ref_vector_input, norm_v_sqr);
+
+    if (norm_v_sqr == 0.0) continue;
+
+    // construct strided matrix in which the elements under the diagonal in the first column are transformed to zero by Householder transformation
+    matrix_type mtx_strided(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, mtx.cols-idx+1, mtx.stride);
+
+    // apply Householder transformation from the left
+    apply_householder_rows<matrix_type, complex_type>(mtx_strided, reflect_vector);
+
+    // construct strided matrix on which the Householder transformation is applied from the right
+    mtx_strided = matrix_type(mtx.get_data() + idx, mtx.rows, mtx.cols-idx, mtx.stride);
+
+    // apply Householder transformation from the right
+    apply_householder_cols<matrix_type, complex_type>(mtx_strided, reflect_vector);
+
   }
+
 }
 
 
