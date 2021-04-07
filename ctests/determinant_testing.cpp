@@ -1,13 +1,21 @@
 #define BOOST_TEST_MODULE determinant_testing
 
-
 #include "PowerTraceHafnianUtilities.hpp"
 
-// #include "GaussianSimulationStrategy.h"
 #include "matrix32.h"
 #include "matrix.h"
 
 
+extern "C" {
+
+
+/// Definition of the LAPACKE_zgetri function from LAPACKE to calculate the LU decomposition of a matrix
+int LAPACKE_zgetrf( int matrix_layout, int n, int m, pic::Complex16* a, int lda, int* ipiv );
+
+/// Definition of the LAPACKE_zgetri function from LAPACKE to calculate the inverse of a matirx
+int LAPACKE_zgetri( int matrix_layout, int n, pic::Complex16* a, int lda, const int* ipiv );
+
+}
 
 
 namespace pic{
@@ -22,7 +30,7 @@ namespace pic{
  // VV
  // determinant = c_n -> c[(n-1) * n + n - 1] = c[(n-1)*(n+1)]
  
-double determinant_by_hessenberg_labudde(matrix &AZ, size_t pow_max){
+double determinant_by_hessenberg_labudde(matrix &AZ, size_t pow_max) {
 
     size_t n = AZ.rows;
 
@@ -143,17 +151,15 @@ double determinant_byLU_decomposition( matrix& mtx ){
     return Qdet;
 }
 
+
+
+
+} // pic namespace
+
+
+
 int main(){
     return 0;
 
 
 }
-
-
-
-void _start(){
-    exit(main());
-}
-
-
-} // pic namespace

@@ -1,3 +1,7 @@
+#ifndef PowerTraceHafnianUtilities_TEMPLATE_H
+#define PowerTraceHafnianUtilities_TEMPLATE_H
+
+
 #include "PowerTraceHafnianUtilities.h"
 #include <iostream>
 #include "common_functionalities.h"
@@ -662,3 +666,4 @@ calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elem
 
 } // PIC
 
+#endif

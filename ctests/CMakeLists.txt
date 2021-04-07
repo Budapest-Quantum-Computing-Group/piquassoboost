@@ -116,8 +116,7 @@ target_link_libraries (hafnian_complex_matrix
 target_link_libraries (determinant_testing 
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES}
-                           -nostartfiles)
+                           ${BLAS_LIBRARIES})
 
 
 target_link_libraries (hafnian_recursive_complex_matrix 
