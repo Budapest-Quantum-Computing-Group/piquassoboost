@@ -2,6 +2,8 @@
 #define PowerTraceHafnianUtilities_H
 
 #include "matrix.h"
+#include "matrix32.h"
+
 
 
 extern "C" {

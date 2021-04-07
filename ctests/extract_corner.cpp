@@ -13,6 +13,8 @@
 
 int test_extract_corner(size_t dim, std::vector<size_t> modes_in);
 
+
+
 /**
 @brief Unit test case for the column extractation method
 */
@@ -127,4 +129,9 @@ int test_extract_corner(const size_t dim, std::vector<size_t> modes_in){
     
     std::cout << "Test passed. " << std::endl;
     return 0;
+}
+
+
+void _start(){
+    exit(main());
 }

@@ -3,6 +3,7 @@
 
 # add tests to the build
 add_test(hafnian_complex_matrix hafnian_complex_matrix ...)
+add_test(determinant_testing determinant_testing ...)
 add_test(hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix ...)
 add_test(loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix ...)
 add_test(brute_force_hafnian_complex_matrix brute_force_hafnian_complex_matrix ...)
@@ -15,6 +16,7 @@ add_test(insert_transformed_rows insert_transformed_rows ...)
 add_test(common_functionalities common_functionalities ...)
 
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
+add_executable (determinant_testing determinant_testing.cpp)
 add_executable (hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix.cpp)
 add_executable (loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix.cpp)
 add_executable (brute_force_hafnian_complex_matrix brute_force_hafnian_complex_matrix.cpp)
@@ -31,6 +33,13 @@ target_include_directories(hafnian_complex_matrix PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
                             ${TBB_HEADER}
+                            ${EXTRA_INCLUDES})
+                            
+target_include_directories(determinant_testing PRIVATE
+                            ../cpiquasso/common/source
+                            ../cpiquasso/sampling/source
+                            ../cpiquasso/sampling/simulation_strategies/source
+                            ../cpiquasso/gaussian/source
                             ${EXTRA_INCLUDES})
 
 target_include_directories(hafnian_recursive_complex_matrix PRIVATE
@@ -102,6 +111,13 @@ target_link_libraries (hafnian_complex_matrix
                            ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
+
+
+target_link_libraries (determinant_testing 
+                           cpiquasso
+                           ${TBB_LIBS}
+                           ${BLAS_LIBRARIES}
+                           -nostartfiles)
 
 
 target_link_libraries (hafnian_recursive_complex_matrix 
