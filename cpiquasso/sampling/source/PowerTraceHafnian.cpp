@@ -37,9 +37,7 @@ PowerTraceHafnian::PowerTraceHafnian() {
 @return Returns with the instance of the class.
 */
 PowerTraceHafnian::PowerTraceHafnian( matrix &mtx_in ) {
-#ifdef DEBUG
     assert(isSymmetric(mtx_in));
-#endif
 
     Update_mtx( mtx_in);
 }
