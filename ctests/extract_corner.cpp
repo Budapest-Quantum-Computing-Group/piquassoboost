@@ -131,7 +131,3 @@ int test_extract_corner(const size_t dim, std::vector<size_t> modes_in){
     return 0;
 }
 
-
-void _start(){
-    exit(main());
-}
