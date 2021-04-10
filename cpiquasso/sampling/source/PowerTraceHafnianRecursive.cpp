@@ -171,7 +171,8 @@ PowerTraceHafnianRecursive_Tasks::calculate() {
     tbb::combinable<Complex32> priv_addend{[](){return Complex32(0,0);}};
 
     // for cycle over the combinations of occupancy
-    for (unsigned long long permutation_idx = 1; permutation_idx < permutation_idx_max; permutation_idx++) {
+    tbb::parallel_for((unsigned long long)1, permutation_idx_max, (unsigned long long)1, [&](unsigned long long permutation_idx) {
+    //for (unsigned long long permutation_idx = 1; permutation_idx < permutation_idx_max; permutation_idx++) {
 
 
             // select modes corresponding to the binary representation of permutation_idx
@@ -202,38 +203,17 @@ PowerTraceHafnianRecursive_Tasks::calculate() {
 
             if (skip_contribution) {
                 //if the maximal occupancy of one mode is zero, we skip this contribution
-                continue;
+                return;
             }
 
-            // prevent the exponential explosion of spawned tasks (and save the stack space)
-            // and spawn new task only if the current number of tasks is smaller than a cutoff
-            if (task_num < max_task_num) {
-
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                    task_num++;
-                    //std::cout << "task num root: " << task_num << std::endl;
-                }
-
-                tg.run( [this, selected_modes, current_occupancy, &priv_addend, &tg]() {
-
-                    IterateOverSelectedModes( selected_modes, current_occupancy, 0, priv_addend, tg );
-                    {
-                        tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                        task_num--;
-                    }
-                    return;
-
-                });
-
-            }
-            else {
-                // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
-                IterateOverSelectedModes( selected_modes, current_occupancy, 0, priv_addend, tg );
-            }
+            // start task over iterations on selected column-pairs
+            IterateOverSelectedModes( selected_modes, current_occupancy, 0, priv_addend, tg );
 
 
-    }
+
+    //}
+
+    });
 
     // wait until all spawned tasks are completed
     tg.wait();
