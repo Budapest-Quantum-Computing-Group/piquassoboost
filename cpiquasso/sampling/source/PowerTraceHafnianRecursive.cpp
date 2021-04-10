@@ -265,30 +265,32 @@ PowerTraceHafnianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char
         // and spawn new task only if the current number of tasks is smaller than a cutoff
         if (task_num < max_task_num) {
 
-            {
-                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                task_num++;
-                //std::cout << "task num: " << task_num << std::endl;
-            }
 
-
-            tg.run( [this, new_mode_to_iterate, selected_modes, current_occupancy, &priv_addend, &tg ]() {
-
-
-                if ( current_occupancy[new_mode_to_iterate] < occupancy[selected_modes[new_mode_to_iterate]]) {
-                    PicState_int64 current_occupancy_new = current_occupancy.copy();
-                    current_occupancy_new[new_mode_to_iterate]++;
-                    IterateOverSelectedModes( selected_modes, current_occupancy_new, new_mode_to_iterate, priv_addend, tg );
-                }
+            if ( current_occupancy[new_mode_to_iterate] < occupancy[selected_modes[new_mode_to_iterate]]) {
 
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                    task_num--;
+                    task_num++;
+                    //std::cout << "task num: " << task_num << std::endl;
                 }
 
-                return;
+                tg.run( [this, new_mode_to_iterate, selected_modes, current_occupancy, &priv_addend, &tg ]() {
 
-            });
+                    PicState_int64 current_occupancy_new = current_occupancy.copy();
+                    current_occupancy_new[new_mode_to_iterate]++;
+                    IterateOverSelectedModes( selected_modes, current_occupancy_new, new_mode_to_iterate, priv_addend, tg );
+
+                    {
+                        tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                        task_num--;
+                    }
+
+                    return;
+
+                });
+
+
+            }
 
         }
         else {
