@@ -6,8 +6,12 @@
 #include <math.h>
 
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 /*
-tbb::spin_mutex my_mutex;
+static tbb::spin_mutex my_mutex;
 
 double time_nominator = 0.0;
 double time_nevezo = 0.0;
@@ -50,9 +54,54 @@ PowerTraceLoopHafnianRecursive::~PowerTraceLoopHafnianRecursive() {
 Complex16
 PowerTraceLoopHafnianRecursive::calculate() {
 
+    if (mtx.rows == 0) {
+        // the hafnian of an empty matrix is 1 by definition
+        return Complex16(1,0);
+    }
+
+    // number of modes spanning the gaussian state
+    size_t num_of_modes = occupancy.size();
+
+    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
+
+#ifdef __MPI__
+    // Get the number of processes
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    int current_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
     PowerTraceLoopHafnianRecursive_Tasks hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks(mtx, occupancy);
-    return hafnian_calculator.calculate();
+    Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
+
+    // send the calculated partial hafnian to rank 0
+    Complex16* partial_hafnians = new Complex16[world_size];
+
+    MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
+
+    hafnian = Complex16(0.0,0.0);
+    for (size_t idx=0; idx<world_size; idx++) {
+        hafnian = hafnian + partial_hafnians[idx];
+    }
+
+    // release memory on the zero rank
+    delete partial_hafnians;
+
+
+    return hafnian;
+
+#else
+    unsigned long long current_rank = 0;
+    unsigned long long world_size = 1;
+
+    PowerTraceLoopHafnianRecursive_Tasks hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks(mtx, occupancy);
+    Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
+
+    return hafnian;
+#endif
+
 
 }
 

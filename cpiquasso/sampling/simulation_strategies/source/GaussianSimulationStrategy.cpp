@@ -110,6 +110,19 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
 */
 GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, const size_t& cutoff, const size_t& max_photons ) {
 
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+    // ensure that each MPI process gets the same input matrix from rank 0
+
+    void* syncronized_data = (void*)covariance_matrix.get_data();
+    MPI_Bcast(syncronized_data, covariance_matrix.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#endif
 
     state = GaussianState_Cov( covariance_matrix, qudratures );
     setCutoff( cutoff );
@@ -120,13 +133,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     dim = covariance_matrix.rows;
     dim_over_2 = dim/2;
 
-#ifdef __MPI__
-    // Get the number of processes
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    // Get the rank of the process
-    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
-#endif // MPI
 
 }
 
@@ -141,6 +147,23 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
 */
 GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, matrix& displacement, const size_t& cutoff, const size_t& max_photons ) {
 
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+    // ensure that each MPI process gets the same input matrix from rank 0
+
+    void* syncronized_data = (void*)covariance_matrix.get_data();
+    MPI_Bcast(syncronized_data, covariance_matrix.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    syncronized_data = displacement.get_data();
+    MPI_Bcast(syncronized_data, displacement.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#endif
+
     state = GaussianState_Cov(covariance_matrix, displacement, qudratures);
 
     setCutoff( cutoff );
@@ -152,13 +175,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     // seed the random generator
     srand ( time ( NULL));
 
-#ifdef __MPI__
-    // Get the number of processes
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    // Get the rank of the process
-    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
-#endif // MPI
 
 
 }

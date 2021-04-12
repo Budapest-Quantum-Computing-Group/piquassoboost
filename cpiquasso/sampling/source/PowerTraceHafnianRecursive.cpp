@@ -13,9 +13,9 @@
 
 
 
-
-static tbb::spin_mutex mymutex;
 /*
+static tbb::spin_mutex mymutex;
+
 double time_nominator = 0.0;
 double time_nevezo = 0.0;
 */

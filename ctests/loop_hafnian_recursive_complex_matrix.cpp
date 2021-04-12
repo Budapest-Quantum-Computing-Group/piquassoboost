@@ -177,6 +177,11 @@ int main() {
         }
     }
 
+#ifdef __MPI__
+    // ensure that each MPI process gets the same input matrix from rank 0
+    void* syncronized_data = (void*)mtx.get_data();
+    MPI_Bcast(&syncronized_data, mtx.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
 
     // array of modes describing the occupancy of the individual modes
     pic::PicState_int64 filling_factors(dim/2);
@@ -189,9 +194,6 @@ int main() {
     filling_factors[3] = 4;
     filling_factors[6] = 2;
     filling_factors[10] = 4;
-    filling_factors[14] = 1;
-    filling_factors[15] = 3;
-    filling_factors[17] = 3;
 
     // matrix containing the repeated rows and columns
     pic::matrix&& mtx_repeated = create_repeated_mtx(mtx, filling_factors);

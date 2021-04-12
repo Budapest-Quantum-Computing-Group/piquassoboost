@@ -144,6 +144,12 @@ int main() {
         }
     }
 
+#ifdef __MPI__
+    // ensure that each MPI process gets the same input matrix from rank 0
+    void* syncronized_data = (void*)mtx.get_data();
+    MPI_Bcast(&syncronized_data, mtx.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+
 
     // array of modes describing the occupancy of the individual modes
     pic::PicState_int64 filling_factors(dim/2);
