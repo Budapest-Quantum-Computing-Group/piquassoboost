@@ -6,6 +6,9 @@
 #include "common_functionalities.h"
 #include <math.h>
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
 
 /*
 static tbb::spin_mutex my_mutex;
@@ -44,6 +47,68 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
 Complex16
 PowerTraceLoopHafnian::calculate() {
 
+    if (mtx.rows == 0) {
+        // the hafnian of an empty matrix is 1 by definition
+        return Complex16(1,0);
+    }
+    else if (mtx.rows % 2 != 0) {
+        // the hafnian of odd shaped matrix is 0 by definition
+        return Complex16(0.0, 0.0);
+    }
+
+    size_t dim_over_2 = mtx.rows / 2;
+    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
+
+#ifdef __MPI__
+
+    // Get the number of processes
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    int current_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+    Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
+
+    // send the calculated partial hafnian to rank 0
+    Complex16* partial_hafnians = new Complex16[world_size];
+
+    MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
+
+    hafnian = Complex16(0.0,0.0);
+    for (size_t idx=0; idx<world_size; idx++) {
+        hafnian = hafnian + partial_hafnians[idx];
+    }
+
+    // release memory on the zero rank
+    delete partial_hafnians;
+
+
+    return hafnian;
+
+#else
+
+    unsigned long long current_rank = 0;
+    unsigned long long world_size = 1;
+
+    Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
+
+    return hafnian;
+#endif
+
+
+
+}
+
+
+/**
+@brief Call to calculate the hafnian of a complex matrix
+@return Returns with the calculated hafnian
+*/
+Complex16
+PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
+
 
     if ( mtx.rows != mtx.cols) {
         std::cout << "The input matrix should be square shaped, bu matrix with " << mtx.rows << " rows and with " << mtx.cols << " columns was given" << std::endl;
@@ -75,18 +140,14 @@ PowerTraceLoopHafnian::calculate() {
     }
 
     size_t dim_over_2 = mtx.rows / 2;
-    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
-
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
     tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
 
-    tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
+    tbb::parallel_for( start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
 
 
         Complex32 &summand = summands.local();
-
-        for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
 /*
     Complex32 summand(0.0,0.0);
@@ -220,7 +281,7 @@ PowerTraceLoopHafnian::calculate() {
 //std::cout << p_aux1[dim_over_2] << std::endl;
         }
 
-    }
+
 
     });
 

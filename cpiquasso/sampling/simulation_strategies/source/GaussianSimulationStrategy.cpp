@@ -232,7 +232,7 @@ std::vector<PicState_int64>
 GaussianSimulationStrategy::simulate( int samples_number ) {
 
     // seed the random generator
-    srand ( time ( NULL));
+    srand ( time( NULL) );
 
 
     // preallocate the memory for the output states
