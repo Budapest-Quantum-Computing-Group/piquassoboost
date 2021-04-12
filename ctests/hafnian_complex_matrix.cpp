@@ -8,6 +8,10 @@
 
 #include "tbb/tbb.h"
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 
 /**
 @brief Unit test case for the hafnian of complex symmetric matrices
@@ -20,6 +24,11 @@ int main() {
 
     // seed the random generator
     srand ( time ( NULL));
+
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
 
 
     // allocate matrix array
@@ -53,7 +62,10 @@ int main() {
     std::cout << "the calculated hafnian with trivial method: " << hafnian_expected << std::endl;
 
 
-
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
 
   return 0;
 

@@ -13,6 +13,9 @@
 
 #include "tbb/tbb.h"
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
 
 /**
 @brief Call to calculate sum of integers stored in a PicState
@@ -120,6 +123,10 @@ int main() {
     // seed the random generator
     srand ( time ( NULL));
 
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
 
     // allocate matrix array for the larger matrix
     size_t dim = 20;
@@ -186,6 +193,10 @@ int main() {
     std::cout << (t1-t0).seconds() << " " << (t3-t2).seconds() << " " << (t1-t0).seconds()/(t3-t2).seconds() << std::endl;
 
 
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
 
   return 0;
 

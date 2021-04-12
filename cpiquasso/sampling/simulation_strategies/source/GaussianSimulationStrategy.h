@@ -8,7 +8,6 @@
 #include "GaussianState_Cov.h"
 #include <random>
 
-
 namespace pic {
 
 
@@ -39,6 +38,13 @@ protected:
     size_t dim;
     /// The number of the input modes stored by the covariance matrix
     size_t dim_over_2;
+
+#ifdef __MPI__
+    /// The number of processes in MPI run
+    int world_size;
+    /// Get current rank of the process
+    int current_rank;
+#endif // MPI
 
 
 public:

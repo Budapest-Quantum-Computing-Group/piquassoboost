@@ -1,8 +1,3 @@
-#ifndef USE_LAPACK
-#define USE_LAPACK 0
-#endif // USE_LAPACK
-
-
 #include <iostream>
 #include "PowerTraceHafnianRecursive.h"
 #include "PowerTraceHafnianUtilities.hpp"
@@ -10,6 +5,12 @@
 #include "tbb/tbb.h"
 #include "common_functionalities.h"
 #include <math.h>
+
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
+
 
 
 
@@ -54,9 +55,54 @@ PowerTraceHafnianRecursive::~PowerTraceHafnianRecursive() {
 Complex16
 PowerTraceHafnianRecursive::calculate() {
 
+    if (mtx.rows == 0) {
+        // the hafnian of an empty matrix is 1 by definition
+        return Complex16(1,0);
+    }
+
+    // number of modes spanning the gaussian state
+    size_t num_of_modes = occupancy.size();
+
+    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
+
+#ifdef __MPI__
+    // Get the number of processes
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    int current_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
     PowerTraceHafnianRecursive_Tasks hafnian_calculator = PowerTraceHafnianRecursive_Tasks(mtx, occupancy);
-    return hafnian_calculator.calculate();
+    Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
+
+    // send the calculated partial hafnian to rank 0
+    Complex16* partial_hafnians = new Complex16[world_size];
+
+    MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
+
+    hafnian = Complex16(0.0,0.0);
+    for (size_t idx=0; idx<world_size; idx++) {
+        hafnian = hafnian + partial_hafnians[idx];
+    }
+
+    // release memory on the zero rank
+    delete partial_hafnians;
+
+
+    return hafnian;
+
+#else
+    unsigned long long current_rank = 0;
+    unsigned long long world_size = 1;
+
+    PowerTraceHafnianRecursive_Tasks hafnian_calculator = PowerTraceHafnianRecursive_Tasks(mtx, occupancy);
+    Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
+
+    return hafnian;
+#endif
+
 
 }
 
@@ -140,6 +186,23 @@ PowerTraceHafnianRecursive_Tasks::~PowerTraceHafnianRecursive_Tasks() {
 Complex16
 PowerTraceHafnianRecursive_Tasks::calculate() {
 
+    // number of modes spanning the gaussian state
+    size_t num_of_modes = occupancy.size();
+
+    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
+
+    return calculate(1, 1, permutation_idx_max );
+
+}
+
+
+/**
+@brief Call to calculate the hafnian of a complex matrix
+@return Returns with the calculated hafnian
+*/
+Complex16
+PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
+
 
     if (mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
@@ -157,12 +220,14 @@ PowerTraceHafnianRecursive_Tasks::calculate() {
     openblas_set_num_threads(1);
 #endif
 
+    if (start_idx<1) {
+        std::cout << "start_idx must be at least 1" << std::endl;
+        exit(-1);
+    }
+
 
     // number of modes spanning the gaussian state
     size_t num_of_modes = occupancy.size();
-
-    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
-
 
     // create task group to spawn tasks
     tbb::task_group tg;
@@ -171,7 +236,7 @@ PowerTraceHafnianRecursive_Tasks::calculate() {
     tbb::combinable<Complex32> priv_addend{[](){return Complex32(0,0);}};
 
     // for cycle over the combinations of occupancy
-    tbb::parallel_for((unsigned long long)1, permutation_idx_max, (unsigned long long)1, [&](unsigned long long permutation_idx) {
+    tbb::parallel_for(start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
     //for (unsigned long long permutation_idx = 1; permutation_idx < permutation_idx_max; permutation_idx++) {
 
 
