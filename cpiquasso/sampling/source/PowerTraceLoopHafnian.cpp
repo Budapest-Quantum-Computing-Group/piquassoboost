@@ -30,6 +30,7 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian() : PowerTraceHafnian() {
 @return Returns with the instance of the class.
 */
 PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
+    assert(isSymmetric(mtx_in));
 
     Update_mtx( mtx_in );
 

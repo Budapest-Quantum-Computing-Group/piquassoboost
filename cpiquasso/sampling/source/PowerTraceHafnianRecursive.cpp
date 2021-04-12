@@ -32,6 +32,7 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 @return Returns with the instance of the class.
 */
 PowerTraceHafnianRecursive::PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in ) {
+    assert(isSymmetric(mtx_in));
 
     mtx = mtx_in;
     occupancy = occupancy_in;

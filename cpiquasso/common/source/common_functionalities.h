@@ -4,6 +4,7 @@
 
 #include "PicVector.hpp"
 #include "PicState.h"
+#include "matrix.h"
 
 namespace pic {
 
@@ -53,6 +54,25 @@ int sum( PicState_int64 vec);
 @return Returns with the Binomial Coefficient C(n, k).
 */
 int binomialCoeff(int n, int k);
+
+
+/**
+@brief Function which checks whether the given matrix is symmetric or not.
+@param mtx_in The given matrix.
+@param tolerance The tolerance value for being 2 different values equal.
+@return True if the @p mtx_in is symmetric and false otherwise.
+*/
+bool isSymmetric( matrix mtx_in, double tolerance );
+
+
+/**
+@brief Function which checks whether the given matrix is hermitian or not.
+@param mtx_in The given matrix.
+@param tolerance The tolerance value for being 2 different values equal.
+@return True if the @p mtx_in is hermitian and false otherwise.
+*/
+bool isHermitian( matrix mtx_in, double tolerance );
+
 
 
 } // PIC

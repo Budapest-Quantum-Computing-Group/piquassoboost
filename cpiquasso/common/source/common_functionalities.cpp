@@ -107,5 +107,53 @@ int binomialCoeff(int n, int k) {
 
 
 
+/**
+@brief Function which checks whether the given matrix is symmetric or not.
+@param mtx_in The given matrix.
+@param tolerance The tolerance value for being 2 different values equal.
+@return True if the @p mtx_in is symmetric and false otherwise.
+*/
+bool isSymmetric( matrix mtx_in, double tolerance ){
+    if (mtx_in.rows != mtx_in.cols){
+        return false;
+    }
+    const size_t dim = mtx_in.rows;
+    
+    for (size_t row_idx = 0; row_idx < dim; row_idx++){
+        for (size_t col_idx = row_idx + 1; col_idx < dim; col_idx++){
+            Complex16 diff = mtx_in[row_idx * dim + col_idx] - mtx_in[col_idx * dim + row_idx];
+            if (std::abs(diff) > tolerance){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
+/**
+@brief Function which checks whether the given matrix is hermitian or not.
+@param mtx_in The given matrix.
+@param tolerance The tolerance value for being 2 different values equal.
+@return True if the @p mtx_in is hermitian and false otherwise.
+*/
+bool isHermitian( matrix mtx_in, double tolerance ){
+    if (mtx_in.rows != mtx_in.cols){
+        return false;
+    }
+    const size_t dim = mtx_in.rows;
+    
+    for (size_t row_idx = 0; row_idx < dim; row_idx++){
+        for (size_t col_idx = row_idx; col_idx < dim; col_idx++){
+            Complex16 diff = mtx_in[row_idx * dim + col_idx] - std::conj(mtx_in[col_idx * dim + row_idx]);
+            if (std::abs(diff) > tolerance){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
 } // PIC
 
