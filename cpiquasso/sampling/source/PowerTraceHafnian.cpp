@@ -209,7 +209,7 @@ PowerTraceHafnian::calculate(unsigned long long start_idx, unsigned long long st
 
 
         // scale matrix B -- when matrix elements of B are scaled, larger part of the computations can be kept in double precision
-        if ( scale_factor_B == 0.0 ) {
+        if ( scale_factor_B < 1e-8 ) {
             scale_factor_B = 1.0;
         }
         else {

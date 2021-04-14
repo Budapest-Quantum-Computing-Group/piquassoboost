@@ -625,7 +625,7 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 
 
     // scale matrix AZ -- when matrix elements of AZ are scaled, larger part of the computations can be kept in double precision
-    if ( scale_factor_AZ == 0.0 ) {
+    if ( scale_factor_AZ < 1e-8 ) {
         scale_factor_AZ = 1.0;
     }
     else {
