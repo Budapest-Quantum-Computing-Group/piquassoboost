@@ -268,6 +268,12 @@ inline complex mult_a_bconj( complex &a, complex &b) {
     return complex(a.real()*b.real() + a.imag()*b.imag(), a.imag()*b.real() - a.real()*b.imag() );
 }
 
+template<class complex_type>
+complex_type
+inline conjugate(complex_type& value){
+    return complex_type(value.real(), -value.imag());
+}
+
 
 /// aliasing the representation 16 byte Complex numbers
 using Complex16 = Complex_base<double>;

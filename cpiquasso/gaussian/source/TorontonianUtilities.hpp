@@ -445,6 +445,138 @@ calc_determinant_hessenberg_labudde_symmetric(matrix& mtx){
 }
 
 
+// Cholesky decomposition
+// Works for selfadjoint positive definite matrices!
+template<class matrix_type, class complex_type>
+matrix_type
+calc_cholesky_decomposition(matrix_type& matrix)
+{
+    // storing in the same memory the results of the algorithm
+    size_t n = matrix.cols;
+    // Decomposing a matrix into lower triangular matrices
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j <= i; j++) {
+            complex_type sum = 0;
+ 
+            if (j == i) 
+            {
+                // summation for diagnols
+                // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
+                for (int k = 0; k < j; k++){
+                    sum += matrix[j*matrix.stride+k] * conjugate(matrix[j*matrix.stride+k]);
+                }
+                matrix[j*matrix.stride+j] = sqrt(matrix[j*matrix.stride+j] -
+                                        sum);
+            } else {
+                // Evaluating L(i, j) using L(j, j)
+                // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
+                for (int k = 0; k < j; k++){
+                    sum += (matrix[i*matrix.stride+k] * conjugate(matrix[j*matrix.stride+k]));
+                }
+                matrix[i*matrix.stride+j] = (matrix[i*matrix.stride+j] - sum) /
+                                      matrix[j*matrix.stride+j];
+            }
+        }
+    }
+    return matrix;
+    // creating another matrix to store the result of the algorithm
+/*
+    size_t n = matrix.cols;
+    matrix_type lower_tridiag(n, n);
+    memset(lower_tridiag.data, 0, n * n * sizeof(complex_type));
+ 
+    // Decomposing a matrix into lower triangular matrices
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j <= i; j++) {
+            complex_type sum = 0;
+ 
+            if (j == i) 
+            {
+                // summation for diagnols
+                // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
+                for (int k = 0; k < j; k++){
+                    sum += lower_tridiag[j*lower_tridiag.stride+k] * conjugate(lower_tridiag[j*lower_tridiag.stride+k]);
+                }
+                lower_tridiag[j*lower_tridiag.stride+j] = sqrt(matrix[j*matrix.stride+j] -
+                                        sum);
+                //std::cout << "("<<i<<","<<j<<"): "<<lower_tridiag[i*lower_tridiag.stride+j]<<std::endl;
+            } else {
+                // Evaluating L(i, j) using L(j, j)
+                // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
+                for (int k = 0; k < j; k++){
+                    sum += (lower_tridiag[i*lower_tridiag.stride+k] * conjugate(lower_tridiag[j*lower_tridiag.stride+k]));
+                }
+                lower_tridiag[i*lower_tridiag.stride+j] = (matrix[i*matrix.stride+j] - sum) /
+                                      lower_tridiag[j*lower_tridiag.stride+j];
+                //std::cout << "("<<i<<","<<j<<"): "<<lower_tridiag[i*lower_tridiag.stride+j]<<std::endl;
+            }
+        }
+    }
+    return lower_tridiag;
+*/
+}
+
+// calculating determinant based on cholesky decomposition
+template<class matrix_type, class complex_type>
+complex_type
+calc_determinant_cholesky_decomposition(matrix& mtx){
+    // for small matrices nothing has to be casted into quad precision
+    if (mtx.rows <= 10) {
+        calc_cholesky_decomposition<matrix, Complex16>(mtx);
+
+        Complex16 determinant(1, 0);
+
+        for (size_t idx; idx < mtx.cols; idx++){
+            Complex16 elem = mtx[idx * mtx.stride + idx];
+            determinant *= elem;
+        }
+        
+        return determinant * conjugate(determinant);
+    }
+    // The lapack function to calculate the Cholesky decomposition is more efficient for larger matrices, but for above a given cutoff quad precision is needed
+    // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
+    // quad precision
+    else if ( (mtx.rows < 30 && (sizeof(complex_type) > sizeof(Complex16))) || (sizeof(complex_type) == sizeof(Complex16)) ) {
+
+
+        // transform the matrix mtx into an upper Hessenberg format by calling lapack function
+        char UPLO = 'L';
+        int N = mtx.rows;
+        int LDA = N;
+        int INFO = 0;
+
+        //std::cout<<"Before lapacke call:\n";
+        //mtx.print_matrix();
+
+
+        LAPACKE_zpotrf(LAPACK_ROW_MAJOR, UPLO, N, mtx.get_data(), LDA);
+
+        //std::cout<<"After lapacke call:\n";
+        //mtx.print_matrix();
+
+
+        matrix_type diag( 1, N);
+        for (size_t idx=0; idx<N; idx++) {
+            diag[idx].real( mtx[idx*N + idx].real() );
+            diag[idx].imag( mtx[idx*N + idx].imag() );
+        }
+        complex_type det = complex_type(1,0);
+
+        for (size_t idx=0; idx<N; idx++) {
+            det *= diag[idx];
+        }
+        return det * conjugate(det);
+    }
+    else{
+        // above a treshold matrix size all the calculations are done in quad precision
+        // matrix size for which quad precision is necessary
+        return complex_type(1,0);
+    }
+
+}
+
+
+
 
 /**
 @brief Call to determine the first \f$ k \f$ coefficients of the characteristic polynomial using the Algorithm 2 of LaBudde method.

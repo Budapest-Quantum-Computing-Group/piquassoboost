@@ -2,12 +2,15 @@
 
 #include <random>
 #include <chrono>
+#include <string>
 
 //#include "PowerTraceHafnianUtilities.hpp"
 #include "TorontonianUtilities.hpp"
 
 #include "matrix32.h"
 #include "matrix.h"
+
+#include "dot.h"
 
 #include "constants_tests.h"
 
@@ -25,19 +28,9 @@ int LAPACKE_zgetri( int matrix_layout, int n, pic::Complex16* a, int lda, const 
 
 
 
- // the matrix c holds not just the polynomial coefficients, but also auxiliary
- // data. To retrieve the characteristic polynomial coeffients from the matrix c, use
- // this map for characteristic polynomial coefficient c_j:
- // if j = 0, c_0 -> 1
- // if j > 0, c_j -> c[(n - 1) * n + j - 1]
- 
- // ||
- // VV
- // determinant = c_n -> c[(n-1) * n + n - 1] = c[(n-1)*(n+1)]
- 
-// calculating determinant by applying hessenberg transformation and labudde algorithm afterwards
-pic::Complex16 determinant_by_hessenberg_labudde(pic::matrix &AZ) {
-
+// calculating determinant by applying hessenberg transformation and labudde algorithm
+// Code was copied from PowerTraceHafnianUtilities.hpp
+pic::Complex16 test_determinant_by_hessenberg_labudde(pic::matrix &AZ) {
     size_t n = AZ.rows;
     double scalar = n % 2 ? -1 : 1;
 
@@ -157,13 +150,30 @@ pic::matrix embedding(pic::matrix& mtxIn, size_t toDim){
 
 }
 
+template<class matrix_type>
+matrix_type
+matrix_conjugate_traspose(matrix_type& matrix)
+{
+    matrix_type transposed(matrix.cols, matrix.rows);
+
+    for (size_t i = 0; i < matrix.rows; i++){
+        for (size_t j = 0; j < matrix.cols; j++){
+            transposed[j * transposed.stride + i].real(matrix[i * matrix.stride + j].real());
+            transposed[j * transposed.stride + i].imag(-matrix[i * matrix.stride + j].imag());
+        }
+    }
+    return transposed;
+}
+
+
 namespace pic{
 
 enum RandomMatrixType
 {
     RANDOM,
     SYMMETRIC,
-    SELFADJOINT
+    SELFADJOINT,
+    POSITIVE_DEFINIT
 };
 
 } // namespace pic
@@ -215,8 +225,20 @@ getRandomMatrix(size_t n, pic::RandomMatrixType type){
                 }
             }
         }
-    }
+    }else if (type == pic::POSITIVE_DEFINIT){
+        // hermitian case, selfadjoint, positive definite matrix
+        // if you have a random matrix M then M * M^* gives you a positive definite hermitian matrix
+        matrix_type mtx1 = getRandomMatrix<matrix_type, complex_type>(n, pic::RANDOM);
+        matrix_type mtx2 = matrix_conjugate_traspose<matrix_type>(mtx1);
 
+        mtx = pic::dot(mtx1, mtx2);
+
+        for (size_t i = 0; i < n; i++){
+            for (size_t j = 0; j < n; j++){
+                mtx[i * n + j] /= n;
+            }
+        }        
+    }
     return mtx;
 }
 
@@ -224,7 +246,7 @@ getRandomMatrix(size_t n, pic::RandomMatrixType type){
 // method which checks the hessenberg property with a tolerance (currently the matrix has to be selfadjoint as well)
 template<class matrix_type>
 bool
-checkHessenbergProperty(matrix_type mtx){
+test_check_hessenberg_property(matrix_type mtx){
     int n = mtx.rows;
 
     for ( int row_idx = 0; row_idx < n; row_idx++ ){
@@ -239,11 +261,121 @@ checkHessenbergProperty(matrix_type mtx){
     return true;
 }
 
-int main(){
-    size_t dimension = 26;
 
-    // applying transformation on a selfadjoint matrix to hessenberg form
-    /*
+
+
+int cholesky_decomposition_LAPACKE(pic::matrix& mtx){
+    char UPLO = 'L';
+    int N = mtx.cols;
+    int LDA = N;
+
+    LAPACKE_zpotrf(LAPACK_ROW_MAJOR, UPLO, N, mtx.get_data(), LDA);
+/*
+    for(int i = 0; i < N; i++){
+        for (int j = 0; j < N; j++){
+            if (i < j){
+                mtx[i*mtx.stride+j] = pic::Complex16(0,0);
+            }
+        }
+    }
+*/
+}
+
+pic::Complex16 test_calc_determinant_cholesky_lapacke(pic::matrix& mtx){
+    cholesky_decomposition_LAPACKE(mtx);
+
+    pic::Complex16 det(1, 0);
+
+    for (int i = 0; i < mtx.cols; i++){
+        det *= mtx[i * mtx.stride + i];
+    }
+    return det * conjugate(det);
+}
+
+pic::Complex16 test_calc_determinant_cholesky_ownalgo(pic::matrix& mtx){
+    pic::calc_cholesky_decomposition<pic::matrix, pic::Complex16>(mtx);
+
+    pic::Complex16 det(1, 0);
+
+    for (int i = 0; i < mtx.cols; i++){
+        det *= mtx[i * mtx.stride + i];
+    }
+    return det * conjugate(det);
+}
+
+int test_cholesky_decomposition(){
+    size_t dimension = 12;
+
+    // Cholesky decomposition by LAPACKE:
+    if (0){
+        std::cout<<"Matrix to be transformed: "<<std::endl;
+        pic::matrix mtx = getRandomMatrix<pic::matrix, pic::Complex16>(dimension, pic::POSITIVE_DEFINIT);
+        pic::matrix mtx_copy = mtx.copy();
+
+        mtx.print_matrix();
+
+        cholesky_decomposition_LAPACKE(mtx);
+        std::cout<<"Cholesky form (L): "<<std::endl;
+        mtx.print_matrix();
+
+        pic::matrix cholesky_adjoint = matrix_conjugate_traspose<pic::matrix>(mtx);
+        pic::matrix product = pic::dot(mtx, cholesky_adjoint);
+
+        std::cout<<"L * L^*: "<<std::endl;
+        product.print_matrix();
+
+        for (int i = 0; i < dimension; i++){
+            for (int j = 0; j < dimension; j++){
+                pic::Complex16 diff = mtx_copy[i * mtx_copy.stride + j] - product[i * product.stride + j];
+                if (std::abs(diff) > pic::epsilon){
+                    std::cout<<"Diff: "<<i<<","<<j<<std::endl;
+                }
+            }
+        }
+    }
+
+    // Cholesky decomposition by https://www.geeksforgeeks.org/cholesky-decomposition-matrix-decomposition/:
+    if (1){
+        pic::matrix mtx = getRandomMatrix<pic::matrix, pic::Complex16>(dimension, pic::POSITIVE_DEFINIT);
+        pic::matrix mtx_copy = mtx.copy();
+        mtx.print_matrix();
+
+        pic::matrix cholesky = pic::calc_cholesky_decomposition<pic::matrix, pic::Complex16>(mtx);
+        
+        for(int i = 0; i < dimension; i++){
+            for (int j = 0; j < dimension; j++){
+                if (i < j){
+                    cholesky[i*mtx.stride+j] = pic::Complex16(0,0);
+                }
+            }
+        }
+        cholesky.print_matrix();
+        pic::matrix c1 = cholesky.copy();
+        pic::matrix c2 = matrix_conjugate_traspose<pic::matrix>(cholesky);
+
+        
+        pic::matrix product = pic::dot(c1, c2);
+
+        std::cout<<"L * L^*: "<<std::endl;
+        product.print_matrix();
+
+        for (int i = 0; i < dimension; i++){
+            for (int j = 0; j < dimension; j++){
+                pic::Complex16 diff = mtx_copy[i * mtx_copy.stride + j] - product[i * product.stride + j];
+                if (std::abs(diff) > pic::epsilon){
+                    std::cout<<"Diff: "<<i<<","<<j<<std::endl;
+                }
+            }
+        }
+
+    }
+    return 0;
+}
+
+
+int test_hessenberg_labudde_selfadjoint(){
+    size_t dimension = 5;
+
     pic::matrix mtx = getRandomMatrix<pic::matrix, pic::Complex16>(dimension, pic::SELFADJOINT);
 
     mtx.print_matrix();
@@ -251,9 +383,10 @@ int main(){
     pic::matrix mtx_copy1 = embedding(mtx, dimension);
     pic::matrix mtx_copy2 = embedding(mtx, dimension);
 
-    pic::Complex16 det_by_hessenberg_labudde_1 = determinant_by_hessenberg_labudde(mtx_copy1);
+    pic::Complex16 det_by_hessenberg_labudde_1 = test_determinant_by_hessenberg_labudde(mtx_copy1);
     pic::Complex16 det_by_LU_decomposition_1 = determinant_byLU_decomposition(mtx_copy2);
 
+    // applying transformation on a selfadjoint matrix to hessenberg form
     pic::transform_matrix_to_hessenberg_TU<pic::matrix, pic::Complex16>(mtx);
 
     // check result
@@ -261,7 +394,7 @@ int main(){
     pic::matrix mtx_copy3 = embedding(mtx, dimension);
 
 
-    pic::Complex16 det_by_hessenberg_labudde_2 = determinant_by_hessenberg_labudde(mtx);
+    pic::Complex16 det_by_hessenberg_labudde_2 = test_determinant_by_hessenberg_labudde(mtx);
     pic::Complex16 det_by_LU_decomposition_2 = determinant_byLU_decomposition(mtx_copy3);
 
     std::cout << "det_by_hessenberg_labudde_1  " << det_by_hessenberg_labudde_1 << std::endl;
@@ -270,74 +403,126 @@ int main(){
     std::cout << "det_by_LU_decomposition_2    " << det_by_LU_decomposition_2 << std::endl;
 
 
-    std::cout << "Hessenberg matrix? " << checkHessenbergProperty<pic::matrix>(mtx) << std::endl;
-    */
+    std::cout << "Hessenberg matrix? " << test_check_hessenberg_property<pic::matrix>(mtx) << std::endl;
+    return 0;
+}
 
-    size_t numberOfSamples = 2000;
+int test_runtimes_determinant_calculations(){
+    size_t numberOfSamples = 100;
 
-    int startDim = 2;
-    int endDim = 38; // dimensions until endDim - 1 !!!
+    int startDim = 20;
+    int endDim = 100; // dimensions until endDim - 1 !!!
+
+
+    constexpr size_t numberOfCalcTypes = 6;
+
+    pic::Complex16 (*calcAlgos[numberOfCalcTypes])(pic::matrix&);
+    std::string algoNames[numberOfCalcTypes];
+
+    algoNames[0] = "test_determinant_by_hessenberg_labudde";
+    calcAlgos[0] = NULL;// &test_determinant_by_hessenberg_labudde;
+
+    algoNames[1] = "calc_determinant_hessenberg_labudde_symmetric";
+    calcAlgos[1] = NULL;//&pic::calc_determinant_hessenberg_labudde_symmetric<pic::matrix, pic::Complex16>;
+
+    algoNames[2] = "determinant_byLU_decomposition";
+    calcAlgos[2] = &determinant_byLU_decomposition;
+
+    algoNames[3] = "test_calc_determinant_cholesky_ownalgo";
+    calcAlgos[3] = &test_calc_determinant_cholesky_ownalgo;
+
+    algoNames[4] = "test_calc_determinant_cholesky_lapacke";
+    calcAlgos[4] = &test_calc_determinant_cholesky_lapacke;
+
+    algoNames[5] = "calc_determinant_cholesky_decomposition";
+    calcAlgos[5] = &pic::calc_determinant_cholesky_decomposition<pic::matrix, pic::Complex16>;
+
+
     // iterating over dimensions
     for (int n = startDim; n < endDim; n++){
+
         std::cout << "dimension: " << n << std::endl;
-        long durationLong0 = 0;
-        long durationLong1 = 0;
-        long durationLong2 = 0;
+        long durations[numberOfCalcTypes];
+        for (size_t idx = 0; idx < numberOfCalcTypes; idx++){
+            durations[idx] = 0;
+        }
 
         // iterating over multiple matrices (number of matrices: numberOfSamples)
         for (int i = 0; i < numberOfSamples; i++){
-            pic::matrix mtx1 = getRandomMatrix<pic::matrix, pic::Complex16>(n, pic::SELFADJOINT);
-            pic::matrix mtx0 = embedding(mtx1, n);
-            pic::matrix mtx2 = embedding(mtx1, n);
+            // array of the calculated determinants to be able to check whether they are equal or not
+            pic::Complex16 determinants[numberOfCalcTypes];
 
+            pic::matrix matrices[numberOfCalcTypes];
+            matrices[0] = getRandomMatrix<pic::matrix, pic::Complex16>(n, pic::POSITIVE_DEFINIT);
+            for (size_t typeIdx = 1; typeIdx < numberOfCalcTypes; typeIdx++){
+                matrices[typeIdx] = matrices[0].copy();
+            }
+            for (size_t idx = 0; idx < numberOfCalcTypes; idx++){
+                if (calcAlgos[idx] != NULL){
+                    auto start = std::chrono::high_resolution_clock::now();
+                    determinants[idx] = calcAlgos[idx](matrices[idx]);
+                    auto stop = std::chrono::high_resolution_clock::now();
 
-            auto start0 = std::chrono::high_resolution_clock::now();
-            pic::Complex16 det_hessenberg_labudde_sym = pic::calc_determinant_hessenberg_labudde_symmetric<pic::matrix, pic::Complex16>(mtx0);
-            auto stop0 = std::chrono::high_resolution_clock::now();
-
-            auto start1 = std::chrono::high_resolution_clock::now();
-            pic::Complex16 det_by_hessenberg_labudde = determinant_by_hessenberg_labudde(mtx1);
-            auto stop1 = std::chrono::high_resolution_clock::now();
-            
-
-            auto start2 = std::chrono::high_resolution_clock::now();
-            pic::Complex16 det_by_LU_decomposition = determinant_byLU_decomposition(mtx2);
-            auto stop2 = std::chrono::high_resolution_clock::now();
-
-            pic::Complex16 diff = det_by_hessenberg_labudde - det_by_LU_decomposition;
-            if (std::abs(diff) > std::abs((det_by_hessenberg_labudde + det_by_LU_decomposition) / 2. ) / 1000000000){
-                std::cout << "ERR: " << n << " " << i << " " << det_by_hessenberg_labudde << " " << det_by_LU_decomposition << " " << diff << std::endl;
+                    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                    durations[idx] += duration.count();
+                }
             }
 
-            diff = det_by_hessenberg_labudde - det_hessenberg_labudde_sym;
-            if (std::abs(diff) > std::abs((det_by_hessenberg_labudde + det_hessenberg_labudde_sym) / 2. ) / 1000000000){
-                std::cout << "ERR: " << n << " " << i << " " << det_by_hessenberg_labudde << " " << det_hessenberg_labudde_sym << " " << diff << std::endl;
+            for (size_t idx = 1; idx < numberOfCalcTypes; idx++){
+                pic::Complex16 diff = determinants[idx-1]- determinants[idx];
+                pic::Complex16 tolerance = (determinants[idx-1] + determinants[idx]) / pic::Complex16(2,0) * pic::epsilon;
+                if (calcAlgos[idx-1] != NULL && calcAlgos[idx] != NULL && std::abs(diff) > std::abs(tolerance)){
+                    std::cout << "Error:" << std::endl;
+                    std::cout << idx   << ": " << determinants[idx-1] << std::endl;
+                    std::cout << idx-1 << ": " << determinants[idx]<<std::endl;
+                }
             }
-
-            diff = det_hessenberg_labudde_sym - det_by_LU_decomposition;
-            if (std::abs(diff) > std::abs((det_hessenberg_labudde_sym + det_by_LU_decomposition) / 2. ) / 1000000000){
-                std::cout << "ERR: " << n << " " << i << " " << det_hessenberg_labudde_sym << " " << det_by_LU_decomposition << " " << diff << std::endl;
-            }
-            //mtx0.print_matrix();
-            //mtx1.print_matrix();
-            //mtx2.print_matrix();
-
-            auto duration0= std::chrono::duration_cast<std::chrono::microseconds>(stop0 - start0);
-            auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(stop1 - start1);
-            auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
-            durationLong0 += duration0.count();
-            durationLong1 += duration1.count();
-            durationLong2 += duration2.count();
         }
-        auto averageDuration0 = 1.0 * durationLong0 / numberOfSamples;
-        auto averageDuration1 = 1.0 * durationLong1 / numberOfSamples;
-        auto averageDuration2 = 1.0 * durationLong2 / numberOfSamples;
-        
-        std::cout << n << std::endl;
-        std::cout << "duration0 : " << averageDuration0 << std::endl;
-        std::cout << "duration1 : " << averageDuration1 << std::endl;
-        std::cout << "duration2 : " << averageDuration2 << std::endl;
+
+        double averageDurations[numberOfCalcTypes];
+        for (size_t idx = 0; idx < numberOfCalcTypes; idx++){
+            averageDurations[idx] = 1.0 * durations[idx] / numberOfSamples;
+        }
+
+        for (size_t idx = 0; idx < numberOfCalcTypes; idx++){
+            std::cout <<algoNames[idx] << ":\t" << averageDurations[idx]<< std::endl;
+        }
     }
+    return 0;
+}
+
+int test_determinant_is_same(){
+    size_t n = 8;
+
+    pic::matrix mtx0 = getRandomMatrix<pic::matrix, pic::Complex16>(n, pic::POSITIVE_DEFINIT);
+    pic::matrix mtx1 = embedding(mtx0, n);
+    pic::matrix mtx2 = embedding(mtx0, n);
+    pic::matrix mtx3 = embedding(mtx0, n);
+
+    // this algorithm works on symmetric or selfadjoint matrices
+    pic::Complex16 det_hessenberg_labudde_sym = pic::calc_determinant_hessenberg_labudde_symmetric<pic::matrix, pic::Complex16>(mtx0);
+    // this algorithm works on all matrices
+    pic::Complex16 det_by_hessenberg_labudde = test_determinant_by_hessenberg_labudde(mtx1);
+    // this algorithm works on all matrices
+    pic::Complex16 det_by_LU_decomposition = determinant_byLU_decomposition(mtx2);
+    // this algorithm works on positive definite symmetric or selfadjoint matrices
+    pic::Complex16 det_by_cholesky = pic::calc_determinant_cholesky_decomposition<pic::matrix, pic::Complex16>(mtx3);
+
+    std::cout<<"det_hessenberg_labudde_sym:  " << det_hessenberg_labudde_sym << std::endl;
+    std::cout<<"det_by_hessenberg_labudde:   " << det_by_hessenberg_labudde << std::endl;
+    std::cout<<"det_by_LU_decomposition:     " << det_by_LU_decomposition << std::endl;
+    std::cout<<"det_by_cholesky:             " << det_by_cholesky << std::endl;
+
+    return 0;
+}
+
+int main(){
+
+
+    //test_cholesky_decomposition();
+    //test_hessenberg_labudde_selfadjoint();
+    test_runtimes_determinant_calculations();
+    //test_determinant_is_same();
 
     return 0;
 
