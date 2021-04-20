@@ -39,7 +39,6 @@ target_include_directories(determinant_testing PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
                             ../cpiquasso/sampling/simulation_strategies/source
-                            ../cpiquasso/gaussian/source
                             ${EXTRA_INCLUDES})
 
 target_include_directories(hafnian_recursive_complex_matrix PRIVATE

@@ -448,37 +448,35 @@ calc_determinant_hessenberg_labudde_symmetric(matrix& mtx){
 // Cholesky decomposition
 // Works for selfadjoint positive definite matrices!
 template<class matrix_type, class complex_type>
-matrix_type
+void
 calc_cholesky_decomposition(matrix_type& matrix)
 {
     // storing in the same memory the results of the algorithm
     size_t n = matrix.cols;
     // Decomposing a matrix into lower triangular matrices
     for (int i = 0; i < n; i++) {
-        for (int j = 0; j <= i; j++) {
-            complex_type sum = 0;
- 
-            if (j == i) 
+        complex_type* row_i = matrix.get_data()+i*matrix.stride;
+        for (int j = 0; j < i; j++) {
             {
-                // summation for diagnols
-                // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
-                for (int k = 0; k < j; k++){
-                    sum += matrix[j*matrix.stride+k] * conjugate(matrix[j*matrix.stride+k]);
-                }
-                matrix[j*matrix.stride+j] = sqrt(matrix[j*matrix.stride+j] -
-                                        sum);
-            } else {
+                complex_type* row_j = matrix.get_data()+j*matrix.stride;
+
+                complex_type sum = 0;                
                 // Evaluating L(i, j) using L(j, j)
                 // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
                 for (int k = 0; k < j; k++){
-                    sum += (matrix[i*matrix.stride+k] * conjugate(matrix[j*matrix.stride+k]));
+                    sum += mult_a_bconj( row_i[k], row_j[k]);
                 }
-                matrix[i*matrix.stride+j] = (matrix[i*matrix.stride+j] - sum) /
-                                      matrix[j*matrix.stride+j];
+                row_i[j] = (row_i[j] - sum) / row_j[j];
             }
         }
+        complex_type sum = 0;
+        // summation for diagnols
+        // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
+        for (int k = 0; k < i; k++){
+            sum += mult_a_bconj( row_i[k], row_i[k] );
+        }
+        row_i[i] = sqrt(row_i[i] - sum);
     }
-    return matrix;
     // creating another matrix to store the result of the algorithm
 /*
     size_t n = matrix.cols;
@@ -495,7 +493,7 @@ calc_cholesky_decomposition(matrix_type& matrix)
                 // summation for diagnols
                 // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
                 for (int k = 0; k < j; k++){
-                    sum += lower_tridiag[j*lower_tridiag.stride+k] * conjugate(lower_tridiag[j*lower_tridiag.stride+k]);
+                    sum += mult_a_bconj(lower_tridiag[j*lower_tridiag.stride+k], lower_tridiag[j*lower_tridiag.stride+k]);
                 }
                 lower_tridiag[j*lower_tridiag.stride+j] = sqrt(matrix[j*matrix.stride+j] -
                                         sum);
@@ -504,7 +502,7 @@ calc_cholesky_decomposition(matrix_type& matrix)
                 // Evaluating L(i, j) using L(j, j)
                 // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
                 for (int k = 0; k < j; k++){
-                    sum += (lower_tridiag[i*lower_tridiag.stride+k] * conjugate(lower_tridiag[j*lower_tridiag.stride+k]));
+                    sum += mult_a_bconj(lower_tridiag[i*lower_tridiag.stride+k], lower_tridiag[j*lower_tridiag.stride+k]);
                 }
                 lower_tridiag[i*lower_tridiag.stride+j] = (matrix[i*matrix.stride+j] - sum) /
                                       lower_tridiag[j*lower_tridiag.stride+j];
@@ -524,14 +522,14 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
     if (mtx.rows <= 10) {
         calc_cholesky_decomposition<matrix, Complex16>(mtx);
 
-        Complex16 determinant(1, 0);
+        Complex16 determinant(1.0, 0.0);
 
         for (size_t idx; idx < mtx.cols; idx++){
-            Complex16 elem = mtx[idx * mtx.stride + idx];
+            Complex16 &elem = mtx[idx * mtx.stride + idx];
             determinant *= elem;
         }
         
-        return determinant * conjugate(determinant);
+        return mult_a_bconj( determinant, determinant);
     }
     // The lapack function to calculate the Cholesky decomposition is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
@@ -554,23 +552,17 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
         //std::cout<<"After lapacke call:\n";
         //mtx.print_matrix();
 
-
-        matrix_type diag( 1, N);
-        for (size_t idx=0; idx<N; idx++) {
-            diag[idx].real( mtx[idx*N + idx].real() );
-            diag[idx].imag( mtx[idx*N + idx].imag() );
-        }
         complex_type det = complex_type(1,0);
 
         for (size_t idx=0; idx<N; idx++) {
-            det *= diag[idx];
+            det *= mtx[idx * mtx.stride + idx];
         }
-        return det * conjugate(det);
+        return mult_a_bconj( det, det);
     }
     else{
         // above a treshold matrix size all the calculations are done in quad precision
         // matrix size for which quad precision is necessary
-        return complex_type(1,0);
+        return complex_type(1.0, 0.0);
     }
 
 }

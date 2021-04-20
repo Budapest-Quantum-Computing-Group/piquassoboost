@@ -289,7 +289,7 @@ pic::Complex16 test_calc_determinant_cholesky_lapacke(pic::matrix& mtx){
     for (int i = 0; i < mtx.cols; i++){
         det *= mtx[i * mtx.stride + i];
     }
-    return det * conjugate(det);
+    return pic::mult_a_bconj(det, det);
 }
 
 pic::Complex16 test_calc_determinant_cholesky_ownalgo(pic::matrix& mtx){
@@ -300,7 +300,7 @@ pic::Complex16 test_calc_determinant_cholesky_ownalgo(pic::matrix& mtx){
     for (int i = 0; i < mtx.cols; i++){
         det *= mtx[i * mtx.stride + i];
     }
-    return det * conjugate(det);
+    return pic::mult_a_bconj( det, det);
 }
 
 int test_cholesky_decomposition(){
@@ -340,7 +340,8 @@ int test_cholesky_decomposition(){
         pic::matrix mtx_copy = mtx.copy();
         mtx.print_matrix();
 
-        pic::matrix cholesky = pic::calc_cholesky_decomposition<pic::matrix, pic::Complex16>(mtx);
+        pic::calc_cholesky_decomposition<pic::matrix, pic::Complex16>(mtx);
+        pic::matrix cholesky = mtx;
         
         for(int i = 0; i < dimension; i++){
             for (int j = 0; j < dimension; j++){
@@ -519,10 +520,10 @@ int test_determinant_is_same(){
 int main(){
 
 
-    //test_cholesky_decomposition();
+    test_cholesky_decomposition();
     //test_hessenberg_labudde_selfadjoint();
-    test_runtimes_determinant_calculations();
-    //test_determinant_is_same();
+    //test_runtimes_determinant_calculations();
+    test_determinant_is_same();
 
     return 0;
 
