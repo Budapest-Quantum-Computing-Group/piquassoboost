@@ -10,6 +10,9 @@
 #include "common_functionalities.h"
 #include <math.h>
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
 
 /*
 tbb::spin_mutex my_mutex;
@@ -57,6 +60,67 @@ PowerTraceHafnian::~PowerTraceHafnian() {
 Complex16
 PowerTraceHafnian::calculate() {
 
+    if (mtx.rows == 0) {
+        // the hafnian of an empty matrix is 1 by definition
+        return Complex16(1,0);
+    }
+    else if (mtx.rows % 2 != 0) {
+        // the hafnian of odd shaped matrix is 0 by definition
+        return Complex16(0.0, 0.0);
+    }
+
+
+    size_t dim_over_2 = mtx.rows / 2;
+    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
+
+#ifdef __MPI__
+    // Get the number of processes
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    int current_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+    Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
+
+    // send the calculated partial hafnian to rank 0
+    Complex16* partial_hafnians = new Complex16[world_size];
+
+    MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
+
+    hafnian = Complex16(0.0,0.0);
+    for (size_t idx=0; idx<world_size; idx++) {
+        hafnian = hafnian + partial_hafnians[idx];
+    }
+
+    // release memory on the zero rank
+    delete partial_hafnians;
+
+
+    return hafnian;
+
+#else
+
+    unsigned long long current_rank = 0;
+    unsigned long long world_size = 1;
+
+    Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
+
+    return hafnian;
+#endif
+
+
+
+}
+
+
+/**
+@brief Call to calculate the hafnian of a complex matrix
+@return Returns with the calculated hafnian
+*/
+Complex16
+PowerTraceHafnian::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
 
     if ( mtx.rows != mtx.cols) {
         std::cout << "The input matrix should be square shaped, bu matrix with " << mtx.rows << " rows and with " << mtx.cols << " columns was given" << std::endl;
@@ -85,25 +149,18 @@ PowerTraceHafnian::calculate() {
 #endif
 
     size_t dim = mtx.rows;
-
-
-
-
-
     size_t dim_over_2 = mtx.rows / 2;
-    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
+    //unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
 
     // thread local storages for the partial hafnians
     tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
-    tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
+    tbb::parallel_for( start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
 
 
         Complex32 &summand = summands.local();
-
-        for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
 /*
     Complex32 summand(0.0,0.0);
@@ -137,9 +194,24 @@ PowerTraceHafnian::calculate() {
         // permutation_idx was 1
         // for details see the text below Eq.(3.20) of arXiv 1805.12498
         matrix B(number_of_ones, number_of_ones);
+        double scale_factor_B = 0.0;
         for (size_t idx = 0; idx < number_of_ones; idx++) {
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                B[idx*number_of_ones + jdx] = mtx[positions_of_ones[idx]*dim + ((positions_of_ones[jdx]) ^ 1)];
+                Complex16& element = mtx[positions_of_ones[idx]*dim + ((positions_of_ones[jdx]) ^ 1)];
+                B[idx*number_of_ones + jdx] = element;
+                scale_factor_B = scale_factor_B + element.real()*element.real() + element.imag()*element.imag();
+            }
+        }
+
+
+        // scale matrix B -- when matrix elements of B are scaled, larger part of the computations can be kept in double precision
+        if ( scale_factor_B < 1e-8 ) {
+            scale_factor_B = 1.0;
+        }
+        else {
+            scale_factor_B = std::sqrt(scale_factor_B/2)/B.size();
+            for (size_t idx=0; idx<B.size(); idx++) {
+                B[idx] = B[idx]*scale_factor_B;
             }
         }
 
@@ -155,8 +227,6 @@ PowerTraceHafnian::calculate() {
             memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
         }
 
-
-
         // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
         bool fact = ((dim_over_2 - number_of_ones/2) % 2);
 
@@ -170,10 +240,15 @@ PowerTraceHafnian::calculate() {
         // pointers to the auxiliary data arrays
         Complex32 *p_aux0=NULL, *p_aux1=NULL;
 
+        double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
         for (size_t idx = 1; idx <= dim_over_2; idx++) {
 
 
-            Complex32 factor = traces[idx - 1] / (2.0 * idx);
+            Complex32 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx);
+
+            // refresh the scaling factor
+            inverse_scale_factor = inverse_scale_factor/scale_factor_B;
+
             Complex32 powfactor(1.0,0.0);
 
 
@@ -214,7 +289,7 @@ PowerTraceHafnian::calculate() {
 //std::cout << p_aux1[dim_over_2] << std::endl;
         }
 
-        }
+
 
     });
 
@@ -237,7 +312,6 @@ PowerTraceHafnian::calculate() {
 
     // scale the result by the appropriate factor according to Eq (2.11) of in arXiv 1805.12498
     res = res * pow(scale_factor, dim_over_2);
-
 
     return Complex16(res.real(), res.imag() );
 }
@@ -280,6 +354,7 @@ PowerTraceHafnian::ScaleMatrix() {
             scale_factor = scale_factor + std::sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
         }
         scale_factor = scale_factor/mtx_orig.size()/std::sqrt(2);
+        //scale_factor = scale_factor*mtx_orig.rows;
 
         mtx = mtx_orig.copy();
 

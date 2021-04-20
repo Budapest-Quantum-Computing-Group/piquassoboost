@@ -6,7 +6,11 @@
 #include "BruteForceLoopHafnian.h"
 #include <math.h>
 #include <tbb/tbb.h>
-#include <chrono>
+
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 #include "dot.h"
 
 #include<stdio.h>
@@ -85,6 +89,14 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
     cutoff = 0;
     max_photons = 0;
 
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+#endif // MPI
+
 
 }
 
@@ -98,6 +110,19 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
 */
 GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, const size_t& cutoff, const size_t& max_photons ) {
 
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+    // ensure that each MPI process gets the same input matrix from rank 0
+
+    void* syncronized_data = (void*)covariance_matrix.get_data();
+    MPI_Bcast(syncronized_data, covariance_matrix.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#endif
 
     state = GaussianState_Cov( covariance_matrix, qudratures );
     setCutoff( cutoff );
@@ -122,6 +147,23 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
 */
 GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, matrix& displacement, const size_t& cutoff, const size_t& max_photons ) {
 
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+    // ensure that each MPI process gets the same input matrix from rank 0
+
+    void* syncronized_data = (void*)covariance_matrix.get_data();
+    MPI_Bcast(syncronized_data, covariance_matrix.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    syncronized_data = displacement.get_data();
+    MPI_Bcast(syncronized_data, displacement.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#endif
+
     state = GaussianState_Cov(covariance_matrix, displacement, qudratures);
 
     setCutoff( cutoff );
@@ -134,6 +176,7 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     srand ( time ( NULL));
 
 
+
 }
 
 
@@ -141,6 +184,7 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
 @brief Destructor of the class
 */
 GaussianSimulationStrategy::~GaussianSimulationStrategy() {
+
 }
 
 /**
@@ -188,7 +232,7 @@ std::vector<PicState_int64>
 GaussianSimulationStrategy::simulate( int samples_number ) {
 
     // seed the random generator
-    srand ( time ( NULL));
+    srand ( time( NULL) );
 
 
     // preallocate the memory for the output states
@@ -227,12 +271,6 @@ GaussianSimulationStrategy::getSample() {
     // These samplings depends from each other by the chain rule of probabilites (see Eq (13) in arXiv 2010.15595)
     for (size_t mode_idx=1; mode_idx<=dim_over_2; mode_idx++) {
 
-
-        // container to store probabilities of getting different photon numbers on output of mode mode_idx
-        // it contains maximally cutoff number of photons, the probability of getting higher photn number is stored in the cutoff+1-th element
-        matrix_base<double> probabilities(1, cutoff+1);
-        memset(probabilities.get_data(), 0, probabilities.size()*sizeof(double));
-
         // modes to be extracted to get reduced gaussian state
         PicState_int64 indices_2_extract(mode_idx);
         for (size_t idx=0; idx<mode_idx; idx++) {
@@ -257,6 +295,11 @@ GaussianSimulationStrategy::getSample() {
 
         // create a random double that is used to sample from the probabilities
         double rand_num = (double)rand()/RAND_MAX;
+
+#ifdef __MPI__
+            // ensure all the processes gets the same random number
+            MPI_Bcast(&rand_num, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif // MPI
 
         // the sum of the calculated probabilities
         double prob_sum = 0.0;

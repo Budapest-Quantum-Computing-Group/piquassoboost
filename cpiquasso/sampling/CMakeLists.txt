@@ -6,7 +6,9 @@ add_library( Boson_Sampling_Utilities_wrapper MODULE
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/numpy_interface.cpp
 )
 
-target_link_libraries(Boson_Sampling_Utilities_wrapper cpiquasso ${BLAS_LIBRARIES})
+target_link_libraries(Boson_Sampling_Utilities_wrapper 
+                          cpiquasso 
+                          ${BLAS_LIBRARIES})
 
 python_extension_module(Boson_Sampling_Utilities_wrapper)
 

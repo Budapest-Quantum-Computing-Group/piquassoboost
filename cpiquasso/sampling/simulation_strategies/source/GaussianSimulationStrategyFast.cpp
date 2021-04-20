@@ -28,47 +28,6 @@ tbb::spin_mutex mymutex;
 
 namespace pic {
 
-/**
-@brief Transforms the covariance matrix in the basis \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ...  a_n^* \f$  into the basis \f$ a_1, a_1^*,a_2, a_2^*, ... a_n, a_n^* \f$ suitable for
-the PowerTraceHafnianRecursive algorithm.
-@param mtx A covariance matrix in the basis \f$ a_1, a_2, ... a_n,, a_1^*, a_2^*, ...  a_n^* \f$.
-@return Returns with the covariance matrix in the basis \f$ a_1, a_1^*,a_2, a_2^*, ... a_n, a_n^* \f$.
-*/
-matrix
-getPermutedMatrix( matrix& mtx) {
-
-
-    matrix res(mtx.rows, mtx.cols);
-
-
-    size_t num_of_modes = mtx.rows/2;
-
-    for (size_t row_idx=0; row_idx<num_of_modes; row_idx++ ) {
-
-        size_t row_offset_q_orig = row_idx*mtx.stride;
-        size_t row_offset_p_orig = (row_idx+num_of_modes)*mtx.stride;
-
-        size_t row_offset_q_permuted = 2*row_idx*res.stride;
-        size_t row_offset_p_permuted = (2*row_idx+1)*res.stride;
-
-        for (size_t col_idx=0; col_idx<num_of_modes; col_idx++ ) {
-
-            res[row_offset_q_permuted + col_idx*2] = mtx[row_offset_q_orig + col_idx];
-            res[row_offset_q_permuted + col_idx*2 + 1] = mtx[row_offset_q_orig + num_of_modes + col_idx];
-
-            res[row_offset_p_permuted + col_idx*2] = mtx[row_offset_p_orig + col_idx];
-            res[row_offset_p_permuted + col_idx*2 + 1] = mtx[row_offset_p_orig + num_of_modes + col_idx];
-
-        }
-
-    }
-
-    //res.print_matrix();
-
-    return res;
-
-}
-
 
 /**
 @brief Function to calculate factorial of a number.

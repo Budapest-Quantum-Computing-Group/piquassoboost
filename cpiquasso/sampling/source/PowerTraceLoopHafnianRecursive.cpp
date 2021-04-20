@@ -6,8 +6,12 @@
 #include <math.h>
 
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 /*
-tbb::spin_mutex my_mutex;
+static tbb::spin_mutex my_mutex;
 
 double time_nominator = 0.0;
 double time_nevezo = 0.0;
@@ -51,9 +55,54 @@ PowerTraceLoopHafnianRecursive::~PowerTraceLoopHafnianRecursive() {
 Complex16
 PowerTraceLoopHafnianRecursive::calculate() {
 
+    if (mtx.rows == 0) {
+        // the hafnian of an empty matrix is 1 by definition
+        return Complex16(1,0);
+    }
+
+    // number of modes spanning the gaussian state
+    size_t num_of_modes = occupancy.size();
+
+    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
+
+#ifdef __MPI__
+    // Get the number of processes
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    int current_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
     PowerTraceLoopHafnianRecursive_Tasks hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks(mtx, occupancy);
-    return hafnian_calculator.calculate();
+    Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
+
+    // send the calculated partial hafnian to rank 0
+    Complex16* partial_hafnians = new Complex16[world_size];
+
+    MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
+
+    hafnian = Complex16(0.0,0.0);
+    for (size_t idx=0; idx<world_size; idx++) {
+        hafnian = hafnian + partial_hafnians[idx];
+    }
+
+    // release memory on the zero rank
+    delete partial_hafnians;
+
+
+    return hafnian;
+
+#else
+    unsigned long long current_rank = 0;
+    unsigned long long world_size = 1;
+
+    PowerTraceLoopHafnianRecursive_Tasks hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks(mtx, occupancy);
+    Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
+
+    return hafnian;
+#endif
+
 
 }
 
@@ -137,7 +186,8 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
 
 
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
-    matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes);
+    double scale_factor_B = 0.0;
+    matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes, scale_factor_B);
 
     // diag_elements corresponds to the diagonal elements of the input  matrix used in the loop correction
     matrix&& diag_elements = CreateDiagElements(selected_modes, current_occupancy, num_of_modes);
@@ -179,12 +229,16 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
     // pointers to the auxiliary data arrays
     Complex32 *p_aux0=NULL, *p_aux1=NULL;
 
-
+    double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
+    double inverse_scale_factor_loop = 1; // the (1/scale_factor_B)^(idx-1) power of the local scaling factor of matrix B to scale the loop correction
     for (size_t idx = 1; idx <= total_num_of_modes; idx++) {
 
-        Complex32 factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
+        Complex32 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx) + loop_corrections[idx-1] * 0.5 * inverse_scale_factor_loop;
         Complex32 powfactor(1.0,0.0);
 
+        // refresh the scaling factors
+        inverse_scale_factor = inverse_scale_factor/scale_factor_B;
+        inverse_scale_factor_loop = inverse_scale_factor_loop/scale_factor_B;
 
         if (idx%2 == 1) {
             p_aux0 = aux0.get_data();

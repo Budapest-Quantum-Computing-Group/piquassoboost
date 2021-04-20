@@ -52,6 +52,11 @@ virtual ~PowerTraceHafnian();
 */
 virtual Complex16 calculate();
 
+/**
+@brief Call to calculate the hafnian of a complex matrix
+@return Returns with the calculated hafnian
+*/
+virtual Complex16 calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx );
 
 /**
 @brief Call to update the memory address of the matrix mtx

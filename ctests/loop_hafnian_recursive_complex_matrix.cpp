@@ -9,6 +9,10 @@
 
 #include "tbb/tbb.h"
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 
 /**
 @brief Call to calculate sum of integers stored in a PicState
@@ -154,6 +158,10 @@ int main() {
     // seed the random generator
     srand ( time ( NULL));
 
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
 
     // allocate matrix array for the larger matrix
     size_t dim = 20;
@@ -169,6 +177,11 @@ int main() {
         }
     }
 
+#ifdef __MPI__
+    // ensure that each MPI process gets the same input matrix from rank 0
+    void* syncronized_data = (void*)mtx.get_data();
+    MPI_Bcast(syncronized_data, mtx.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
 
     // array of modes describing the occupancy of the individual modes
     pic::PicState_int64 filling_factors(dim/2);
@@ -181,9 +194,6 @@ int main() {
     filling_factors[3] = 4;
     filling_factors[6] = 2;
     filling_factors[10] = 4;
-    filling_factors[14] = 1;
-    filling_factors[15] = 3;
-    filling_factors[17] = 3;
 
     // matrix containing the repeated rows and columns
     pic::matrix&& mtx_repeated = create_repeated_mtx(mtx, filling_factors);
@@ -219,7 +229,10 @@ int main() {
 
     std::cout << (t1-t0).seconds() << " " << (t3-t2).seconds() << " " << (t1-t0).seconds()/(t3-t2).seconds() << std::endl;
 
-
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
 
 
   return 0;

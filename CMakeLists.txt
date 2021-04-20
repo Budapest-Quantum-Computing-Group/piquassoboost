@@ -24,7 +24,7 @@ set(BLAS_LIBRARIES)
 set(NUMPY_BLAS_LIB_DIR)
 set(NUMPY_BLAS_LIB)
 set(PYTHON_DATA_PATH)
-set(TBB_INC_DIR)
+set(PYTHON_INCLUDES)
 
 
 #enable test target
@@ -82,9 +82,28 @@ find_package(PythonExtensions REQUIRED)
 
 # setting paths for library dependencies
 set(PYTHON_LIBS "${PYTHON_DATA_PATH}/lib" )
-set(TBB_INC_DIR "${PYTHON_DATA_PATH}/include/")
+set(PYTHON_INCLUDES "${PYTHON_DATA_PATH}/include/")
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
+
+#################################################################
+# find MPI libraries if MPI is enables by environment variable CPIQUASSO_MPI
+
+if(DEFINED ENV{CPIQUASSO_MPI})
+  find_package(MPI REQUIRED)
+
+  # openmpi which has a different c++ bindings
+  #add_definitions(-DOMPI_SKIP_MPICXX)
+
+  # setting basic compile flags
+  list(APPEND CXX_FLAGS_DEBUG "-D__MPI__")
+  list(APPEND CXX_FLAGS_RELEASE "-D__MPI__")
+
+  list(APPEND EXTRA_INCLUDES "${MPI_C_INCLUDE_PATH}") 
+
+endif()
+
 
 #################################################################
 
@@ -165,7 +184,7 @@ if(DEFINED ENV{TBB_LIB_DIR})
   list(APPEND TBB_LIBS "-Wl,-rpath=$ENV{TBB_LIB_DIR}" "-L$ENV{TBB_LIB_DIR}" "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
 
 else()
-
+message(${PYTHON_DATA_PATH})
   find_library(TBB_LIB tbb PATH ${PYTHON_LIBS})
 
   if(NOT TBB_LIB)
@@ -199,8 +218,8 @@ if(DEFINED ENV{TBB_INC_DIR})
 
 else()
 
-  check_include_file_cxx(tbb/tbb.h TBB_HEADER "-I${TBB_INC_DIR}")
-  list(APPEND EXTRA_INCLUDES "${TBB_INC_DIR}") 
+  check_include_file_cxx(tbb/tbb.h TBB_HEADER "-I${PYTHON_INCLUDES}")
+  list(APPEND EXTRA_INCLUDES "${PYTHON_INCLUDES}") 
 
   if(NOT TBB_HEADER)
     #message(FATAL_ERROR "TBB header tbb.h not found")
@@ -247,10 +266,12 @@ target_compile_options(cpiquasso PRIVATE
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
 )
 
+
 # adding linking options
 target_link_libraries(cpiquasso PRIVATE
     "$<$<CONFIG:Debug>:${TBB_LIBS} ${BLAS_LIBRARIES}>"
     "$<$<CONFIG:Release>:${TBB_LIBS} ${BLAS_LIBRARIES}>"
+    ${MPI_C_LIBRARIES}    
 )
 
 target_include_directories(cpiquasso PRIVATE
@@ -259,6 +280,8 @@ target_include_directories(cpiquasso PRIVATE
                             ./cpiquasso/gaussian/source
                             ./cpiquasso/sampling/source
                             ${EXTRA_INCLUDES})
+
+
 
 set_target_properties(cpiquasso PROPERTIES
     VERSION ${PROJECT_VERSION}

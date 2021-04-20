@@ -89,61 +89,145 @@ target_include_directories(common_functionalities PRIVATE
 target_link_libraries (hafnian_complex_matrix 
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
 
 
 target_link_libraries (hafnian_recursive_complex_matrix 
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
 
 target_link_libraries (loop_hafnian_recursive_complex_matrix 
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
 
 
 target_link_libraries (brute_force_hafnian_complex_matrix
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
 
 target_link_libraries (brute_force_loop_hafnian_complex_matrix
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
 
 target_link_libraries (dot_stride
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
                            
 target_link_libraries (extract_rows
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
 
 target_link_libraries (extract_corner
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
                            
 target_link_libraries (insert_transformed_cols
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
                            
                            
 target_link_libraries (insert_transformed_rows
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
                            
                            
 target_link_libraries (common_functionalities
                            cpiquasso
                            ${TBB_LIBS}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
 
+
+# adding compile options
+target_compile_options(hafnian_complex_matrix PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+
+# adding compile options
+target_compile_options(hafnian_recursive_complex_matrix PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+
+# adding compile options
+target_compile_options(loop_hafnian_recursive_complex_matrix PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+
+# adding compile options
+target_compile_options(brute_force_hafnian_complex_matrix PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+# adding compile options
+target_compile_options(brute_force_loop_hafnian_complex_matrix PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+# adding compile options
+target_compile_options(dot_stride PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+# adding compile options
+target_compile_options(extract_rows PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+# adding compile options
+target_compile_options(extract_corner PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+# adding compile options
+target_compile_options(insert_transformed_cols PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+# adding compile options
+target_compile_options(insert_transformed_rows PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
 
 
