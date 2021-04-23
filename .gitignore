@@ -4,6 +4,7 @@ build
 _skbuild
 cpiquasso.egg-info
 
+.vscode
 
 *.so
 *.so.*
