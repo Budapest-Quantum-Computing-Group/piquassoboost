@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10.2)
 # set the project name and version
 project(CPiquasso VERSION 0.1)
 
-
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)
@@ -25,6 +25,7 @@ set(NUMPY_BLAS_LIB_DIR)
 set(NUMPY_BLAS_LIB)
 set(PYTHON_DATA_PATH)
 set(PYTHON_INCLUDES)
+set(PYTHON_PLAT_LIB)
 
 
 #enable test target
@@ -38,6 +39,52 @@ enable_testing()
 # find out python packages
 find_package(PythonInterp)
 find_package(PythonLibs)
+
+
+exec_program(${PYTHON_EXECUTABLE}
+             ARGS "-c \"from sysconfig import get_paths; info = get_paths(); platlib=info.get('platlib',' '); print(platlib)\""
+             OUTPUT_VARIABLE PYTHON_PLAT_LIB
+             RETURN_VALUE PLATLIB_NOT_FOUND
+            )
+if(PLATLIB_NOT_FOUND)
+    message(FATAL_ERROR "Python platlib not found")
+endif()
+
+set(ENV{PYTHONPATH} "$ENV{PYTHONPATH};${PYTHON_PLAT_LIB}")
+message("PYTHONPATH is set to "$ENV{PYTHONPATH})
+
+# contruct library directories
+exec_program(${PYTHON_EXECUTABLE}
+             ARGS "-c \"import sys; ret=';'.join(sys.path); print(ret)\""
+             OUTPUT_VARIABLE PYTHON_SYS_PATH
+             RETURN_VALUE SYSPATH_NOT_FOUND
+            )
+if(SYSPATH_NOT_FOUND)
+    message(FATAL_ERROR "Python syspath not found")
+endif()
+
+message(${PYTHON_SYS_PATH})
+
+
+
+
+# contruct include directories
+exec_program(${PYTHON_EXECUTABLE}
+             ARGS "-c \"import sys; tmp = [s + '/../../../include' for s in sys.path]; ret=';'.join(tmp); print(ret)\""
+             OUTPUT_VARIABLE CMAKE_REQUIRED_INCLUDES
+             RETURN_VALUE SYSPATH_NOT_FOUND
+            )
+if(SYSPATH_NOT_FOUND)
+    message(FATAL_ERROR "Python include path not found")
+endif()
+
+message("Include paths: " ${CMAKE_REQUIRED_INCLUDES})
+
+
+
+
+
+
 
 
 # Determine Numpy input directory
@@ -138,7 +185,6 @@ endif()
 list(APPEND CXX_FLAGS_DEBUG "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-DDEBUG" "-fno-builtin-malloc" "-fno-builtin-calloc" "-fno-builtin-realloc" "-fno-builtin-free" "-fpermissive")
 list(APPEND CXX_FLAGS_RELEASE "-Wall" "-O3" "-m64" "-msse3" "-mssse3" "-msse4.1" "-mavx2" "-DNDEBUG" "-fno-builtin-malloc" "-fno-builtin-calloc" "-fno-builtin-realloc" "-fno-builtin-free" "-fpermissive")
 
-
 # Identify the compiler type and set compiler specific options
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # using Clang
@@ -174,6 +220,7 @@ if(DEFINED ENV{TBB_LIB_DIR})
     message(FATAL_ERROR "TBB library not found")
   endif()
 
+
   find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy PATH $ENV{TBB_LIB_DIR} )
 
   if(NOT TBBMALLOC_PROXY_LIB)
@@ -184,24 +231,35 @@ if(DEFINED ENV{TBB_LIB_DIR})
   list(APPEND TBB_LIBS "-Wl,-rpath=$ENV{TBB_LIB_DIR}" "-L$ENV{TBB_LIB_DIR}" "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
 
 else()
-message(${PYTHON_DATA_PATH})
-  find_library(TBB_LIB tbb PATH ${PYTHON_LIBS})
+
+  find_library(TBB_LIB tbb
+               PATHS ${PYTHON_SYS_PATH}
+               PATH_SUFFIXES "/../../../lib")
 
   if(NOT TBB_LIB)
     message(FATAL_ERROR "TBB library not found")
   endif()
 
-  find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy PATH ${PYTHON_LIBS} )
+  find_library(TBBMALLOC_LIB tbbmalloc
+               PATHS ${PYTHON_SYS_PATH}
+               PATH_SUFFIXES "/../../../lib")
+
+  if(NOT TBBMALLOC_LIB )
+    message(FATAL_ERROR "TBBMALLOC library not found")
+  endif()
+
+
+
+  find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy
+               PATHS ${PYTHON_SYS_PATH}
+               PATH_SUFFIXES "/../../../lib")
 
   if(NOT TBBMALLOC_PROXY_LIB)
     message(FATAL_ERROR "TBBMALLOC_PROXY library not found")
   endif()
 
-  list(APPEND TBB_LIBS "-Wl,-rpath=${PYTHON_LIBS}" "-L${PYTHON_LIBS}" "-ltbb" "-ltbbmalloc_proxy" "-ltbbmalloc")
-
+  
 endif()
-
-#set(CMAKE_REQUIRED_LIBRARIES "tbb")
 
 
 # adding TBB include dir
@@ -217,12 +275,13 @@ if(DEFINED ENV{TBB_INC_DIR})
   list(APPEND EXTRA_INCLUDES "$ENV{TBB_INC_DIR}")
 
 else()
-
-  check_include_file_cxx(tbb/tbb.h TBB_HEADER "-I${PYTHON_INCLUDES}")
-  list(APPEND EXTRA_INCLUDES "${PYTHON_INCLUDES}") 
+ 
+  set(CMAKE_REQUIRED_FLAGS "-c")
+  check_include_file_cxx(tbb/tbb.h TBB_HEADER )
+  list(APPEND EXTRA_INCLUDES "${CMAKE_REQUIRED_INCLUDES}") 
 
   if(NOT TBB_HEADER)
-    #message(FATAL_ERROR "TBB header tbb.h not found")
+    message(FATAL_ERROR "TBB header tbb.h not found")
   endif()
 
 
@@ -269,8 +328,11 @@ target_compile_options(cpiquasso PRIVATE
 
 # adding linking options
 target_link_libraries(cpiquasso PRIVATE
-    "$<$<CONFIG:Debug>:${TBB_LIBS} ${BLAS_LIBRARIES}>"
-    "$<$<CONFIG:Release>:${TBB_LIBS} ${BLAS_LIBRARIES}>"
+    "$<$<CONFIG:Debug>:${BLAS_LIBRARIES}>"
+    "$<$<CONFIG:Release>:${BLAS_LIBRARIES}>"
+    ${TBBMALLOC_LIB}
+    ${TBBMALLOC_PROXY_LIB}
+    ${TBB_LIB}
     ${MPI_C_LIBRARIES}    
 )
 
@@ -279,6 +341,7 @@ target_include_directories(cpiquasso PRIVATE
                             ./cpiquasso/common/source
                             ./cpiquasso/gaussian/source
                             ./cpiquasso/sampling/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 
