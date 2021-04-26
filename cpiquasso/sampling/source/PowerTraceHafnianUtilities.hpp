@@ -565,7 +565,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
         }
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        matrix32&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix32, Complex32>(AZ32, AZ.rows);
+        matrix_type&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, complex_type>(AZ32, AZ.rows);
 
         // calculate the power traces of the matrix AZ using LeVerrier recursion relation
         return powtrace_from_charpoly<matrix_type>(coeffs_labudde, pow_max);

@@ -173,12 +173,12 @@ PowerTraceLoopHafnianRecursive_Tasks::~PowerTraceLoopHafnianRecursive_Tasks() {
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-Complex32
+Complex16
 PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
 
 
 
-    Complex32 summand(0.0,0.0);
+    Complex16 summand(0.0,0.0);
 
     size_t num_of_modes = sum(current_occupancy);
     size_t total_num_of_modes = sum(occupancy);
@@ -200,7 +200,7 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
         cx_diag_elements[idx] = diag_elements[idx-1];
         cx_diag_elements[idx-1] = diag_elements[idx];
     }
-
+/*
     // calculate the loop correction elements for the loop hafnian
     matrix32 loop_corrections = CalculateLoopCorrection(diag_elements, cx_diag_elements, B, total_num_of_modes);
 
@@ -208,7 +208,7 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
     matrix32 traces(total_num_of_modes, 1);
     if (num_of_modes != 0) {
-        traces = calc_power_traces<matrix32, Complex32>(B, total_num_of_modes);
+        traces = calc_power_traces<matrix, Complex16>(B, total_num_of_modes);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -276,7 +276,7 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
 //std::cout << p_aux1[total_num_of_modes] << std::endl;
     }
 
-
+*/
     return summand;
 
 
