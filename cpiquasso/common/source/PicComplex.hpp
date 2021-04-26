@@ -247,7 +247,12 @@ bool operator<( const Complex_base<scalar> &value) {
 };
 
 
-
+/**
+@brief Define operator * between a Complex_base and a double type.
+@param a A complex number
+@param b A double precision number
+@return Returns with the calculated product
+*/
 template< class scalar >
 Complex_base<scalar> operator* (const Complex_base<scalar>& a, const double &b ) {
 
@@ -256,10 +261,29 @@ Complex_base<scalar> operator* (const Complex_base<scalar>& a, const double &b )
 }
 
 
+/**
+@brief Define operator * between double and Complex_base type.
+@param b A double precision number
+@param a A complex number
+@return Returns with the calculated product
+*/
 template< class scalar >
 Complex_base<scalar> operator* (const double &b, const Complex_base<scalar>& a ) {
 
     return Complex_base<scalar>( a.real()*b, a.imag()*b);
+
+}
+
+
+/**
+@brief Define operator - for Complex_base type.
+@param a A complex number
+@return Returns with the calculated complex number
+*/
+template< class scalar >
+Complex_base<scalar> operator- (const Complex_base<scalar>& a ) {
+
+    return Complex_base<scalar>( -a.real(), -a.imag());
 
 }
 

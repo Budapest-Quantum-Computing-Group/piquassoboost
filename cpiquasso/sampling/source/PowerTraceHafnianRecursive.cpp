@@ -442,7 +442,7 @@ std::cout << std::endl;
     ComplexM<double> &hafnian_priv = priv_addend.local();
 //std::cout << "combinatorial_fact " << combinatorial_fact << std::endl;
 //std::cout << "partial_hafnian " << partial_hafnian << std::endl;
-    hafnian_priv.add( partial_hafnian * (double)combinatorial_fact );
+    hafnian_priv += partial_hafnian * (double)combinatorial_fact;
 
 
 
@@ -460,9 +460,6 @@ std::cout << std::endl;
 Complex16
 PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
 
-
-
-    Complex16 summand(0.0,0.0);
 
     size_t num_of_modes = sum(current_occupancy);
     size_t total_num_of_modes = sum(occupancy);
@@ -539,16 +536,15 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
 
 
     if (fact) {
-        summand = summand - p_aux1[total_num_of_modes];
+        return -p_aux1[total_num_of_modes];
 //std::cout << -p_aux1[total_num_of_modes] << std::endl;
     }
     else {
-        summand = summand + p_aux1[total_num_of_modes];
+        return p_aux1[total_num_of_modes];
 //std::cout << p_aux1[total_num_of_modes] << std::endl;
     }
 
 
-    return summand;
 
 
 }

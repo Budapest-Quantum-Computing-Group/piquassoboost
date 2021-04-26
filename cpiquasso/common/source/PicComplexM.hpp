@@ -74,15 +74,16 @@ ComplexM<scalar>( scalar a) {
 };
 
 /**
-@brief Add a complex number to the current multiprecision one
+@brief Define operator += for the multiprecision complex number representation
 @param value A Complex_base<scalar> valued input.
 */
-void add( const Complex_base<scalar> &value) {
+void operator +=( const Complex_base<scalar> &value) {
 
     add( value, 0);
 
     return;
 };
+
 
 
 private:
