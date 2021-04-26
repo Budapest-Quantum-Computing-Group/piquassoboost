@@ -630,7 +630,45 @@ calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elem
     matrix_type loop_correction(num_of_modes, 1);
     matrix_type tmp_vec(1, diag_elements.size());
 
+    for (size_t idx=0; idx<num_of_modes; idx++) {
 
+        complex_type tmp(0.0,0.0);
+        for (size_t jdx=0; jdx<diag_elements.size(); jdx++) {
+            tmp = tmp + cx_diag_elements[jdx] * diag_elements[jdx];
+        }
+
+        loop_correction[idx] = tmp;
+
+
+        memset(tmp_vec.get_data(), 0, tmp_vec.size()*sizeof(complex_type));
+
+        if (sizeof(complex_type) == 16) {
+
+            Complex16 alpha(1.0,0.0);
+            Complex16 beta(0.0,0.0);
+
+            cblas_zgemv(CblasRowMajor, CblasNoTrans, AZ.rows, AZ.cols, (void*)&alpha, (void*)AZ.get_data(), AZ.stride,
+            (void*)diag_elements.get_data(), 1, (void*)&beta, (void*)tmp_vec.get_data(), 1);
+        }
+        else {
+            for (size_t jdx=0; jdx<diag_elements.size(); jdx++) {
+                tmp = complex_type(0.0,0.0);
+                complex_type* data = AZ.get_data() + jdx*AZ.stride;
+                for (size_t kdx=0; kdx<diag_elements.size(); kdx++) {
+                    tmp += data[kdx] * diag_elements[kdx];
+                }
+                tmp_vec[jdx] = tmp;
+            }
+        }
+
+
+        memcpy(diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+
+    }
+
+
+
+/*
     for (size_t idx=0; idx<num_of_modes; idx++) {
 
         complex_type tmp(0.0,0.0);
@@ -652,7 +690,7 @@ calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elem
          memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
 
     }
-
+*/
 
     return loop_correction;
 

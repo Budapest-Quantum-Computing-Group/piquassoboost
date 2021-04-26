@@ -2,6 +2,7 @@
 #define PowerTraceHafnianUtilities_H
 
 #include "matrix.h"
+#include "dot.h"
 
 
 extern "C" {
