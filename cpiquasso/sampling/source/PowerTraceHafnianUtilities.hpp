@@ -547,7 +547,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
     // The lapack function to calculate the Hessenberg transformation is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
     // quad precision
-    else if ( (AZ.rows < 40 && (sizeof(complex_type) > sizeof(Complex16))) || (sizeof(complex_type) == sizeof(Complex16)) ) {
+    else if ( (AZ.rows < 40) || (sizeof(complex_type) == sizeof(Complex16)) ) {
 
 
         // transform the matrix mtx into an upper Hessenberg format by calling lapack function

@@ -106,7 +106,7 @@ void ScaleMatrix();
 @param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
 @return Returns with the calculated loop correction
 */
-matrix32 CalculateLoopCorrection(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ, const size_t& num_of_modes);
+matrix CalculateLoopCorrection(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ, const size_t& num_of_modes);
 
 
 /**

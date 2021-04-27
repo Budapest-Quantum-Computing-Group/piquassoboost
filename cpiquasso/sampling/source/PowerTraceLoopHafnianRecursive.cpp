@@ -200,20 +200,20 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
         cx_diag_elements[idx] = diag_elements[idx-1];
         cx_diag_elements[idx-1] = diag_elements[idx];
     }
-/*
+
     // calculate the loop correction elements for the loop hafnian
-    matrix32 loop_corrections = CalculateLoopCorrection(diag_elements, cx_diag_elements, B, total_num_of_modes);
+    matrix loop_corrections = CalculateLoopCorrection(diag_elements, cx_diag_elements, B, total_num_of_modes);
 
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-    matrix32 traces(total_num_of_modes, 1);
+    matrix traces(total_num_of_modes, 1);
     if (num_of_modes != 0) {
         traces = calc_power_traces<matrix, Complex16>(B, total_num_of_modes);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
         // this occurs once during the calculations
-        memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
+        memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex16));
     }
 
     // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
@@ -221,20 +221,20 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
 
 
     // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-    matrix32 aux0(total_num_of_modes + 1, 1);
-    matrix32 aux1(total_num_of_modes + 1, 1);
-    memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex32));
-    memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex32));
+    matrix aux0(total_num_of_modes + 1, 1);
+    matrix aux1(total_num_of_modes + 1, 1);
+    memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex16));
+    memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex16));
     aux0[0] = 1.0;
     // pointers to the auxiliary data arrays
-    Complex32 *p_aux0=NULL, *p_aux1=NULL;
+    Complex16 *p_aux0=NULL, *p_aux1=NULL;
 
     double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
     double inverse_scale_factor_loop = 1; // the (1/scale_factor_B)^(idx-1) power of the local scaling factor of matrix B to scale the loop correction
     for (size_t idx = 1; idx <= total_num_of_modes; idx++) {
 
-        Complex32 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx) + loop_corrections[idx-1] * 0.5 * inverse_scale_factor_loop;
-        Complex32 powfactor(1.0,0.0);
+        Complex16 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx) + loop_corrections[idx-1] * 0.5 * inverse_scale_factor_loop;
+        Complex16 powfactor(1.0,0.0);
 
         // refresh the scaling factors
         inverse_scale_factor = inverse_scale_factor/scale_factor_B;
@@ -249,7 +249,7 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
             p_aux1 = aux0.get_data();
         }
 
-        memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(Complex32) );
+        memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(Complex16) );
 
         for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
             powfactor = powfactor * factor / ((double)jdx);
@@ -276,7 +276,7 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
 //std::cout << p_aux1[total_num_of_modes] << std::endl;
     }
 
-*/
+
     return summand;
 
 
@@ -370,27 +370,28 @@ PowerTraceLoopHafnianRecursive_Tasks::CreateDiagElements( const PicVector<char>&
 @param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
 @return Returns with the calculated loop correction
 */
-matrix32
+matrix
 PowerTraceLoopHafnianRecursive_Tasks::CalculateLoopCorrection(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ, const size_t& num_of_modes) {
 
 
-    if (AZ.rows < 30) {
+//    if (AZ.rows < 30) {
 
         // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
         matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(diag_elements, cx_diag_elements, AZ, num_of_modes);
-
+/*
         matrix32 loop_correction32(num_of_modes, 1);
         for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
             loop_correction32[idx].real( loop_correction[idx].real() );
             loop_correction32[idx].imag( loop_correction[idx].imag() );
         }
-
-        return loop_correction32;
-
+*/
+        return loop_correction;
+/*
     }
     else{
 
         // for smaller matrices first convert the input matrices to 32 byte precision, than calculate the diag correction
+
         matrix32 diag_elements32( diag_elements.rows, diag_elements.cols);
         matrix32 cx_diag_elements32( cx_diag_elements.rows, cx_diag_elements.cols);
         for (size_t idx=0; idx<diag_elements32.size(); idx++) {
@@ -412,7 +413,7 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculateLoopCorrection(matrix &diag_eleme
 
     }
 
-
+*/
 
 }
 
