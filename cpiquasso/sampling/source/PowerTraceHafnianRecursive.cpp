@@ -1,3 +1,7 @@
+#ifndef LONG_DOUBLE_CUTOFF
+#define LONG_DOUBLE_CUTOFF 50
+#endif // LONG_DOUBLE_CUTOFF
+
 #include <iostream>
 #include "PowerTraceHafnianRecursive.h"
 #include "PowerTraceHafnianUtilities.hpp"
@@ -234,7 +238,7 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
     tbb::task_group tg;
 
     // thread local storage for partial hafnian
-    tbb::combinable<ComplexM<double>> priv_addend{[](){return ComplexM<double>();}};
+    tbb::combinable<ComplexM<long double>> priv_addend{[](){return ComplexM<long double>();}};
 
     // for cycle over the combinations of occupancy
     tbb::parallel_for(start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
@@ -285,8 +289,8 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
     tg.wait();
 
 
-    Complex16 hafnian( 0.0, 0.0 );
-    priv_addend.combine_each([&](ComplexM<double> &a) {
+    Complex32 hafnian( 0.0, 0.0 );
+    priv_addend.combine_each([&](ComplexM<long double> &a) {
         hafnian = hafnian + a.get();
     });
 
@@ -318,7 +322,7 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
 @param tg Reference to a tbb::task_group
 */
 void
-PowerTraceHafnianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<double>>& priv_addend, tbb::task_group &tg ) {
+PowerTraceHafnianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg ) {
 
 
 
@@ -429,7 +433,7 @@ std::cout << std::endl;
 
 
     // calculate the partial hafnian for the given filling factors of the selected occupancy
-    Complex16 partial_hafnian = CalculatePartialHafnian( selected_modes, current_occupancy);
+    Complex32 partial_hafnian = CalculatePartialHafnian( selected_modes, current_occupancy);
 
     // add partial hafnian to the sum including the combinatorial factors
     unsigned long long combinatorial_fact = 1;
@@ -439,10 +443,10 @@ std::cout << std::endl;
                                                                  );
     }
 
-    ComplexM<double> &hafnian_priv = priv_addend.local();
+    ComplexM<long double> &hafnian_priv = priv_addend.local();
 //std::cout << "combinatorial_fact " << combinatorial_fact << std::endl;
 //std::cout << "partial_hafnian " << partial_hafnian << std::endl;
-    hafnian_priv += partial_hafnian * (double)combinatorial_fact;
+    hafnian_priv += partial_hafnian * (long double)combinatorial_fact;
 
 
 
@@ -457,7 +461,7 @@ std::cout << std::endl;
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-Complex16
+Complex32
 PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
 
 
@@ -473,14 +477,14 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
 
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-    matrix traces(total_num_of_modes, 1);
+    matrix32 traces(total_num_of_modes, 1);
     if (num_of_modes != 0) {
-        traces = calc_power_traces<matrix, Complex16>(B, total_num_of_modes);
+        traces = calc_power_traces<matrix32, Complex32>(B, total_num_of_modes);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
         // this occurs once during the calculations
-        memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex16));
+        memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
     }
 
 
@@ -489,19 +493,19 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
 
 
     // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-    matrix aux0(total_num_of_modes + 1, 1);
-    matrix aux1(total_num_of_modes + 1, 1);
-    memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex16));
-    memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex16));
+    matrix32 aux0(total_num_of_modes + 1, 1);
+    matrix32 aux1(total_num_of_modes + 1, 1);
+    memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex32));
+    memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex32));
     aux0[0] = 1.0;
     // pointers to the auxiliary data arrays
-    Complex16 *p_aux0=NULL, *p_aux1=NULL;
+    Complex32 *p_aux0=NULL, *p_aux1=NULL;
     double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
     for (size_t idx = 1; idx <= total_num_of_modes; idx++) {
 
 
-        Complex16 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx);
-        Complex16 powfactor(1.0,0.0);
+        Complex32 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx);
+        Complex32 powfactor(1.0,0.0);
 
         // refresh the scaling factor
         inverse_scale_factor = inverse_scale_factor/scale_factor_B;
@@ -517,7 +521,7 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
             p_aux1 = aux0.get_data();
         }
 
-        memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(Complex16) );
+        memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(Complex32) );
 
         for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
             powfactor = powfactor * factor / ((double)jdx);

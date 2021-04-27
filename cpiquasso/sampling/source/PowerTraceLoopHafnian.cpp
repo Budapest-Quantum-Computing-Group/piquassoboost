@@ -1,3 +1,7 @@
+#ifndef LONG_DOUBLE_CUTOFF
+#define LONG_DOUBLE_CUTOFF 40
+#endif // LONG_DOUBLE_CUTOFF
+
 #include <iostream>
 #include "PowerTraceLoopHafnian.h"
 #include "PowerTraceHafnianUtilities.hpp"

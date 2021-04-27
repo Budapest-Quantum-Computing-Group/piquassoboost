@@ -87,7 +87,7 @@ protected:
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-Complex16 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
+Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
 
 
 
@@ -106,7 +106,7 @@ void ScaleMatrix();
 @param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
 @return Returns with the calculated loop correction
 */
-matrix CalculateLoopCorrection(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ, const size_t& num_of_modes);
+matrix32 CalculateLoopCorrection(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ, const size_t& num_of_modes);
 
 
 /**

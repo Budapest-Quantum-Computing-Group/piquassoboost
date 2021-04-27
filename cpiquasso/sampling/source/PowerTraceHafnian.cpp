@@ -1,6 +1,6 @@
-#ifndef USE_LAPACK
-#define USE_LAPACK 1
-#endif // USE_LAPACK
+#ifndef LONG_DOUBLE_CUTOFF
+#define LONG_DOUBLE_CUTOFF 40
+#endif // LONG_DOUBLE_CUTOFF
 
 #include <iostream>
 #include "PowerTraceHafnian.h"
