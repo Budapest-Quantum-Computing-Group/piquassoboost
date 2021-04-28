@@ -150,97 +150,6 @@ pic::matrix embedding(pic::matrix& mtxIn, size_t toDim){
 
 }
 
-template<class matrix_type>
-matrix_type
-matrix_conjugate_traspose(matrix_type& matrix)
-{
-    matrix_type transposed(matrix.cols, matrix.rows);
-
-    for (size_t i = 0; i < matrix.rows; i++){
-        for (size_t j = 0; j < matrix.cols; j++){
-            transposed[j * transposed.stride + i].real(matrix[i * matrix.stride + j].real());
-            transposed[j * transposed.stride + i].imag(-matrix[i * matrix.stride + j].imag());
-        }
-    }
-    return transposed;
-}
-
-
-namespace pic{
-
-enum RandomMatrixType
-{
-    RANDOM,
-    SYMMETRIC,
-    SELFADJOINT,
-    POSITIVE_DEFINIT
-};
-
-} // namespace pic
-
-// returns a random matrix of the given type:
-// RANDOM : fully random
-// SYMMETRIC : random complex symmetric matrix
-// SELFADJOINT : random selfadjoint (hermitian) matrix
-template<class matrix_type, class complex_type>
-matrix_type 
-getRandomMatrix(size_t n, pic::RandomMatrixType type){
-    matrix_type mtx(n, n);
-
-    // initialize random generator as a standard normal distribution generator
-    std::default_random_engine generator;
-    generator.seed(time(NULL));
-    std::normal_distribution<long double> distribution(0.0, 1.0);
-
-    if (type == pic::RANDOM){
-        // fill up matrix with fully random elements
-        for (size_t row_idx = 0; row_idx < n; row_idx++) {
-            for (size_t col_idx = 0; col_idx < n; col_idx++) {
-                long double randnum1 = distribution(generator);
-                long double randnum2 = distribution(generator);
-                mtx[row_idx * n + col_idx] = complex_type(randnum1, randnum2);
-            }
-        }
-    }else if (type == pic::SYMMETRIC){
-        // fill up matrix with fully random elements symmetrically
-        for (size_t row_idx = 0; row_idx < n; row_idx++) {
-            for (size_t col_idx = row_idx; col_idx < n; col_idx++) {
-                long double randnum1 = distribution(generator);
-                long double randnum2 = distribution(generator);
-                mtx[row_idx * n + col_idx] = complex_type(randnum1, randnum2);
-                mtx[col_idx * n + row_idx] = complex_type(randnum1, randnum2);
-            }
-        }
-    }else if (type == pic::SELFADJOINT){
-        // hermitian case, selfadjoint matrix
-        for (size_t row_idx = 0; row_idx < n; row_idx++) {
-            for (size_t col_idx = row_idx; col_idx < n; col_idx++) {
-                long double randnum1 = distribution(generator);
-                if (row_idx == col_idx){
-                    mtx[row_idx * n + col_idx] = complex_type(randnum1, 0);
-                }else{
-                    long double randnum2 = distribution(generator);
-                    mtx[row_idx * n + col_idx] = complex_type(randnum1, randnum2);
-                    mtx[col_idx * n + row_idx] = complex_type(randnum1, -randnum2);
-                }
-            }
-        }
-    }else if (type == pic::POSITIVE_DEFINIT){
-        // hermitian case, selfadjoint, positive definite matrix
-        // if you have a random matrix M then M * M^* gives you a positive definite hermitian matrix
-        matrix_type mtx1 = getRandomMatrix<matrix_type, complex_type>(n, pic::RANDOM);
-        matrix_type mtx2 = matrix_conjugate_traspose<matrix_type>(mtx1);
-
-        mtx = pic::dot(mtx1, mtx2);
-
-        for (size_t i = 0; i < n; i++){
-            for (size_t j = 0; j < n; j++){
-                mtx[i * n + j] /= n;
-            }
-        }        
-    }
-    return mtx;
-}
 
 
 // method which checks the hessenberg property with a tolerance (currently the matrix has to be selfadjoint as well)
@@ -309,7 +218,7 @@ int test_cholesky_decomposition(){
     // Cholesky decomposition by LAPACKE:
     if (0){
         std::cout<<"Matrix to be transformed: "<<std::endl;
-        pic::matrix mtx = getRandomMatrix<pic::matrix, pic::Complex16>(dimension, pic::POSITIVE_DEFINIT);
+        pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dimension, pic::POSITIVE_DEFINIT);
         pic::matrix mtx_copy = mtx.copy();
 
         mtx.print_matrix();
@@ -318,7 +227,7 @@ int test_cholesky_decomposition(){
         std::cout<<"Cholesky form (L): "<<std::endl;
         mtx.print_matrix();
 
-        pic::matrix cholesky_adjoint = matrix_conjugate_traspose<pic::matrix>(mtx);
+        pic::matrix cholesky_adjoint = pic::matrix_conjugate_traspose<pic::matrix>(mtx);
         pic::matrix product = pic::dot(mtx, cholesky_adjoint);
 
         std::cout<<"L * L^*: "<<std::endl;
@@ -336,7 +245,7 @@ int test_cholesky_decomposition(){
 
     // Cholesky decomposition by https://www.geeksforgeeks.org/cholesky-decomposition-matrix-decomposition/:
     if (1){
-        pic::matrix mtx = getRandomMatrix<pic::matrix, pic::Complex16>(dimension, pic::POSITIVE_DEFINIT);
+        pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dimension, pic::POSITIVE_DEFINIT);
         pic::matrix mtx_copy = mtx.copy();
         mtx.print_matrix();
 
@@ -352,7 +261,7 @@ int test_cholesky_decomposition(){
         }
         cholesky.print_matrix();
         pic::matrix c1 = cholesky.copy();
-        pic::matrix c2 = matrix_conjugate_traspose<pic::matrix>(cholesky);
+        pic::matrix c2 = pic::matrix_conjugate_traspose<pic::matrix>(cholesky);
 
         
         pic::matrix product = pic::dot(c1, c2);
@@ -377,7 +286,7 @@ int test_cholesky_decomposition(){
 int test_hessenberg_labudde_selfadjoint(){
     size_t dimension = 5;
 
-    pic::matrix mtx = getRandomMatrix<pic::matrix, pic::Complex16>(dimension, pic::SELFADJOINT);
+    pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dimension, pic::SELFADJOINT);
 
     mtx.print_matrix();
 
@@ -454,7 +363,7 @@ int test_runtimes_determinant_calculations(){
             pic::Complex16 determinants[numberOfCalcTypes];
 
             pic::matrix matrices[numberOfCalcTypes];
-            matrices[0] = getRandomMatrix<pic::matrix, pic::Complex16>(n, pic::POSITIVE_DEFINIT);
+            matrices[0] = pic::getRandomMatrix<pic::matrix, pic::Complex16>(n, pic::POSITIVE_DEFINIT);
             for (size_t typeIdx = 1; typeIdx < numberOfCalcTypes; typeIdx++){
                 matrices[typeIdx] = matrices[0].copy();
             }
@@ -495,7 +404,7 @@ int test_runtimes_determinant_calculations(){
 int test_determinant_is_same(){
     size_t n = 8;
 
-    pic::matrix mtx0 = getRandomMatrix<pic::matrix, pic::Complex16>(n, pic::POSITIVE_DEFINIT);
+    pic::matrix mtx0 = pic::getRandomMatrix<pic::matrix, pic::Complex16>(n, pic::POSITIVE_DEFINIT);
     pic::matrix mtx1 = embedding(mtx0, n);
     pic::matrix mtx2 = embedding(mtx0, n);
     pic::matrix mtx3 = embedding(mtx0, n);
@@ -523,7 +432,7 @@ int main(){
     test_cholesky_decomposition();
     //test_hessenberg_labudde_selfadjoint();
     //test_runtimes_determinant_calculations();
-    test_determinant_is_same();
+    //test_determinant_is_same();
 
     return 0;
 

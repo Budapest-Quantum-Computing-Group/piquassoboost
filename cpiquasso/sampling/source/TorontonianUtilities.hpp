@@ -304,6 +304,8 @@ calc_determinant_of_selfadjoint_hessenberg_matrix(matrix_type& mtx) {
         if (n == 1){
             // determinant is the single element of the matrix
             return mtx[0];
+        }else if (n == 0){
+            return complex_type(1.0, 0.0);
         }else{
             // det : (0,0)*(1,1)-(0,1)*(1,0)
             return mtx[0]*mtx[3] - mtx[1]*mtx[2];
@@ -466,7 +468,12 @@ calc_cholesky_decomposition(matrix_type& matrix)
                 for (int k = 0; k < j; k++){
                     sum += mult_a_bconj( row_i[k], row_j[k]);
                 }
+                std::cout << "L_("<<i<<","<<j<<") : sum: " << sum<<std::endl;
+                std::cout << "L_("<<i<<","<<j<<") : mult: " << mult_a_bconj( row_i[j-1], row_j[j-1])<<std::endl;
+                
+                
                 row_i[j] = (row_i[j] - sum) / row_j[j];
+                std::cout << "L_("<<i<<","<<j<<") : value: " << row_i[j]<<std::endl;
             }
         }
         complex_type sum = 0;
