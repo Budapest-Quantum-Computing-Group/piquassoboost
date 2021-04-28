@@ -29,7 +29,8 @@ setup(
         "numpy>=1.19.4",
         "quantum-blackbird>=0.2.4",
         "BoSS-Tomev>=0.0.6",
-        "tbb-devel"
+        "ninja",
+        "tbb-devel",
         "mpi4py"
     ],
     tests_require=["pytest"],

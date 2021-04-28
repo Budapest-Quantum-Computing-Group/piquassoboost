@@ -30,28 +30,33 @@ add_executable (common_functionalities common_functionalities.cpp)
 target_include_directories(hafnian_complex_matrix PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(hafnian_recursive_complex_matrix PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
                             ../cpiquasso/sampling/simulation_strategies/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(loop_hafnian_recursive_complex_matrix PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(brute_force_hafnian_complex_matrix PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 
 target_include_directories(brute_force_loop_hafnian_complex_matrix PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(dot_stride PRIVATE
@@ -61,6 +66,7 @@ target_include_directories(dot_stride PRIVATE
 target_include_directories(extract_rows PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/gaussian/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 target_include_directories(extract_corner PRIVATE
                             ../cpiquasso/common/source
@@ -70,15 +76,18 @@ target_include_directories(extract_corner PRIVATE
 target_include_directories(insert_transformed_cols PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/gaussian/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
                             
 target_include_directories(insert_transformed_rows PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/gaussian/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(common_functionalities PRIVATE
                             ../cpiquasso/common/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
                             
 
@@ -88,71 +97,93 @@ target_include_directories(common_functionalities PRIVATE
 # decomposition_test
 target_link_libraries (hafnian_complex_matrix 
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 
 target_link_libraries (hafnian_recursive_complex_matrix 
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (loop_hafnian_recursive_complex_matrix 
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 
 target_link_libraries (brute_force_hafnian_complex_matrix
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (brute_force_loop_hafnian_complex_matrix
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (dot_stride
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
                            
 target_link_libraries (extract_rows
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (extract_corner
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
                            
 target_link_libraries (insert_transformed_cols
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
                            
                            
 target_link_libraries (insert_transformed_rows
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
                            
                            
 target_link_libraries (common_functionalities
                            cpiquasso
-                           ${TBB_LIBS}
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
