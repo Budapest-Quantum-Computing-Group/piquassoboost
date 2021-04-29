@@ -204,7 +204,7 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
     }
 
     // calculate the loop correction elements for the loop hafnian
-    matrix32 loop_corrections = CalculateLoopCorrection(diag_elements, cx_diag_elements, B, total_num_of_modes);
+    matrix32 loop_corrections = CalculateLoopCorrection(cx_diag_elements, diag_elements, B, total_num_of_modes);
 
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
@@ -371,13 +371,13 @@ PowerTraceLoopHafnianRecursive_Tasks::CreateDiagElements( const PicVector<char>&
 @return Returns with the calculated loop correction
 */
 matrix32
-PowerTraceLoopHafnianRecursive_Tasks::CalculateLoopCorrection(matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ, const size_t& num_of_modes) {
+PowerTraceLoopHafnianRecursive_Tasks::CalculateLoopCorrection(matrix &cx_diag_elements, matrix& diag_elements, matrix& AZ, const size_t& num_of_modes) {
 
 
     if (AZ.rows < 30) {
 
         // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
-        matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(diag_elements, cx_diag_elements, AZ, num_of_modes);
+        matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(cx_diag_elements, diag_elements, AZ, num_of_modes);
 
         matrix32 loop_correction32(num_of_modes, 1);
         for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
@@ -408,7 +408,7 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculateLoopCorrection(matrix &diag_eleme
             AZ_32[idx].imag( AZ[idx].imag() );
         }
 
-        return calculate_loop_correction<matrix32, Complex32>(diag_elements32, cx_diag_elements32, AZ_32, num_of_modes);
+        return calculate_loop_correction<matrix32, Complex32>(cx_diag_elements32, diag_elements32, AZ_32, num_of_modes);
 
 
     }

@@ -10,12 +10,12 @@
 
 #define HOUSEHOLDER_COTUFF 40
 
-/*
+
 static tbb::spin_mutex my_mutex;
 
 static double time_szamlalo = 0.0;
 static double time_nevezo = 0.0;
-*/
+
 
 namespace pic {
 
@@ -261,6 +261,7 @@ apply_householder_cols_req(matrix_type &A, matrix_type &v) {
 
 
 
+
 /**
 @brief Reduce a general matrix to upper Hessenberg form.
 @param matrix matrix to be reduced to upper Hessenberg form. The reduced matrix is returned via this input
@@ -281,17 +282,64 @@ transform_matrix_to_hessenberg(matrix_type &mtx) {
 
       if (norm_v_sqr == 0.0) continue;
 
-      // construct strided matrix in which the elements under the diagonal in the first column are transformed to zero by Householder transformation
+      // construct strided submatrix in which the elements under the diagonal in the first column are transformed to zero by Householder transformation
       matrix_type mtx_strided(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, mtx.cols-idx+1, mtx.stride);
 
       // apply Householder transformation from the left
       apply_householder_rows<matrix_type, complex_type>(mtx_strided, reflect_vector);
 
-      // construct strided matrix on which the Householder transformation is applied from the right
+      // construct strided submatrix on which the Householder transformation is applied from the right
       mtx_strided = matrix_type(mtx.get_data() + idx, mtx.rows, mtx.cols-idx, mtx.stride);
 
       // apply Householder transformation from the right
       apply_householder_cols_req<matrix_type, complex_type>(mtx_strided, reflect_vector);
+
+  }
+
+
+
+}
+
+
+
+/**
+@brief Reduce a general matrix to upper Hessenberg form and applies the unitary transformation on left/right sided vectors to keep the \f$ <L|M|R> \f$ product invariant.
+@param matrix matrix to be reduced to upper Hessenberg form. The reduced matrix is returned via this input
+@param Lv the left sided vector
+@param Rv the roght sided vector
+*/
+template<class matrix_type, class complex_type>
+void
+transform_matrix_to_hessenberg(matrix_type &mtx, matrix_type Lv, matrix_type Rv ) {
+
+  // apply recursive Hauseholder transformation to eliminate the matrix elements column by column
+  for (size_t idx = 1; idx < mtx.rows - 1; idx++) {
+
+      // construct strided matrix containing data to get the reflection matrix
+      matrix_type ref_vector_input(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, 1, mtx.stride);
+
+      // get reflection matrix and its norm
+      double norm_v_sqr(0.0);
+      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type>(ref_vector_input, norm_v_sqr);
+
+      if (norm_v_sqr == 0.0) continue;
+
+      // apply Householder transformation on the matrix from the left
+      matrix_type mtx_strided(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, mtx.cols-idx+1, mtx.stride);
+      apply_householder_rows<matrix_type, complex_type>(mtx_strided, reflect_vector);
+
+      // apply Householder transformation on the left vector
+      matrix_type Lv_strided(Lv.get_data()+idx, Lv.rows, Lv.cols-idx, Lv.stride);
+      apply_householder_cols_req<matrix_type, complex_type>(Lv_strided, reflect_vector);
+
+      // apply Householder transformation from the right
+      mtx_strided = matrix_type(mtx.get_data() + idx, mtx.rows, mtx.cols-idx, mtx.stride);
+      apply_householder_cols_req<matrix_type, complex_type>(mtx_strided, reflect_vector);
+
+      // apply Householder transformation on the right vector
+      matrix_type Rv_strided(Rv.get_data()+Rv.stride*idx, Rv.rows-idx, Rv.cols, Rv.stride);
+      apply_householder_rows<matrix_type, complex_type>(Rv_strided, reflect_vector);
+
 
   }
 
@@ -461,33 +509,34 @@ template<class matrix_type>
 matrix_type
 powtrace_from_charpoly(matrix_type &coeffs, size_t pow) {
 
-  size_t dim = coeffs.rows;
+    size_t dim = coeffs.rows;
 
 
-  if (pow == 0) {
-    matrix_type ret(1,1);
-    ret[0].real( (double) dim );
-    ret[0].imag( 0.0 );
-    return ret;
-  }
+    if (pow == 0) {
+        matrix_type ret(1,1);
+        ret[0].real( (double) dim );
+        ret[0].imag( 0.0 );
+        return ret;
+    }
 
-  // allocate memory for the power traces
-  matrix_type traces(pow,1);
+    // allocate memory for the power traces
+    matrix_type traces(pow,1);
 
 
-  // Tr(A)
-  traces[0] = -coeffs[(dim - 1) * dim];
+    // Tr(A) = -c1
+    size_t element_offset = (dim - 1) * dim;
+    traces[0] = -coeffs[element_offset];
 
   // Calculate power traces using the LeVerrier recursion relation
   size_t kdx_max = pow < dim ? pow : dim;
   for (size_t idx = 2; idx <= kdx_max; idx++) {
 
     // Tr(A^idx)
-    size_t element_offset = (dim - 1) * dim + idx - 1;
-    traces[idx - 1] = coeffs[element_offset] * (-(double)idx);
+    size_t element_offset2 = (dim - 1) * dim + idx - 1;
+    traces[idx - 1] = coeffs[element_offset2] * (-(double)idx);
 
     for (size_t j = idx - 1; j >= 1; j--) {
-      traces[idx - 1] -= coeffs[element_offset - j] * traces[j - 1];
+      traces[idx - 1] -= coeffs[element_offset2 - j] * traces[j - 1];
     }
 
   }
@@ -629,7 +678,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
 */
 template<class matrix_type, class complex_type>
 matrix_type
-calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elements, matrix_type& AZ, size_t num_of_modes) {
+calculate_loop_correction( matrix_type &cx_diag_elements, matrix_type& diag_elements, matrix_type& AZ, size_t num_of_modes) {
 
     matrix_type loop_correction(num_of_modes, 1);
     matrix_type tmp_vec(1, diag_elements.size());
@@ -638,7 +687,7 @@ calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elem
 
         complex_type tmp(0.0,0.0);
         for (size_t jdx=0; jdx<diag_elements.size(); jdx++) {
-            tmp = tmp + cx_diag_elements[jdx] * diag_elements[jdx];
+            tmp = tmp + diag_elements[jdx] * cx_diag_elements[jdx];
         }
 
         loop_correction[idx] = tmp;
@@ -652,21 +701,22 @@ calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elem
             Complex16 beta(0.0,0.0);
 
             cblas_zgemv(CblasRowMajor, CblasNoTrans, AZ.rows, AZ.cols, (void*)&alpha, (void*)AZ.get_data(), AZ.stride,
-            (void*)diag_elements.get_data(), 1, (void*)&beta, (void*)tmp_vec.get_data(), 1);
+            (void*)cx_diag_elements.get_data(), 1, (void*)&beta, (void*)tmp_vec.get_data(), 1);
         }
         else {
-            for (size_t jdx=0; jdx<diag_elements.size(); jdx++) {
+
+            for (size_t jdx=0; jdx<cx_diag_elements.size(); jdx++) {
                 tmp = complex_type(0.0,0.0);
                 complex_type* data = AZ.get_data() + jdx*AZ.stride;
-                for (size_t kdx=0; kdx<diag_elements.size(); kdx++) {
-                    tmp += data[kdx] * diag_elements[kdx];
+                for (size_t kdx=0; kdx<cx_diag_elements.size(); kdx++) {
+                    tmp += data[kdx] * cx_diag_elements[kdx];
                 }
                 tmp_vec[jdx] = tmp;
             }
         }
 
 
-        memcpy(diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+        memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
 
     }
 
@@ -697,6 +747,256 @@ calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elem
 */
 
     return loop_correction;
+
+}
+
+
+
+
+
+
+/**
+@brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
+@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
+@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@return Returns with the calculated loop correction
+*/
+template<class matrix_type, class complex_type>
+matrix_type
+calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_elements, matrix_type& AZ, size_t num_of_modes) {
+
+    matrix_type loop_correction(num_of_modes, 1);
+    //transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ, diag_elements, cx_diag_elements);
+
+/*
+{
+      tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+if (AZ.rows == 6) {
+    AZ.print_matrix();
+//std::cout << tmp << " " << tmp2 << std::endl;
+}
+}
+*/
+/*
+if (AZ.rows == 6) {
+    exit(-1);
+}
+*/
+
+    size_t max_idx = cx_diag_elements.size();
+    matrix_type tmp_vec(1, max_idx);
+    Complex16* tmp_vec_data = tmp_vec.get_data();
+    Complex16* cx_data = cx_diag_elements.get_data();
+    Complex16* diag_data = diag_elements.get_data();
+
+    __m256d neg = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);
+
+    for (size_t idx=0; idx<num_of_modes; idx++) {
+
+
+        Complex16 tmp(0.0,0.0);
+
+        for(size_t kdx = 0; kdx<max_idx; kdx=kdx+2) {
+            __m256d diag_vec = _mm256_load_pd((double*)(diag_data+kdx));
+            __m256d cx_vec = _mm256_load_pd((double*)(cx_data+kdx));
+
+            // Multiply elements of AZ_vec and cx_vec
+            __m256d vec3 = _mm256_mul_pd(diag_vec, cx_vec);
+
+            // Switch the real and imaginary elements of vec2
+            cx_vec = _mm256_permute_pd(cx_vec, 0x5);
+
+            // Negate the imaginary elements of cx_vec
+            cx_vec = _mm256_mul_pd(cx_vec, neg);
+
+            // Multiply elements of AZ_vec and the modified cx_vec
+            __m256d vec4 = _mm256_mul_pd(diag_vec, cx_vec);
+
+            // Horizontally subtract the elements in vec3 and vec4
+            cx_vec = _mm256_hsub_pd(vec3, vec4);
+
+            // get the higher 128 bit of the register
+            __m128d cx_vec_high = _mm256_extractf128_pd(cx_vec, 1);
+
+            // calculate the sum of the numbers
+            cx_vec_high = _mm_add_pd(cx_vec_high, _mm256_castpd256_pd128(cx_vec) );
+
+            tmp += *((Complex16*)&cx_vec_high[0]);
+
+
+        }
+
+/*
+        for (size_t jdx=0; jdx<max_idx; jdx++) {
+            tmp = tmp + diag_elements[jdx] * cx_diag_elements[jdx];
+        }
+*/
+        loop_correction[idx] = tmp;
+
+
+        Complex16* data = AZ.get_data();
+
+        __m128d _tmp = _mm_setzero_pd();
+
+
+        for(size_t kdx = 0; kdx<max_idx; kdx=kdx+2) {
+            __m256d AZ_vec = _mm256_load_pd((double*)(data+kdx));
+            //__m256d AZ_vec2 = _mm256_load_pd((double*)(data+AZ.stride+kdx));
+            __m256d cx_vec = _mm256_load_pd((double*)(cx_data+kdx));
+
+            // Multiply elements of AZ_vec and cx_vec
+            __m256d vec3 = _mm256_mul_pd(AZ_vec, cx_vec);
+
+            // Switch the real and imaginary elements of vec2
+            cx_vec = _mm256_permute_pd(cx_vec, 0x5);
+
+            // Negate the imaginary elements of cx_vec
+            cx_vec = _mm256_mul_pd(cx_vec, neg);
+
+            // Multiply elements of AZ_vec and the modified cx_vec
+            __m256d vec4 = _mm256_mul_pd(AZ_vec, cx_vec);
+
+            // Horizontally subtract the elements in vec3 and vec4
+            cx_vec = _mm256_hsub_pd(vec3, vec4);
+
+            // get the higher 128 bit of the register
+            __m128d cx_vec_high = _mm256_extractf128_pd(cx_vec, 1);
+
+            // calculate the sum of the numbers
+            cx_vec_high = _mm_add_pd(cx_vec_high, _mm256_castpd256_pd128(cx_vec) );
+
+            _tmp = _mm_add_pd(_tmp, cx_vec_high );
+
+
+
+        }
+
+/*
+        for (size_t kdx=0; kdx<max_idx; kdx++) {
+            tmp += data[kdx] * cx_data[kdx];
+        }
+*/
+        tmp_vec[0] = *((Complex16*)&_tmp[0]);
+
+
+
+        for (size_t jdx=1; jdx<max_idx; jdx++) {
+            data = data + AZ.stride;
+
+            __m128d _tmp = _mm_setzero_pd();
+
+            size_t start_idx = jdx-1;
+            if (start_idx % 2 == 1 ) {
+                _tmp = _mm_load_pd((double*)&(data[start_idx] * cx_data[start_idx]) );
+                start_idx++;
+            }
+
+
+            for(size_t kdx = start_idx; kdx<max_idx; kdx=kdx+2) {
+                __m256d AZ_vec = _mm256_load_pd((double*)(data + kdx));
+                __m256d cx_vec = _mm256_load_pd((double*)(cx_data + kdx));
+
+                // Multiply elements of AZ_vec and cx_vec
+                __m256d vec3 = _mm256_mul_pd(AZ_vec, cx_vec);
+
+                // Switch the real and imaginary elements of vec2
+                cx_vec = _mm256_permute_pd(cx_vec, 0x5);
+
+                // Negate the imaginary elements of cx_vec
+                cx_vec = _mm256_mul_pd(cx_vec, neg);
+
+                // Multiply elements of AZ_vec and the modified cx_vec
+                __m256d vec4 = _mm256_mul_pd(AZ_vec, cx_vec);
+
+                // Horizontally subtract the elements in vec3 and vec4
+                cx_vec = _mm256_hsub_pd(vec3, vec4);
+
+                // get the higher 128 bit of the register
+                __m128d cx_vec_high = _mm256_extractf128_pd(cx_vec, 1);
+
+                // calculate the sum of the numbers
+                cx_vec_high = _mm_add_pd(cx_vec_high, _mm256_castpd256_pd128(cx_vec) );
+
+                _tmp = _mm_add_pd(_tmp, cx_vec_high );
+
+
+            }
+
+/*
+            for (size_t kdx=jdx-1; kdx<cx_diag_elements.size(); kdx++) {
+                tmp += data[kdx] * cx_diag_elements[kdx];
+            }
+*/
+            tmp_vec[jdx] = *((Complex16*)&_tmp[0]);
+
+
+            }
+
+
+        memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+
+    }
+
+
+    return loop_correction;
+
+}
+
+
+
+/**
+@brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
+@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
+@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@return Returns with the calculated loop correction
+*/
+template<class matrix_type, class complex_type>
+matrix_type
+CalculateLoopCorrectionWithHessenberg( matrix &cx_diag_elements, matrix& diag_elements, matrix& AZ, size_t dim_over_2) {
+
+
+/*
+
+    if (AZ.rows < 30) {
+*/
+        // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
+        matrix &&loop_correction = calculate_loop_correction_2<matrix, Complex16>(cx_diag_elements, diag_elements, AZ, dim_over_2);
+
+        matrix_type loop_correction32(dim_over_2, 1);
+        for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
+            loop_correction32[idx].real( loop_correction[idx].real() );
+            loop_correction32[idx].imag( loop_correction[idx].imag() );
+        }
+
+        return loop_correction32;
+/*
+    }
+    else{
+
+        // for smaller matrices first convert the input matrices to 32 byte precision, than calculate the diag correction
+        matrix_type diag_elements32( diag_elements.rows, diag_elements.cols);
+        matrix_type cx_diag_elements32( cx_diag_elements.rows, cx_diag_elements.cols);
+        for (size_t idx=0; idx<diag_elements32.size(); idx++) {
+            diag_elements32[idx].real( diag_elements[idx].real() );
+            diag_elements32[idx].imag( diag_elements[idx].imag() );
+
+            cx_diag_elements32[idx].real( cx_diag_elements[idx].real() );
+            cx_diag_elements32[idx].imag( cx_diag_elements[idx].imag() );
+        }
+
+        matrix_type AZ_32( AZ.rows, AZ.cols);
+        for (size_t idx=0; idx<AZ.size(); idx++) {
+            AZ_32[idx].real( AZ[idx].real() );
+            AZ_32[idx].imag( AZ[idx].imag() );
+        }
+
+        return calculate_loop_correction_2<matrix_type, complex_type>(cx_diag_elements32, diag_elements32, AZ_32, dim_over_2);
+
+
+    }
+*/
 
 }
 

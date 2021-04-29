@@ -617,8 +617,9 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
     matrix AZ(num_of_modes*2, num_of_modes*2);
     scale_factor_AZ = 0.0;
     for (size_t idx = 0; idx < 2*num_of_modes; idx++) {
+        size_t row_offset = (idx^1)*A.stride;
         for (size_t jdx = 0; jdx < 2*num_of_modes; jdx++) {
-            Complex16 &element = A[idx*A.stride + (jdx ^ 1)];
+            Complex16 &element = A[row_offset + jdx];
             AZ[idx*AZ.stride + jdx] = element;
             scale_factor_AZ = scale_factor_AZ + element.real()*element.real() + element.imag()*element.imag();
         }

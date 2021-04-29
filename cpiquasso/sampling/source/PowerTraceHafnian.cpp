@@ -196,8 +196,9 @@ PowerTraceHafnian::calculate(unsigned long long start_idx, unsigned long long st
         matrix B(number_of_ones, number_of_ones);
         double scale_factor_B = 0.0;
         for (size_t idx = 0; idx < number_of_ones; idx++) {
+            size_t row_offset = (positions_of_ones[idx] ^ 1)*mtx.stride;
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                Complex16& element = mtx[positions_of_ones[idx]*dim + ((positions_of_ones[jdx]) ^ 1)];
+                Complex16& element = mtx[ row_offset + positions_of_ones[jdx]];
                 B[idx*number_of_ones + jdx] = element;
                 scale_factor_B = scale_factor_B + element.real()*element.real() + element.imag()*element.imag();
             }

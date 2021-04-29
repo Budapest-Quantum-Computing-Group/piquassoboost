@@ -70,6 +70,9 @@ virtual matrix32 CalculateLoopCorrection(matrix &diag_elements, matrix& cx_diag_
 
 
 
+
+
+
 }; //PowerTraceLoopHafnian
 
 

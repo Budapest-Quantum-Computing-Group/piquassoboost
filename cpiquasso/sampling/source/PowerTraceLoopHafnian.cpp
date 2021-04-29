@@ -188,29 +188,58 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
         matrix AZ(number_of_ones, number_of_ones);
         matrix diag_elements(1, number_of_ones);
         for (size_t idx = 0; idx < number_of_ones; idx++) {
+            size_t row_offset = (positions_of_ones[idx] ^ 1)*mtx.stride;
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                AZ[idx*AZ.stride + jdx] = mtx[positions_of_ones[idx]*mtx.stride + ((positions_of_ones[jdx]) ^ 1)];
-
+                AZ[idx*AZ.stride + jdx] = mtx[row_offset + ((positions_of_ones[jdx]))];
             }
-            diag_elements[idx] = mtx[positions_of_ones[idx]*mtx.stride + positions_of_ones[idx]];
+            diag_elements[idx] = mtx[(positions_of_ones[idx])*mtx.stride + positions_of_ones[idx]];
 
         }
-/*
-{
-      tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-      diag_elements.print_matrix();
-  }
-  */
+
         // select the X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
-        matrix cx_diag_elements(1, number_of_ones);
+        matrix cx_diag_elements(number_of_ones, 1);
         for (size_t idx = 1; idx < number_of_ones; idx=idx+2) {
             cx_diag_elements[idx] = diag_elements[idx-1];
             cx_diag_elements[idx-1] = diag_elements[idx];
         }
 
-        // calculate the loop correction elements for the loop hafnian
-        matrix32 loop_corrections = CalculateLoopCorrection(diag_elements, cx_diag_elements, AZ);
 
+        matrix cx_diag_elements2 = cx_diag_elements.copy();
+        matrix diag_elements2 = diag_elements.copy();
+        matrix AZ2 = AZ.copy();
+tbb::tick_count t0 = tbb::tick_count::now();
+        matrix32 loop_corrections2 = CalculateLoopCorrectionWithHessenberg<matrix32, Complex32>(cx_diag_elements2, diag_elements2, AZ2, mtx.rows/2);
+tbb::tick_count t1 = tbb::tick_count::now();
+
+tbb::tick_count t2 = tbb::tick_count::now();
+        // calculate the loop correction elements for the loop hafnian
+        matrix32 loop_corrections = CalculateLoopCorrection(cx_diag_elements, diag_elements, AZ);
+tbb::tick_count t3 = tbb::tick_count::now();
+
+
+
+{
+      tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+
+time_szamlalo += (t1-t0).seconds();
+time_nevezo += (t3-t2).seconds();
+
+std::cout << time_szamlalo/time_nevezo << std::endl;
+
+/*
+if (AZ.rows == 6) {
+    loop_corrections.print_matrix();
+    loop_corrections2.print_matrix();
+
+}
+*/
+}
+
+/*
+if (AZ.rows == 6) {
+    exit(-1);
+}
+*/
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
         matrix32 traces(dim_over_2, 1);
@@ -322,14 +351,14 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
 @return Returns with the calculated loop correction
 */
 matrix32
-PowerTraceLoopHafnian::CalculateLoopCorrection( matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ) {
+PowerTraceLoopHafnian::CalculateLoopCorrection( matrix &cx_diag_elements, matrix& diag_elements, matrix& AZ) {
 
     size_t dim_over_2 = mtx.rows/2;
 
-    if (AZ.rows < 30) {
+    if (AZ.rows < 3000) {
 
         // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
-        matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(diag_elements, cx_diag_elements, AZ, dim_over_2);
+        matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(cx_diag_elements, diag_elements, AZ, dim_over_2);
 
         matrix32 loop_correction32(dim_over_2, 1);
         for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
@@ -359,13 +388,20 @@ PowerTraceLoopHafnian::CalculateLoopCorrection( matrix &diag_elements, matrix& c
             AZ_32[idx].imag( AZ[idx].imag() );
         }
 
-        return calculate_loop_correction<matrix32, Complex32>(diag_elements32, cx_diag_elements32, AZ_32, dim_over_2);
+        return calculate_loop_correction<matrix32, Complex32>(cx_diag_elements32, diag_elements32, AZ_32, dim_over_2);
 
 
     }
 
 
 }
+
+
+
+
+
+
+
 
 
 

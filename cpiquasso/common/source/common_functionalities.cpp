@@ -3,7 +3,7 @@
 
 #include "common_functionalities.h"
 
- 
+
 
 
 namespace pic {
@@ -118,7 +118,7 @@ bool isSymmetric( matrix mtx_in, double tolerance ){
         return false;
     }
     const size_t dim = mtx_in.rows;
-    
+
     for (size_t row_idx = 0; row_idx < dim; row_idx++){
         for (size_t col_idx = row_idx + 1; col_idx < dim; col_idx++){
             Complex16 diff = mtx_in[row_idx * dim + col_idx] - mtx_in[col_idx * dim + row_idx];
@@ -142,7 +142,7 @@ bool isHermitian( matrix mtx_in, double tolerance ){
         return false;
     }
     const size_t dim = mtx_in.rows;
-    
+
     for (size_t row_idx = 0; row_idx < dim; row_idx++){
         for (size_t col_idx = row_idx; col_idx < dim; col_idx++){
             Complex16 diff = mtx_in[row_idx * dim + col_idx] - std::conj(mtx_in[col_idx * dim + row_idx]);
@@ -153,6 +153,7 @@ bool isHermitian( matrix mtx_in, double tolerance ){
     }
     return true;
 }
+
 
 
 } // PIC
