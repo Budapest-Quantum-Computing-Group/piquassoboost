@@ -208,7 +208,7 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
         matrix diag_elements2 = diag_elements.copy();
         matrix AZ2 = AZ.copy();
 tbb::tick_count t0 = tbb::tick_count::now();
-        matrix32 loop_corrections2 = CalculateLoopCorrectionWithHessenberg<matrix32, Complex32>(cx_diag_elements2, diag_elements2, AZ2, mtx.rows/2);
+        matrix32 loop_corrections2 = CalculateLoopCorrectionWithHessenberg(cx_diag_elements2, diag_elements2, AZ2, mtx.rows/2);
 tbb::tick_count t1 = tbb::tick_count::now();
 
 tbb::tick_count t2 = tbb::tick_count::now();
@@ -226,20 +226,20 @@ time_nevezo += (t3-t2).seconds();
 
 std::cout << time_szamlalo/time_nevezo << std::endl;
 
-/*
+
 if (AZ.rows == 6) {
     loop_corrections.print_matrix();
     loop_corrections2.print_matrix();
 
 }
-*/
+
 }
 
-/*
+
 if (AZ.rows == 6) {
     exit(-1);
 }
-*/
+
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
         matrix32 traces(dim_over_2, 1);

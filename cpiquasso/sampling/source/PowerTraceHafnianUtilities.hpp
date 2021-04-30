@@ -769,169 +769,43 @@ calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_el
     matrix_type loop_correction(num_of_modes, 1);
     //transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ, diag_elements, cx_diag_elements);
 
-/*
-{
-      tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-if (AZ.rows == 6) {
-    AZ.print_matrix();
-//std::cout << tmp << " " << tmp2 << std::endl;
-}
-}
-*/
-/*
-if (AZ.rows == 6) {
-    exit(-1);
-}
-*/
-
     size_t max_idx = cx_diag_elements.size();
     matrix_type tmp_vec(1, max_idx);
-    Complex16* tmp_vec_data = tmp_vec.get_data();
-    Complex16* cx_data = cx_diag_elements.get_data();
-    Complex16* diag_data = diag_elements.get_data();
+    complex_type* tmp_vec_data = tmp_vec.get_data();
+    complex_type* cx_data = cx_diag_elements.get_data();
+    complex_type* diag_data = diag_elements.get_data();
 
-    __m256d neg = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);
 
     for (size_t idx=0; idx<num_of_modes; idx++) {
 
 
         Complex16 tmp(0.0,0.0);
-
-        for(size_t kdx = 0; kdx<max_idx; kdx=kdx+2) {
-            __m256d diag_vec = _mm256_load_pd((double*)(diag_data+kdx));
-            __m256d cx_vec = _mm256_load_pd((double*)(cx_data+kdx));
-
-            // Multiply elements of AZ_vec and cx_vec
-            __m256d vec3 = _mm256_mul_pd(diag_vec, cx_vec);
-
-            // Switch the real and imaginary elements of vec2
-            cx_vec = _mm256_permute_pd(cx_vec, 0x5);
-
-            // Negate the imaginary elements of cx_vec
-            cx_vec = _mm256_mul_pd(cx_vec, neg);
-
-            // Multiply elements of AZ_vec and the modified cx_vec
-            __m256d vec4 = _mm256_mul_pd(diag_vec, cx_vec);
-
-            // Horizontally subtract the elements in vec3 and vec4
-            cx_vec = _mm256_hsub_pd(vec3, vec4);
-
-            // get the higher 128 bit of the register
-            __m128d cx_vec_high = _mm256_extractf128_pd(cx_vec, 1);
-
-            // calculate the sum of the numbers
-            cx_vec_high = _mm_add_pd(cx_vec_high, _mm256_castpd256_pd128(cx_vec) );
-
-            tmp += *((Complex16*)&cx_vec_high[0]);
-
-
-        }
-
-/*
         for (size_t jdx=0; jdx<max_idx; jdx++) {
-            tmp = tmp + diag_elements[jdx] * cx_diag_elements[jdx];
+            tmp = tmp + diag_data[jdx] * cx_data[jdx];
         }
-*/
+
         loop_correction[idx] = tmp;
 
 
-        Complex16* data = AZ.get_data();
-
-        __m128d _tmp = _mm_setzero_pd();
+        complex_type* data = AZ.get_data();
 
 
-        for(size_t kdx = 0; kdx<max_idx; kdx=kdx+2) {
-            __m256d AZ_vec = _mm256_load_pd((double*)(data+kdx));
-            //__m256d AZ_vec2 = _mm256_load_pd((double*)(data+AZ.stride+kdx));
-            __m256d cx_vec = _mm256_load_pd((double*)(cx_data+kdx));
-
-            // Multiply elements of AZ_vec and cx_vec
-            __m256d vec3 = _mm256_mul_pd(AZ_vec, cx_vec);
-
-            // Switch the real and imaginary elements of vec2
-            cx_vec = _mm256_permute_pd(cx_vec, 0x5);
-
-            // Negate the imaginary elements of cx_vec
-            cx_vec = _mm256_mul_pd(cx_vec, neg);
-
-            // Multiply elements of AZ_vec and the modified cx_vec
-            __m256d vec4 = _mm256_mul_pd(AZ_vec, cx_vec);
-
-            // Horizontally subtract the elements in vec3 and vec4
-            cx_vec = _mm256_hsub_pd(vec3, vec4);
-
-            // get the higher 128 bit of the register
-            __m128d cx_vec_high = _mm256_extractf128_pd(cx_vec, 1);
-
-            // calculate the sum of the numbers
-            cx_vec_high = _mm_add_pd(cx_vec_high, _mm256_castpd256_pd128(cx_vec) );
-
-            _tmp = _mm_add_pd(_tmp, cx_vec_high );
-
-
-
-        }
-
-/*
+        tmp = Complex16(0.0,0.0);
         for (size_t kdx=0; kdx<max_idx; kdx++) {
             tmp += data[kdx] * cx_data[kdx];
         }
-*/
-        tmp_vec[0] = *((Complex16*)&_tmp[0]);
-
+        tmp_vec[0] = tmp;
 
 
         for (size_t jdx=1; jdx<max_idx; jdx++) {
             data = data + AZ.stride;
-
-            __m128d _tmp = _mm_setzero_pd();
-
-            size_t start_idx = jdx-1;
-            if (start_idx % 2 == 1 ) {
-                _tmp = _mm_load_pd((double*)&(data[start_idx] * cx_data[start_idx]) );
-                start_idx++;
+            tmp = Complex16(0.0,0.0);
+            for (size_t kdx=jdx-1; kdx<max_idx; kdx++) {
+                tmp += data[kdx] * cx_data[kdx];
             }
+            tmp_vec[jdx] = tmp;
 
-
-            for(size_t kdx = start_idx; kdx<max_idx; kdx=kdx+2) {
-                __m256d AZ_vec = _mm256_load_pd((double*)(data + kdx));
-                __m256d cx_vec = _mm256_load_pd((double*)(cx_data + kdx));
-
-                // Multiply elements of AZ_vec and cx_vec
-                __m256d vec3 = _mm256_mul_pd(AZ_vec, cx_vec);
-
-                // Switch the real and imaginary elements of vec2
-                cx_vec = _mm256_permute_pd(cx_vec, 0x5);
-
-                // Negate the imaginary elements of cx_vec
-                cx_vec = _mm256_mul_pd(cx_vec, neg);
-
-                // Multiply elements of AZ_vec and the modified cx_vec
-                __m256d vec4 = _mm256_mul_pd(AZ_vec, cx_vec);
-
-                // Horizontally subtract the elements in vec3 and vec4
-                cx_vec = _mm256_hsub_pd(vec3, vec4);
-
-                // get the higher 128 bit of the register
-                __m128d cx_vec_high = _mm256_extractf128_pd(cx_vec, 1);
-
-                // calculate the sum of the numbers
-                cx_vec_high = _mm_add_pd(cx_vec_high, _mm256_castpd256_pd128(cx_vec) );
-
-                _tmp = _mm_add_pd(_tmp, cx_vec_high );
-
-
-            }
-
-/*
-            for (size_t kdx=jdx-1; kdx<cx_diag_elements.size(); kdx++) {
-                tmp += data[kdx] * cx_diag_elements[kdx];
-            }
-*/
-            tmp_vec[jdx] = *((Complex16*)&_tmp[0]);
-
-
-            }
+        }
 
 
         memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
