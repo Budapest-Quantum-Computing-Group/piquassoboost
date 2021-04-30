@@ -602,7 +602,6 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
     // quad precision
     else if ( (AZ.rows < 40) || (sizeof(complex_type) == sizeof(Complex16)) ) {
 
-
         // transform the matrix mtx into an upper Hessenberg format by calling lapack function
         int N = AZ.rows;
         int ILO = 1;
@@ -779,7 +778,7 @@ calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_el
     for (size_t idx=0; idx<num_of_modes; idx++) {
 
 
-        Complex16 tmp(0.0,0.0);
+        complex_type tmp(0.0,0.0);
         for (size_t jdx=0; jdx<max_idx; jdx++) {
             tmp = tmp + diag_data[jdx] * cx_data[jdx];
         }
@@ -790,7 +789,7 @@ calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_el
         complex_type* data = AZ.get_data();
 
 
-        tmp = Complex16(0.0,0.0);
+        tmp = complex_type(0.0,0.0);
         for (size_t kdx=0; kdx<max_idx; kdx++) {
             tmp += data[kdx] * cx_data[kdx];
         }
@@ -799,7 +798,7 @@ calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_el
 
         for (size_t jdx=1; jdx<max_idx; jdx++) {
             data = data + AZ.stride;
-            tmp = Complex16(0.0,0.0);
+            tmp = complex_type(0.0,0.0);
             for (size_t kdx=jdx-1; kdx<max_idx; kdx++) {
                 tmp += data[kdx] * cx_data[kdx];
             }
