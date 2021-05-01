@@ -1,5 +1,5 @@
 #include "PowerTraceHafnianUtilities.hpp"
-
+#include "calc_vH_times_A_AVX.h"
 
 
 namespace pic {
@@ -46,16 +46,16 @@ calc_vH_times_A(matrix &A, matrix &v, matrix &vH_times_A) {
   else {
 
 
-      size_t sizeH = v.size();
+
 
 #ifdef USE_AVX
 
-#include "kernels/calc_vH_times_A_AVX.S"
-
+//#include "kernels/calc_vH_times_A_AVX.S"
+    calc_vH_times_A_AVX(A, v, vH_times_A);
     return;
 
 #else
-
+      size_t sizeH = v.size();
 
       // calculate the vector-matrix product (v^+) * A
       for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {

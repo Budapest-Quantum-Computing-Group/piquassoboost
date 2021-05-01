@@ -242,21 +242,21 @@ time_nevezo += (t3-t2).seconds();
 
 std::cout << time_szamlalo/time_nevezo << std::endl;
 
-
+/*
 if (AZ.rows == 6) {
     loop_corrections.print_matrix();
     loop_corrections2.print_matrix();
     traces.print_matrix();
     traces2.print_matrix();
 }
-
+*/
 }
 
-
+/*
 if (AZ.rows == 6) {
     exit(-1);
 }
-
+*/
 
 
 
@@ -360,7 +360,7 @@ PowerTraceLoopHafnian::CalculateLoopCorrection( matrix &cx_diag_elements, matrix
 
     size_t dim_over_2 = mtx.rows/2;
 
-    if (AZ.rows < 30) {
+    if (AZ.rows < 10) {
 
         // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
         matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(cx_diag_elements, diag_elements, AZ, dim_over_2);
