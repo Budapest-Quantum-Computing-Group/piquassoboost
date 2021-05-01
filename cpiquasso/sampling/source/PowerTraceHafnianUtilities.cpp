@@ -4,53 +4,6 @@
 
 namespace pic {
 
-/**
-/@brief Determine the reflection vector for Householder transformation used in the upper Hessenberg transformation algorithm
-@param input The strided input vector constructed from the k-th column of the matrix on which the Hessenberg transformation should be applied
-@param norm_v_sqr The squared norm of the created reflection matrix that is returned by reference
-@return Returns with the calculated reflection vector
- */
-//template<class matrix_type, class complex_type>
-matrix
-get_reflection_vector(matrix &input, double &norm_v_sqr) {
-
-  double sigma(0.0);
-  norm_v_sqr = 0.0;
-  matrix reflect_vector(input.rows,1);
-  for (size_t idx = 0; idx < reflect_vector.size(); idx++) {
-      Complex16 &element = input[idx*input.stride];
-      reflect_vector[idx] =  element;//mtx[(idx + offset) * mtx_size + offset - 1];
-      norm_v_sqr = norm_v_sqr + element.real()*element.real() + element.imag()*element.imag(); //adding the squared magnitude
-  }
-  sigma = sqrt(norm_v_sqr);
-
-
-  double abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
-  norm_v_sqr = 2*(norm_v_sqr + abs_val*sigma);
-  if (abs_val != 0.0){
-      //double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
-      auto addend = reflect_vector[0]/abs_val*sigma;
-      reflect_vector[0].real( reflect_vector[0].real() + addend.real());
-      reflect_vector[0].imag( reflect_vector[0].imag() + addend.imag());
-  }
-  else {
-      reflect_vector[0].real( reflect_vector[0].real() + sigma );
-  }
-
-  if (norm_v_sqr == 0.0)
-      return reflect_vector;
-
-  // normalize the reflection matrix
-  double norm_v = std::sqrt(norm_v_sqr);
-  for (size_t idx=0; idx<reflect_vector.size(); idx++) {
-      reflect_vector[idx] = reflect_vector[idx]/norm_v;
-  }
-
-  norm_v_sqr = 1.0;
-
-  return reflect_vector;
-}
-
 
 
 /**
@@ -95,6 +48,15 @@ calc_vH_times_A(matrix &A, matrix &v, matrix &vH_times_A) {
 
       size_t sizeH = v.size();
 
+#ifdef USE_AVX
+
+#include "kernels/calc_vH_times_A_AVX.S"
+
+    return;
+
+#else
+
+
       // calculate the vector-matrix product (v^+) * A
       for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
 
@@ -111,6 +73,7 @@ calc_vH_times_A(matrix &A, matrix &v, matrix &vH_times_A) {
 
       return;
 
+#endif
   }
 
 
@@ -260,7 +223,7 @@ transform_matrix_to_hessenberg(matrix &mtx) {
 
       // get reflection matrix and its norm
       double norm_v_sqr(0.0);
-      matrix &&reflect_vector = get_reflection_vector(ref_vector_input, norm_v_sqr);
+      matrix &&reflect_vector = get_reflection_vector<matrix, Complex16>(ref_vector_input, norm_v_sqr);
 
       if (norm_v_sqr == 0.0) continue;
 
@@ -301,7 +264,7 @@ transform_matrix_to_hessenberg(matrix &mtx, matrix Lv, matrix Rv ) {
 
       // get reflection matrix and its norm
       double norm_v_sqr(0.0);
-      matrix &&reflect_vector = get_reflection_vector(ref_vector_input, norm_v_sqr);
+      matrix &&reflect_vector = get_reflection_vector<matrix, Complex16>(ref_vector_input, norm_v_sqr);
 
       if (norm_v_sqr == 0.0) continue;
 
@@ -344,7 +307,7 @@ CalcPowerTracesAndLoopCorrections( matrix &cx_diag_elements, matrix &diag_elemen
     // for small matrices only the traces are casted into quad precision
     if (AZ.rows <= 10) {
 
-        transform_matrix_to_hessenberg<matrix, Complex16>(AZ, diag_elements, cx_diag_elements);
+        transform_matrix_to_hessenberg(AZ, diag_elements, cx_diag_elements);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
         matrix&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix, Complex16>(AZ, AZ.rows);
@@ -376,7 +339,7 @@ CalcPowerTracesAndLoopCorrections( matrix &cx_diag_elements, matrix &diag_elemen
     else if ( AZ.rows < 40 ) {
 
 
-        transform_matrix_to_hessenberg<matrix, Complex16>(AZ, diag_elements, cx_diag_elements);
+        transform_matrix_to_hessenberg(AZ, diag_elements, cx_diag_elements);
 
         matrix32 AZ32( AZ.rows, AZ.cols);
         for (size_t idx=0; idx<AZ.size(); idx++) {

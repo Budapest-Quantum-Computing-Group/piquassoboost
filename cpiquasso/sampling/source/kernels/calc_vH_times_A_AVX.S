@@ -1,4 +1,56 @@
 
+std::cout << "jjjjjjjjjjjjj" << std::endl;
+// calculate the vector-matrix product (v^+) * A
+      for (size_t row_idx = 0; row_idx < sizeH-1; row_idx=row_idx+2) {
+
+          size_t offset_A_data =  row_idx * A.stride;
+          Complex16* data_A = A.get_data() + offset_A_data;
+          Complex16* data_A2 = data_A + A.stride;
+
+          for (size_t j = 0; j < A.cols-1; j = j + 2) {
+              vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+              vH_times_A[j+1] = vH_times_A[j+1] + mult_a_bconj(data_A[j+1], v[row_idx]);
+              vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A2[j], v[row_idx+1]);
+              vH_times_A[j+1] = vH_times_A[j+1] + mult_a_bconj(data_A2[j+1], v[row_idx+1]);
+          }
+
+
+          if (A.cols % 2 == 1) {
+              size_t j = A.cols-1;
+              vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+              vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A2[j], v[row_idx+1]);
+
+          }
+
+
+      }
+
+if (sizeH % 2 == 1) {
+
+    size_t row_idx = sizeH-1;
+
+    size_t offset_A_data =  row_idx * A.stride;
+    Complex16* data_A = A.get_data() + offset_A_data;
+
+
+    for (size_t j = 0; j < A.cols; j = j + 1) {
+        vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+        //vH_times_A[j+1] = vH_times_A[j+1] + mult_a_bconj(data_A[j+1], v[row_idx]);
+    }
+
+
+    if (A.cols % 2 == 1) {
+         size_t j = A.cols-1;
+         vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+
+    }
+
+    
+
+}
+
+
+/*
     size_t max_idx = cx_diag_elements.size();
     matrix tmp_vec(1, max_idx);
     double* tmp_vec_data = (double*)tmp_vec.get_data();
@@ -93,7 +145,6 @@
 
         _mm256_storeu_pd(tmp_vec_data, _tmp);
 
-
         for (size_t jdx=2; jdx<max_idx; jdx=jdx+2) {
             data = data + 4*AZ.stride;
 
@@ -145,6 +196,13 @@
         }
 
 
+
+
+
+
+
         memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(Complex16));
 
     }
+
+*/

@@ -360,7 +360,7 @@ PowerTraceLoopHafnian::CalculateLoopCorrection( matrix &cx_diag_elements, matrix
 
     size_t dim_over_2 = mtx.rows/2;
 
-    if (AZ.rows < 3000) {
+    if (AZ.rows < 30) {
 
         // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
         matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(cx_diag_elements, diag_elements, AZ, dim_over_2);
