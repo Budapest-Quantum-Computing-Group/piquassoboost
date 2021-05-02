@@ -1,6 +1,7 @@
 #include "PowerTraceHafnianUtilities.hpp"
 #include "calc_vH_times_A_AVX.h"
 #include "calc_vov_times_A_AVX.h"
+#include "apply_householder_cols_AVX.h"
 
 
 
@@ -188,6 +189,13 @@ apply_householder_rows(matrix &A, matrix &v) {
 void
 apply_householder_cols_req(matrix &A, matrix &v) {
 
+#ifdef USE_AVX
+
+    apply_householder_cols_AVX(A, v);
+    return;
+
+#else
+
     size_t sizeH = v.size();
 
     // calculate A^~(1-2vov)
@@ -209,7 +217,7 @@ apply_householder_cols_req(matrix &A, matrix &v) {
 
 
     return;
-
+#endif
 
 }
 
