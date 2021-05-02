@@ -257,8 +257,8 @@ if (AZ.rows == 6) {
     exit(-1);
 }
 */
-
-
+traces = traces2;
+loop_corrections = loop_corrections2;
 
         // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
         bool fact = ((dim_over_2 - number_of_ones/2) % 2);

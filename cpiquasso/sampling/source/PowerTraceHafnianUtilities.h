@@ -81,7 +81,7 @@ void transform_matrix_to_hessenberg(matrix &mtx);
 @param Lv the left sided vector
 @param Rv the roght sided vector
 */
-void transform_matrix_to_hessenberg(matrix &mtx, matrix Lv, matrix Rv );
+void transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv );
 
 
 

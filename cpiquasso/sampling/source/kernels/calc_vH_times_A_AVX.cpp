@@ -209,7 +209,7 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
 
 
 /*
-// The same code with non-AVX instructions
+// The above code with non-AVX instructions
 // calculate the vector-matrix product (v^+) * A
       for (size_t row_idx = 0; row_idx < sizeH-1; row_idx=row_idx+2) {
 

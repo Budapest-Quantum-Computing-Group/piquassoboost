@@ -1,10 +1,11 @@
 #include "PowerTraceHafnianUtilities.hpp"
 #include "calc_vH_times_A_AVX.h"
+#include "calc_vov_times_A_AVX.h"
+
+
 
 
 namespace pic {
-
-
 
 /**
 @brief Apply householder transformation on a matrix A' = (1 - 2*v o v A for one specific reflection vector v
@@ -50,7 +51,6 @@ calc_vH_times_A(matrix &A, matrix &v, matrix &vH_times_A) {
 
 #ifdef USE_AVX
 
-//#include "kernels/calc_vH_times_A_AVX.S"
     calc_vH_times_A_AVX(A, v, vH_times_A);
     return;
 
@@ -118,7 +118,12 @@ calc_vov_times_A(matrix &A, matrix &v, matrix &vH_times_A) {
     }
     else {
 
+#ifdef USE_AVX
 
+    calc_vov_times_A_AVX(A, v, vH_times_A);
+    return;
+
+#else
 
         // calculate the vector-vector product v * ((v^+) * A))
         for (size_t row_idx = 0; row_idx < v.rows; row_idx++) {
@@ -135,7 +140,11 @@ calc_vov_times_A(matrix &A, matrix &v, matrix &vH_times_A) {
 
         return;
 
+#endif
+
     }
+
+
 
 }
 
@@ -254,7 +263,7 @@ transform_matrix_to_hessenberg(matrix &mtx) {
 @param Rv the roght sided vector
 */
 void
-transform_matrix_to_hessenberg(matrix &mtx, matrix Lv, matrix Rv ) {
+transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv ) {
 
   // apply recursive Hauseholder transformation to eliminate the matrix elements column by column
   for (size_t idx = 1; idx < mtx.rows - 1; idx++) {
