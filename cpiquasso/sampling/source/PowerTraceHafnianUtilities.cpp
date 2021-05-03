@@ -8,6 +8,54 @@
 
 namespace pic {
 
+
+/**
+/@brief Determine the reflection vector for Householder transformation used in the upper Hessenberg transformation algorithm
+@param input The strided input vector constructed from the k-th column of the matrix on which the Hessenberg transformation should be applied
+@param norm_v_sqr The squared norm of the created reflection matrix that is returned by reference
+@return Returns with the calculated reflection vector
+ */
+matrix
+get_reflection_vector(matrix &input, double &norm_v_sqr) {
+
+  double sigma(0.0);
+  norm_v_sqr = 0.0;
+  matrix reflect_vector(input.rows,1);
+  for (size_t idx = 0; idx < reflect_vector.size(); idx++) {
+      Complex16 &element = input[idx*input.stride];
+      reflect_vector[idx] =  element;//mtx[(idx + offset) * mtx_size + offset - 1];
+      norm_v_sqr = norm_v_sqr + element.real()*element.real() + element.imag()*element.imag(); //adding the squared magnitude
+  }
+  sigma = sqrt(norm_v_sqr);
+
+
+  double abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
+  norm_v_sqr = 2*(norm_v_sqr + abs_val*sigma);
+  if (abs_val != 0.0){
+      //double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
+      auto addend = reflect_vector[0]/abs_val*sigma;
+      reflect_vector[0].real( reflect_vector[0].real() + addend.real());
+      reflect_vector[0].imag( reflect_vector[0].imag() + addend.imag());
+  }
+  else {
+      reflect_vector[0].real( reflect_vector[0].real() + sigma );
+  }
+
+  if (norm_v_sqr == 0.0)
+      return reflect_vector;
+
+  // normalize the reflection matrix
+  double norm_v = std::sqrt(norm_v_sqr);
+  for (size_t idx=0; idx<reflect_vector.size(); idx++) {
+      reflect_vector[idx] = reflect_vector[idx]/norm_v;
+  }
+
+  norm_v_sqr = 1.0;
+
+  return reflect_vector;
+}
+
+
 /**
 @brief Apply householder transformation on a matrix A' = (1 - 2*v o v A for one specific reflection vector v
 @param A matrix on which the householder transformation is applied.
@@ -240,7 +288,7 @@ transform_matrix_to_hessenberg(matrix &mtx) {
 
       // get reflection matrix and its norm
       double norm_v_sqr(0.0);
-      matrix &&reflect_vector = get_reflection_vector<matrix, Complex16>(ref_vector_input, norm_v_sqr);
+      matrix &&reflect_vector = get_reflection_vector(ref_vector_input, norm_v_sqr);
 
       if (norm_v_sqr == 0.0) continue;
 
@@ -281,7 +329,7 @@ transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv ) {
 
       // get reflection matrix and its norm
       double norm_v_sqr(0.0);
-      matrix &&reflect_vector = get_reflection_vector<matrix, Complex16>(ref_vector_input, norm_v_sqr);
+      matrix &&reflect_vector = get_reflection_vector(ref_vector_input, norm_v_sqr);
 
       if (norm_v_sqr == 0.0) continue;
 

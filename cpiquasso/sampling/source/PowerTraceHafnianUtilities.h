@@ -18,6 +18,14 @@ int LAPACKE_zgehrd( int matrix_layout, int n, int ilo, int ihi, pic::Complex16* 
 
 namespace pic {
 
+/**
+/@brief Determine the reflection vector for Householder transformation used in the upper Hessenberg transformation algorithm
+@param input The strided input vector constructed from the k-th column of the matrix on which the Hessenberg transformation should be applied
+@param norm_v_sqr The squared norm of the created reflection matrix that is returned by reference
+@return Returns with the calculated reflection vector
+ */
+matrix get_reflection_vector(matrix &input, double &norm_v_sqr);
+
 
 /**
 /@brief Determine the reflection vector for Householder transformation used in the upper Hessenberg transformation algorithm
