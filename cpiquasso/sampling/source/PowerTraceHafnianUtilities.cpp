@@ -3,6 +3,7 @@
 #include "calc_vH_times_A_AVX.h"
 #include "calc_vov_times_A_AVX.h"
 #include "apply_householder_cols_AVX.h"
+#include "calc_characteristic_polynomial_coeffs_AVX.h"
 
 
 
@@ -369,6 +370,160 @@ transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv ) {
 }
 
 
+
+
+
+/**
+@brief Call to determine the first \f$ k \f$ coefficients of the characteristic polynomial using the Algorithm 2 of LaBudde method.
+ See [arXiv:1104.3769](https://arxiv.org/abs/1104.3769v1) for further details.
+@param mtx matrix in upper Hessenberg form.
+@param highest_order the order of the highest order coefficient to be calculated (k <= n)
+@return Returns with the calculated coefficients of the characteristic polynomial.
+ */
+matrix
+calc_characteristic_polynomial_coeffs(matrix &mtx, size_t highest_order) {
+ // the matrix c holds not just the polynomial coefficients, but also auxiliary
+ // data. To retrieve the characteristic polynomial coeffients from the matrix c, use
+ // this map for characteristic polynomial coefficient c_j:
+ // if j = 0, c_0 -> 1
+ // if j > 0, c_j -> c[(n - 1) * n + j - 1]
+
+
+ #ifdef USE_AVX
+
+    return calc_characteristic_polynomial_coeffs_AVX(mtx, highest_order);
+
+#else
+
+    // check the dimensions of the matrix in debug mode
+    assert( mtx.rows == mtx.cols);
+
+    //dimension of the matrix
+    size_t dim = mtx.rows;
+
+
+    // allocate memory for the coefficients c_k of p(\lambda)
+    matrix coeffs(dim, dim);
+    memset(coeffs.get_data(), 0, dim*dim*sizeof(Complex16));
+
+
+    // c^(1)_1 = -\alpha_1
+    coeffs[0] = -mtx[0];
+
+    // c^(2)_1 = c^(1)_1 - \alpha_2
+    coeffs[dim] = coeffs[0] - mtx[dim+1];
+
+    // c^(2)_2 = \alpha_1\alpha_2 - h_{12}\beta_2
+    coeffs[dim+1] =  mtx[0]*mtx[dim+1] - mtx[1]*mtx[dim];
+
+    // for (i=3:k do)
+    for (size_t idx=2; idx<=highest_order-1; idx++) {
+        // i = idx + 1
+
+        // calculate the products of matrix elements \beta_i
+        // the n-th (0<=n<=idx-2) element of the arary stands for:
+        // beta_prods[n] = \beta_i * \beta_i-1 * ... * \beta_{i-n}
+        matrix beta_prods(idx,1);
+        beta_prods[0] = mtx[idx*dim + idx-1];
+        for (size_t prod_idx=1; prod_idx<=idx-1; prod_idx++) {
+            beta_prods[prod_idx] = beta_prods[prod_idx-1] * mtx[(idx-prod_idx)*dim + (idx-prod_idx-1)];
+        }
+
+        // c^(i)_1 = c^(i-1)_1 - \alpha_i
+        coeffs[idx*dim] = coeffs[(idx-1)*dim] - mtx[idx*dim + idx];
+
+        // for j=2 : i-1 do
+        for (size_t jdx=1; jdx<=idx-1; jdx++) {
+            // j = jdx + 1
+
+            // sum = \sum_^{j-2}{m=1} h_{i-m,i} \beta_i*...*\beta_{i-m+1} c^{(i-m-1)}_{j-m-1}  - h_{i-j+1,i}* beta_i*...*beta_{i-j+2}
+            Complex16 sum(0.0,0.0);
+
+            // for m=j-2 : 1 do
+            for ( size_t mdx=1; mdx<=jdx-1; mdx++) {
+                // m = mdx
+
+                // sum = sum + h_{i-m, i} * beta_prod * c^{(i-m-1)}_{j-m-1}
+                sum = sum + mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
+
+            }
+
+            // sum = sum + h_{i-j+1,i} * \beta_prod
+            sum = sum + mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
+
+            // c^(i)_j = c^(i-1)_j - \alpha_i*c^(i-1)_{j-1} - sum
+            coeffs[idx*dim+jdx] = coeffs[(idx-1)*dim+jdx] - mtx[idx*dim+idx] * coeffs[(idx-1)*dim + jdx-1] - sum;
+        }
+
+        // sum = \sum_^{i-2}{m=1} h_{i-m,i} \beta_i*...*\beta_{i-m+1} c^{(i-m-1)}_{i-m-1}  - h_{1,i}* beta_i*...*beta_{2}
+        Complex16 sum(0.0,0.0);
+
+        // for m=j-2 : 1 do
+        for ( size_t mdx=1; mdx<=idx-1; mdx++) {
+            // m = mdx
+
+            // sum = sum + h_{i-m, i} * beta_prod * c^{(i-m-1)}_{j-m-1}
+            sum = sum + mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + idx-mdx-1];
+        }
+
+        // c^(i)_i = -\alpha_i c^{(i-1)}_{i-1} - sum
+        coeffs[idx*dim+idx] = -mtx[idx*dim+idx]*coeffs[(idx-1)*dim+idx-1] - sum - mtx[idx]*beta_prods[beta_prods.size()-1];
+
+    }
+
+    // for i=k+1 : n do
+    for (size_t idx = highest_order; idx<dim; idx++ ) {
+        // i = idx + 1
+
+        // c^(i)_1 = c^(i-1)_1 - \alpha_i
+        coeffs[idx*dim] = coeffs[(idx-1)*dim] - mtx[idx*dim + idx];
+
+        // calculate the products of matrix elements \beta_i
+        // the n-th (0<=n<=idx-2) element of the arary stands for:
+        // beta_prods[n] = \beta_i * \beta_i-1 * ... * \beta_{i-n}
+
+        if (highest_order >= 2) {
+            matrix beta_prods(idx,1);
+            beta_prods[0] = mtx[idx*dim + idx-1];
+            for (size_t prod_idx=1; prod_idx<=idx-1; prod_idx++) {
+                beta_prods[prod_idx] = beta_prods[prod_idx-1] * mtx[(idx-prod_idx)*dim + (idx-prod_idx-1)];
+            }
+
+            // for j = 2 : k do
+            for (size_t jdx=1; jdx<=highest_order-1; jdx++) {
+                // j = jdx + 1
+
+                // sum = \sum_^{j-2}{m=1} h_{i-m,i} \beta_i*...*\beta_{i-m+1} c^{(i-m-1)}_{j-m-1}  - h_{i-j+1,i}* beta_i*...*beta_{i-j+2}
+                Complex16 sum(0.0,0.0);
+
+                // for m=j-2 : 1 do
+                for ( size_t mdx=1; mdx<=jdx-1; mdx++) {
+                    // m = mdx
+
+                    // sum = sum + h_{i-m, i} * beta_prod * c^{(i-m-1)}_{j-m-1}
+                    sum = sum + mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
+
+                }
+
+                // sum = sum + h_{i-j+1,i} * \beta_prod
+                sum = sum + mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
+
+                // c^(i)_j = c^(i-1)_j - \alpha_i*c^(i-1)_{j-1} - sum
+                coeffs[idx*dim+jdx] = coeffs[(idx-1)*dim+jdx] - mtx[idx*dim+idx] * coeffs[(idx-1)*dim + jdx-1] - sum;
+            }
+
+
+
+         }
+    }
+
+
+    return coeffs;
+
+#endif
+}
+
+
 /**
 @brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$
 and a loop corrections in Eq (3.26) of arXiv1805.12498
@@ -385,7 +540,7 @@ CalcPowerTraces( matrix& AZ, size_t pow_max, matrix32 &traces32) {
         transform_matrix_to_hessenberg(AZ);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        matrix&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix, Complex16>(AZ, AZ.rows);
+        matrix&& coeffs_labudde = calc_characteristic_polynomial_coeffs(AZ, AZ.rows);
 
         // calculate the power traces of the matrix AZ using LeVerrier recursion relation
         matrix&& traces = powtrace_from_charpoly<matrix>(coeffs_labudde, pow_max);
@@ -470,7 +625,7 @@ CalcPowerTracesAndLoopCorrections( matrix &cx_diag_elements, matrix &diag_elemen
         transform_matrix_to_hessenberg(AZ, diag_elements, cx_diag_elements);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        matrix&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix, Complex16>(AZ, AZ.rows);
+        matrix&& coeffs_labudde = calc_characteristic_polynomial_coeffs(AZ, AZ.rows);
 
         // calculate the loop correction
         matrix&& loop_corrections = calculate_loop_correction_2( cx_diag_elements, diag_elements, AZ, pow_max);

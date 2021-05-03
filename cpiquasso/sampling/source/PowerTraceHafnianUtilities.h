@@ -92,6 +92,16 @@ void transform_matrix_to_hessenberg(matrix &mtx);
 void transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv );
 
 
+/**
+@brief Call to determine the first \f$ k \f$ coefficients of the characteristic polynomial using the Algorithm 2 of LaBudde method.
+ See [arXiv:1104.3769](https://arxiv.org/abs/1104.3769v1) for further details.
+@param mtx matrix in upper Hessenberg form.
+@param highest_order the order of the highest order coefficient to be calculated (k <= n)
+@return Returns with the calculated coefficients of the characteristic polynomial.
+ *
+ */
+matrix calc_characteristic_polynomial_coeffs(matrix &mtx, size_t highest_order);
+
 
 /**
 @brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$

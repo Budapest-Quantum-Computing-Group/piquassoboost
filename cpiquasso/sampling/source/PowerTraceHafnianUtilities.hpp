@@ -378,7 +378,7 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
 
     // allocate memory for the coefficients c_k of p(\lambda)
     matrix_type coeffs(dim, dim);
-    memset(coeffs.get_data(), 0, dim*dim*sizeof(Complex16));
+    memset(coeffs.get_data(), 0, dim*dim*sizeof(complex_type));
 
 
     // c^(1)_1 = -\alpha_1
