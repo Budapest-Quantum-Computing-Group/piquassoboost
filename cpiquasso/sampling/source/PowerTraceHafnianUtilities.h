@@ -93,6 +93,14 @@ void transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv );
 
 
 
+/**
+@brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$
+and a loop corrections in Eq (3.26) of arXiv1805.12498
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@return Returns with the calculated loop correction
+*/
+void CalcPowerTraces( matrix& AZ, size_t pow_max, matrix32 &traces32);
+
 
 void CalcPowerTracesAndLoopCorrections( matrix &cx_diag_elements, matrix &diag_elements, matrix& AZ, size_t pow_max, matrix32 &traces, matrix32 &loop_corrections);
 

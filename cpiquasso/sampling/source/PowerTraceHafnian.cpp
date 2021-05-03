@@ -220,7 +220,7 @@ PowerTraceHafnian::calculate(unsigned long long start_idx, unsigned long long st
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
         matrix32 traces(dim_over_2, 1);
         if (number_of_ones != 0) {
-            traces = calc_power_traces<matrix32, Complex32>(B, dim_over_2);
+            CalcPowerTraces(B, dim_over_2, traces);
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros

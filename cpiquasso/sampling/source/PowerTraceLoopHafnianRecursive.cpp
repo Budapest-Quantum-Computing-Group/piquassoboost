@@ -374,7 +374,7 @@ matrix32
 PowerTraceLoopHafnianRecursive_Tasks::CalculateLoopCorrection(matrix &cx_diag_elements, matrix& diag_elements, matrix& AZ, const size_t& num_of_modes) {
 
 
-    if (AZ.rows < 30) {
+    if (AZ.rows < 10) {
 
         // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
         matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(cx_diag_elements, diag_elements, AZ, num_of_modes);

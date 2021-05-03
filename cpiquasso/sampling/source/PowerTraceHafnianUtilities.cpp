@@ -372,6 +372,89 @@ transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv ) {
 /**
 @brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$
 and a loop corrections in Eq (3.26) of arXiv1805.12498
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@return Returns with the calculated loop correction
+*/
+void
+CalcPowerTraces( matrix& AZ, size_t pow_max, matrix32 &traces32) {
+
+
+    // for small matrices only the traces are casted into quad precision
+    if (AZ.rows <= 10) {
+
+        transform_matrix_to_hessenberg(AZ);
+
+        // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
+        matrix&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix, Complex16>(AZ, AZ.rows);
+
+        // calculate the power traces of the matrix AZ using LeVerrier recursion relation
+        matrix&& traces = powtrace_from_charpoly<matrix>(coeffs_labudde, pow_max);
+
+        traces32 = matrix32(traces.rows, traces.cols);
+        for (size_t idx=0; idx<traces.size(); idx++) {
+            traces32[idx].real( (long double)traces[idx].real() );
+            traces32[idx].imag( (long double)traces[idx].imag() );
+        }
+
+        return;
+
+    }
+    // The lapack function to calculate the Hessenberg transformation is more efficient for larger matrices, but for above a given cutoff quad precision is needed
+    // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
+    // quad precision
+    else if ( AZ.rows < 40 ) {
+
+
+        transform_matrix_to_hessenberg(AZ);
+
+        matrix32 AZ32( AZ.rows, AZ.cols);
+        for (size_t idx=0; idx<AZ.size(); idx++) {
+            AZ32[idx].real( AZ[idx].real() );
+            AZ32[idx].imag( AZ[idx].imag() );
+        }
+
+        // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
+        matrix32&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix32, Complex32>(AZ32, AZ.rows);
+
+        // calculate the power traces of the matrix AZ using LeVerrier recursion relation
+        traces32 = powtrace_from_charpoly<matrix32>(coeffs_labudde, pow_max);
+
+        return;
+
+
+
+    }
+    else{
+        // above a treshold matrix size all the calculations are done in quad precision
+
+        // matrix size for which quad precision is necessary
+
+        matrix32 AZ32( AZ.rows, AZ.cols);
+        for (size_t idx=0; idx<AZ.size(); idx++) {
+            AZ32[idx].real( AZ[idx].real() );
+            AZ32[idx].imag( AZ[idx].imag() );
+        }
+
+
+        transform_matrix_to_hessenberg<matrix32, Complex32>(AZ32);
+
+        // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
+        matrix32 coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix32, Complex32>(AZ32, AZ.rows);
+
+        // calculate the power traces of the matrix AZ using LeVerrier recursion relation
+        traces32 = powtrace_from_charpoly<matrix32>(coeffs_labudde, pow_max);
+
+        return;
+
+    }
+
+
+}
+
+
+/**
+@brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$
+and a loop corrections in Eq (3.26) of arXiv1805.12498
 @param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
 @param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
 @param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
