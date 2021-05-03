@@ -1,4 +1,5 @@
 #include "PowerTraceHafnianUtilities.hpp"
+#include "get_reflection_vector_AVX.h"
 #include "calc_vH_times_A_AVX.h"
 #include "calc_vov_times_A_AVX.h"
 #include "apply_householder_cols_AVX.h"
@@ -17,6 +18,14 @@ namespace pic {
  */
 matrix
 get_reflection_vector(matrix &input, double &norm_v_sqr) {
+
+
+#ifdef USE_AVX
+
+
+    return get_reflection_vector_AVX(input, norm_v_sqr);
+
+#else
 
   double sigma(0.0);
   norm_v_sqr = 0.0;
@@ -53,6 +62,9 @@ get_reflection_vector(matrix &input, double &norm_v_sqr) {
   norm_v_sqr = 1.0;
 
   return reflect_vector;
+
+#endif
+
 }
 
 
