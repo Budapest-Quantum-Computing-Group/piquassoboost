@@ -1,3 +1,6 @@
+#ifndef TORONTONIAN_UTILITIES_HPP_INCLUDED
+#define TORONTONIAN_UTILITIES_HPP_INCLUDED
+
 #include "PowerTraceHafnianUtilities.h"
 #include <iostream>
 #include "common_functionalities.h"
@@ -468,12 +471,12 @@ calc_cholesky_decomposition(matrix_type& matrix)
                 for (int k = 0; k < j; k++){
                     sum += mult_a_bconj( row_i[k], row_j[k]);
                 }
-                std::cout << "L_("<<i<<","<<j<<") : sum: " << sum<<std::endl;
-                std::cout << "L_("<<i<<","<<j<<") : mult: " << mult_a_bconj( row_i[j-1], row_j[j-1])<<std::endl;
+                //std::cout << "L_("<<i<<","<<j<<") : sum: " << sum<<std::endl;
+                //std::cout << "L_("<<i<<","<<j<<") : mult: " << mult_a_bconj( row_i[j-1], row_j[j-1])<<std::endl;
                 
                 
                 row_i[j] = (row_i[j] - sum) / row_j[j];
-                std::cout << "L_("<<i<<","<<j<<") : value: " << row_i[j]<<std::endl;
+                //std::cout << "L_("<<i<<","<<j<<") : value: " << row_i[j]<<std::endl;
             }
         }
         complex_type sum = 0;
@@ -520,6 +523,161 @@ calc_cholesky_decomposition(matrix_type& matrix)
     return lower_tridiag;
 */
 }
+
+
+template<class matrix_type, class complex_type>
+matrix_type
+calc_inverse_of_lower_triangular_matrix_adjoint(matrix_type &L11){
+    // assuming L11.rows == L11.cols
+
+    // inverse of L11^*
+    // columns and rows are changed into each other
+    matrix_type inverse_of_L11(L11.rows, L11.cols);
+    for (size_t row_idx = 0; row_idx < inverse_of_L11.rows; row_idx++){
+        complex_type *inverse_row = inverse_of_L11.get_data() + row_idx * inverse_of_L11.stride;
+
+        complex_type &diag_elem = L11[row_idx * L11.stride + row_idx];
+        double norm_diag = diag_elem.real() * diag_elem.real() + diag_elem.imag() * diag_elem.imag();
+        
+        //inverse_of_L11[row_idx * inverse_of_L11.stride + row_idx] = diag_elem / norm_diag;
+        inverse_row[row_idx] = diag_elem / norm_diag;
+        
+        /*
+        complex_type one(1.0, 0.0);
+        complex_type div = complex_type(1.0D) / L11[row_idx * L11.stride + row_idx];
+        inverse_of_L11[row_idx * inverse_of_L11.stride + row_idx] = mult_a_bconj( one, div);
+        */
+
+        for (size_t col_idx = row_idx + 1; col_idx < inverse_of_L11.cols; col_idx++){
+            complex_type summand(0.0, 0.0);
+            complex_type *row_L11 = L11.get_data() + col_idx * L11.stride;
+            for (size_t k = row_idx; k < col_idx; k++){
+                // L11 cols and rows the other way around and conjugate
+                //summand += mult_a_bconj(inverse_row[k], L11[col_idx * L11.stride + k]);
+                summand += mult_a_bconj(inverse_row[k], row_L11[k]);
+            }
+            // L11 cols and rows the other way around            
+            complex_type &b = row_L11[col_idx];
+            double norm = b.real() * b.real() + b.imag() * b.imag();
+
+            inverse_row[col_idx] = summand * b / -norm;
+            /*
+            complex_type divisor = complex_type(-1.0D) / L11[col_idx * L11.stride + col_idx];
+            inverse_of_L11[row_idx * inverse_of_L11.stride + col_idx] =
+                mult_a_bconj( summand, divisor );
+            */
+        }
+    }
+
+    return inverse_of_L11;
+}
+
+// Calculating A21 * L11^*^-1
+template<class matrix_type, class complex_type>
+void
+update_first_block(matrix_type &A21, matrix_type &L11){
+
+    // inverse of L11^*
+    // columns and rows are changed into each other
+    matrix_type inverse_of_L11 = calc_inverse_of_lower_triangular_matrix_adjoint<matrix_type, complex_type>(L11);
+    
+    //std::cout << "Inverse matrix we update with:" << std::endl;
+    //inverse_of_L11.print_matrix();
+
+    // updating with L11 inverse
+    matrix_type product = dot(A21, inverse_of_L11);
+    for (size_t row_idx = 0; row_idx < product.rows; row_idx++){
+        std::memcpy(A21.get_data() + row_idx * A21.stride, product.get_data() + row_idx * product.stride, product.cols * sizeof(complex_type));
+    }
+}
+
+
+// A22' = A22 - L21 * L21^*
+template<class matrix_type, class complex_type>
+void
+update_second_block(matrix_type &A22, matrix_type &L21){
+    for (size_t row_idx = 0; row_idx < A22.rows; row_idx++){
+        complex_type *row_A22 = A22.get_data() + row_idx * A22.stride;
+        for (size_t col_idx = 0; col_idx < A22.rows; col_idx++){
+            complex_type *row_L21_row_idx = L21.get_data() + row_idx * L21.stride;
+            complex_type *row_L21_col_idx = L21.get_data() + col_idx * L21.stride;
+
+            complex_type sum(0.0, 0.0);
+            for (size_t k = 0; k < L21.cols; k++){
+                sum += mult_a_bconj( row_L21_row_idx[k], row_L21_col_idx[k] );
+            }
+
+            row_A22[col_idx] -= sum;
+        }    
+    }
+}
+
+
+// Cholesky decomposition
+// Works only for selfadjoint positive definite matrices!
+template<class matrix_type, class complex_type>
+void
+calc_cholesky_decomposition_block_based(matrix_type &matrix, size_t size_of_first_block)
+{
+    // storing in the same memory the results of the algorithm
+    //const size_t n = matrix.cols;
+
+    // Algorithm based on http://www.netlib.org/utk/papers/factor/node9.html
+    // For any k :
+    // Calculate the L_kk from A_kk:
+    //   L11 = \sqrt(A11)
+    //   L21 = A21 * L11^-1
+    //   A22' = A22 - L21 * L21^*
+    // call recursive function on L21
+
+    const size_t size_of_second_block = std::max((size_t)0, matrix.cols - size_of_first_block);
+
+    matrix_type A11(
+        matrix.get_data(),
+        size_of_first_block,
+        size_of_first_block,
+        matrix.stride);
+    matrix_type A21(
+        matrix.get_data() + size_of_first_block*matrix.stride,
+        size_of_second_block,
+        size_of_first_block,
+        matrix.stride);
+    matrix_type A22(
+        matrix.get_data() + size_of_first_block*matrix.stride + size_of_first_block,
+        size_of_second_block,
+        size_of_second_block,
+        matrix.stride);
+    
+
+    //std::cout << "Original matrix:" << std::endl;
+    //matrix.print_matrix();
+
+    // L11 calculated based on standard Cholesky decomposition
+    calc_cholesky_decomposition<matrix_type, complex_type>(A11);
+    
+    if (size_of_second_block <= 0){
+        return;
+    }
+
+    //std::cout << "After decomposing A11:" << std::endl;
+    //matrix.print_matrix();
+
+    //   L21 = A21 * L11^*^-1
+    update_first_block<matrix_type, complex_type>(A21, A11);
+
+    //std::cout << "After updating A21:" << std::endl;
+    //matrix.print_matrix();
+
+    //   A22' = A22 - L21 * L21^*
+    update_second_block<matrix_type, complex_type>(A22, A21);
+
+    //std::cout << "After updating A22:" << std::endl;
+    //matrix.print_matrix();
+
+    // call recursive function on L21
+    calc_cholesky_decomposition_block_based<matrix_type, complex_type>(A22, size_of_first_block);
+}
+
 
 // calculating determinant based on cholesky decomposition
 template<class matrix_type, class complex_type>
@@ -941,3 +1099,5 @@ calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elem
 
 } // PIC
 
+
+#endif // TORONTONIAN_UTILITIES_HPP_INCLUDED

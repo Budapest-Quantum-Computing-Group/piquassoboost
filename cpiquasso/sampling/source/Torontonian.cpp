@@ -8,6 +8,20 @@
 
 #include <bitset>
 
+/*
+    Questions
+        scaling?
+        templating?
+        bitátírás a perm_numberből?
+
+    Remarks
+        átírtam a B:= 1-A számítást
+
+    Developments:
+        Block matrices based on : http://www.netlib.org/utk/papers/factor/node9.html
+        Storing just the lower matrix elements (since it is selfadjoint)
+*/
+
 
 extern "C" {
 
@@ -109,10 +123,10 @@ Torontonian::calculate(){
     openblas_set_num_threads(1);
 #endif
 
-    size_t dim = mtx.rows;
+    const size_t dim = mtx.rows;
 
 
-    size_t dim_over_2 = mtx.rows / 2;
+    const size_t dim_over_2 = mtx.rows / 2;
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
 
@@ -156,51 +170,36 @@ Torontonian::calculate(){
                 if (permutation_idx & i) {
                     bin_rep.push_back(1);
                     positions_of_ones.push_back((bin_rep.size()-1));
-                    std::cout<<"binrepsize: "<<bin_rep.size()<< " pushed element: "<< positions_of_ones[positions_of_ones.size()-1]<<std::endl;
-                    //positions_of_ones.push_back((bin_rep.size()-1)*2);
-                    //positions_of_ones.push_back((bin_rep.size()-1)*2+1);
                 }
                 else {
                     bin_rep.push_back(0);
                 }
             }
 
-            /*std::cout << "Dim_over_2: "<< dim_over_2<< std::endl;
-            std::cout<<"posi_of_ones: ";
-            for (auto& j : positions_of_ones){
-                std::cout << j << ", ";
-            }
-            std::cout << std::endl;
-            std::cout<<"bin_rep: ";
-            for (auto& j : bin_rep){
-                std::cout << j << ", ";
-            }
-            std::cout << std::endl;*/
             size_t number_of_ones = positions_of_ones.size();
 
             size_t dimension_of_B = 2 * number_of_ones;
 
-            // matrix B corresponds to id - A^(Z), i.e. to the square matrix constructed from
-            // the elements of mtx=A indexed by the rows and colums, where the binary representation of
+            // matrix mtx corresponds to id - A^(Z), i.e. to the square matrix constructed from
+            // the elements of mtx = 1-A indexed by the rows and colums, where the binary representation of
             // permutation_idx was 1
             // details in Eq. (12) https://arxiv.org/pdf/1807.01639.pdf
             // B = (1 - A^(Z))
+            // Calculating B^(Z)
             matrix B(dimension_of_B, dimension_of_B);
             for (size_t idx = 0; idx < number_of_ones; idx++) {
-                //Complex16 *row_B_idx = B.get_data() + idx * B.stride;
-                //Complex16 *row_mtx_pos_idx = mtx.get_data() + positions_of_ones[idx] * mtx.stride;
                 for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
                     B[idx*dimension_of_B + jdx]                  = 
-                        -1.0 * mtx[positions_of_ones[idx]*dim + (positions_of_ones[jdx])];
+                        mtx[positions_of_ones[idx]*dim + (positions_of_ones[jdx])];
                     B[idx*dimension_of_B + jdx + number_of_ones] =
-                        -1.0 * mtx[positions_of_ones[idx]*dim + (positions_of_ones[jdx]) + dim_over_2];
+                        mtx[positions_of_ones[idx]*dim + (positions_of_ones[jdx]) + dim_over_2];
                     B[(idx + number_of_ones)*dimension_of_B + jdx] =
-                        -1.0 * mtx[(positions_of_ones[idx]+dim_over_2)*dim + (positions_of_ones[jdx])];
+                        mtx[(positions_of_ones[idx]+dim_over_2)*dim + (positions_of_ones[jdx])];
                     B[(idx + number_of_ones)*dimension_of_B + jdx + number_of_ones] =
-                        -1.0 * mtx[(positions_of_ones[idx]+dim_over_2)*dim + (positions_of_ones[jdx]) + dim_over_2];
+                        mtx[(positions_of_ones[idx]+dim_over_2)*dim + (positions_of_ones[jdx]) + dim_over_2];
                 }
-                B[idx * dimension_of_B + idx] += Complex16(1.0, 0.0);
-                B[(idx + number_of_ones)*dimension_of_B + idx + number_of_ones] += Complex16(1.0, 0.0);
+                //B[idx * dimension_of_B + idx] += Complex16(1.0, 0.0);
+                //B[(idx + number_of_ones)*dimension_of_B + idx + number_of_ones] += Complex16(1.0, 0.0);
             }
 
             B.print_matrix();
@@ -218,10 +217,6 @@ Torontonian::calculate(){
                     : 1.0D;
 
             // calculating the determinant of B
-
-            // hafnian: calculating Tr(B^j) for all j's that are 1<=j<=dim/2
-            // hafnian: this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-            //matrix32 traces(dim_over_2, 1);
             Complex16 determinant;
             if (number_of_ones != 0) {
                 // testing purpose (the matrix is not positive definite and selfadjoint)
@@ -232,8 +227,6 @@ Torontonian::calculate(){
             }
             else{
                 determinant = 1.0;
-                // hafnian: in case we have no 1's in the binary representation of permutation_idx we get zeros
-                // hafnian: this occurs once during the calculations
                 //memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
             }
 
@@ -243,65 +236,7 @@ Torontonian::calculate(){
             double sqrt_determinant = std::sqrt(determinant.real());
             double value = factor / sqrt_determinant;
 
-
-
-            // hafnian: fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
-            //bool fact = ((dim_over_2 - number_of_ones/2) % 2);
-
-
-            // hafnian: auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-            //matrix32 aux0(dim_over_2 + 1, 1);
-            //matrix32 aux1(dim_over_2 + 1, 1);
-            //memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
-            //memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
-            //aux0[0] = 1.0;
-            // hafnian: pointers to the auxiliary data arrays
-            //Complex32 *p_aux0=NULL, *p_aux1=NULL;
-            // hafnian:
-            /*for (size_t idx = 1; idx <= dim_over_2; idx++) {
-
-
-                Complex32 factor = traces[idx - 1] / (2.0 * idx);
-                Complex32 powfactor(1.0,0.0);
-
-
-
-                if (idx%2 == 1) {
-                    p_aux0 = aux0.get_data();
-                    p_aux1 = aux1.get_data();
-                }
-                else {
-                    p_aux0 = aux1.get_data();
-                    p_aux1 = aux0.get_data();
-                }
-
-                memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex32) );
-
-                for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
-                    powfactor = powfactor * factor / ((double)jdx);
-
-                    for (size_t kdx = idx * jdx + 1; kdx <= dim_over_2 + 1; kdx++) {
-                        p_aux1[kdx-1] += p_aux0[kdx-idx*jdx - 1]*powfactor;
-                    }
-
-
-
-                }
-
-
-
-            }*/
-
             summand = summand + value;
-            // hafnian: something
-            //if (fact) {
-                //summand = summand - p_aux1[dim_over_2];
-                //std::cout << -p_aux1[dim_over_2] << std::endl;
-            //}
-            //else {
-                //summand = summand + p_aux1[dim_over_2];
-                //std::cout << p_aux1[dim_over_2] << std::endl;
-            //}
 
         }
 
@@ -336,6 +271,25 @@ void
 Torontonian::Update_mtx( matrix &mtx_in ){
     mtx_orig = mtx_in;
 
+    size_t dim = mtx_in.rows;
+
+    // Calculating B := 1 - A
+    mtx = matrix(dim, dim);
+    for (size_t idx = 0; idx < dim; idx++) {
+        //Complex16 *row_B_idx = B.get_data() + idx * B.stride;
+        //Complex16 *row_mtx_pos_idx = mtx.get_data() + positions_of_ones[idx] * mtx.stride;
+        for (size_t jdx = 0; jdx < dim; jdx++) {
+            mtx[idx * dim + jdx] = -1.0 * mtx_in[idx * mtx_in.stride + jdx];
+        }
+        mtx[idx * dim + idx] += Complex16(1.0, 0.0);
+    }
+
+    std::cout << "Modified matrix:" << std::endl;
+    mtx.print_matrix();
+
+    // Can scaling be used here since we have to calculate 1-A^Z?
+    // It brings a multiplying for each determinant.
+    // Should 
     ScaleMatrix();
 }
 
@@ -346,7 +300,7 @@ Torontonian::Update_mtx( matrix &mtx_in ){
 @param mtx_in Input matrix defined by
 */
 void Torontonian::ScaleMatrix(){
-    mtx = mtx_orig.copy();
+    //mtx = mtx_orig.copy();
 }
 
 

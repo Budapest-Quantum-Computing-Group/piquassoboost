@@ -1,6 +1,15 @@
 #ifndef CONSTANTS_TESTS_H
 #define CONSTANTS_TESTS_H
 
+// enabling asserts
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#ifndef DEBUG
+#define DEBUG
+#endif
+
 
 #include "dot.h"
 
@@ -16,7 +25,8 @@ enum RandomMatrixType
     RANDOM,
     SYMMETRIC,
     SELFADJOINT,
-    POSITIVE_DEFINIT
+    POSITIVE_DEFINIT,
+    LOWER_TRIANGULAR
 };
 
 
@@ -97,7 +107,15 @@ getRandomMatrix(size_t n, pic::RandomMatrixType type){
             }    
             mtx[i * n + i] += complex_type(1.0,0.0);
         }
-        
+    }else if (type == pic::LOWER_TRIANGULAR){
+        // fill up matrix with fully random elements
+        for (size_t row_idx = 0; row_idx < n; row_idx++) {
+            for (size_t col_idx = 0; col_idx < row_idx + 1; col_idx++) {
+                long double randnum1 = distribution(generator);
+                long double randnum2 = distribution(generator);
+                mtx[row_idx * n + col_idx] = complex_type(randnum1, randnum2);
+            }
+        }
     }
     return mtx;
 }
