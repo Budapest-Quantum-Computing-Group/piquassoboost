@@ -20,7 +20,6 @@ calc_vov_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
     double* v_data = (double*)v.get_data();
     double* vH_times_A_data = (double*)vH_times_A.get_data();
 
-
     __m256d neg = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);
     __m256d two = _mm256_setr_pd(2.0, 2.0, 2.0, 2.0);
 
@@ -61,11 +60,11 @@ calc_vov_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
             __m256d vec4 = _mm256_mul_pd(vH_times_A_vec, v_vec_permuted);
 
             // 5 Horizontally subtract the elements in vec3 and vec4
-            vec3  = _mm256_hsub_pd(vec3, vec4); 
+            vec3  = _mm256_hsub_pd(vec3, vec4);
 
             // subtract the result from A_vec
             __m256d A_vec = _mm256_loadu_pd(data+kdx);
-            A_vec = _mm256_sub_pd(A_vec, vec3); 
+            A_vec = _mm256_sub_pd(A_vec, vec3);
 
             // store the result to th memory
             _mm256_storeu_pd(data+kdx, A_vec);
@@ -90,7 +89,7 @@ calc_vov_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
 
             // subtract the result from A_vec2
             __m256d A_vec2 = _mm256_loadu_pd(data2+kdx);
-            A_vec2 = _mm256_sub_pd(A_vec2, vec3); 
+            A_vec2 = _mm256_sub_pd(A_vec2, vec3);
 
             // store the result to th memory
             _mm256_storeu_pd(data2+kdx, A_vec2);
@@ -108,7 +107,7 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
 
 
             if ( A.cols % 2 == 1) {
-                size_t kdx = 2*(A.cols-1);               
+                size_t kdx = 2*(A.cols-1);
 
                 __m256d vH_times_A_vec = _mm256_broadcast_pd( (__m128d*)(vH_times_A_data+kdx) );
 
@@ -127,20 +126,20 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
                 __m256d vec4 = _mm256_mul_pd(vH_times_A_vec, v_vec_permuted);
 
                 // 5 Horizontally subtract the elements in vec3 and vec4
-                vec3  = _mm256_hsub_pd(vec3, vec4); 
+                vec3  = _mm256_hsub_pd(vec3, vec4);
 
                 // subtract the result from A_vec
                 __m256d A_vec;
                 A_vec = _mm256_insertf128_pd(A_vec, _mm_loadu_pd(data+kdx), 0);
                 A_vec = _mm256_insertf128_pd(A_vec, _mm_loadu_pd(data2+kdx), 1);
-                A_vec = _mm256_sub_pd(A_vec, vec3); 
+                A_vec = _mm256_sub_pd(A_vec, vec3);
 
                 // store the result to th memory
                 _mm_storeu_pd(data+kdx, _mm256_castpd256_pd128(A_vec));
                 _mm_storeu_pd(data2+kdx, _mm256_extractf128_pd(A_vec, 1));
 
 
-            }    
+            }
 
 
         // move data pointers to the next row pair
@@ -153,11 +152,10 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
 
     if (size_v % 2 == 1 ) {
 
-
         size_t row_idx = 2*(v.rows-1);
 
         __m128d two = _mm_setr_pd(2.0, 2.0);
-        
+
         // extract two successive components v_i,v_{i+1} of vector v
         __m128d v_vec = _mm_loadu_pd(v_data+row_idx);
 
@@ -167,7 +165,7 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
         // create vector v_i, v_i
         __m256d v_vec1 = _mm256_broadcast_pd( (__m128d*)&v_vec[0] );
 
-        
+
 
         for (size_t kdx = 0; kdx < 2*(A.cols-1); kdx=kdx+4) {
 
@@ -188,17 +186,17 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
             __m256d vec4 = _mm256_mul_pd(vH_times_A_vec, v_vec_permuted);
 
             // 5 Horizontally subtract the elements in vec3 and vec4
-            vec3  = _mm256_hsub_pd(vec3, vec4); 
+            vec3  = _mm256_hsub_pd(vec3, vec4);
 
             // subtract the result from A_vec
             __m256d A_vec = _mm256_loadu_pd(data+kdx);
-            A_vec = _mm256_sub_pd(A_vec, vec3); 
+            A_vec = _mm256_sub_pd(A_vec, vec3);
 
             // store the result to th memory
             _mm256_storeu_pd(data+kdx, A_vec);
 
         }
-        
+
         if ( A.cols % 2 == 1) {
             size_t kdx = 2*(A.cols-1);
 
@@ -220,20 +218,20 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
             __m128d vec4 = _mm_mul_pd(vH_times_A_vec, v_vec_permuted);
 
             // 5 Horizontally subtract the elements in vec3 and vec4
-            vec3  = _mm_hsub_pd(vec3, vec4); 
+            vec3  = _mm_hsub_pd(vec3, vec4);
 
             // subtract the result from A_vec
             __m128d A_vec = _mm_loadu_pd(data+kdx);
-            A_vec = _mm_sub_pd(A_vec, vec3); 
+            A_vec = _mm_sub_pd(A_vec, vec3);
 
             // store the result to th memory
             _mm_storeu_pd(data+kdx, A_vec);
 
 
         }
-           
 
-    } 
+
+    }
 
 
 
@@ -262,7 +260,7 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
                 size_t kdx = A.cols-1;
                 data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
                 data_A2[kdx] = data_A2[kdx] - factor2 * vH_times_A[kdx];
-            }    
+            }
 
 
         }
@@ -273,7 +271,7 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
 
             size_t row_idx = v.rows-1;
             Complex16* data_A = A.get_data() + row_idx * A.stride;
-              
+
             Complex16 factor = v[row_idx]*2.0;
 
             for (size_t kdx = 0; kdx < A.cols-1; kdx=kdx+2) {
@@ -285,9 +283,9 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
             if ( A.cols % 2 == 1) {
                 size_t kdx = A.cols-1;
                 data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
-            }    
+            }
 
-        } 
+        }
 */
 
 

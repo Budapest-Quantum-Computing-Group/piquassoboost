@@ -147,11 +147,11 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
             // calculate the multiplications  factor_vec*conj(v_vec)
 
-            // 1 Multiply elements of factor_vec and v_vec
-            __m256d vec3 = _mm256_mul_pd(factor_vec, v_vec);
-
             // 2 Switch the real and imaginary elements of v_vec1
             __m256d v_vec_permuted = _mm256_permute_pd(v_vec, 0x5);
+
+            // 1 Multiply elements of factor_vec and v_vec
+            __m256d vec3 = _mm256_mul_pd(factor_vec, v_vec);
 
             // 3 Negate the imaginary elements of v_vec
             v_vec_permuted = _mm256_mul_pd(v_vec_permuted, neg2);
@@ -202,11 +202,11 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
             // calculate the multiplications  factor_vec*conj(v_vec1)
 
-            // 1 Multiply elements of A_vec and v_vec1
-            __m256d vec3 = _mm256_mul_pd(factor_vec, v_vec1);
-
             // 2 Switch the real and imaginary elements of v_vec1
             __m256d v_vec_permuted = _mm256_permute_pd(v_vec1, 0x5);
+
+            // 1 Multiply elements of A_vec and v_vec1
+            __m256d vec3 = _mm256_mul_pd(factor_vec, v_vec1);
 
             // 3 Negate the imaginary elements of v_vec_permuted
             v_vec_permuted = _mm256_mul_pd(v_vec_permuted, neg2);
@@ -254,11 +254,11 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
             // calculate the multiplications  A_vec*v_vec
 
-            // 1 Multiply elements of A_vec and v_vec
-            __m256d vec3 = _mm256_mul_pd(A_vec, v_vec);
-
             // 2 Switch the real and imaginary elements of v_vec
             __m256d v_vec_permuted = _mm256_permute_pd(v_vec, 0x5);
+
+            // 1 Multiply elements of A_vec and v_vec
+            __m256d vec3 = _mm256_mul_pd(A_vec, v_vec);
 
             // 3 Negate the imaginary elements of cx_vec
             v_vec_permuted = _mm256_mul_pd(v_vec_permuted, neg);
@@ -295,11 +295,11 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
             // calculate the multiplications  A_vec*v_vec
 
-            // 1 Multiply elements of A_vec and v_vec1
-            __m128d vec3 = _mm_mul_pd(A_vec, v_vec);
-
             // 2 Switch the real and imaginary elements of v_vec1
             __m128d v_vec_permuted = _mm_permute_pd(v_vec, 0x5);
+
+            // 1 Multiply elements of A_vec and v_vec1
+            __m128d vec3 = _mm_mul_pd(A_vec, v_vec);
 
             // 3 Negate the imaginary elements of v_vec_permuted
             v_vec_permuted = _mm_mul_pd(v_vec_permuted, neg);
@@ -332,11 +332,11 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
             // calculate the multiplications  factor_vec*conj(v_vec)
 
-            // 1 Multiply elements of factor_vec and v_vec
-            __m256d vec3 = _mm256_mul_pd(factor_vec, v_vec);
-
             // 2 Switch the real and imaginary elements of v_vec1
             __m256d v_vec_permuted = _mm256_permute_pd(v_vec, 0x5);
+
+            // 1 Multiply elements of factor_vec and v_vec
+            __m256d vec3 = _mm256_mul_pd(factor_vec, v_vec);
 
             // 3 Negate the imaginary elements of v_vec
             v_vec_permuted = _mm256_mul_pd(v_vec_permuted, neg2);
@@ -366,11 +366,11 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
             // calculate the multiplications  factor*conj(v_vec)
 
-            // 1 Multiply elements of A_vec and v_vec1
-            __m128d vec3 = _mm_mul_pd(factor, v_vec);
-
             // 2 Switch the real and imaginary elements of v_vec1
             __m128d v_vec_permuted = _mm_permute_pd(v_vec, 0x5);
+
+            // 1 Multiply elements of A_vec and v_vec1
+            __m128d vec3 = _mm_mul_pd(factor, v_vec);
 
             // 3 Negate the imaginary elements of v_vec_permuted
             v_vec_permuted = _mm_mul_pd(v_vec_permuted, neg2);

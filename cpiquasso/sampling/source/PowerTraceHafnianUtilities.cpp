@@ -3,7 +3,6 @@
 #include "calc_vH_times_A_AVX.h"
 #include "calc_vov_times_A_AVX.h"
 #include "apply_householder_cols_AVX.h"
-#include "calc_characteristic_polynomial_coeffs_AVX.h"
 
 
 
@@ -388,13 +387,13 @@ calc_characteristic_polynomial_coeffs(matrix &mtx, size_t highest_order) {
  // if j = 0, c_0 -> 1
  // if j > 0, c_j -> c[(n - 1) * n + j - 1]
 
-
+/*
  #ifdef USE_AVX
 
     return calc_characteristic_polynomial_coeffs_AVX(mtx, highest_order);
 
 #else
-
+*/
     // check the dimensions of the matrix in debug mode
     assert( mtx.rows == mtx.cols);
 
@@ -520,7 +519,7 @@ calc_characteristic_polynomial_coeffs(matrix &mtx, size_t highest_order) {
 
     return coeffs;
 
-#endif
+//#endif
 }
 
 

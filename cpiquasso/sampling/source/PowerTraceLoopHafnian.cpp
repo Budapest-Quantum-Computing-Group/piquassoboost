@@ -243,21 +243,21 @@ time_nevezo += (t3-t2).seconds();
 
 std::cout << time_szamlalo/time_nevezo << std::endl;
 
-
+/*
 if (AZ.rows == 6) {
     loop_corrections.print_matrix();
     loop_corrections2.print_matrix();
     traces.print_matrix();
     traces2.print_matrix();
 }
-
+*/
 }
 
-
+/*
 if (AZ.rows == 6) {
     exit(-1);
 }
-
+*/
 traces = traces2;
 loop_corrections = loop_corrections2;
 
