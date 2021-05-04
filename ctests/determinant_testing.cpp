@@ -37,15 +37,16 @@ pic::Complex16 test_determinant_by_hessenberg_labudde(pic::matrix &AZ) {
     // for small matrices only the traces are casted into quad precision
     if (AZ.rows <= 10) {
 
-        pic::transform_matrix_to_hessenberg_TU<pic::matrix, pic::Complex16>(AZ);
+        //pic::transform_matrix_to_hessenberg_TU<pic::matrix, pic::Complex16>(AZ);
         //pic::Complex16 det_hess =  pic::calc_determinant_of_selfadjoint_hessenberg_matrix<pic::matrix, pic::Complex16>(AZ);
         //std::cout << "Determinant by hessenberg det: " << det_hess << std::endl;
         
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        pic::matrix&& coeffs_labudde = pic::calc_characteristic_polynomial_coeffs<pic::matrix, pic::Complex16>(AZ, AZ.rows);
+        //pic::matrix&& coeffs_labudde = pic::calc_characteristic_polynomial_coeffs<pic::matrix, pic::Complex16>(AZ, AZ.rows);
 
         //std::cout << "complex det: " << coeffs_labudde[(n-1)*(n+1)] << std::endl;
-        return coeffs_labudde[(n-1)*(n+1)] * scalar;
+        //return coeffs_labudde[(n-1)*(n+1)] * scalar;
+        return pic::Complex16(1.0);
     }
     // The lapack function to calculate the Hessenberg transformation is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
@@ -68,11 +69,12 @@ pic::Complex16 test_determinant_by_hessenberg_labudde(pic::matrix &AZ) {
         //std::cout << "Determinant by hessenberg det: " << det_hess << std::endl;
         
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        pic::matrix32&& coeffs_labudde = pic::calc_characteristic_polynomial_coeffs<pic::matrix32, pic::Complex32>(AZ32, AZ.rows);
+        //pic::matrix32&& coeffs_labudde = pic::calc_characteristic_polynomial_coeffs<pic::matrix32, pic::Complex32>(AZ32, AZ.rows);
 
         //std::cout << "complex det: 2nd " << coeffs_labudde[(n-1)*(n+1)] << std::endl;
-        pic::Complex16 det = pic::Complex16(coeffs_labudde[(n-1)*(n+1)].real(), coeffs_labudde[(n-1)*(n+1)].imag());
-        return det * scalar;
+        //pic::Complex16 det = pic::Complex16(coeffs_labudde[(n-1)*(n+1)].real(), coeffs_labudde[(n-1)*(n+1)].imag());
+        //return det * scalar;
+        return pic::Complex16(1.0);
     }
     else{
         // above a treshold matrix size all the calculations are done in quad precision
@@ -85,15 +87,16 @@ pic::Complex16 test_determinant_by_hessenberg_labudde(pic::matrix &AZ) {
             AZ32[idx].imag( AZ[idx].imag() );
         }
 
-        pic::transform_matrix_to_hessenberg_TU<pic::matrix32, pic::Complex32>(AZ32);
+        //pic::transform_matrix_to_hessenberg_TU<pic::matrix32, pic::Complex32>(AZ32);
         //std::cout << "Determinant by hessenberg det: " << det_hess << std::endl;
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        pic::matrix32 coeffs_labudde = pic::calc_characteristic_polynomial_coeffs<pic::matrix32, pic::Complex32>(AZ32, AZ.rows);
+        //pic::matrix32 coeffs_labudde = pic::calc_characteristic_polynomial_coeffs<pic::matrix32, pic::Complex32>(AZ32, AZ.rows);
 
         //std::cout << "complex det: " << coeffs_labudde[(n-1)*(n+1)] << std::endl;
-        pic::Complex16 det = pic::Complex16(coeffs_labudde[(n-1)*(n+1)].real(), coeffs_labudde[(n-1)*(n+1)].imag());
-        return det * scalar;     
+        //pic::Complex16 det = pic::Complex16(coeffs_labudde[(n-1)*(n+1)].real(), coeffs_labudde[(n-1)*(n+1)].imag());
+        //return det * scalar; 
+        return pic::Complex16(1.0);    
     }
 
 }
@@ -293,27 +296,27 @@ int test_hessenberg_labudde_selfadjoint(){
     pic::matrix mtx_copy1 = embedding(mtx, dimension);
     pic::matrix mtx_copy2 = embedding(mtx, dimension);
 
-    pic::Complex16 det_by_hessenberg_labudde_1 = test_determinant_by_hessenberg_labudde(mtx_copy1);
+    //pic::Complex16 det_by_hessenberg_labudde_1 = test_determinant_by_hessenberg_labudde(mtx_copy1);
     pic::Complex16 det_by_LU_decomposition_1 = determinant_byLU_decomposition(mtx_copy2);
 
     // applying transformation on a selfadjoint matrix to hessenberg form
-    pic::transform_matrix_to_hessenberg_TU<pic::matrix, pic::Complex16>(mtx);
+    //pic::transform_matrix_to_hessenberg_TU<pic::matrix, pic::Complex16>(mtx);
 
     // check result
     mtx.print_matrix();
     pic::matrix mtx_copy3 = embedding(mtx, dimension);
 
 
-    pic::Complex16 det_by_hessenberg_labudde_2 = test_determinant_by_hessenberg_labudde(mtx);
+    //pic::Complex16 det_by_hessenberg_labudde_2 = test_determinant_by_hessenberg_labudde(mtx);
     pic::Complex16 det_by_LU_decomposition_2 = determinant_byLU_decomposition(mtx_copy3);
 
-    std::cout << "det_by_hessenberg_labudde_1  " << det_by_hessenberg_labudde_1 << std::endl;
+    //std::cout << "det_by_hessenberg_labudde_1  " << det_by_hessenberg_labudde_1 << std::endl;
     std::cout << "det_by_LU_decomposition_1    " << det_by_LU_decomposition_1 << std::endl;
-    std::cout << "det_by_hessenberg_labudde_2  " << det_by_hessenberg_labudde_2 << std::endl;
+    //std::cout << "det_by_hessenberg_labudde_2  " << det_by_hessenberg_labudde_2 << std::endl;
     std::cout << "det_by_LU_decomposition_2    " << det_by_LU_decomposition_2 << std::endl;
 
 
-    std::cout << "Hessenberg matrix? " << test_check_hessenberg_property<pic::matrix>(mtx) << std::endl;
+    //std::cout << "Hessenberg matrix? " << test_check_hessenberg_property<pic::matrix>(mtx) << std::endl;
     return 0;
 }
 
@@ -410,16 +413,16 @@ int test_determinant_is_same(){
     pic::matrix mtx3 = embedding(mtx0, n);
 
     // this algorithm works on symmetric or selfadjoint matrices
-    pic::Complex16 det_hessenberg_labudde_sym = pic::calc_determinant_hessenberg_labudde_symmetric<pic::matrix, pic::Complex16>(mtx0);
+    //pic::Complex16 det_hessenberg_labudde_sym = pic::calc_determinant_hessenberg_labudde_symmetric<pic::matrix, pic::Complex16>(mtx0);
     // this algorithm works on all matrices
-    pic::Complex16 det_by_hessenberg_labudde = test_determinant_by_hessenberg_labudde(mtx1);
+    //pic::Complex16 det_by_hessenberg_labudde = test_determinant_by_hessenberg_labudde(mtx1);
     // this algorithm works on all matrices
     pic::Complex16 det_by_LU_decomposition = determinant_byLU_decomposition(mtx2);
     // this algorithm works on positive definite symmetric or selfadjoint matrices
     pic::Complex16 det_by_cholesky = pic::calc_determinant_cholesky_decomposition<pic::matrix, pic::Complex16>(mtx3);
 
-    std::cout<<"det_hessenberg_labudde_sym:  " << det_hessenberg_labudde_sym << std::endl;
-    std::cout<<"det_by_hessenberg_labudde:   " << det_by_hessenberg_labudde << std::endl;
+    //std::cout<<"det_hessenberg_labudde_sym:  " << det_hessenberg_labudde_sym << std::endl;
+    //std::cout<<"det_by_hessenberg_labudde:   " << det_by_hessenberg_labudde << std::endl;
     std::cout<<"det_by_LU_decomposition:     " << det_by_LU_decomposition << std::endl;
     std::cout<<"det_by_cholesky:             " << det_by_cholesky << std::endl;
 
