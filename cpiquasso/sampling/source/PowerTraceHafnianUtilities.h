@@ -92,26 +92,25 @@ void transform_matrix_to_hessenberg(matrix &mtx);
 void transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv );
 
 
-/**
-@brief Call to determine the first \f$ k \f$ coefficients of the characteristic polynomial using the Algorithm 2 of LaBudde method.
- See [arXiv:1104.3769](https://arxiv.org/abs/1104.3769v1) for further details.
-@param mtx matrix in upper Hessenberg form.
-@param highest_order the order of the highest order coefficient to be calculated (k <= n)
-@return Returns with the calculated coefficients of the characteristic polynomial.
- *
- */
-matrix calc_characteristic_polynomial_coeffs(matrix &mtx, size_t highest_order);
-
 
 /**
 @brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$
 and a loop corrections in Eq (3.26) of arXiv1805.12498
 @param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@param pow_max
 @return Returns with the calculated loop correction
 */
 void CalcPowerTraces( matrix& AZ, size_t pow_max, matrix32 &traces32);
 
 
+/**
+@brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$
+and a loop corrections in Eq (3.26) of arXiv1805.12498
+@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
+@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@return Returns with the calculated loop correction
+*/
 void CalcPowerTracesAndLoopCorrections( matrix &cx_diag_elements, matrix &diag_elements, matrix& AZ, size_t pow_max, matrix32 &traces, matrix32 &loop_corrections);
 
 

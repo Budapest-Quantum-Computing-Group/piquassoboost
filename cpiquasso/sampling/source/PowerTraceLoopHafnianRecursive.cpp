@@ -181,7 +181,7 @@ Complex32
 PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
 
 
-
+//return Complex32(0.0,0.0);
     size_t num_of_modes = sum(current_occupancy);
     size_t total_num_of_modes = sum(occupancy);
     size_t dim = total_num_of_modes*2;
@@ -197,25 +197,26 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
 
 
     // select the X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
-    matrix cx_diag_elements(diag_elements.rows, diag_elements.cols);
+    matrix cx_diag_elements(num_of_modes*2, 1);
     for (size_t idx = 1; idx < diag_elements.size(); idx=idx+2) {
         cx_diag_elements[idx] = diag_elements[idx-1];
         cx_diag_elements[idx-1] = diag_elements[idx];
     }
 
-    // calculate the loop correction elements for the loop hafnian
-    matrix32 loop_corrections = CalculateLoopCorrection(cx_diag_elements, diag_elements, B, total_num_of_modes);
-
-    // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
+    // calculating Tr(B^j) for all j's that are 1<=j<=dim/2 and loop corrections
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-    matrix32 traces(total_num_of_modes, 1);
+    matrix32 traces;
+    matrix32 loop_corrections;
     if (num_of_modes != 0) {
-        traces = calc_power_traces<matrix32, Complex32>(B, total_num_of_modes);
+        CalcPowerTracesAndLoopCorrections(cx_diag_elements, diag_elements, B, total_num_of_modes, traces, loop_corrections);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
         // this occurs once during the calculations
-        memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
+        traces = matrix32(total_num_of_modes, 1);
+        loop_corrections = matrix32(total_num_of_modes, 1);
+        memset( traces.get_data(), 0.0, traces.size()*sizeof(Complex32));
+        memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(Complex32));
     }
 
     // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
@@ -360,65 +361,6 @@ PowerTraceLoopHafnianRecursive_Tasks::CreateDiagElements( const PicVector<char>&
 
     return diag_elements;
 }
-
-
-/**
-@brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
-@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
-@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
-@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
-@param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
-@return Returns with the calculated loop correction
-*/
-matrix32
-PowerTraceLoopHafnianRecursive_Tasks::CalculateLoopCorrection(matrix &cx_diag_elements, matrix& diag_elements, matrix& AZ, const size_t& num_of_modes) {
-
-
-    if (AZ.rows < 10) {
-
-        // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
-        matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(cx_diag_elements, diag_elements, AZ, num_of_modes);
-
-        matrix32 loop_correction32(num_of_modes, 1);
-        for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
-            loop_correction32[idx].real( loop_correction[idx].real() );
-            loop_correction32[idx].imag( loop_correction[idx].imag() );
-        }
-
-        return loop_correction32;
-
-    }
-    else{
-
-        // for smaller matrices first convert the input matrices to 32 byte precision, than calculate the diag correction
-
-        matrix32 diag_elements32( diag_elements.rows, diag_elements.cols);
-        matrix32 cx_diag_elements32( cx_diag_elements.rows, cx_diag_elements.cols);
-        for (size_t idx=0; idx<diag_elements32.size(); idx++) {
-            diag_elements32[idx].real( diag_elements[idx].real() );
-            diag_elements32[idx].imag( diag_elements[idx].imag() );
-
-            cx_diag_elements32[idx].real( cx_diag_elements[idx].real() );
-            cx_diag_elements32[idx].imag( cx_diag_elements[idx].imag() );
-        }
-
-        matrix32 AZ_32( AZ.rows, AZ.cols);
-        for (size_t idx=0; idx<AZ.size(); idx++) {
-            AZ_32[idx].real( AZ[idx].real() );
-            AZ_32[idx].imag( AZ[idx].imag() );
-        }
-
-        return calculate_loop_correction<matrix32, Complex32>(cx_diag_elements32, diag_elements32, AZ_32, num_of_modes);
-
-
-    }
-
-
-
-}
-
-
-
 
 
 
