@@ -11,6 +11,7 @@ namespace pic {
 void
 calc_vov_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
 
+#ifdef USE_AVX
     size_t size_v = v.size();
 
 
@@ -234,7 +235,7 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
     }
 
 
-
+#endif
 
 /*
         // The above code with non-AVX instructions

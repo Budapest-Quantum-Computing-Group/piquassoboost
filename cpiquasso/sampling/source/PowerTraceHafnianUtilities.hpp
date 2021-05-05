@@ -81,54 +81,106 @@ void
 calc_vH_times_A(matrix_type &A, matrix_type &v, matrix_type &vH_times_A) {
 
 
-  if ( A.cols > HOUSEHOLDER_COTUFF) {
+    if ( A.cols > HOUSEHOLDER_COTUFF) {
 
-      size_t cols_mid = A.cols/2;
-      matrix_type A1(A.get_data(), A.rows, cols_mid, A.stride);
-      matrix_type vH_times_A_1(vH_times_A.get_data(), vH_times_A.rows, cols_mid, vH_times_A.stride);
-      calc_vH_times_A<matrix_type, complex_type>(A1, v, vH_times_A_1);
+        size_t cols_mid = A.cols/2;
+        matrix_type A1(A.get_data(), A.rows, cols_mid, A.stride);
+        matrix_type vH_times_A_1(vH_times_A.get_data(), vH_times_A.rows, cols_mid, vH_times_A.stride);
+        calc_vH_times_A<matrix_type, complex_type>(A1, v, vH_times_A_1);
 
-      matrix_type A2(A.get_data() + cols_mid, A.rows, A.cols - cols_mid, A.stride);
-      matrix_type vH_times_A_2(vH_times_A.get_data() + cols_mid, vH_times_A.rows, vH_times_A.cols - cols_mid, vH_times_A.stride);
-      calc_vH_times_A<matrix_type, complex_type>(A2, v, vH_times_A_2);
-      return;
+        matrix_type A2(A.get_data() + cols_mid, A.rows, A.cols - cols_mid, A.stride);
+        matrix_type vH_times_A_2(vH_times_A.get_data() + cols_mid, vH_times_A.rows, vH_times_A.cols - cols_mid, vH_times_A.stride);
+        calc_vH_times_A<matrix_type, complex_type>(A2, v, vH_times_A_2);
+        return;
 
-  }
-  else if ( A.rows > HOUSEHOLDER_COTUFF) {
+    }
+    else if ( A.rows > HOUSEHOLDER_COTUFF) {
 
-      size_t rows_mid = A.rows/2;
-      matrix_type A1(A.get_data(), rows_mid, A.cols, A.stride);
-      matrix_type v1(v.get_data(), rows_mid, v.cols, v.stride);
-      calc_vH_times_A<matrix_type, complex_type>(A1, v1, vH_times_A);
+        size_t rows_mid = A.rows/2;
+         matrix_type A1(A.get_data(), rows_mid, A.cols, A.stride);
+        matrix_type v1(v.get_data(), rows_mid, v.cols, v.stride);
+        calc_vH_times_A<matrix_type, complex_type>(A1, v1, vH_times_A);
 
-      matrix_type A2(A.get_data() + rows_mid*A.stride, A.rows - rows_mid, A.cols, A.stride);
-      matrix_type v2(v.get_data() + rows_mid*v.stride, v.rows - rows_mid, v.cols, v.stride);
-      calc_vH_times_A<matrix_type, complex_type>(A2, v2, vH_times_A);
-      return;
+        matrix_type A2(A.get_data() + rows_mid*A.stride, A.rows - rows_mid, A.cols, A.stride);
+        matrix_type v2(v.get_data() + rows_mid*v.stride, v.rows - rows_mid, v.cols, v.stride);
+        calc_vH_times_A<matrix_type, complex_type>(A2, v2, vH_times_A);
+        return;
 
-  }
-  else {
+    }
+    else {
 
-
-      size_t sizeH = v.size();
-
-      // calculate the vector-matrix product (v^+) * A
-      for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
-
-          size_t offset_A_data =  row_idx * A.stride;
-          complex_type* data_A = A.get_data() + offset_A_data;
-
-          for (size_t j = 0; j < A.cols; j++) {
-              vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
-          }
+        size_t sizeH = v.size();
 
 
-      }
+  // calculate the vector-matrix product (v^+) * A
+        for (size_t row_idx = 0; row_idx < sizeH-1; row_idx=row_idx+2) {
+
+            size_t offset_A_data =  row_idx * A.stride;
+            complex_type* data_A = A.get_data() + offset_A_data;
+            complex_type* data_A2 = data_A + A.stride;
+
+            for (size_t j = 0; j < A.cols-1; j = j + 2) {
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+                vH_times_A[j+1] = vH_times_A[j+1] + mult_a_bconj(data_A[j+1], v[row_idx]);
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A2[j], v[row_idx+1]);
+                vH_times_A[j+1] = vH_times_A[j+1] + mult_a_bconj(data_A2[j+1], v[row_idx+1]);
+            }
 
 
-      return;
+            if (A.cols % 2 == 1) {
+                size_t j = A.cols-1;
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A2[j], v[row_idx+1]);
 
-  }
+            }
+
+
+        }
+
+        if (sizeH % 2 == 1) {
+
+            size_t row_idx = sizeH-1;
+
+            size_t offset_A_data =  row_idx * A.stride;
+            complex_type* data_A = A.get_data() + offset_A_data;
+
+
+            for (size_t j = 0; j < A.cols-1; j = j + 2) {
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+                vH_times_A[j+1] = vH_times_A[j+1] + mult_a_bconj(data_A[j+1], v[row_idx]);
+            }
+
+
+            if (A.cols % 2 == 1) {
+                size_t j = A.cols-1;
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+
+            }
+
+
+
+        }
+
+/*
+        size_t sizeH = v.size();
+
+        // calculate the vector-matrix product (v^+) * A
+        for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
+
+            size_t offset_A_data =  row_idx * A.stride;
+            complex_type* data_A = A.get_data() + offset_A_data;
+
+            for (size_t j = 0; j < A.cols; j++) {
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+            }
+
+
+        }
+*/
+
+        return;
+
+    }
 
 
 }
@@ -172,7 +224,56 @@ calc_vov_times_A(matrix_type &A, matrix_type &v, matrix_type &vH_times_A) {
     }
     else {
 
+        size_t size_v = v.size();
 
+        for (size_t row_idx = 0; row_idx < size_v-1; row_idx = row_idx+2) {
+
+            size_t offset_data_A =  row_idx * A.stride;
+            complex_type* data_A = A.get_data() + offset_data_A;
+            complex_type* data_A2 = data_A + A.stride;
+
+            complex_type factor = v[row_idx]*2.0;
+            complex_type factor2 = v[row_idx+1]*2.0;
+
+            for (size_t kdx = 0; kdx < A.cols-1; kdx=kdx+2) {
+                data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
+                data_A2[kdx] = data_A2[kdx] - factor2 * vH_times_A[kdx];
+                data_A[kdx+1] = data_A[kdx+1] - factor * vH_times_A[kdx+1];
+                data_A2[kdx+1] = data_A2[kdx+1] - factor2 * vH_times_A[kdx+1];
+            }
+
+
+            if ( A.cols % 2 == 1) {
+                size_t kdx = A.cols-1;
+                data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
+                data_A2[kdx] = data_A2[kdx] - factor2 * vH_times_A[kdx];
+            }
+
+
+        }
+
+
+
+        if (size_v % 2 == 1 ) {
+
+            size_t row_idx = v.rows-1;
+            complex_type* data_A = A.get_data() + row_idx * A.stride;
+
+            complex_type factor = v[row_idx]*2.0;
+
+            for (size_t kdx = 0; kdx < A.cols-1; kdx=kdx+2) {
+                data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
+                data_A[kdx+1] = data_A[kdx+1] - factor * vH_times_A[kdx+1];
+            }
+
+
+            if ( A.cols % 2 == 1) {
+                size_t kdx = A.cols-1;
+                data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
+            }
+
+        }
+/*
 
         // calculate the vector-vector product v * ((v^+) * A))
         for (size_t row_idx = 0; row_idx < v.rows; row_idx++) {
@@ -185,7 +286,7 @@ calc_vov_times_A(matrix_type &A, matrix_type &v, matrix_type &vH_times_A) {
                 data_A[j] = data_A[j] - factor * vH_times_A[j];
             }
         }
-
+*/
 
         return;
 
@@ -235,6 +336,51 @@ apply_householder_cols_req(matrix_type &A, matrix_type &v) {
 
     size_t sizeH = v.size();
 
+    for (size_t idx = 0; idx < A.rows-1; idx=idx+2) {
+
+        complex_type* data_A = A.get_data() + idx*A.stride;
+        complex_type* data_A2 = data_A + A.stride;
+
+        complex_type factor(0.0,0.0);
+        complex_type factor2(0.0,0.0);
+        for (size_t v_idx = 0; v_idx < sizeH; v_idx++) {
+            factor  = factor  + data_A[v_idx] * v[v_idx];
+            factor2 = factor2 + data_A2[v_idx] * v[v_idx];
+        }
+
+
+        factor  = factor*2.0;
+        factor2 = factor2*2.0;
+        for (size_t jdx=0; jdx<sizeH; jdx++) {
+            data_A[jdx] = data_A[jdx] - mult_a_bconj(factor, v[jdx]);
+            data_A2[jdx] = data_A2[jdx] - mult_a_bconj(factor2, v[jdx]);
+        }
+
+
+    }
+
+
+    if (A.rows % 2 == 1 ) {
+
+        complex_type* data_A = A.get_data() + (A.rows-1)*A.stride;
+
+        complex_type factor(0.0,0.0);
+        for (size_t v_idx = 0; v_idx < sizeH; v_idx++) {
+            factor = factor + data_A[v_idx] * v[v_idx];
+        }
+
+        factor = factor*2.0;
+        for (size_t jdx=0; jdx<sizeH; jdx++) {
+            data_A[jdx] = data_A[jdx] - mult_a_bconj(factor, v[jdx]);
+        }
+
+
+
+    }
+
+/*
+    size_t sizeH = v.size();
+
     // calculate A^~(1-2vov)
     for (size_t idx = 0; idx < A.rows; idx++) {
         size_t offset_data_A = idx*A.stride;
@@ -252,7 +398,7 @@ apply_householder_cols_req(matrix_type &A, matrix_type &v) {
 
     }
 
-
+*/
     return;
 
 

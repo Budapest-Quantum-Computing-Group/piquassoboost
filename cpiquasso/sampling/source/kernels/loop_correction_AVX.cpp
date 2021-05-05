@@ -1,4 +1,24 @@
 
+#include "loop_correction_AVX.h"
+
+
+namespace pic {
+
+/**
+@brief AVX kernel to calculate the loop corrections in Eq (3.26) of arXiv1805.12498 (The input matrix and vectors are Hessenberg transformed)
+@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
+@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@return Returns with the calculated loop correction
+*/
+matrix
+calculate_loop_correction_AVX( matrix &cx_diag_elements, matrix &diag_elements, matrix& AZ, size_t num_of_modes) {
+
+#ifdef USE_AVX
+
+    matrix loop_correction(num_of_modes, 1);
+
+
     size_t max_idx = cx_diag_elements.size();
     matrix tmp_vec(1, max_idx);
     double* tmp_vec_data = (double*)tmp_vec.get_data();
@@ -98,8 +118,6 @@
             data = data + 4*AZ.stride;
 
             __m256d _tmp = _mm256_setzero_pd();
-            __m128d _tmp2 = _mm_setzero_pd();
-            __m128d _tmp3 = _mm_setzero_pd();
 
             size_t start_idx = jdx-2;
             for(size_t kdx = 2*start_idx; kdx<max_idx*2; kdx=kdx+4) {
@@ -148,3 +166,18 @@
         memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(Complex16));
 
     }
+
+
+
+    return loop_correction;
+
+#else
+    return matrix(0,0);
+#endif
+
+}
+
+
+} // PIC
+
+

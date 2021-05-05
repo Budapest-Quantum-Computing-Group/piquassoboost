@@ -3,6 +3,7 @@
 #include "calc_vH_times_A_AVX.h"
 #include "calc_vov_times_A_AVX.h"
 #include "apply_householder_cols_AVX.h"
+#include "loop_correction_AVX.h"
 
 
 
@@ -22,46 +23,11 @@ get_reflection_vector(matrix &input, double &norm_v_sqr) {
 
 #ifdef USE_AVX
 
-
     return get_reflection_vector_AVX(input, norm_v_sqr);
 
 #else
 
-  double sigma(0.0);
-  norm_v_sqr = 0.0;
-  matrix reflect_vector(input.rows,1);
-  for (size_t idx = 0; idx < reflect_vector.size(); idx++) {
-      Complex16 &element = input[idx*input.stride];
-      reflect_vector[idx] =  element;//mtx[(idx + offset) * mtx_size + offset - 1];
-      norm_v_sqr = norm_v_sqr + element.real()*element.real() + element.imag()*element.imag(); //adding the squared magnitude
-  }
-  sigma = sqrt(norm_v_sqr);
-
-
-  double abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
-  norm_v_sqr = 2*(norm_v_sqr + abs_val*sigma);
-  if (abs_val != 0.0){
-      //double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
-      auto addend = reflect_vector[0]/abs_val*sigma;
-      reflect_vector[0].real( reflect_vector[0].real() + addend.real());
-      reflect_vector[0].imag( reflect_vector[0].imag() + addend.imag());
-  }
-  else {
-      reflect_vector[0].real( reflect_vector[0].real() + sigma );
-  }
-
-  if (norm_v_sqr == 0.0)
-      return reflect_vector;
-
-  // normalize the reflection matrix
-  double norm_v = std::sqrt(norm_v_sqr);
-  for (size_t idx=0; idx<reflect_vector.size(); idx++) {
-      reflect_vector[idx] = reflect_vector[idx]/norm_v;
-  }
-
-  norm_v_sqr = 1.0;
-
-  return reflect_vector;
+    return get_reflection_vector<matrix, Complex16>(input, norm_v_sqr);
 
 #endif
 
@@ -117,23 +83,10 @@ calc_vH_times_A(matrix &A, matrix &v, matrix &vH_times_A) {
 
 #else
 
-      size_t sizeH = v.size();
-
-      // calculate the vector-matrix product (v^+) * A
-      for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
-
-          size_t offset_A_data =  row_idx * A.stride;
-          Complex16* data_A = A.get_data() + offset_A_data;
-
-          for (size_t j = 0; j < A.cols; j++) {
-              vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
-          }
+    calc_vH_times_A<matrix, Complex16>(A, v, vH_times_A);
 
 
-      }
-
-
-      return;
+    return;
 
 #endif
   }
@@ -187,20 +140,8 @@ calc_vov_times_A(matrix &A, matrix &v, matrix &vH_times_A) {
 
 #else
 
-        // calculate the vector-vector product v * ((v^+) * A))
-        for (size_t row_idx = 0; row_idx < v.rows; row_idx++) {
-
-            size_t offset_data_A =  row_idx * A.stride;
-            Complex16* data_A = A.get_data() + offset_data_A;
-
-            Complex16 factor = v[row_idx]*2.0;
-            for (size_t j = 0; j < A.cols; j++) {
-                data_A[j] = data_A[j] - factor * vH_times_A[j];
-            }
-        }
-
-
-        return;
+    calc_vov_times_A<matrix, Complex16>(A, v, vH_times_A);
+    return;
 
 #endif
 
@@ -257,27 +198,9 @@ apply_householder_cols_req(matrix &A, matrix &v) {
 
 #else
 
-    size_t sizeH = v.size();
-
-    // calculate A^~(1-2vov)
-    for (size_t idx = 0; idx < A.rows; idx++) {
-        size_t offset_data_A = idx*A.stride;
-        Complex16* data_A = A.get_data() + offset_data_A;
-
-        Complex16 factor(0.0,0.0);
-        for (size_t v_idx = 0; v_idx < sizeH; v_idx++) {
-            factor = factor + data_A[v_idx] * v[v_idx];
-        }
-
-        factor = factor*2.0;
-        for (int jdx=0; jdx<sizeH; jdx++) {
-            data_A[jdx] = data_A[jdx] - mult_a_bconj(factor, v[jdx]);
-        }
-
-    }
-
-
+    apply_householder_cols_req<matrix, Complex16>(A, v);
     return;
+
 #endif
 
 }
@@ -598,74 +521,13 @@ calculate_loop_correction_2( matrix &cx_diag_elements, matrix &diag_elements, ma
 
 
 #ifdef USE_AVX
-    matrix loop_correction(num_of_modes, 1);
-
-#include "kernels/loop_correction_AVX.S"
-
-    return loop_correction;
-
+    return calculate_loop_correction_AVX( cx_diag_elements, diag_elements, AZ, num_of_modes);
 #else
     return calculate_loop_correction_2<matrix, Complex16>( cx_diag_elements, diag_elements, AZ, num_of_modes);
 #endif
 
 
 
-
-}
-
-
-
-/**
-@brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
-@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
-@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
-@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
-@return Returns with the calculated loop correction
-*/
-matrix32
-CalculateLoopCorrectionWithHessenberg( matrix &cx_diag_elements, matrix& diag_elements, matrix& AZ, size_t dim_over_2) {
-
-
-/*
-
-    if (AZ.rows < 30) {
-*/
-        // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
-        matrix &&loop_correction = calculate_loop_correction_2(cx_diag_elements, diag_elements, AZ, dim_over_2);
-
-        matrix32 loop_correction32(dim_over_2, 1);
-        for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
-            loop_correction32[idx].real( loop_correction[idx].real() );
-            loop_correction32[idx].imag( loop_correction[idx].imag() );
-        }
-
-        return loop_correction32;
-/*
-    }
-    else{
-
-        // for smaller matrices first convert the input matrices to 32 byte precision, than calculate the diag correction
-        matrix_type diag_elements32( diag_elements.rows, diag_elements.cols);
-        matrix_type cx_diag_elements32( cx_diag_elements.rows, cx_diag_elements.cols);
-        for (size_t idx=0; idx<diag_elements32.size(); idx++) {
-            diag_elements32[idx].real( diag_elements[idx].real() );
-            diag_elements32[idx].imag( diag_elements[idx].imag() );
-
-            cx_diag_elements32[idx].real( cx_diag_elements[idx].real() );
-            cx_diag_elements32[idx].imag( cx_diag_elements[idx].imag() );
-        }
-
-        matrix_type AZ_32( AZ.rows, AZ.cols);
-        for (size_t idx=0; idx<AZ.size(); idx++) {
-            AZ_32[idx].real( AZ[idx].real() );
-            AZ_32[idx].imag( AZ[idx].imag() );
-        }
-
-        return calculate_loop_correction_2<matrix_type, complex_type>(cx_diag_elements32, diag_elements32, AZ_32, dim_over_2);
-
-
-    }
-*/
 
 }
 
