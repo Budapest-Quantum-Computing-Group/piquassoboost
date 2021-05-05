@@ -16,60 +16,6 @@
 #include "constants_tests.h"
 
 
-int test_cholesky_decomposition_inverse(){
-    constexpr size_t dim = 6;
-
-    pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dim, pic::LOWER_TRIANGULAR);
-    pic::matrix mtx_adjoint(dim, dim);
-    for (size_t idx = 0; idx < dim; idx++){
-        for (size_t jdx = 0; jdx < dim; jdx++){
-            pic::Complex16 &value = mtx[jdx * mtx.stride + idx];
-            mtx_adjoint[idx * mtx_adjoint.stride + jdx] = pic::Complex16(value.real(), -value.imag());
-        }
-    }
-
-    pic::matrix mtx_inverse = pic::calc_inverse_of_lower_triangular_matrix_adjoint<pic::matrix, pic::Complex16>(mtx);
-    //mtx.print_matrix();
-    //mtx_adjoint.print_matrix();
-    //mtx_inverse.print_matrix();
-
-    /*
-    for (size_t idx = 0; idx < dim; idx++){
-        for (size_t jdx = 0; jdx < dim; jdx++){
-            std::cout<< idx<<","<<jdx<<": ";
-            for (size_t k = 0; k < dim; k++){
-                std::cout<< idx<<","<<k<<" * "<<k<<","<<jdx<<" + ";
-            }
-            std::cout<<std::endl;
-            pic::Complex16 sum(0.0, 0.0);
-            std::cout<< idx<<","<<jdx<<": ";
-            for (size_t k = 0; k < dim; k++){
-                sum += mtx_adjoint[idx*dim + k] * mtx_inverse[k*dim + jdx];
-                std::cout<< mtx_adjoint[idx*dim + k] <<" * "<<mtx_inverse[k*dim + jdx]<<" + ";
-            }
-
-            std::cout<<"= "<<sum <<std::endl;
-        }
-    }*/
-
-
-    pic::matrix product = pic::dot(mtx_adjoint, mtx_inverse);
-    //product.print_matrix();
-
-    for (size_t idx = 0; idx < dim; idx++){
-        for (size_t jdx = 0; jdx < dim; jdx++){
-            if (idx == jdx){
-                pic::Complex16 diff = pic::Complex16(1.0, 0.0) - product[idx * product.stride + jdx];
-                assert(diff < pic::epsilon);
-            }else{
-                pic::Complex16 diff = pic::Complex16(0.0, 0.0) - product[idx * product.stride + jdx];
-                assert(diff < pic::epsilon);
-            }
-        }
-    }
-    return 0;
-}
-
 int test_cholesky_decomposition_block_based(){
     constexpr size_t dim = 130;
 
@@ -331,7 +277,6 @@ int test_calc_torontonian(){
 }
 
 int main(){
-    //test_cholesky_decomposition_inverse();
     test_cholesky_decomposition_block_based();
     test_cholesky_decomposition_algorithms();
     // test_calc_torontonian();
