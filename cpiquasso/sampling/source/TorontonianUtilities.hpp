@@ -93,6 +93,7 @@ calc_cholesky_decomposition(matrix_type& matrix)
 }
 
 
+// Not used anymore !!
 template<class matrix_type, class complex_type>
 matrix_type
 calc_inverse_of_lower_triangular_matrix_adjoint(matrix_type &L11){
@@ -145,6 +146,7 @@ calc_inverse_of_lower_triangular_matrix_adjoint(matrix_type &L11){
     return inverse_of_L11;
 }
 
+// not used anymore !
 // Calculating A21 * L11^*^-1
 template<class matrix_type, class complex_type>
 void
@@ -192,6 +194,7 @@ update_first_block(matrix_type &A21, matrix_type &L11){
                        END IF
    360             CONTINUE
 */
+// Not used anymore!
 // Calculating A21 * L11^*^-1
 template<class matrix_type, class complex_type>
 void

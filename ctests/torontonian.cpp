@@ -163,6 +163,7 @@ int test_cholesky_decomposition_algorithms(){
     size_of_blocks.push_back(32);
     size_of_blocks.push_back(36);
     size_of_blocks.push_back(40);
+    size_of_blocks.push_back(24);
     size_of_blocks.push_back(44);
     size_of_blocks.push_back(64);
     size_of_blocks.push_back(60);
