@@ -337,8 +337,8 @@ int test_calc_torontonian(){
 }
 
 int main(){
-    //test_inverse_calculation();
-    //test_cholesky_decomposition_block_based();
-    //test_cholesky_decomposition_algorithms();
+    test_inverse_calculation();
+    test_cholesky_decomposition_block_based();
+    test_cholesky_decomposition_algorithms();
     test_calc_torontonian();
 }

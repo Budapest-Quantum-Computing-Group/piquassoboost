@@ -131,10 +131,12 @@ update_second_block(matrix_type &A22, matrix_type &L21){
 
 // Cholesky decomposition
 // Works only for selfadjoint positive definite matrices!
+// Matrix input has to be square shaped
 template<class matrix_type, class complex_type>
 void
 calc_cholesky_decomposition_block_based(matrix_type &matrix, size_t size_of_first_block)
 {
+    // Assuming matrix.cols == matrix.rows
     // storing in the same memory the results of the algorithm
     //const size_t n = matrix.cols;
 
@@ -146,14 +148,13 @@ calc_cholesky_decomposition_block_based(matrix_type &matrix, size_t size_of_firs
     //   A22' = A22 - L21 * L21^*
     // call recursive function on L21
 
-    // First block size has to be at most equal to the dimension of the matrix
-    size_of_first_block = std::min(matrix.cols, size_of_first_block);
-
     // Second block size has to be at least zero
     size_t size_of_second_block;
     if (matrix.cols > size_of_first_block){
         size_of_second_block = matrix.cols - size_of_first_block;
     }else{
+        // First block size has to be at most equal to the dimension of the matrix
+        size_of_first_block = matrix.cols;
         size_of_second_block = 0;
     }
     //std::cout << "1st b: " << size_of_first_block << " 2nd b: " << size_of_second_block << std::endl;

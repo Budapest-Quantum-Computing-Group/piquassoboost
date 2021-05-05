@@ -230,7 +230,7 @@ Torontonian::calculate(){
                 //memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
             }
 
-            std::cout<<"Det: "<< determinant.real()<<std::endl;
+            //std::cout<<"Det: "<< determinant.real()<<std::endl;
 
             // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
             double sqrt_determinant = std::sqrt(determinant.real());
