@@ -1,3 +1,7 @@
+#ifndef LONG_DOUBLE_CUTOFF
+#define LONG_DOUBLE_CUTOFF 50
+#endif // LONG_DOUBLE_CUTOFF
+
 #include <iostream>
 #include "PowerTraceHafnianRecursive.h"
 #include "PowerTraceHafnianUtilities.hpp"
@@ -234,7 +238,7 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
     tbb::task_group tg;
 
     // thread local storage for partial hafnian
-    tbb::combinable<Complex32> priv_addend{[](){return Complex32(0,0);}};
+    tbb::combinable<ComplexM<long double>> priv_addend{[](){return ComplexM<long double>();}};
 
     // for cycle over the combinations of occupancy
     tbb::parallel_for(start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
@@ -286,8 +290,8 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
 
 
     Complex32 hafnian( 0.0, 0.0 );
-    priv_addend.combine_each([&](Complex32 a) {
-        hafnian = hafnian + a;
+    priv_addend.combine_each([&](ComplexM<long double> &a) {
+        hafnian = hafnian + a.get();
     });
 
 
@@ -318,7 +322,7 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
 @param tg Reference to a tbb::task_group
 */
 void
-PowerTraceHafnianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<Complex32>& priv_addend, tbb::task_group &tg ) {
+PowerTraceHafnianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg ) {
 
 
 
@@ -439,10 +443,10 @@ std::cout << std::endl;
                                                                  );
     }
 
-    Complex32 &hafnian_priv = priv_addend.local();
+    ComplexM<long double> &hafnian_priv = priv_addend.local();
 //std::cout << "combinatorial_fact " << combinatorial_fact << std::endl;
 //std::cout << "partial_hafnian " << partial_hafnian << std::endl;
-    hafnian_priv = hafnian_priv + partial_hafnian * (long double)combinatorial_fact;
+    hafnian_priv += partial_hafnian * (long double)combinatorial_fact;
 
 
 
@@ -461,9 +465,6 @@ Complex32
 PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
 
 
-
-    Complex32 summand(0.0,0.0);
-
     size_t num_of_modes = sum(current_occupancy);
     size_t total_num_of_modes = sum(occupancy);
     size_t dim = total_num_of_modes*2;
@@ -478,7 +479,8 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
     matrix32 traces(total_num_of_modes, 1);
     if (num_of_modes != 0) {
-        traces = calc_power_traces<matrix32, Complex32>(B, total_num_of_modes);
+        //traces = calc_power_traces<matrix32, Complex32>(B, total_num_of_modes);
+        CalcPowerTraces(B, total_num_of_modes, traces);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -539,16 +541,15 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
 
 
     if (fact) {
-        summand = summand - p_aux1[total_num_of_modes];
+        return -p_aux1[total_num_of_modes];
 //std::cout << -p_aux1[total_num_of_modes] << std::endl;
     }
     else {
-        summand = summand + p_aux1[total_num_of_modes];
+        return p_aux1[total_num_of_modes];
 //std::cout << p_aux1[total_num_of_modes] << std::endl;
     }
 
 
-    return summand;
 
 
 }
@@ -617,8 +618,9 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
     matrix AZ(num_of_modes*2, num_of_modes*2);
     scale_factor_AZ = 0.0;
     for (size_t idx = 0; idx < 2*num_of_modes; idx++) {
+        size_t row_offset = (idx^1)*A.stride;
         for (size_t jdx = 0; jdx < 2*num_of_modes; jdx++) {
-            Complex16 &element = A[idx*A.stride + (jdx ^ 1)];
+            Complex16 &element = A[row_offset + jdx];
             AZ[idx*AZ.stride + jdx] = element;
             scale_factor_AZ = scale_factor_AZ + element.real()*element.real() + element.imag()*element.imag();
         }

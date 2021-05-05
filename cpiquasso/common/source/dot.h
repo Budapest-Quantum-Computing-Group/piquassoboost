@@ -20,6 +20,10 @@ typedef enum CBLAS_TRANSPOSE {CblasNoTrans=111, CblasTrans=112, CblasConjTrans=1
 void cblas_zgemm(const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_TRANSPOSE TransB, const int M, const int N, const int K,
 		 const void *alpha, const void *A, const int lda, const void *B, const int ldb, const void *beta, void *C, const int ldc);
 
+/// Definition of the zgemv function from CBLAS to calculate matrix-vector product
+void cblas_zgemv(const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA, const int M, const int N, const void *alpha, const void *A, const int lda,
+                 const void *X, const int incX, const void *beta, void *Y, const int incY);
+
 
 #if BLAS==1 // MKL
 

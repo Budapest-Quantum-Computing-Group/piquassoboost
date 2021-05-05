@@ -1,3 +1,7 @@
+#ifndef LONG_DOUBLE_CUTOFF
+#define LONG_DOUBLE_CUTOFF 40
+#endif // LONG_DOUBLE_CUTOFF
+
 #include "PowerTraceHafnianUtilities.h"
 #include <iostream>
 #include "common_functionalities.h"
@@ -6,12 +10,12 @@
 
 #define HOUSEHOLDER_COTUFF 40
 
-/*
+
 static tbb::spin_mutex my_mutex;
 
 static double time_szamlalo = 0.0;
 static double time_nevezo = 0.0;
-*/
+
 
 namespace pic {
 
@@ -77,54 +81,106 @@ void
 calc_vH_times_A(matrix_type &A, matrix_type &v, matrix_type &vH_times_A) {
 
 
-  if ( A.cols > HOUSEHOLDER_COTUFF) {
+    if ( A.cols > HOUSEHOLDER_COTUFF) {
 
-      size_t cols_mid = A.cols/2;
-      matrix_type A1(A.get_data(), A.rows, cols_mid, A.stride);
-      matrix_type vH_times_A_1(vH_times_A.get_data(), vH_times_A.rows, cols_mid, vH_times_A.stride);
-      calc_vH_times_A<matrix_type, complex_type>(A1, v, vH_times_A_1);
+        size_t cols_mid = A.cols/2;
+        matrix_type A1(A.get_data(), A.rows, cols_mid, A.stride);
+        matrix_type vH_times_A_1(vH_times_A.get_data(), vH_times_A.rows, cols_mid, vH_times_A.stride);
+        calc_vH_times_A<matrix_type, complex_type>(A1, v, vH_times_A_1);
 
-      matrix_type A2(A.get_data() + cols_mid, A.rows, A.cols - cols_mid, A.stride);
-      matrix_type vH_times_A_2(vH_times_A.get_data() + cols_mid, vH_times_A.rows, vH_times_A.cols - cols_mid, vH_times_A.stride);
-      calc_vH_times_A<matrix_type, complex_type>(A2, v, vH_times_A_2);
-      return;
+        matrix_type A2(A.get_data() + cols_mid, A.rows, A.cols - cols_mid, A.stride);
+        matrix_type vH_times_A_2(vH_times_A.get_data() + cols_mid, vH_times_A.rows, vH_times_A.cols - cols_mid, vH_times_A.stride);
+        calc_vH_times_A<matrix_type, complex_type>(A2, v, vH_times_A_2);
+        return;
 
-  }
-  else if ( A.rows > HOUSEHOLDER_COTUFF) {
+    }
+    else if ( A.rows > HOUSEHOLDER_COTUFF) {
 
-      size_t rows_mid = A.rows/2;
-      matrix_type A1(A.get_data(), rows_mid, A.cols, A.stride);
-      matrix_type v1(v.get_data(), rows_mid, v.cols, v.stride);
-      calc_vH_times_A<matrix_type, complex_type>(A1, v1, vH_times_A);
+        size_t rows_mid = A.rows/2;
+         matrix_type A1(A.get_data(), rows_mid, A.cols, A.stride);
+        matrix_type v1(v.get_data(), rows_mid, v.cols, v.stride);
+        calc_vH_times_A<matrix_type, complex_type>(A1, v1, vH_times_A);
 
-      matrix_type A2(A.get_data() + rows_mid*A.stride, A.rows - rows_mid, A.cols, A.stride);
-      matrix_type v2(v.get_data() + rows_mid*v.stride, v.rows - rows_mid, v.cols, v.stride);
-      calc_vH_times_A<matrix_type, complex_type>(A2, v2, vH_times_A);
-      return;
+        matrix_type A2(A.get_data() + rows_mid*A.stride, A.rows - rows_mid, A.cols, A.stride);
+        matrix_type v2(v.get_data() + rows_mid*v.stride, v.rows - rows_mid, v.cols, v.stride);
+        calc_vH_times_A<matrix_type, complex_type>(A2, v2, vH_times_A);
+        return;
 
-  }
-  else {
+    }
+    else {
 
-
-      size_t sizeH = v.size();
-
-      // calculate the vector-matrix product (v^+) * A
-      for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
-
-          size_t offset_A_data =  row_idx * A.stride;
-          complex_type* data_A = A.get_data() + offset_A_data;
-
-          for (size_t j = 0; j < A.cols; j++) {
-              vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
-          }
+        size_t sizeH = v.size();
 
 
-      }
+  // calculate the vector-matrix product (v^+) * A
+        for (size_t row_idx = 0; row_idx < sizeH-1; row_idx=row_idx+2) {
+
+            size_t offset_A_data =  row_idx * A.stride;
+            complex_type* data_A = A.get_data() + offset_A_data;
+            complex_type* data_A2 = data_A + A.stride;
+
+            for (size_t j = 0; j < A.cols-1; j = j + 2) {
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+                vH_times_A[j+1] = vH_times_A[j+1] + mult_a_bconj(data_A[j+1], v[row_idx]);
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A2[j], v[row_idx+1]);
+                vH_times_A[j+1] = vH_times_A[j+1] + mult_a_bconj(data_A2[j+1], v[row_idx+1]);
+            }
 
 
-      return;
+            if (A.cols % 2 == 1) {
+                size_t j = A.cols-1;
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A2[j], v[row_idx+1]);
 
-  }
+            }
+
+
+        }
+
+        if (sizeH % 2 == 1) {
+
+            size_t row_idx = sizeH-1;
+
+            size_t offset_A_data =  row_idx * A.stride;
+            complex_type* data_A = A.get_data() + offset_A_data;
+
+
+            for (size_t j = 0; j < A.cols-1; j = j + 2) {
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+                vH_times_A[j+1] = vH_times_A[j+1] + mult_a_bconj(data_A[j+1], v[row_idx]);
+            }
+
+
+            if (A.cols % 2 == 1) {
+                size_t j = A.cols-1;
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+
+            }
+
+
+
+        }
+
+/*
+        size_t sizeH = v.size();
+
+        // calculate the vector-matrix product (v^+) * A
+        for (size_t row_idx = 0; row_idx < sizeH; row_idx++) {
+
+            size_t offset_A_data =  row_idx * A.stride;
+            complex_type* data_A = A.get_data() + offset_A_data;
+
+            for (size_t j = 0; j < A.cols; j++) {
+                vH_times_A[j] = vH_times_A[j] + mult_a_bconj(data_A[j], v[row_idx]);
+            }
+
+
+        }
+*/
+
+        return;
+
+    }
 
 
 }
@@ -168,7 +224,56 @@ calc_vov_times_A(matrix_type &A, matrix_type &v, matrix_type &vH_times_A) {
     }
     else {
 
+        size_t size_v = v.size();
 
+        for (size_t row_idx = 0; row_idx < size_v-1; row_idx = row_idx+2) {
+
+            size_t offset_data_A =  row_idx * A.stride;
+            complex_type* data_A = A.get_data() + offset_data_A;
+            complex_type* data_A2 = data_A + A.stride;
+
+            complex_type factor = v[row_idx]*2.0;
+            complex_type factor2 = v[row_idx+1]*2.0;
+
+            for (size_t kdx = 0; kdx < A.cols-1; kdx=kdx+2) {
+                data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
+                data_A2[kdx] = data_A2[kdx] - factor2 * vH_times_A[kdx];
+                data_A[kdx+1] = data_A[kdx+1] - factor * vH_times_A[kdx+1];
+                data_A2[kdx+1] = data_A2[kdx+1] - factor2 * vH_times_A[kdx+1];
+            }
+
+
+            if ( A.cols % 2 == 1) {
+                size_t kdx = A.cols-1;
+                data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
+                data_A2[kdx] = data_A2[kdx] - factor2 * vH_times_A[kdx];
+            }
+
+
+        }
+
+
+
+        if (size_v % 2 == 1 ) {
+
+            size_t row_idx = v.rows-1;
+            complex_type* data_A = A.get_data() + row_idx * A.stride;
+
+            complex_type factor = v[row_idx]*2.0;
+
+            for (size_t kdx = 0; kdx < A.cols-1; kdx=kdx+2) {
+                data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
+                data_A[kdx+1] = data_A[kdx+1] - factor * vH_times_A[kdx+1];
+            }
+
+
+            if ( A.cols % 2 == 1) {
+                size_t kdx = A.cols-1;
+                data_A[kdx] = data_A[kdx] - factor * vH_times_A[kdx];
+            }
+
+        }
+/*
 
         // calculate the vector-vector product v * ((v^+) * A))
         for (size_t row_idx = 0; row_idx < v.rows; row_idx++) {
@@ -181,7 +286,7 @@ calc_vov_times_A(matrix_type &A, matrix_type &v, matrix_type &vH_times_A) {
                 data_A[j] = data_A[j] - factor * vH_times_A[j];
             }
         }
-
+*/
 
         return;
 
@@ -231,6 +336,51 @@ apply_householder_cols_req(matrix_type &A, matrix_type &v) {
 
     size_t sizeH = v.size();
 
+    for (size_t idx = 0; idx < A.rows-1; idx=idx+2) {
+
+        complex_type* data_A = A.get_data() + idx*A.stride;
+        complex_type* data_A2 = data_A + A.stride;
+
+        complex_type factor(0.0,0.0);
+        complex_type factor2(0.0,0.0);
+        for (size_t v_idx = 0; v_idx < sizeH; v_idx++) {
+            factor  = factor  + data_A[v_idx] * v[v_idx];
+            factor2 = factor2 + data_A2[v_idx] * v[v_idx];
+        }
+
+
+        factor  = factor*2.0;
+        factor2 = factor2*2.0;
+        for (size_t jdx=0; jdx<sizeH; jdx++) {
+            data_A[jdx] = data_A[jdx] - mult_a_bconj(factor, v[jdx]);
+            data_A2[jdx] = data_A2[jdx] - mult_a_bconj(factor2, v[jdx]);
+        }
+
+
+    }
+
+
+    if (A.rows % 2 == 1 ) {
+
+        complex_type* data_A = A.get_data() + (A.rows-1)*A.stride;
+
+        complex_type factor(0.0,0.0);
+        for (size_t v_idx = 0; v_idx < sizeH; v_idx++) {
+            factor = factor + data_A[v_idx] * v[v_idx];
+        }
+
+        factor = factor*2.0;
+        for (size_t jdx=0; jdx<sizeH; jdx++) {
+            data_A[jdx] = data_A[jdx] - mult_a_bconj(factor, v[jdx]);
+        }
+
+
+
+    }
+
+/*
+    size_t sizeH = v.size();
+
     // calculate A^~(1-2vov)
     for (size_t idx = 0; idx < A.rows; idx++) {
         size_t offset_data_A = idx*A.stride;
@@ -248,11 +398,12 @@ apply_householder_cols_req(matrix_type &A, matrix_type &v) {
 
     }
 
-
+*/
     return;
 
 
 }
+
 
 
 
@@ -277,17 +428,64 @@ transform_matrix_to_hessenberg(matrix_type &mtx) {
 
       if (norm_v_sqr == 0.0) continue;
 
-      // construct strided matrix in which the elements under the diagonal in the first column are transformed to zero by Householder transformation
+      // construct strided submatrix in which the elements under the diagonal in the first column are transformed to zero by Householder transformation
       matrix_type mtx_strided(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, mtx.cols-idx+1, mtx.stride);
 
       // apply Householder transformation from the left
       apply_householder_rows<matrix_type, complex_type>(mtx_strided, reflect_vector);
 
-      // construct strided matrix on which the Householder transformation is applied from the right
+      // construct strided submatrix on which the Householder transformation is applied from the right
       mtx_strided = matrix_type(mtx.get_data() + idx, mtx.rows, mtx.cols-idx, mtx.stride);
 
       // apply Householder transformation from the right
       apply_householder_cols_req<matrix_type, complex_type>(mtx_strided, reflect_vector);
+
+  }
+
+
+
+}
+
+
+
+/**
+@brief Reduce a general matrix to upper Hessenberg form and applies the unitary transformation on left/right sided vectors to keep the \f$ <L|M|R> \f$ product invariant.
+@param matrix matrix to be reduced to upper Hessenberg form. The reduced matrix is returned via this input
+@param Lv the left sided vector
+@param Rv the roght sided vector
+*/
+template<class matrix_type, class complex_type>
+void
+transform_matrix_to_hessenberg(matrix_type &mtx, matrix_type Lv, matrix_type Rv ) {
+
+  // apply recursive Hauseholder transformation to eliminate the matrix elements column by column
+  for (size_t idx = 1; idx < mtx.rows - 1; idx++) {
+
+      // construct strided matrix containing data to get the reflection matrix
+      matrix_type ref_vector_input(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, 1, mtx.stride);
+
+      // get reflection matrix and its norm
+      double norm_v_sqr(0.0);
+      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type>(ref_vector_input, norm_v_sqr);
+
+      if (norm_v_sqr == 0.0) continue;
+
+      // apply Householder transformation on the matrix from the left
+      matrix_type mtx_strided(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, mtx.cols-idx+1, mtx.stride);
+      apply_householder_rows<matrix_type, complex_type>(mtx_strided, reflect_vector);
+
+      // apply Householder transformation on the left vector
+      matrix_type Lv_strided(Lv.get_data()+idx, Lv.rows, Lv.cols-idx, Lv.stride);
+      apply_householder_cols_req<matrix_type, complex_type>(Lv_strided, reflect_vector);
+
+      // apply Householder transformation from the right
+      mtx_strided = matrix_type(mtx.get_data() + idx, mtx.rows, mtx.cols-idx, mtx.stride);
+      apply_householder_cols_req<matrix_type, complex_type>(mtx_strided, reflect_vector);
+
+      // apply Householder transformation on the right vector
+      matrix_type Rv_strided(Rv.get_data()+Rv.stride*idx, Rv.rows-idx, Rv.cols, Rv.stride);
+      apply_householder_rows<matrix_type, complex_type>(Rv_strided, reflect_vector);
+
 
   }
 
@@ -326,7 +524,7 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
 
     // allocate memory for the coefficients c_k of p(\lambda)
     matrix_type coeffs(dim, dim);
-    memset(coeffs.get_data(), 0, dim*dim*sizeof(Complex16));
+    memset(coeffs.get_data(), 0, dim*dim*sizeof(complex_type));
 
 
     // c^(1)_1 = -\alpha_1
@@ -457,33 +655,34 @@ template<class matrix_type>
 matrix_type
 powtrace_from_charpoly(matrix_type &coeffs, size_t pow) {
 
-  size_t dim = coeffs.rows;
+    size_t dim = coeffs.rows;
 
 
-  if (pow == 0) {
-    matrix_type ret(1,1);
-    ret[0].real( (double) dim );
-    ret[0].imag( 0.0 );
-    return ret;
-  }
+    if (pow == 0) {
+        matrix_type ret(1,1);
+        ret[0].real( (double) dim );
+        ret[0].imag( 0.0 );
+        return ret;
+    }
 
-  // allocate memory for the power traces
-  matrix_type traces(pow,1);
+    // allocate memory for the power traces
+    matrix_type traces(pow,1);
 
 
-  // Tr(A)
-  traces[0] = -coeffs[(dim - 1) * dim];
+    // Tr(A) = -c1
+    size_t element_offset = (dim - 1) * dim;
+    traces[0] = -coeffs[element_offset];
 
   // Calculate power traces using the LeVerrier recursion relation
   size_t kdx_max = pow < dim ? pow : dim;
   for (size_t idx = 2; idx <= kdx_max; idx++) {
 
     // Tr(A^idx)
-    size_t element_offset = (dim - 1) * dim + idx - 1;
-    traces[idx - 1] = coeffs[element_offset] * (-(double)idx);
+    size_t element_offset2 = (dim - 1) * dim + idx - 1;
+    traces[idx - 1] = coeffs[element_offset2] * (-(double)idx);
 
     for (size_t j = idx - 1; j >= 1; j--) {
-      traces[idx - 1] -= coeffs[element_offset - j] * traces[j - 1];
+      traces[idx - 1] -= coeffs[element_offset2 - j] * traces[j - 1];
     }
 
   }
@@ -547,8 +746,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
     // The lapack function to calculate the Hessenberg transformation is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
     // quad precision
-    else if ( (AZ.rows < 40 && (sizeof(complex_type) > sizeof(Complex16))) || (sizeof(complex_type) == sizeof(Complex16)) ) {
-
+    else if ( (AZ.rows < 40) || (sizeof(complex_type) == sizeof(Complex16)) ) {
 
         // transform the matrix mtx into an upper Hessenberg format by calling lapack function
         int N = AZ.rows;
@@ -565,7 +763,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
         }
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        matrix32&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix32, Complex32>(AZ32, AZ.rows);
+        matrix_type&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, complex_type>(AZ32, AZ.rows);
 
         // calculate the power traces of the matrix AZ using LeVerrier recursion relation
         return powtrace_from_charpoly<matrix_type>(coeffs_labudde, pow_max);
@@ -625,12 +823,51 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
 */
 template<class matrix_type, class complex_type>
 matrix_type
-calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elements, matrix_type& AZ, size_t num_of_modes) {
+calculate_loop_correction( matrix_type &cx_diag_elements, matrix_type& diag_elements, matrix_type& AZ, size_t num_of_modes) {
 
     matrix_type loop_correction(num_of_modes, 1);
     matrix_type tmp_vec(1, diag_elements.size());
 
+    for (size_t idx=0; idx<num_of_modes; idx++) {
 
+        complex_type tmp(0.0,0.0);
+        for (size_t jdx=0; jdx<diag_elements.size(); jdx++) {
+            tmp = tmp + diag_elements[jdx] * cx_diag_elements[jdx];
+        }
+
+        loop_correction[idx] = tmp;
+
+
+        memset(tmp_vec.get_data(), 0, tmp_vec.size()*sizeof(complex_type));
+
+        if (sizeof(complex_type) == 16) {
+
+            Complex16 alpha(1.0,0.0);
+            Complex16 beta(0.0,0.0);
+
+            cblas_zgemv(CblasRowMajor, CblasNoTrans, AZ.rows, AZ.cols, (void*)&alpha, (void*)AZ.get_data(), AZ.stride,
+            (void*)cx_diag_elements.get_data(), 1, (void*)&beta, (void*)tmp_vec.get_data(), 1);
+        }
+        else {
+
+            for (size_t jdx=0; jdx<cx_diag_elements.size(); jdx++) {
+                tmp = complex_type(0.0,0.0);
+                complex_type* data = AZ.get_data() + jdx*AZ.stride;
+                for (size_t kdx=0; kdx<cx_diag_elements.size(); kdx++) {
+                    tmp += data[kdx] * cx_diag_elements[kdx];
+                }
+                tmp_vec[jdx] = tmp;
+            }
+        }
+
+
+        memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+
+    }
+
+
+
+/*
     for (size_t idx=0; idx<num_of_modes; idx++) {
 
         complex_type tmp(0.0,0.0);
@@ -652,9 +889,133 @@ calculate_loop_correction( matrix_type &diag_elements, matrix_type& cx_diag_elem
          memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
 
     }
+*/
+
+    return loop_correction;
+
+}
+
+
+
+
+
+
+/**
+@brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
+@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
+@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@return Returns with the calculated loop correction
+*/
+template<class matrix_type, class complex_type>
+matrix_type
+calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_elements, matrix_type& AZ, size_t num_of_modes) {
+
+    matrix_type loop_correction(num_of_modes, 1);
+    //transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ, diag_elements, cx_diag_elements);
+
+    size_t max_idx = cx_diag_elements.size();
+    matrix_type tmp_vec(1, max_idx);
+    complex_type* tmp_vec_data = tmp_vec.get_data();
+    complex_type* cx_data = cx_diag_elements.get_data();
+    complex_type* diag_data = diag_elements.get_data();
+
+
+    for (size_t idx=0; idx<num_of_modes; idx++) {
+
+
+        complex_type tmp(0.0,0.0);
+        for (size_t jdx=0; jdx<max_idx; jdx++) {
+            tmp = tmp + diag_data[jdx] * cx_data[jdx];
+        }
+
+        loop_correction[idx] = tmp;
+
+
+        complex_type* data = AZ.get_data();
+
+
+        tmp = complex_type(0.0,0.0);
+        for (size_t kdx=0; kdx<max_idx; kdx++) {
+            tmp += data[kdx] * cx_data[kdx];
+        }
+        tmp_vec[0] = tmp;
+
+
+        for (size_t jdx=1; jdx<max_idx; jdx++) {
+            data = data + AZ.stride;
+            tmp = complex_type(0.0,0.0);
+            for (size_t kdx=jdx-1; kdx<max_idx; kdx++) {
+                tmp += data[kdx] * cx_data[kdx];
+            }
+            tmp_vec[jdx] = tmp;
+
+        }
+
+
+        memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+
+    }
 
 
     return loop_correction;
+
+}
+
+
+
+/**
+@brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
+@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
+@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
+@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
+@return Returns with the calculated loop correction
+*/
+template<class matrix_type, class complex_type>
+matrix_type
+CalculateLoopCorrectionWithHessenberg( matrix &cx_diag_elements, matrix& diag_elements, matrix& AZ, size_t dim_over_2) {
+
+
+/*
+
+    if (AZ.rows < 30) {
+*/
+        // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
+        matrix &&loop_correction = calculate_loop_correction_2<matrix, Complex16>(cx_diag_elements, diag_elements, AZ, dim_over_2);
+
+        matrix_type loop_correction32(dim_over_2, 1);
+        for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
+            loop_correction32[idx].real( loop_correction[idx].real() );
+            loop_correction32[idx].imag( loop_correction[idx].imag() );
+        }
+
+        return loop_correction32;
+/*
+    }
+    else{
+
+        // for smaller matrices first convert the input matrices to 32 byte precision, than calculate the diag correction
+        matrix_type diag_elements32( diag_elements.rows, diag_elements.cols);
+        matrix_type cx_diag_elements32( cx_diag_elements.rows, cx_diag_elements.cols);
+        for (size_t idx=0; idx<diag_elements32.size(); idx++) {
+            diag_elements32[idx].real( diag_elements[idx].real() );
+            diag_elements32[idx].imag( diag_elements[idx].imag() );
+
+            cx_diag_elements32[idx].real( cx_diag_elements[idx].real() );
+            cx_diag_elements32[idx].imag( cx_diag_elements[idx].imag() );
+        }
+
+        matrix_type AZ_32( AZ.rows, AZ.cols);
+        for (size_t idx=0; idx<AZ.size(); idx++) {
+            AZ_32[idx].real( AZ[idx].real() );
+            AZ_32[idx].imag( AZ[idx].imag() );
+        }
+
+        return calculate_loop_correction_2<matrix_type, complex_type>(cx_diag_elements32, diag_elements32, AZ_32, dim_over_2);
+
+
+    }
+*/
 
 }
 

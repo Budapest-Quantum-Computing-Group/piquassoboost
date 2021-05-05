@@ -217,7 +217,7 @@ GaussianSimulationStrategyFast::calc_probability( matrix& Qinv, const double& Qd
 /*
 {
     tbb::spin_mutex::scoped_lock my_lock{mymutex};
-if ( std::abs(hafnian - hafnian2)/std::abs(hafnian) > 0.10) {
+if ( std::abs(hafnian - hafnian2)/std::abs(hafnian) > 0.03) {
 std::cout << "hafnaian diff: " << std::abs(hafnian - hafnian2)/std::abs(hafnian)*100 << " % hafnian: " << hafnian << " hafnian2: " << hafnian2 <<std::endl;
 }
 else {

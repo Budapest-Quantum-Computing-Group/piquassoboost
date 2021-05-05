@@ -1,3 +1,7 @@
+#ifndef LONG_DOUBLE_CUTOFF
+#define LONG_DOUBLE_CUTOFF 40
+#endif // LONG_DOUBLE_CUTOFF
+
 #include <iostream>
 #include "PowerTraceLoopHafnian.h"
 #include "PowerTraceHafnianUtilities.hpp"
@@ -184,42 +188,37 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
         matrix AZ(number_of_ones, number_of_ones);
         matrix diag_elements(1, number_of_ones);
         for (size_t idx = 0; idx < number_of_ones; idx++) {
+            size_t row_offset = (positions_of_ones[idx] ^ 1)*mtx.stride;
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                AZ[idx*AZ.stride + jdx] = mtx[positions_of_ones[idx]*mtx.stride + ((positions_of_ones[jdx]) ^ 1)];
-
+                AZ[idx*AZ.stride + jdx] = mtx[row_offset + ((positions_of_ones[jdx]))];
             }
-            diag_elements[idx] = mtx[positions_of_ones[idx]*mtx.stride + positions_of_ones[idx]];
+            diag_elements[idx] = mtx[(positions_of_ones[idx])*mtx.stride + positions_of_ones[idx]];
 
         }
-/*
-{
-      tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-      diag_elements.print_matrix();
-  }
-  */
+
         // select the X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
-        matrix cx_diag_elements(1, number_of_ones);
+        matrix cx_diag_elements(number_of_ones, 1);
         for (size_t idx = 1; idx < number_of_ones; idx=idx+2) {
             cx_diag_elements[idx] = diag_elements[idx-1];
             cx_diag_elements[idx-1] = diag_elements[idx];
         }
 
-        // calculate the loop correction elements for the loop hafnian
-        matrix32 loop_corrections = CalculateLoopCorrection(diag_elements, cx_diag_elements, AZ);
 
-        // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
+        // calculating Tr(B^j) for all j's that are 1<=j<=dim/2 and loop corrections
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-        matrix32 traces(dim_over_2, 1);
+        matrix32 traces;
+        matrix32 loop_corrections;
         if (number_of_ones != 0) {
-            // here we need to make a copy since B will be transformed, but we need to use B in other calculations
-            traces = calc_power_traces<matrix32, Complex32>(AZ, dim_over_2);
+            CalcPowerTracesAndLoopCorrections(cx_diag_elements, diag_elements, AZ, dim_over_2, traces, loop_corrections);
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
             // this occurs once during the calculations
-            memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
+            traces = matrix32(dim_over_2, 1);
+            loop_corrections = matrix32(dim_over_2, 1);
+            memset( traces.get_data(), 0.0, traces.size()*sizeof(Complex32));
+            memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(Complex32));
         }
-
 
 
         // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
@@ -309,59 +308,6 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
     return Complex16(res.real(), res.imag() );
 }
 
-
-/**
-@brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
-@param diag_elements The diagonal elements of the input matrix to be used to calculate the loop correction
-@param cx_diag_elements The X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
-@param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
-@return Returns with the calculated loop correction
-*/
-matrix32
-PowerTraceLoopHafnian::CalculateLoopCorrection( matrix &diag_elements, matrix& cx_diag_elements, matrix& AZ) {
-
-    size_t dim_over_2 = mtx.rows/2;
-
-    if (dim_over_2 < 30) {
-
-        // for smaller matrices first calculate the corerction in 16 byte precision, than convert the result to 32 byte precision
-        matrix &&loop_correction = calculate_loop_correction<matrix, Complex16>(diag_elements, cx_diag_elements, AZ, dim_over_2);
-
-        matrix32 loop_correction32(dim_over_2, 1);
-        for (size_t idx=0; idx<loop_correction.size(); idx++ ) {
-            loop_correction32[idx].real( loop_correction[idx].real() );
-            loop_correction32[idx].imag( loop_correction[idx].imag() );
-        }
-
-        return loop_correction32;
-
-    }
-    else{
-
-        // for smaller matrices first convert the input matrices to 32 byte precision, than calculate the diag correction
-        matrix32 diag_elements32( diag_elements.rows, diag_elements.cols);
-        matrix32 cx_diag_elements32( cx_diag_elements.rows, cx_diag_elements.cols);
-        for (size_t idx=0; idx<diag_elements32.size(); idx++) {
-            diag_elements32[idx].real( diag_elements[idx].real() );
-            diag_elements32[idx].imag( diag_elements[idx].imag() );
-
-            cx_diag_elements32[idx].real( cx_diag_elements[idx].real() );
-            cx_diag_elements32[idx].imag( cx_diag_elements[idx].imag() );
-        }
-
-        matrix32 AZ_32( AZ.rows, AZ.cols);
-        for (size_t idx=0; idx<AZ.size(); idx++) {
-            AZ_32[idx].real( AZ[idx].real() );
-            AZ_32[idx].imag( AZ[idx].imag() );
-        }
-
-        return calculate_loop_correction<matrix32, Complex32>(diag_elements32, cx_diag_elements32, AZ_32, dim_over_2);
-
-
-    }
-
-
-}
 
 
 

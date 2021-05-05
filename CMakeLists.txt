@@ -162,7 +162,7 @@ endif()
 
 # setting basic compile flags
 list(APPEND CXX_FLAGS_DEBUG "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-DDEBUG" "-fno-builtin-malloc" "-fno-builtin-calloc" "-fno-builtin-realloc" "-fno-builtin-free" "-fpermissive")
-list(APPEND CXX_FLAGS_RELEASE "-Wall" "-O3" "-m64" "-msse3" "-mssse3" "-msse4.1" "-mavx2" "-DNDEBUG" "-fno-builtin-malloc" "-fno-builtin-calloc" "-fno-builtin-realloc" "-fno-builtin-free" "-fpermissive")
+list(APPEND CXX_FLAGS_RELEASE "-Wall" "-O3" "-m64" "-mavx2" "-DUSE_AVX" "-DNDEBUG" "-fno-builtin-malloc" "-fno-builtin-calloc" "-fno-builtin-realloc" "-fno-builtin-free" "-fpermissive")
 
 # Identify the compiler type and set compiler specific options
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -196,16 +196,18 @@ if(DEFINED ENV{TBB_LIB_DIR})
 
   find_library(TBB_LIB tbb
                PATHS $ENV{TBB_LIB_DIR}
+               NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_LIB tbbmalloc
                PATHS $ENV{TBB_LIB_DIR}
+               NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy
                PATHS $ENV{TBB_LIB_DIR}
+               NO_DEFAULT_PATH
                REQUIRED)
-
 
 else()
 
@@ -272,6 +274,12 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_cols.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_ACX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianRecursive.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.cpp
@@ -308,6 +316,7 @@ target_include_directories(cpiquasso PRIVATE
                             ./cpiquasso/gaussian/source
                             ./cpiquasso/sampling/source
                             ${TBB_HEADER}
+                            ./cpiquasso/sampling/source/kernels
                             ${EXTRA_INCLUDES})
 
 

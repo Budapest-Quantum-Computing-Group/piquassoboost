@@ -1,6 +1,6 @@
-#ifndef USE_LAPACK
-#define USE_LAPACK 1
-#endif // USE_LAPACK
+#ifndef LONG_DOUBLE_CUTOFF
+#define LONG_DOUBLE_CUTOFF 40
+#endif // LONG_DOUBLE_CUTOFF
 
 #include <iostream>
 #include "PowerTraceHafnian.h"
@@ -196,8 +196,9 @@ PowerTraceHafnian::calculate(unsigned long long start_idx, unsigned long long st
         matrix B(number_of_ones, number_of_ones);
         double scale_factor_B = 0.0;
         for (size_t idx = 0; idx < number_of_ones; idx++) {
+            size_t row_offset = (positions_of_ones[idx] ^ 1)*mtx.stride;
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                Complex16& element = mtx[positions_of_ones[idx]*dim + ((positions_of_ones[jdx]) ^ 1)];
+                Complex16& element = mtx[ row_offset + positions_of_ones[jdx]];
                 B[idx*number_of_ones + jdx] = element;
                 scale_factor_B = scale_factor_B + element.real()*element.real() + element.imag()*element.imag();
             }
@@ -219,7 +220,7 @@ PowerTraceHafnian::calculate(unsigned long long start_idx, unsigned long long st
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
         matrix32 traces(dim_over_2, 1);
         if (number_of_ones != 0) {
-            traces = calc_power_traces<matrix32, Complex32>(B, dim_over_2);
+            CalcPowerTraces(B, dim_over_2, traces);
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros

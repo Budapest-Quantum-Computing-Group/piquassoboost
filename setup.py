@@ -31,7 +31,8 @@ setup(
         "BoSS-Tomev>=0.0.6",
         "ninja",
         "tbb-devel",
-        "mpi4py"
+        "mpi4py",
+        "ninja"
     ],
     tests_require=["pytest"],
     description='The C++ binding for the Piquasso project',
