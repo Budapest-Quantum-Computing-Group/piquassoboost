@@ -13,8 +13,68 @@
 
 #include "dot.h"
 
+#include "matrix_helper.hpp"
 #include "constants_tests.h"
 
+
+
+int test_inverse_calculation(){
+    size_t dim = 5;
+    // lower triangular:
+    {
+        pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dim, pic::LOWER_TRIANGULAR);
+
+        pic::matrix mtx_inverse = pic::calc_inverse_of_lower_triangular_matrix<pic::matrix, pic::Complex16>(mtx);
+
+        //mtx.print_matrix();
+        //mtx_inverse.print_matrix();
+
+        pic::matrix product = dot(mtx, mtx_inverse);
+        if (!pic::is_identity_matrix<pic::matrix, pic::Complex16>(product)){
+            product.print_matrix();
+            std::cout << "Not identity matrix!" << std::endl;
+            return 1;
+        }
+    }
+    // upper triangular:
+    {
+        pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dim, pic::UPPER_TRIANGULAR);
+
+        pic::matrix mtx_inverse = pic::calc_inverse_of_upper_triangular_matrix<pic::matrix, pic::Complex16>(mtx);
+
+        //mtx.print_matrix();
+        //mtx_inverse.print_matrix();
+
+        pic::matrix product = dot(mtx, mtx_inverse);
+        if (!pic::is_identity_matrix<pic::matrix, pic::Complex16>(product)){
+            product.print_matrix();
+            std::cout << "Not identity matrix!" << std::endl;
+            return 1;
+        }
+    }
+    {
+        pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dim, pic::POSITIVE_DEFINIT);
+        pic::matrix mtx_inverse = pic::calc_inverse_of_matrix<pic::matrix, pic::Complex16>(mtx);
+
+        mtx.print_matrix();
+        mtx_inverse.print_matrix();
+
+        pic::matrix product = dot(mtx, mtx_inverse);
+        if (!pic::is_identity_matrix<pic::matrix, pic::Complex16>(product)){
+            product.print_matrix();
+            std::cout << "Not identity matrix!" << std::endl;
+            return 1;
+        }
+    }
+}
+
+template<class matrix_type, class complex_type>
+matrix_type
+get_random_density_matrix(size_t dim){
+    matrix_type posdef = pic::getRandomMatrix<matrix_type, complex_type>(dim, pic::POSITIVE_DEFINIT);
+    matrix_type posdef_inverse = pic::calc_inverse_of_matrix<matrix_type, complex_type>(posdef);
+    return posdef_inverse;
+}
 
 int test_cholesky_decomposition_block_based(){
     constexpr size_t dim = 130;
@@ -220,7 +280,7 @@ int test_cholesky_decomposition_algorithms(){
 int test_calc_torontonian(){
     constexpr size_t dim = 6;
 
-    pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dim, pic::POSITIVE_DEFINIT);
+    pic::matrix mtx = get_random_density_matrix<pic::matrix, pic::Complex16>(dim);
 
 /*
         [1j, 2, 3j, 4],
@@ -277,7 +337,8 @@ int test_calc_torontonian(){
 }
 
 int main(){
-    test_cholesky_decomposition_block_based();
-    test_cholesky_decomposition_algorithms();
-    // test_calc_torontonian();
+    //test_inverse_calculation();
+    //test_cholesky_decomposition_block_based();
+    //test_cholesky_decomposition_algorithms();
+    test_calc_torontonian();
 }

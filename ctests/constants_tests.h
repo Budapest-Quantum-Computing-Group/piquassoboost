@@ -26,7 +26,8 @@ enum RandomMatrixType
     SYMMETRIC,
     SELFADJOINT,
     POSITIVE_DEFINIT,
-    LOWER_TRIANGULAR
+    LOWER_TRIANGULAR,
+    UPPER_TRIANGULAR
 };
 
 
@@ -45,6 +46,26 @@ matrix_conjugate_traspose(matrix_type& matrix)
     return transposed;
 }
 
+template<class matrix_type, class complex_type>
+bool
+is_identity_matrix(matrix_type& matrix)
+{
+    for (size_t idx = 0; idx < matrix.rows; idx++){
+        for (size_t jdx = 0; jdx < matrix.cols; jdx++){
+            if (idx == jdx){
+                if ( std::abs(matrix[idx * matrix.stride + jdx] - complex_type(1.0) ) > epsilon ){
+                    return false;
+                }
+                
+            }else{
+                if ( std::abs(matrix[idx * matrix.stride + jdx]) > epsilon ){
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
 
 // returns a random matrix of the given type:
 // RANDOM : fully random
@@ -111,6 +132,21 @@ getRandomMatrix(size_t n, pic::RandomMatrixType type){
         // fill up matrix with fully random elements
         for (size_t row_idx = 0; row_idx < n; row_idx++) {
             for (size_t col_idx = 0; col_idx < row_idx + 1; col_idx++) {
+                long double randnum1 = distribution(generator);
+                long double randnum2 = distribution(generator);
+                mtx[row_idx * n + col_idx] = complex_type(randnum1, randnum2);
+            }
+            for (size_t col_idx = row_idx + 1; col_idx < n; col_idx++) {
+                mtx[row_idx * n + col_idx] = 0.0;
+            }
+        }
+    }else if (type == pic::UPPER_TRIANGULAR){
+        // fill up matrix with fully random elements
+        for (size_t row_idx = 0; row_idx < n; row_idx++) {
+            for (size_t col_idx = 0; col_idx < row_idx; col_idx++) {
+                mtx[row_idx * n + col_idx] = 0.0;
+            }
+            for (size_t col_idx = row_idx; col_idx < n; col_idx++) {
                 long double randnum1 = distribution(generator);
                 long double randnum2 = distribution(generator);
                 mtx[row_idx * n + col_idx] = complex_type(randnum1, randnum2);
