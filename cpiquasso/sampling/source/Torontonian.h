@@ -2,7 +2,6 @@
 #define Torontonian_H
 
 #include "matrix.h"
-#include "matrix32.h"
 
 
 namespace pic {
@@ -15,7 +14,7 @@ namespace pic {
 class Torontonian {
 
 protected:
-    /// The input matrix. Must be symmetric Perhaps positive semi-definite and selfadjoint?
+    /// The input matrix. Must be positive definite matrix with eigenvalues between 0 and 1.
     matrix mtx_orig;
     /** The scaled input matrix for which the calculations are performed.
     If the mean magnitude of the matrix elements is one, the treshold of quad precision can be set to higher values.
@@ -36,7 +35,7 @@ Torontonian();
 
 /**
 @brief Constructor of the class.
-@param mtx_in A symmetric matrix for which the torontonian is calculated. (For example a covariance matrix of the Gaussian state.)
+@param mtx_in A selfadjoint matrix for which the torontonian is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.)
 @return Returns with the instance of the class.
 */
 Torontonian( matrix &mtx_in );
@@ -47,7 +46,7 @@ Torontonian( matrix &mtx_in );
 virtual ~Torontonian();
 
 /**
-@brief Call to calculate the torontonian of a complex matrix
+@brief Method to calculate the torontonian of a complex selfadjoint positive definite matrix with eigenvalues between 0 and 1.
 @return Returns with the calculated hafnian
 */
 //virtual Complex16 calculate();

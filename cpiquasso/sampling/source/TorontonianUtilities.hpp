@@ -16,8 +16,14 @@ double time_nevezo = 0.0;
 namespace pic {
 
 
-// Cholesky decomposition
-// Works for selfadjoint positive definite matrices!
+
+/**
+/@brief Calculates the Cholesky decomposition of a positive definite selfadjoint matrix.
+The calculation algorithm is based on https://en.wikipedia.org/wiki/Cholesky_decomposition.
+It overwrites the input matrix by the decomposed lower triangular matrix.
+The upper triangular half of the matrix remains the same.
+@param matrix The positive selfadjoint matrix instance on which the calculation shoud be applied.
+ */
 // Basic version: no block matrices used.
 template<class matrix_type, class complex_type>
 void
@@ -55,7 +61,12 @@ calc_cholesky_decomposition(matrix_type& matrix)
     }
 }
 
-
+/**
+/@brief Helper function for the block based Cholesky decomposition.
+It updates the A_21 matrix by substracting the inverse matrix of A_11.
+@param A21 The matrix instance A_21.
+@param L11 The matrix instance A_11 (L11 means that it is already in the expected form).
+ */
 // Calculating A21 * L11^*^-1
 // B = X * L^*
 // Algorithm calculates matrix X from B and L matrices, where L is upper triangular
@@ -108,6 +119,12 @@ update_first_block_rowwise(matrix_type &A21, matrix_type &L11){
 
 
 
+/**
+/@brief Helper function for the block based Cholesky decomposition.
+It updates the A_22 matrix by substracting the matrix which we get if we multiply A_21 by its adjoint matrix.
+@param A22 The matrix instance A_22.
+@param L21 The matrix instance A_21 (L21 means that it is already in the expected form).
+ */
 // A22' = A22 - L21 * L21^*
 template<class matrix_type, class complex_type>
 void
@@ -129,6 +146,11 @@ update_second_block(matrix_type &A22, matrix_type &L21){
 }
 
 
+/**
+/@brief Determine the Cholesky decomposition of a positive definite matrix. This algorithm works block based.
+@param matrix The matrix instance on which the decomposition should be applied and in which the result should be stored.
+@param size_of_first_block Size of the block matrices we want to be based on.
+ */
 // Cholesky decomposition
 // Works only for selfadjoint positive definite matrices!
 // Matrix input has to be square shaped
@@ -209,6 +231,11 @@ calc_cholesky_decomposition_block_based(matrix_type &matrix, size_t size_of_firs
 }
 
 
+/**
+/@brief Determine the Cholesky decomposition of a positive definite matrix. This algorithm works block based.
+@param mtx The positive definite selfadjoint matrix whoe determinant we want to calculate.
+@return The determinant of the input matrix mtx.
+ */
 // calculating determinant based on cholesky decomposition
 template<class matrix_type, class complex_type>
 complex_type
