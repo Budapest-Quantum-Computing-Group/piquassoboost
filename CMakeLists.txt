@@ -233,16 +233,19 @@ else()
   find_library(TBB_LIB tbb
                PATHS ${PYTHON_SYS_PATH}
                PATH_SUFFIXES "/../../../lib"
+               NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_LIB tbbmalloc
                PATHS ${PYTHON_SYS_PATH}
                PATH_SUFFIXES "/../../../lib"
+               NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy
                PATHS ${PYTHON_SYS_PATH}
                PATH_SUFFIXES "/../../../lib"
+               NO_DEFAULT_PATH
                REQUIRED)
   
 endif()
