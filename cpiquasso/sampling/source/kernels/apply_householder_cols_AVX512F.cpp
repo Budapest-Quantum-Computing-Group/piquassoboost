@@ -28,7 +28,8 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
 
     __m512d neg = _mm512_setr_pd(1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0);
-    __m256d neg2 = _mm256_setr_pd(-1.0, 1.0, -1.0, 1.0);
+    __m512d neg2 = _mm512_setr_pd(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
+//    __m256d neg2 = _mm256_setr_pd(-1.0, 1.0, -1.0, 1.0);
 
     for (size_t row_idx = 0; row_idx < A.rows-1; row_idx=row_idx+2) {
 
@@ -123,46 +124,69 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
         factor = _mm_mul_pd(factor, two);
         factor2 = _mm_mul_pd(factor2, two);
 
-        factor_vec = _mm256_broadcast_pd( (__m128d*)&factor[0] );
-        factor_vec2 = _mm256_broadcast_pd( (__m128d*)&factor2[0] );
+        __m512d factor_512  = _mm512_setr_pd(factor[0], factor[1], factor[0], factor[1], factor[0], factor[1], factor[0], factor[1]);
+        __m512d factor2_512 = _mm512_setr_pd(factor2[0], factor2[1], factor2[0], factor2[1], factor2[0], factor2[1], factor2[0], factor2[1]);
+
+        if ( sizeH > 3 ) {
+            for (size_t kdx = 0; kdx < sizeH-3; kdx = kdx + 4) {
 
 
-        for (size_t kdx = 0; kdx < sizeH-1; kdx = kdx + 2) {
+                // extract two successive components v_i,v_{i+1} of vector v
+                __m512d v_vec          = _mm512_loadu_pd(v_data+2*kdx);
+
+                // calculate the multiplications  factor_vec*conj(v_vec)
+                __m512d v_vec_permuted = _mm512_permute_pd(v_vec, 0x55);
+                __m512d vec3           = _mm512_mul_pd(factor_512, v_vec);
+                v_vec_permuted         = _mm512_mul_pd(v_vec_permuted, neg2);
+                __m512d vec4           = _mm512_mul_pd(factor_512, v_vec_permuted);
+
+                __m256d vec3_256       = _mm512_castpd512_pd256(vec3);
+                __m256d vec4_256       = _mm512_castpd512_pd256(vec4);  
+                vec3_256               = _mm256_hadd_pd(vec3_256, vec4_256);
+                vec3                   = _mm512_insertf64x4( vec3, vec3_256, 0);
+
+                vec3_256               = _mm512_extractf64x4_pd(vec3, 1);
+                vec4_256               = _mm512_extractf64x4_pd(vec4, 1);
+                vec3_256               = _mm256_hadd_pd(vec3_256, vec4_256);
+                vec3                   = _mm512_insertf64x4( vec3, vec3_256, 1);
+
+                __m512d A_vec          = _mm512_loadu_pd(data+2*kdx);
+                A_vec                  = _mm512_sub_pd(A_vec, vec3);
+                _mm512_storeu_pd(data+2*kdx, A_vec);
 
 
-            // extract two successive components v_i,v_{i+1} of vector v
-            __m256d v_vec = _mm256_loadu_pd(v_data+2*kdx);
+                // calculate the multiplications  factor_vec2*conj(v_vec)
+                vec3                   = _mm512_mul_pd(factor2_512, v_vec);
+                vec4                   = _mm512_mul_pd(factor2_512, v_vec_permuted);
 
-            // calculate the multiplications  factor_vec*conj(v_vec)
+                vec3_256               = _mm512_castpd512_pd256(vec3);
+                vec4_256               = _mm512_castpd512_pd256(vec4);   
+                vec3_256               = _mm256_hadd_pd(vec3_256, vec4_256);
+                vec3                   = _mm512_insertf64x4( vec3, vec3_256, 0);
 
-            // 2 Switch the real and imaginary elements of v_vec1
-            __m256d v_vec_permuted = _mm256_permute_pd(v_vec, 0x5);
-            __m256d vec3 = _mm256_mul_pd(factor_vec, v_vec);
-            v_vec_permuted = _mm256_mul_pd(v_vec_permuted, neg2);
-            __m256d vec4 = _mm256_mul_pd(factor_vec, v_vec_permuted);
-            vec3  = _mm256_hadd_pd(vec3, vec4);
+                vec3_256               = _mm512_extractf64x4_pd(vec3, 1);
+                vec4_256               = _mm512_extractf64x4_pd(vec4, 1);
+                vec3_256               = _mm256_hadd_pd(vec3_256, vec4_256);
+                vec3                   = _mm512_insertf64x4( vec3, vec3_256, 1);
 
-            __m256d A_vec = _mm256_loadu_pd(data+2*kdx);
-            A_vec = _mm256_sub_pd(A_vec, vec3);
-            _mm256_storeu_pd(data+2*kdx, A_vec);
+                A_vec                  = _mm512_loadu_pd(data2+2*kdx);
+                A_vec                  = _mm512_sub_pd(A_vec, vec3);
+                _mm512_storeu_pd(data2+2*kdx, A_vec);
+            
 
-
-            // calculate the multiplications  A_vec2*v_vec
-            vec3 = _mm256_mul_pd(factor_vec2, v_vec);
-            vec4 = _mm256_mul_pd(factor_vec2, v_vec_permuted);
-            vec3  = _mm256_hadd_pd(vec3, vec4);
-
-            __m256d A_vec2 = _mm256_loadu_pd(data2+2*kdx);
-            A_vec2 = _mm256_sub_pd(A_vec2, vec3);
-            _mm256_storeu_pd(data2+2*kdx, A_vec2);
-
+            }
         }
 
 
-        if (sizeH % 2 == 1) {
-            size_t kdx = A.cols-1;
+        __m256d neg2_256 = _mm512_castpd512_pd256(neg2);
+        factor_vec = _mm256_insertf128_pd(factor_vec, factor, 0 );
+        factor_vec = _mm256_insertf128_pd(factor_vec, factor2, 1 );
 
-            factor_vec = _mm256_insertf128_pd(factor_vec, factor2, 1 );
+        reminder = sizeH % 4;
+        for (size_t kdx = sizeH-reminder; kdx<sizeH; kdx++) {
+
+            //factor_vec = _mm256_setr_pd(factor2[1], factor2[0], factor[1], factor[0]);//
+
 
             // extract the last component of vector v
             __m128d v_vec = _mm_load_pd(v_data+2*kdx);
@@ -177,7 +201,7 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
             // 2 Switch the real and imaginary elements of v_vec1
             __m256d v_vec_permuted = _mm256_permute_pd(v_vec1, 0x5);
             __m256d vec3 = _mm256_mul_pd(factor_vec, v_vec1);
-            v_vec_permuted = _mm256_mul_pd(v_vec_permuted, neg2);
+            v_vec_permuted = _mm256_mul_pd(v_vec_permuted, neg2_256);
             __m256d vec4 = _mm256_mul_pd(factor_vec, v_vec_permuted);
             vec3  = _mm256_hadd_pd(vec3, vec4);
 
@@ -205,7 +229,6 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
         __m256d neg = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);
         __m256d neg2 = _mm256_setr_pd(-1.0, 1.0, -1.0, 1.0);
-
 
         __m256d factor_vec = _mm256_setr_pd(0.0, 0.0, 0.0, 0.0);
 
