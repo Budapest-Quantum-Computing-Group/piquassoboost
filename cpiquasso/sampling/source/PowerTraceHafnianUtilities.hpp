@@ -1,3 +1,8 @@
+#ifndef PowerTraceHafnianUtilities_TEMPLATE_HPP
+#define PowerTraceHafnianUtilities_TEMPLATE_HPP
+
+
+
 #ifndef LONG_DOUBLE_CUTOFF
 #define LONG_DOUBLE_CUTOFF 40
 #endif // LONG_DOUBLE_CUTOFF
@@ -1023,3 +1028,4 @@ CalculateLoopCorrectionWithHessenberg( matrix &cx_diag_elements, matrix& diag_el
 
 } // PIC
 
+#endif // PowerTraceHafnianUtilities_TEMPLATE_HPP

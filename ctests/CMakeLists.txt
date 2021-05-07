@@ -3,6 +3,8 @@
 
 # add tests to the build
 add_test(hafnian_complex_matrix hafnian_complex_matrix ...)
+add_test(torontonian torontonian ...)
+add_test(determinant_testing determinant_testing ...)
 add_test(hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix ...)
 add_test(loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix ...)
 add_test(brute_force_hafnian_complex_matrix brute_force_hafnian_complex_matrix ...)
@@ -15,6 +17,8 @@ add_test(insert_transformed_rows insert_transformed_rows ...)
 add_test(common_functionalities common_functionalities ...)
 
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
+add_executable (torontonian torontonian.cpp)
+add_executable (determinant_testing determinant_testing.cpp)
 add_executable (hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix.cpp)
 add_executable (loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix.cpp)
 add_executable (brute_force_hafnian_complex_matrix brute_force_hafnian_complex_matrix.cpp)
@@ -31,6 +35,18 @@ target_include_directories(hafnian_complex_matrix PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
                             ${TBB_HEADER}
+                            ${EXTRA_INCLUDES})
+                            
+target_include_directories(torontonian PRIVATE
+                            ../cpiquasso/common/source
+                            ../cpiquasso/sampling/source
+                            ${TBB_HEADER}
+                            ${EXTRA_INCLUDES})
+
+target_include_directories(determinant_testing PRIVATE
+                            ../cpiquasso/common/source
+                            ../cpiquasso/sampling/source
+                            ../cpiquasso/sampling/simulation_strategies/source
                             ${EXTRA_INCLUDES})
 
 target_include_directories(hafnian_recursive_complex_matrix PRIVATE
@@ -96,6 +112,24 @@ target_include_directories(common_functionalities PRIVATE
 # public include directories we will use those link directories when building
 # decomposition_test
 target_link_libraries (hafnian_complex_matrix 
+                           cpiquasso
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
+
+
+target_link_libraries (torontonian 
+                           cpiquasso
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
+
+
+target_link_libraries (determinant_testing 
                            cpiquasso
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
@@ -221,6 +255,13 @@ target_compile_options(brute_force_hafnian_complex_matrix PRIVATE
 
 # adding compile options
 target_compile_options(brute_force_loop_hafnian_complex_matrix PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+# adding compile options
+target_compile_options(torontonian PRIVATE
     ${CXX_FLAGS}
     "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
