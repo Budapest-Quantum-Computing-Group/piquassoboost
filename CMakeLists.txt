@@ -181,7 +181,9 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   list(APPEND CXX_FLAGS_DEBUG "-g3" "-ggdb")
   list(APPEND CXX_FLAGS_RELEASE "-ftree-vectorize")
 
-  if (${HAVE_AVX2_EXTENSIONS})
+  if (${HAVE_AVX512F_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "-mavx512f" "-DUSE_AVX512F")
+  elseif (${HAVE_AVX2_EXTENSIONS})
     list(APPEND CXX_FLAGS_RELEASE "-mavx2" "-DUSE_AVX")
   elseif (${HAVE_AVX_EXTENSIONS})
     list(APPEND CXX_FLAGS_RELEASE "-mavx" "-DUSE_AVX")
@@ -196,7 +198,9 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     list(APPEND CXX_FLAGS_RELEASE "-mkl" "-tbb")
   endif()
 
-  if (${HAVE_AVX2_EXTENSIONS})
+  if (${HAVE_AVX512F_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "-mavx512f" "-DUSE_AVX512F")
+  elseif (${HAVE_AVX2_EXTENSIONS})
     list(APPEND CXX_FLAGS_RELEASE "-mavx2" "-DUSE_AVX")
   elseif (${HAVE_AVX_EXTENSIONS})
     list(APPEND CXX_FLAGS_RELEASE "-mavx" "-DUSE_AVX")
@@ -233,16 +237,19 @@ else()
   find_library(TBB_LIB tbb
                PATHS ${PYTHON_SYS_PATH}
                PATH_SUFFIXES "/../../../lib"
+               NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_LIB tbbmalloc
                PATHS ${PYTHON_SYS_PATH}
                PATH_SUFFIXES "/../../../lib"
+               NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy
                PATHS ${PYTHON_SYS_PATH}
                PATH_SUFFIXES "/../../../lib"
+               NO_DEFAULT_PATH
                REQUIRED)
   
 endif()
@@ -307,7 +314,15 @@ list(APPEND cpiquasso_files
 
 )
 
-if (${HAVE_AVX2_EXTENSIONS} OR ${HAVE_AVX_EXTENSIONS})
+if (${HAVE_AVX2_EXTENSIONS})
+  list(APPEND cpiquasso_files 
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_ACX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
+  )
+elseif (${HAVE_AVX_EXTENSIONS})
   list(APPEND cpiquasso_files 
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_ACX.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX.cpp
