@@ -209,6 +209,15 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # using Visual Studio C++
   message("-- Using Visual Studio C++ compiler")
+
+  if (${HAVE_AVX512F_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "/arch:AVX512F" "-DUSE_AVX512F")
+  elseif (${HAVE_AVX2_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "/arch:AVX2" "-DUSE_AVX")
+  elseif (${HAVE_AVX_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "/arch:AVX" "-DUSE_AVX")
+  endif()
+
 endif()
 
 ############################################################xx
