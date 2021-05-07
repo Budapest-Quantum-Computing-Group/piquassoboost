@@ -9,7 +9,10 @@ namespace pic {
 
 
 /**
-@brief Class to calculate the torontonian of a complex matrix by the power trace method
+@brief Class to calculate the torontonian of a matrix.
+
+Calculation is based on Cholesky decomposition.
+To perform the calculation the given matrix has to be positive definite and selfadjoint with eigenvalues between 0 and 1.
 */
 class Torontonian {
 
@@ -63,7 +66,9 @@ void Update_mtx( matrix &mtx_in);
 protected:
 
 /**
-@brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
+@brief Call to scale the input matrix.
+
+Currently in the Torontonian calculation this feature is not used.
 @param mtx_in Input matrix defined by
 */
 virtual void ScaleMatrix();

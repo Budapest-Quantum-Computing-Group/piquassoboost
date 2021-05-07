@@ -336,6 +336,9 @@ int test_calc_torontonian(){
     return 0;
 }
 
+/**
+@brief Unit test to check methods related to torontonian calculations.
+*/
 int main(){
     test_inverse_calculation();
     test_cholesky_decomposition_block_based();

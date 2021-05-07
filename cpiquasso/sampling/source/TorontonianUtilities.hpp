@@ -19,6 +19,7 @@ namespace pic {
 
 /**
 /@brief Calculates the Cholesky decomposition of a positive definite selfadjoint matrix.
+
 The calculation algorithm is based on https://en.wikipedia.org/wiki/Cholesky_decomposition.
 It overwrites the input matrix by the decomposed lower triangular matrix.
 The upper triangular half of the matrix remains the same.
@@ -63,7 +64,8 @@ calc_cholesky_decomposition(matrix_type& matrix)
 
 /**
 /@brief Helper function for the block based Cholesky decomposition.
-It updates the A_21 matrix by substracting the inverse matrix of A_11.
+
+It updates the A_21 matrix by multiplying by the inverse of matrix A_11 from right.
 @param A21 The matrix instance A_21.
 @param L11 The matrix instance A_11 (L11 means that it is already in the expected form).
  */
@@ -147,7 +149,7 @@ update_second_block(matrix_type &A22, matrix_type &L21){
 
 
 /**
-/@brief Determine the Cholesky decomposition of a positive definite matrix. This algorithm works block based.
+/@brief Determine the Cholesky decomposition of a positive definite matrix by block based algorithm.
 @param matrix The matrix instance on which the decomposition should be applied and in which the result should be stored.
 @param size_of_first_block Size of the block matrices we want to be based on.
  */
@@ -232,7 +234,7 @@ calc_cholesky_decomposition_block_based(matrix_type &matrix, size_t size_of_firs
 
 
 /**
-/@brief Determine the Cholesky decomposition of a positive definite matrix. This algorithm works block based.
+/@brief Calculate the determinant of a positive definite selfadjoint matrix by the Cholesky decomposition.
 @param mtx The positive definite selfadjoint matrix whoe determinant we want to calculate.
 @return The determinant of the input matrix mtx.
  */
