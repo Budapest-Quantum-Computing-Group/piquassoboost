@@ -14,7 +14,6 @@ namespace pic {
 matrix
 calculate_loop_correction_AVX( matrix &cx_diag_elements, matrix &diag_elements, matrix& AZ, size_t num_of_modes) {
 
-#ifdef USE_AVX
 
     matrix loop_correction(num_of_modes, 1);
 
@@ -171,9 +170,6 @@ calculate_loop_correction_AVX( matrix &cx_diag_elements, matrix &diag_elements, 
 
     return loop_correction;
 
-#else
-    return matrix(0,0);
-#endif
 
 }
 

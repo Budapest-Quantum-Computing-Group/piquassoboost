@@ -157,7 +157,6 @@ calc_vov_times_A(matrix &A, matrix &v, matrix &vH_times_A) {
 @param A matrix on which the householder transformation is applied. (The output is returned via this matrix)
 @param v A matrix instance of the reflection vector
 */
-//template<class matrix_type, class complex_type>
 void
 apply_householder_rows(matrix &A, matrix &v) {
 

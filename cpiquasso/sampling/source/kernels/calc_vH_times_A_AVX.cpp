@@ -12,7 +12,7 @@ namespace pic {
 void
 calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
 
-#ifdef USE_AVX
+
 // calculate the vector-matrix product (v^+) * A
 
     size_t sizeH = v.size();
@@ -206,7 +206,7 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
 
 
     }
-#endif
+
 
 /*
 // The above code with non-AVX instructions

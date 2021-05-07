@@ -15,7 +15,7 @@ namespace pic {
 void
 apply_householder_cols_AVX(matrix &A, matrix &v) {
 
-#ifdef USE_AVX
+
     size_t sizeH = v.size();
 
 // calculate A^~(1-2vov)
@@ -392,7 +392,7 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
 }
 
-#endif
+
 /*
 
     // The above code with non-AVX instructions
