@@ -13,7 +13,6 @@ matrix
 get_reflection_vector_AVX(matrix &input, double &norm_v_sqr) {
 
 
-#ifdef USE_AVX
   __m256d norm_v_sqr_vec_256 = _mm256_setr_pd(0.0, 0.0, 0.0, 0.0);
   double* input_data = (double*)input.get_data();
   matrix reflect_vector(input.rows,1);
@@ -110,10 +109,7 @@ get_reflection_vector_AVX(matrix &input, double &norm_v_sqr) {
     norm_v_sqr = 1.0;
 
 
-#else
-    return matrix(0,0);
-#endif
-
+    return reflect_vector;
 
 /*
   double sigma(0.0);
@@ -152,11 +148,13 @@ get_reflection_vector_AVX(matrix &input, double &norm_v_sqr) {
   }
 
   norm_v_sqr = 1.0;
+
+  return reflect_vector;
   */
 
 
 
-  return reflect_vector;
+
 
 
 

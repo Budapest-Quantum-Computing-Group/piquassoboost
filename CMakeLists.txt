@@ -15,6 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 include(CheckIncludeFile)
 include(CheckIncludeFileCXX)
 include(CheckFunctionExists)
+include(check_AVX.cmake)
 
 # variables for compile and link options
 set(CXX_FLAGS_DEBUG)
@@ -162,7 +163,12 @@ endif()
 
 # setting basic compile flags
 list(APPEND CXX_FLAGS_DEBUG "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-DDEBUG" "-fno-builtin-malloc" "-fno-builtin-calloc" "-fno-builtin-realloc" "-fno-builtin-free" "-fpermissive")
-list(APPEND CXX_FLAGS_RELEASE "-Wall" "-O3" "-m64" "-mavx2" "-DUSE_AVX" "-DNDEBUG" "-fno-builtin-malloc" "-fno-builtin-calloc" "-fno-builtin-realloc" "-fno-builtin-free" "-fpermissive")
+list(APPEND CXX_FLAGS_RELEASE "-Wall" "-O3" "-m64" "-DNDEBUG" "-fno-builtin-malloc" "-fno-builtin-calloc" "-fno-builtin-realloc" "-fno-builtin-free" "-fpermissive")
+
+# checking for AVX/AVX2 support
+CHECK_FOR_AVX()
+
+
 
 # Identify the compiler type and set compiler specific options
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -175,6 +181,15 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   list(APPEND CXX_FLAGS_DEBUG "-g3" "-ggdb")
   list(APPEND CXX_FLAGS_RELEASE "-ftree-vectorize")
 
+  if (${HAVE_AVX512F_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "-mavx512f" "-DUSE_AVX" "-DUSE_AVX512F")
+  elseif (${HAVE_AVX2_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "-mavx2" "-DUSE_AVX")
+  elseif (${HAVE_AVX_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "-mavx" "-DUSE_AVX")
+  endif()
+
+
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   # using Intel C++
   message("-- Using Intel compiler")
@@ -183,9 +198,26 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     list(APPEND CXX_FLAGS_RELEASE "-mkl" "-tbb")
   endif()
 
+  if (${HAVE_AVX512F_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "-mavx512f" "-DUSE_AVX512F")
+  elseif (${HAVE_AVX2_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "-mavx2" "-DUSE_AVX")
+  elseif (${HAVE_AVX_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "-mavx" "-DUSE_AVX")
+  endif()
+
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # using Visual Studio C++
   message("-- Using Visual Studio C++ compiler")
+
+  if (${HAVE_AVX512F_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "/arch:AVX512F" "-DUSE_AVX512F")
+  elseif (${HAVE_AVX2_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "/arch:AVX2" "-DUSE_AVX")
+  elseif (${HAVE_AVX_EXTENSIONS})
+    list(APPEND CXX_FLAGS_RELEASE "/arch:AVX" "-DUSE_AVX")
+  endif()
+
 endif()
 
 ############################################################xx
@@ -214,16 +246,19 @@ else()
   find_library(TBB_LIB tbb
                PATHS ${PYTHON_SYS_PATH}
                PATH_SUFFIXES "/../../../lib"
+               NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_LIB tbbmalloc
                PATHS ${PYTHON_SYS_PATH}
                PATH_SUFFIXES "/../../../lib"
+               NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy
                PATHS ${PYTHON_SYS_PATH}
                PATH_SUFFIXES "/../../../lib"
+               NO_DEFAULT_PATH
                REQUIRED)
   
 endif()
@@ -256,7 +291,7 @@ else()
 endif()
 
 
-add_library(cpiquasso SHARED
+list(APPEND cpiquasso_files 
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dependency_graph.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix.cpp
@@ -274,11 +309,6 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_cols.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_ACX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianRecursive.cpp
@@ -290,6 +320,38 @@ add_library(cpiquasso SHARED
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/RepeatedColumnPairs.cpp
+
+)
+
+# add architecture specific kernels
+if (${HAVE_AVX512F_EXTENSIONS})
+  list(APPEND cpiquasso_files 
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
+  )
+elseif (${HAVE_AVX2_EXTENSIONS})
+  list(APPEND cpiquasso_files 
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
+  )
+elseif (${HAVE_AVX_EXTENSIONS})
+  list(APPEND cpiquasso_files 
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
+  )
+endif()
+
+add_library(cpiquasso SHARED
+    ${cpiquasso_files}
 )
 
 # adding compile options
