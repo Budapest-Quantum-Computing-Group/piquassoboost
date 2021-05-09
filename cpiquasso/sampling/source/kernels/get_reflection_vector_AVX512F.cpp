@@ -18,8 +18,9 @@ get_reflection_vector_AVX(matrix &input, double &norm_v_sqr) {
   matrix reflect_vector(input.rows,1);
   double* reflect_vector_data = (double*)reflect_vector.get_data();
 
+  size_t sizev = reflect_vector.size();
 
-  for (size_t idx = 0; idx < reflect_vector.size()-1; idx=idx+2) {
+  for (size_t idx = 0; idx < 2*(sizev-1); idx=idx+4) {
 
       __m256d element_vec;
       element_vec =  _mm256_insertf128_pd(element_vec, _mm_load_pd(input_data), 0);
@@ -27,7 +28,7 @@ get_reflection_vector_AVX(matrix &input, double &norm_v_sqr) {
       element_vec =  _mm256_insertf128_pd(element_vec, _mm_load_pd(input_data), 1);
 
       // store data to reflection vector
-      _mm256_storeu_pd(reflect_vector_data+2*idx, element_vec);
+      _mm256_storeu_pd(reflect_vector_data+idx, element_vec);
 
       // calculate the square of the elements
       element_vec = _mm256_mul_pd(element_vec, element_vec);
@@ -89,21 +90,37 @@ get_reflection_vector_AVX(matrix &input, double &norm_v_sqr) {
 
     // normalize the reflection matrix
     double norm_v = std::sqrt(norm_v_sqr);
-    __m256d norm_vec = _mm256_set_pd( norm_v, norm_v, norm_v, norm_v );
+    __m512d norm_vec_512 = _mm512_set_pd( norm_v, norm_v, norm_v, norm_v, norm_v, norm_v, norm_v, norm_v );
+    __m256d norm_vec = _mm512_castpd512_pd256(norm_vec_512);//_mm256_set_pd( norm_v, norm_v, norm_v, norm_v );
     reflect_vector_data = (double*)reflect_vector.get_data();
 
-    for (size_t idx=0; idx<reflect_vector.size()-1; idx=idx+2) {
-        __m256d element_vec = _mm256_load_pd(reflect_vector_data);
+    if ( sizev > 3 ) {
+    for (size_t idx=0; idx<2*(sizev-3); idx=idx+8) {
+        __m512d element_vec = _mm512_load_pd(reflect_vector_data+idx);
+        element_vec = _mm512_div_pd(element_vec, norm_vec_512);
+        _mm512_storeu_pd(reflect_vector_data+idx, element_vec);
+    }
+}
+
+    reflect_vector_data = (double*)reflect_vector.get_data();
+    size_t reminder = sizev % 4;
+    if (reminder >= 2) {
+        size_t idx = 2*(sizev - reminder);
+
+        __m256d element_vec = _mm256_load_pd(reflect_vector_data+idx);
         element_vec = _mm256_div_pd(element_vec, norm_vec);
-        _mm256_storeu_pd(reflect_vector_data, element_vec);
-        reflect_vector_data = reflect_vector_data + 4;
+        _mm256_storeu_pd(reflect_vector_data+idx, element_vec);
+
+        reminder = reminder - 2;
     }
 
-    if (reflect_vector.size() % 2 == 1) {
+    if (reminder == 1) {
+        size_t idx = 2*(sizev - 1);
+
         __m128d norm_vec_128 = _mm256_castpd256_pd128(norm_vec);
-        __m128d element_vec = _mm_load_pd(reflect_vector_data);
+        __m128d element_vec = _mm_load_pd(reflect_vector_data + idx );
         element_vec = _mm_div_pd(element_vec, norm_vec_128);
-        _mm_storeu_pd(reflect_vector_data, element_vec);
+        _mm_storeu_pd(reflect_vector_data+idx, element_vec);
     }
 
     norm_v_sqr = 1.0;
