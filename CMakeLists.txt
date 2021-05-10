@@ -311,6 +311,7 @@ list(APPEND cpiquasso_files
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/TorontonianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/Torontonian.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/TorontonianRecursive.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianRecursive.cpp
