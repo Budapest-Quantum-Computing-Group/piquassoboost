@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-//#include "PowerTraceHafnianUtilities.hpp"
+#include "PowerTraceHafnianUtilities.h"
 #include "TorontonianUtilities.hpp"
 
 #include "matrix32.h"
@@ -40,7 +40,7 @@ pic::Complex16 test_determinant_by_hessenberg_labudde(pic::matrix &AZ) {
         //pic::transform_matrix_to_hessenberg_TU<pic::matrix, pic::Complex16>(AZ);
         //pic::Complex16 det_hess =  pic::calc_determinant_of_selfadjoint_hessenberg_matrix<pic::matrix, pic::Complex16>(AZ);
         //std::cout << "Determinant by hessenberg det: " << det_hess << std::endl;
-        
+
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
         //pic::matrix&& coeffs_labudde = pic::calc_characteristic_polynomial_coeffs<pic::matrix, pic::Complex16>(AZ, AZ.rows);
 
@@ -67,7 +67,7 @@ pic::Complex16 test_determinant_by_hessenberg_labudde(pic::matrix &AZ) {
         }
         //pic::Complex32 det_hess =  pic::calc_determinant_of_selfadjoint_hessenberg_matrix<pic::matrix32, pic::Complex32>(AZ32);
         //std::cout << "Determinant by hessenberg det: " << det_hess << std::endl;
-        
+
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
         //pic::matrix32&& coeffs_labudde = pic::calc_characteristic_polynomial_coeffs<pic::matrix32, pic::Complex32>(AZ32, AZ.rows);
 
@@ -95,8 +95,8 @@ pic::Complex16 test_determinant_by_hessenberg_labudde(pic::matrix &AZ) {
 
         //std::cout << "complex det: " << coeffs_labudde[(n-1)*(n+1)] << std::endl;
         //pic::Complex16 det = pic::Complex16(coeffs_labudde[(n-1)*(n+1)].real(), coeffs_labudde[(n-1)*(n+1)].imag());
-        //return det * scalar; 
-        return pic::Complex16(1.0);    
+        //return det * scalar;
+        return pic::Complex16(1.0);
     }
 
 }
@@ -254,7 +254,7 @@ int test_cholesky_decomposition(){
 
         pic::calc_cholesky_decomposition<pic::matrix, pic::Complex16>(mtx);
         pic::matrix cholesky = mtx;
-        
+
         for(int i = 0; i < dimension; i++){
             for (int j = 0; j < dimension; j++){
                 if (i < j){
@@ -266,7 +266,7 @@ int test_cholesky_decomposition(){
         pic::matrix c1 = cholesky.copy();
         pic::matrix c2 = pic::matrix_conjugate_traspose<pic::matrix>(cholesky);
 
-        
+
         pic::matrix product = pic::dot(c1, c2);
 
         std::cout<<"L * L^*: "<<std::endl;

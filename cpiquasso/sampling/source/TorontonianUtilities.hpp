@@ -1,7 +1,7 @@
 #ifndef TORONTONIAN_UTILITIES_HPP_INCLUDED
 #define TORONTONIAN_UTILITIES_HPP_INCLUDED
 
-#include "PowerTraceHafnianUtilities.h"
+#include "TorontonianUtilities.h"
 #include <iostream>
 #include "common_functionalities.h"
 #include <math.h>
@@ -15,16 +15,110 @@ double time_nevezo = 0.0;
 
 namespace pic {
 
+/*
+// Cholesky decomposition
+// Works for selfadjoint positive definite matrices!
+// Basic version: no block matrices used.
+template<class matrix_type, class complex_type>
+void
+calc_cholesky_decomposition(matrix_type& matrix)
+{
+    // storing in the same memory the results of the algorithm
+    int n = matrix.cols;
 
 
-/**
-/@brief Calculates the Cholesky decomposition of a positive definite selfadjoint matrix.
+    complex_type* row_i = matrix.get_data();
+    row_i[0] = sqrt(row_i[0]);
 
-The calculation algorithm is based on https://en.wikipedia.org/wiki/Cholesky_decomposition.
-It overwrites the input matrix by the decomposed lower triangular matrix.
-The upper triangular half of the matrix remains the same.
-@param matrix The positive selfadjoint matrix instance on which the calculation shoud be applied.
- */
+    // Decomposing a matrix into lower triangular matrices
+    for (int i = 1; i < n; i++) {
+
+        row_i = row_i + matrix.stride;
+
+        complex_type* row_j = matrix.get_data();
+        complex_type* row_j2 = row_j + matrix.stride;
+
+        for (int j = 0; j < i-1; j=j+2) {
+
+            complex_type sum = 0;
+            complex_type sum2 = 0;
+            // Evaluating L(i, j) using L(j, j)
+            // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
+            for (int k = 0; k < j-1; k=k+2){
+                int k2 = k+1;
+                sum += mult_a_bconj( row_i[k], row_j[k]) + mult_a_bconj( row_i[k2], row_j[k2]);
+                sum2 += mult_a_bconj( row_i[k], row_j2[k]) + mult_a_bconj( row_i[k2], row_j2[k2]);
+            }
+
+            if (j%2 == 1) {
+
+                int k = j-1;
+
+                sum += mult_a_bconj( row_i[k], row_j[k]);
+                sum2 += mult_a_bconj( row_i[k], row_j2[k]);
+
+            }
+
+            row_i[j] = (row_i[j] - sum) / row_j[j];
+
+            sum2 += mult_a_bconj( row_i[j], row_j2[j]);
+            row_i[j+1] = (row_i[j+1] - sum2) / row_j2[j+1];
+
+            row_j = row_j + 2*matrix.stride;
+            row_j2 = row_j2 + 2*matrix.stride;
+
+        }
+
+
+
+        if ( i%2 == 1) {
+            int j = i-1;
+
+            row_j = matrix.get_data() + j * matrix.stride;
+
+            complex_type sum = 0;
+            // Evaluating L(i, j) using L(j, j)
+            // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
+            for (int k = 0; k < j; k++){
+                sum += mult_a_bconj( row_i[k], row_j[k]);
+            }
+
+            row_i[j] = (row_i[j] - sum) / row_j[j];
+
+#ifdef DEBUG
+            if (matrix.isnan()) {
+
+                std::cout << "matrix is NAN" << std::endl;
+                matrix.print_matrix();
+                exit(-1);
+             }
+#endif
+        }
+
+
+
+        complex_type sum = 0;
+        // summation for diagonals
+        // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
+        for (int k = 0; k < i-1; k=k+2){
+            sum += mult_a_bconj( row_i[k], row_i[k] ) + mult_a_bconj( row_i[k+1], row_i[k+1] );
+        }
+
+        if ( i%2 == 1) {
+            sum += mult_a_bconj( row_i[i-1], row_i[i-1] );
+        }
+
+
+        row_i[i] = sqrt(row_i[i] - sum);
+
+
+    }
+
+}
+*/
+
+// Cholesky decomposition
+// Works for selfadjoint positive definite matrices!
 // Basic version: no block matrices used.
 template<class matrix_type, class complex_type>
 void
@@ -39,7 +133,7 @@ calc_cholesky_decomposition(matrix_type& matrix)
             {
                 complex_type* row_j = matrix.get_data()+j*matrix.stride;
 
-                complex_type sum = 0;                
+                complex_type sum = 0;
                 // Evaluating L(i, j) using L(j, j)
                 // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
                 for (int k = 0; k < j; k++){
@@ -47,7 +141,7 @@ calc_cholesky_decomposition(matrix_type& matrix)
                 }
                 //std::cout << "L_("<<i<<","<<j<<") : sum: " << sum<<std::endl;
                 //std::cout << "L_("<<i<<","<<j<<") : mult: " << mult_a_bconj( row_i[j-1], row_j[j-1])<<std::endl;
-                
+
                 row_i[j] = (row_i[j] - sum) / row_j[j];
                 //std::cout << "L_("<<i<<","<<j<<") : value: " << row_i[j]<<std::endl;
             }
@@ -62,13 +156,7 @@ calc_cholesky_decomposition(matrix_type& matrix)
     }
 }
 
-/**
-/@brief Helper function for the block based Cholesky decomposition.
 
-It updates the A_21 matrix by multiplying by the inverse of matrix A_11 from right.
-@param A21 The matrix instance A_21.
-@param L11 The matrix instance A_11 (L11 means that it is already in the expected form).
- */
 // Calculating A21 * L11^*^-1
 // B = X * L^*
 // Algorithm calculates matrix X from B and L matrices, where L is upper triangular
@@ -92,7 +180,7 @@ void
 update_first_block_rowwise(matrix_type &A21, matrix_type &L11){
     size_t cols = A21.cols;
     size_t rows = A21.rows;
-    
+
     // i = 0, i < rows
     for (size_t i = 0; i < rows; i++){
         // x(i,0) = b(i,0) / l(0,0)
@@ -104,29 +192,24 @@ update_first_block_rowwise(matrix_type &A21, matrix_type &L11){
             // A) sum = b(i,j)
             //complex_type sum = A21[i*A21.stride+j];
 
-            complex_type &elem = row_A21_i[j];
+            complex_type elem(0.0,0.0);// = row_A21_i[j];
             // k = 0, k < j
             for (size_t k = 0; k < j; k++){
                 // L(k,j) = L^*(j,k) conjugated
                 // A) sum = sum - x(i,k) * l(k,j)
-                // B) b(i,j) = b(i,j) - x(i,k) * l(k,j) 
-                elem -= mult_a_bconj( row_A21_i[k], row_L11_j[k] );
+                // B) b(i,j) = b(i,j) - x(i,k) * l(k,j)
+                elem += mult_a_bconj( row_A21_i[k], row_L11_j[k] );
             }
             // A) b(i,j) = sum / l(j,j)
             // B) b(i,j) = b(i,j) / l(j,j)
-            elem /= row_L11_j[j];
+            row_A21_i[j] = (row_A21_i[j] - elem)/row_L11_j[j];
+            //elem /= row_L11_j[j];
         }
     }
 }
 
 
 
-/**
-/@brief Helper function for the block based Cholesky decomposition.
-It updates the A_22 matrix by substracting the matrix which we get if we multiply A_21 by its adjoint matrix.
-@param A22 The matrix instance A_22.
-@param L21 The matrix instance A_21 (L21 means that it is already in the expected form).
- */
 // A22' = A22 - L21 * L21^*
 template<class matrix_type, class complex_type>
 void
@@ -143,16 +226,11 @@ update_second_block(matrix_type &A22, matrix_type &L21){
             for (size_t k = 0; k < L21.cols; k++){
                 elem -= mult_a_bconj( row_L21_row_idx[k], row_L21_col_idx[k] );
             }
-        }    
+        }
     }
 }
 
 
-/**
-/@brief Determine the Cholesky decomposition of a positive definite matrix by block based algorithm.
-@param matrix The matrix instance on which the decomposition should be applied and in which the result should be stored.
-@param size_of_first_block Size of the block matrices we want to be based on.
- */
 // Cholesky decomposition
 // Works only for selfadjoint positive definite matrices!
 // Matrix input has to be square shaped
@@ -177,9 +255,9 @@ calc_cholesky_decomposition_block_based(matrix_type &matrix, size_t size_of_firs
     if (matrix.cols > size_of_first_block){
         size_of_second_block = matrix.cols - size_of_first_block;
     }else{
-        // First block size has to be at most equal to the dimension of the matrix
-        size_of_first_block = matrix.cols;
-        size_of_second_block = 0;
+        // L11 calculated based on standard Cholesky decomposition
+        calc_cholesky_decomposition<matrix_type, complex_type>(matrix);
+        return;
     }
     //std::cout << "1st b: " << size_of_first_block << " 2nd b: " << size_of_second_block << std::endl;
     matrix_type A11(
@@ -193,7 +271,7 @@ calc_cholesky_decomposition_block_based(matrix_type &matrix, size_t size_of_firs
 
     // L11 calculated based on standard Cholesky decomposition
     calc_cholesky_decomposition<matrix_type, complex_type>(A11);
-    
+
     if (size_of_second_block == 0){
         return;
     }
@@ -208,10 +286,10 @@ calc_cholesky_decomposition_block_based(matrix_type &matrix, size_t size_of_firs
         size_of_second_block,
         size_of_second_block,
         matrix.stride);
-    
+
 
     //std::cout << "======================================"<<std::endl;
-    
+
     //std::cout << "1st b: " << size_of_first_block << " 2nd b: " << size_of_second_block << std::endl;
     //std::cout << "After decomposing A11:" << std::endl;
     //matrix.print_matrix();
@@ -233,11 +311,28 @@ calc_cholesky_decomposition_block_based(matrix_type &matrix, size_t size_of_firs
 }
 
 
-/**
-/@brief Calculate the determinant of a positive definite selfadjoint matrix by the Cholesky decomposition.
-@param mtx The positive definite selfadjoint matrix whoe determinant we want to calculate.
-@return The determinant of the input matrix mtx.
- */
+template<class matrix_type, class complex_type>
+void
+calc_cholesky_decomposition_lapack(matrix_type &matrix) {
+
+
+// transform the matrix mtx into an upper Hessenberg format by calling lapack function
+        char UPLO = 'L';
+        int N = matrix.rows;
+        int LDA = matrix.stride;
+        int INFO = 0;
+
+        //std::cout<<"Before lapacke call:\n";
+        //mtx.print_matrix();
+
+
+        LAPACKE_zpotrf(LAPACK_ROW_MAJOR, UPLO, N, matrix.get_data(), LDA);
+
+        return;
+
+}
+
+
 // calculating determinant based on cholesky decomposition
 template<class matrix_type, class complex_type>
 complex_type
@@ -252,7 +347,7 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
             Complex16 &elem = mtx[idx * mtx.stride + idx];
             determinant *= elem;
         }
-        
+
         return mult_a_bconj( determinant, determinant);
     }
     // The lapack function to calculate the Cholesky decomposition is more efficient for larger matrices, but for above a given cutoff quad precision is needed
