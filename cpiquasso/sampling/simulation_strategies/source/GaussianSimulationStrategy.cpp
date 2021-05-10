@@ -727,7 +727,7 @@ GaussianSimulationStrategy::diag_correction_of_A_S( matrix& A_S, matrix& Qinv, m
     size_t num_of_repeated_modes = A_S.rows/2;
     size_t row_idx = 0;
     for (size_t idx=0; idx<num_of_modes; idx++) {
-        for (size_t row_repeat=0; row_repeat<current_output[idx]; row_repeat++) {
+        for (int row_repeat=0; row_repeat<current_output[idx]; row_repeat++) {
 
             A_S[row_idx*A_S.stride + row_idx] = gamma[idx];
             A_S[(row_idx+num_of_repeated_modes)*A_S.stride + row_idx + num_of_repeated_modes] = gamma[idx+num_of_modes];
