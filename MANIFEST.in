@@ -1,2 +1,2 @@
 include pyproject.toml
-global-include *.h *h.in *.c *.cpp *.hpp CMakeLists.txt README.md
+global-include *.h *h.in *.c *.cpp *.hpp CMakeLists.txt check_AVX.cmake README.md 
