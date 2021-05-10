@@ -40,9 +40,9 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
         v_element = (__m128d*)&v_vec[0];
         __m256d v_vec1 = _mm256_broadcast_pd( v_element );
 
-        for (size_t kdx = 0; kdx < A.cols-1; kdx = kdx + 2) {
-            __m256d A_vec = _mm256_loadu_pd(data+2*kdx);
-            __m256d A_vec2 = _mm256_loadu_pd(data2+2*kdx);
+        for (size_t kdx = 0; kdx < 2*(A.cols-1); kdx = kdx + 4) {
+            __m256d A_vec = _mm256_loadu_pd(data+kdx);
+            __m256d A_vec2 = _mm256_loadu_pd(data2+kdx);
 
             // calculate the multiplications  A_vec*conj(v_vec1)
 
@@ -83,19 +83,19 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
             A_vec  = _mm256_add_pd(A_vec, A_vec2);
 
             // add the result to _tmp
-            __m256d _tmp = _mm256_loadu_pd(vH_times_A_data+2*kdx);
+            __m256d _tmp = _mm256_loadu_pd(vH_times_A_data+kdx);
             _tmp = _mm256_add_pd(_tmp, A_vec);
-            _mm256_storeu_pd(vH_times_A_data+2*kdx, _tmp);
+            _mm256_storeu_pd(vH_times_A_data+kdx, _tmp);
 
         }
 
 
 
         if (A.cols % 2 == 1) {
-            size_t kdx = A.cols-1;
+            size_t kdx = 2*(A.cols-1);
             __m256d A_vec;
-            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data+2*kdx), 0);
-            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data2+2*kdx), 1);
+            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data+kdx), 0);
+            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data2+kdx), 1);
 
             // calculate the multiplications  A_vec*conj(v_vec)
 
@@ -120,9 +120,9 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
 
 
             // add the result to vH_times_A
-            __m128d _tmp = _mm_loadu_pd(vH_times_A_data+2*kdx);
+            __m128d _tmp = _mm_loadu_pd(vH_times_A_data+kdx);
             _tmp = _mm_add_pd(_tmp, _tmp2);
-            _mm_storeu_pd(vH_times_A_data+2*kdx, _tmp);
+            _mm_storeu_pd(vH_times_A_data+kdx, _tmp);
 
         }
 
@@ -146,8 +146,8 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
         __m256d v_vec1 = _mm256_broadcast_pd( v_element );
 
 
-        for (size_t kdx = 0; kdx < A.cols-1; kdx = kdx + 2) {
-            __m256d A_vec = _mm256_loadu_pd(data+2*kdx);
+        for (size_t kdx = 0; kdx < 2*(A.cols-1); kdx = kdx + 4) {
+            __m256d A_vec = _mm256_loadu_pd(data+kdx);
 
             // calculate the multiplications  A_vec*conj(v_vec1)
 
@@ -168,19 +168,19 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
 
 
             // add the result to _tmp
-            __m256d _tmp = _mm256_loadu_pd(vH_times_A_data+2*kdx);
+            __m256d _tmp = _mm256_loadu_pd(vH_times_A_data+kdx);
             _tmp = _mm256_add_pd(_tmp, A_vec);
-            _mm256_storeu_pd(vH_times_A_data+2*kdx, _tmp);
+            _mm256_storeu_pd(vH_times_A_data+kdx, _tmp);
 
 
         }
 
 
         if (A.cols % 2 == 1) {
-            size_t kdx = A.cols-1;
+            size_t kdx = 2*(A.cols-1);
 
             __m128d neg = _mm_setr_pd(-1.0, 1.0);
-            __m128d A_vec = _mm_loadu_pd(data+2*kdx);
+            __m128d A_vec = _mm_loadu_pd(data+kdx);
 
             // 1 Multiply elements of A_vec and v_vec1
             __m128d vec3 = _mm_mul_pd(A_vec, v_vec);
@@ -197,9 +197,9 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
             // 5 Horizontally subtract the elements in vec3 and vec4
             A_vec  = _mm_hadd_pd(vec3, vec4);
 
-            __m128d _tmp = _mm_loadu_pd(vH_times_A_data+2*kdx);
+            __m128d _tmp = _mm_loadu_pd(vH_times_A_data+kdx);
             _tmp = _mm_add_pd(_tmp, A_vec);
-            _mm_storeu_pd(vH_times_A_data+2*kdx, _tmp);
+            _mm_storeu_pd(vH_times_A_data+kdx, _tmp);
 
         }
 

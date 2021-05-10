@@ -37,12 +37,12 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
         __m256d factor_vec2 = _mm256_setr_pd(0.0, 0.0, 0.0, 0.0);
 
 
-        for (size_t kdx = 0; kdx < A.cols-1; kdx = kdx + 2) {
-            __m256d A_vec = _mm256_loadu_pd(data+2*kdx);
-            __m256d A_vec2 = _mm256_loadu_pd(data2+2*kdx);
+        for (size_t kdx = 0; kdx < 2*(A.cols-1); kdx = kdx + 4) {
+            __m256d A_vec = _mm256_loadu_pd(data+kdx);
+            __m256d A_vec2 = _mm256_loadu_pd(data2+kdx);
 
             // extract two successive components v_i,v_{i+1} of vector v
-            __m256d v_vec = _mm256_loadu_pd(v_data+2*kdx);
+            __m256d v_vec = _mm256_loadu_pd(v_data+kdx);
 
             // calculate the multiplications  A_vec*v_vec
 
@@ -91,14 +91,14 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
 
         if (A.cols % 2 == 1) {
-            size_t kdx = A.cols-1;
+            size_t kdx = 2*(A.cols-1);
 
             __m256d A_vec;
-            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data+2*kdx), 0);
-            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data2+2*kdx), 1);
+            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data+kdx), 0);
+            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data2+kdx), 1);
 
             // extract the last component of vector v
-            __m128d v_vec = _mm_load_pd(v_data+2*kdx);
+            __m128d v_vec = _mm_load_pd(v_data+kdx);
 
             // create vector v_i, v_i
             __m128d* v_element = (__m128d*)&v_vec[0];
@@ -140,11 +140,11 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
         factor_vec2 = _mm256_broadcast_pd( (__m128d*)&factor2[0] );
 
 
-        for (size_t kdx = 0; kdx < sizeH-1; kdx = kdx + 2) {
+        for (size_t kdx = 0; kdx < 2*(sizeH-1); kdx = kdx + 4) {
 
 
             // extract two successive components v_i,v_{i+1} of vector v
-            __m256d v_vec = _mm256_loadu_pd(v_data+2*kdx);
+            __m256d v_vec = _mm256_loadu_pd(v_data+kdx);
 
             // calculate the multiplications  factor_vec*conj(v_vec)
 
@@ -163,9 +163,9 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
             // 5 Horizontally subtract the elements in vec3 and vec4
             vec3  = _mm256_hadd_pd(vec3, vec4);
 
-            __m256d A_vec = _mm256_loadu_pd(data+2*kdx);
+            __m256d A_vec = _mm256_loadu_pd(data+kdx);
             A_vec = _mm256_sub_pd(A_vec, vec3);
-            _mm256_storeu_pd(data+2*kdx, A_vec);
+            _mm256_storeu_pd(data+kdx, A_vec);
 
 
 
@@ -181,20 +181,20 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
             // 5 Horizontally subtract the elements in vec3 and vec4
             vec3  = _mm256_hadd_pd(vec3, vec4);
 
-            __m256d A_vec2 = _mm256_loadu_pd(data2+2*kdx);
+            __m256d A_vec2 = _mm256_loadu_pd(data2+kdx);
             A_vec2 = _mm256_sub_pd(A_vec2, vec3);
-            _mm256_storeu_pd(data2+2*kdx, A_vec2);
+            _mm256_storeu_pd(data2+kdx, A_vec2);
 
         }
 
 
         if (sizeH % 2 == 1) {
-            size_t kdx = A.cols-1;
+            size_t kdx = 2*(A.cols-1);
 
             factor_vec = _mm256_insertf128_pd(factor_vec, factor2, 1 );
 
             // extract the last component of vector v
-            __m128d v_vec = _mm_load_pd(v_data+2*kdx);
+            __m128d v_vec = _mm_load_pd(v_data+kdx);
 
             // create vector v_i, v_i
             __m128d* v_element = (__m128d*)&v_vec[0];
@@ -218,13 +218,13 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
             // 5 Horizontally subtract the elements in vec3 and vec4
             vec3  = _mm256_hadd_pd(vec3, vec4);
 
-            __m128d A_vec = _mm_loadu_pd(data+2*kdx);
+            __m128d A_vec = _mm_loadu_pd(data+kdx);
             A_vec = _mm_sub_pd(A_vec, _mm256_castpd256_pd128(vec3));
-            _mm_storeu_pd(data+2*kdx, A_vec);
+            _mm_storeu_pd(data+kdx, A_vec);
 
-           __m128d A_vec2 = _mm_loadu_pd(data2+2*kdx);
+           __m128d A_vec2 = _mm_loadu_pd(data2+kdx);
             A_vec2 = _mm_sub_pd(A_vec2, _mm256_extractf128_pd(vec3, 1));
-           _mm_storeu_pd(data2+2*kdx, A_vec2);
+           _mm_storeu_pd(data2+kdx, A_vec2);
 
         }
 
@@ -247,11 +247,11 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
         __m256d factor_vec = _mm256_setr_pd(0.0, 0.0, 0.0, 0.0);
 
 
-        for (size_t kdx = 0; kdx < A.cols-1; kdx = kdx + 2) {
-            __m256d A_vec = _mm256_loadu_pd(data+2*kdx);
+        for (size_t kdx = 0; kdx < 2*(A.cols-1); kdx = kdx + 4) {
+            __m256d A_vec = _mm256_loadu_pd(data+kdx);
 
             // extract two successive components v_i,v_{i+1} of vector v
-            __m256d v_vec = _mm256_loadu_pd(v_data+2*kdx);
+            __m256d v_vec = _mm256_loadu_pd(v_data+kdx);
 
             // calculate the multiplications  A_vec*v_vec
 
@@ -284,14 +284,14 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
 
 
         if (A.cols % 2 == 1) {
-            size_t kdx = A.cols-1;
+            size_t kdx = 2*(A.cols-1);
             __m128d neg = _mm_setr_pd(1.0, -1.0);
 
             __m128d A_vec;
-            A_vec = _mm_load_pd(data+2*kdx);
+            A_vec = _mm_load_pd(data+kdx);
 
             // extract the last component of vector v
-            __m128d v_vec = _mm_load_pd(v_data+2*kdx);
+            __m128d v_vec = _mm_load_pd(v_data+kdx);
 
 
             // calculate the multiplications  A_vec*v_vec
@@ -325,11 +325,11 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
         factor_vec = _mm256_broadcast_pd( (__m128d*)&factor[0] );
 
 
-        for (size_t kdx = 0; kdx < sizeH-1; kdx = kdx + 2) {
+        for (size_t kdx = 0; kdx < 2*(sizeH-1); kdx = kdx + 4) {
 
 
             // extract two successive components v_i,v_{i+1} of vector v
-            __m256d v_vec = _mm256_loadu_pd(v_data+2*kdx);
+            __m256d v_vec = _mm256_loadu_pd(v_data+kdx);
 
             // calculate the multiplications  factor_vec*conj(v_vec)
 
@@ -348,21 +348,21 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
             // 5 Horizontally subtract the elements in vec3 and vec4
             vec3  = _mm256_hadd_pd(vec3, vec4);
 
-            __m256d A_vec = _mm256_loadu_pd(data+2*kdx);
+            __m256d A_vec = _mm256_loadu_pd(data+kdx);
             A_vec = _mm256_sub_pd(A_vec, vec3);
-            _mm256_storeu_pd(data+2*kdx, A_vec);
+            _mm256_storeu_pd(data+kdx, A_vec);
 
 
         }
 
 
         if (sizeH % 2 == 1) {
-            size_t kdx = A.cols-1;
+            size_t kdx = 2*(A.cols-1);
             __m128d neg2 = _mm_setr_pd(-1.0, 1.0);
 
 
             // extract the last component of vector v
-            __m128d v_vec = _mm_load_pd(v_data+2*kdx);
+            __m128d v_vec = _mm_load_pd(v_data+kdx);
 
 
             // calculate the multiplications  factor*conj(v_vec)
@@ -382,9 +382,9 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
             // 5 Horizontally subtract the elements in vec3 and vec4
             vec3  = _mm_hadd_pd(vec3, vec4);
 
-            __m128d A_vec = _mm_loadu_pd(data+2*kdx);
+            __m128d A_vec = _mm_loadu_pd(data+kdx);
             A_vec = _mm_sub_pd(A_vec, vec3);
-            _mm_storeu_pd(data+2*kdx, A_vec);
+            _mm_storeu_pd(data+kdx, A_vec);
 
 
     }
