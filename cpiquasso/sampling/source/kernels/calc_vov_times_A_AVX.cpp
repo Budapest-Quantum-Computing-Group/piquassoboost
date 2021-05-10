@@ -1,7 +1,7 @@
 #include "calc_vov_times_A_AVX.h"
 
-#include "tbb/tbb.h"
-static tbb::spin_mutex my_mutex;
+//#include "tbb/tbb.h"
+//static tbb::spin_mutex my_mutex;
 
 namespace pic {
 

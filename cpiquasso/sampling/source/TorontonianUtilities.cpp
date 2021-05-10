@@ -1,4 +1,5 @@
 #include "TorontonianUtilities.h"
+#include "calc_cholesky_decomposition_AVX.h"
 #include <iostream>
 #include "common_functionalities.h"
 #include <math.h>
@@ -120,6 +121,14 @@ calc_cholesky_decomposition(matrix& matrix)
 void
 calc_cholesky_decomposition(matrix& matrix)
 {
+
+#ifdef USE_AVX
+
+    calc_cholesky_decomposition_AVX( matrix );
+    return;
+
+#else
+
     // storing in the same memory the results of the algorithm
     size_t n = matrix.cols;
     // Decomposing a matrix into lower triangular matrices
@@ -150,6 +159,12 @@ calc_cholesky_decomposition(matrix& matrix)
         }
         row_i[i] = sqrt(row_i[i] - sum);
     }
+
+    return;
+
+
+#endif // USE_AVX
+
 }
 
 

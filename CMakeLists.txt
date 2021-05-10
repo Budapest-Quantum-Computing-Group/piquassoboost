@@ -333,6 +333,7 @@ if (${HAVE_AVX512F_EXTENSIONS})
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX512F.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX512F.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX512F.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_cholesky_decomposition_AVX.cpp
   )
 elseif (${HAVE_AVX2_EXTENSIONS})
   list(APPEND cpiquasso_files 
@@ -341,6 +342,7 @@ elseif (${HAVE_AVX2_EXTENSIONS})
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_cholesky_decomposition_AVX.cpp
   )
 elseif (${HAVE_AVX_EXTENSIONS})
   list(APPEND cpiquasso_files 
@@ -349,6 +351,7 @@ elseif (${HAVE_AVX_EXTENSIONS})
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_cholesky_decomposition_AVX.cpp
   )
 endif()
 

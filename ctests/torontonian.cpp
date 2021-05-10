@@ -158,6 +158,52 @@ int test_cholesky_decomposition_block_based(){
 }
 
 
+
+int test_cholesky_decomposition(){
+
+
+    constexpr size_t dim = 131;
+
+    pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dim, pic::POSITIVE_DEFINIT);
+    pic::matrix mtx_copy = mtx.copy();
+
+    pic::calc_cholesky_decomposition(mtx);
+
+
+    // rewrite upper triangular element to zero:
+    for (size_t idx = 0; idx < dim; idx++){
+        for (size_t jdx = idx + 1; jdx < dim; jdx++){
+            mtx[idx * dim + jdx] = pic::Complex16(0.0);
+        }
+    }
+
+    pic::matrix mtx_adjoint(dim, dim);
+    for (size_t idx = 0; idx < dim; idx++){
+        for (size_t jdx = 0; jdx < dim; jdx++){
+            pic::Complex16 &elem = mtx[jdx * dim + idx];
+            mtx_adjoint[idx * dim + jdx] = pic::Complex16(elem.real(), -elem.imag());
+        }
+    }
+
+
+    pic::matrix product = dot(mtx, mtx_adjoint);
+
+    for (size_t idx = 0; idx < dim; idx++){
+        for (size_t jdx = 0; jdx < dim; jdx++){
+            pic::Complex16 diff = product[idx * product.stride + jdx] - mtx_copy[idx * mtx_copy.stride + jdx];
+            assert(std::abs(diff) < pic::epsilon);
+            if (std::abs(diff) > pic::epsilon){
+                std::cout << "Error " << idx << "," << jdx <<" diff: " <<diff<<std::endl;
+                return 1;
+            }
+        }
+    }
+
+    std::cout << "test cholsky passed!" << std::endl;
+    return 0;
+}
+
+
 int test_cholesky_decomposition_algorithms(){
     constexpr int startDim = 10;
     constexpr int endDim = 60;
@@ -326,7 +372,8 @@ int test_calc_torontonian(){
 int main(){
     test_inverse_calculation();
     test_cholesky_decomposition_algorithms();
-    test_cholesky_decomposition_block_based();
+    test_cholesky_decomposition();
+    //test_cholesky_decomposition_block_based();
     //test_calc_torontonian();
 
 }
