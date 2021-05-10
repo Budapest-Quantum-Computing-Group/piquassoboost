@@ -78,7 +78,7 @@ GaussianSimulationStrategy( matrix &covariance_matrix_in, matrix& displacement_i
 /**
 @brief Destructor of the class
 */
-~GaussianSimulationStrategy();
+virtual ~GaussianSimulationStrategy();
 
 /**
 @brief Call to update the memory address of the matrix stored in covariance_matrix
