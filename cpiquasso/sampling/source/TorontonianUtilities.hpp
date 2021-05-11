@@ -31,7 +31,7 @@ void
 calc_cholesky_decomposition(matrix_type& matrix)
 {
     // storing in the same memory the results of the algorithm
-    size_t n = matrix.cols;
+    int n = matrix.cols;
     // Decomposing a matrix into lower triangular matrices
     for (int i = 0; i < n; i++) {
         complex_type* row_i = matrix.get_data()+i*matrix.stride;

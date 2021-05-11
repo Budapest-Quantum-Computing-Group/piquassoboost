@@ -13,13 +13,6 @@
         scaling?
         templating?
         bitátírás a perm_numberből?
-
-    Remarks
-        átírtam a B:= 1-A számítást
-
-    Developments:
-        Block matrices based on : http://www.netlib.org/utk/papers/factor/node9.html
-        Storing just the lower matrix elements (since it is selfadjoint)
 */
 
 
@@ -72,8 +65,8 @@ Torontonian::Torontonian(){
 Torontonian::Torontonian( matrix &mtx_in ){
     // in debug mode check the input matrix properties
     Update_mtx( mtx_in );
-    std::cout << "Torontonian mtx in: "<<std::endl;
-    mtx_in.print_matrix();
+    //std::cout << "Torontonian mtx in: "<<std::endl;
+    //mtx_in.print_matrix();
 }
 
 /**
@@ -89,24 +82,22 @@ Torontonian::~Torontonian(){
 
 Calculation based on: https://arxiv.org/pdf/1807.01639.pdf
 */
-// do we need here complex numbers?
 //Complex16
 double
 Torontonian::calculate(){
     if ( mtx.rows != mtx.cols) {
-        std::cout << "The input matrix should be square shaped, bu matrix with " << mtx.rows << " rows and with " << mtx.cols << " columns was given" << std::endl;
+        std::cout << "The input matrix should be square shaped, but matrix with " << mtx.rows << " rows and with " << mtx.cols << " columns was given" << std::endl;
         std::cout << "Returning zero" << std::endl;
         //return Complex16(0,0);
         return 0.0D;
     }
 
     if (mtx.rows == 0) {
-        // the hafnian of an empty matrix is 1 by definition
+        // the torontonian of an empty matrix is 1 by definition
         //return Complex16(1,0);
         return 1.0D;
     }
     else if (mtx.rows % 2 != 0) {
-        // the hafnian of odd shaped matrix is 0 by definition
         //return Complex16(0.0, 0.0);
         return 0.0D;
     }
@@ -129,10 +120,7 @@ Torontonian::calculate(){
     const size_t dim_over_2 = mtx.rows / 2;
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
-
-    // hafnian: thread local storages for the partial hafnians
     //tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
-
     // torontonian: thread local storages for the partial hafnians
     tbb::combinable<double> summands{[](){return 0.0D;}};
 
@@ -145,18 +133,10 @@ Torontonian::calculate(){
         //Complex32 &summand = summands.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
-//for ( unsigned long long permutation_idx=0; permutation_idx < permutation_idx_max; permutation_idx++) {
-/*
-    Complex32 summand(0.0,0.0);
-
-    for (unsigned long long permutation_idx = 0; permutation_idx < permutation_idx_max; permutation_idx++) {
-*/
-            std::cout << permutation_idx << " : " << std::bitset<32>(permutation_idx) <<std::endl;
-
+            //std::cout << permutation_idx << " : " << std::bitset<32>(permutation_idx) <<std::endl;
 
             // get the binary representation of permutation_idx
             // also get the number of 1's in the representation and their position as i and i + dim_over_2
-            // hafnian: also get the number of 1's in the representation and their position as 2*i and 2*i+1 in consecutive slots of the vector bin_rep
             
             // with unsigned char the type std::vector does not work for me
             //std::vector<unsigned char> bin_rep;
@@ -202,10 +182,6 @@ Torontonian::calculate(){
                 //B[(idx + number_of_ones)*dimension_of_B + idx + number_of_ones] += Complex16(1.0, 0.0);
             }
 
-            B.print_matrix();
-            // calculating -1^(number of ones)
-            // !!! -1 ^ (number of ones - dim_over_2) ???
-            // Do we need complex here???
             /*Complex32 factor = 
                 (number_of_ones + dim_over_2) % 2 
                     ? Complex32(1.0, 0.0)
@@ -219,12 +195,11 @@ Torontonian::calculate(){
             // calculating the determinant of B
             Complex16 determinant;
             if (number_of_ones != 0) {
-                // testing purpose (the matrix is not positive definite and selfadjoint)
+                // testing purpose (if the matrix is not positive definite and selfadjoint)
                 //determinant = determinant_byLU_decomposition(B);
+                // testing purpose (if the matrix is not positive definite)
                 //determinant = calc_determinant_of_selfadjoint_hessenberg_matrix<matrix, Complex16>(B);
                 determinant = calc_determinant_cholesky_decomposition<matrix, Complex16>(B);
-                // hafnian: calculate trace
-                //traces = calc_power_traces<matrix32, Complex32>(B, dim_over_2);
             }
             else{
                 determinant = 1.0;
@@ -243,8 +218,6 @@ Torontonian::calculate(){
 
     });
 
-    // hafnian: the resulting Hafnian of matrix mat
-
     //Complex32 res(0,0);
     double res = 0.0D;
     summands.combine_each([&res](double a) {
@@ -262,7 +235,6 @@ Torontonian::calculate(){
 
     return res;
 }
-
 
 /**
 @brief Call to update the memory address of the matrix mtx
@@ -285,8 +257,8 @@ Torontonian::Update_mtx( matrix &mtx_in ){
         mtx[idx * dim + idx] += Complex16(1.0, 0.0);
     }
 
-    std::cout << "Modified matrix:" << std::endl;
-    mtx.print_matrix();
+    //std::cout << "Modified matrix:" << std::endl;
+    //mtx.print_matrix();
 
     // Can scaling be used here since we have to calculate 1-A^Z?
     // It brings a multiplying for each determinant.

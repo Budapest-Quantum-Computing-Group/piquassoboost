@@ -95,8 +95,6 @@ def calculate_threshold_detection_probability(
     OS = (np.identity(2 * d, dtype=complex) - np.linalg.inv(Q)).conj()
 
     OS_reduced = block_reduce(OS, reduce_on=occupation_numbers)
-    
-    print("Ferike")
 
     return (
         Torontonian_wrapper.Torontonian_wrapper(OS_reduced.astype(complex)).calculate()

@@ -97,8 +97,7 @@ Torontonian_wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 /**
 @brief Method called when a python instance of the class Torontonian_wrapper is initialized
 @param self A pointer pointing to an instance of the class Torontonian_wrapper.
-@param args A tuple of the input arguments: matrix (np.ndarray) The matrix for which the hafnain should be calculated
-matrix: The matrix for which the hafnain should be calculated
+@param args A tuple of the input arguments: matrix (np.ndarray) The matrix for which the Torontonian should be calculated.
 @param kwds A tuple of keywords
 */
 static int
