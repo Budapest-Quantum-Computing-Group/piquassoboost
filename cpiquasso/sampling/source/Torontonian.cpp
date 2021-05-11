@@ -72,8 +72,6 @@ Torontonian::Torontonian(){
 Torontonian::Torontonian( matrix &mtx_in ){
     // in debug mode check the input matrix properties
     Update_mtx( mtx_in );
-    std::cout << "Torontonian mtx in: "<<std::endl;
-    mtx_in.print_matrix();
 }
 
 /**
@@ -151,13 +149,13 @@ Torontonian::calculate(){
 
     for (unsigned long long permutation_idx = 0; permutation_idx < permutation_idx_max; permutation_idx++) {
 */
-            std::cout << permutation_idx << " : " << std::bitset<32>(permutation_idx) <<std::endl;
+            //std::cout << permutation_idx << " : " << std::bitset<32>(permutation_idx) <<std::endl;
 
 
             // get the binary representation of permutation_idx
             // also get the number of 1's in the representation and their position as i and i + dim_over_2
             // hafnian: also get the number of 1's in the representation and their position as 2*i and 2*i+1 in consecutive slots of the vector bin_rep
-            
+
             // with unsigned char the type std::vector does not work for me
             //std::vector<unsigned char> bin_rep;
             //std::vector<unsigned char> positions_of_ones;
@@ -189,7 +187,7 @@ Torontonian::calculate(){
             matrix B(dimension_of_B, dimension_of_B);
             for (size_t idx = 0; idx < number_of_ones; idx++) {
                 for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                    B[idx*dimension_of_B + jdx]                  = 
+                    B[idx*dimension_of_B + jdx]                  =
                         mtx[positions_of_ones[idx]*dim + (positions_of_ones[jdx])];
                     B[idx*dimension_of_B + jdx + number_of_ones] =
                         mtx[positions_of_ones[idx]*dim + (positions_of_ones[jdx]) + dim_over_2];
@@ -202,17 +200,16 @@ Torontonian::calculate(){
                 //B[(idx + number_of_ones)*dimension_of_B + idx + number_of_ones] += Complex16(1.0, 0.0);
             }
 
-            B.print_matrix();
             // calculating -1^(number of ones)
             // !!! -1 ^ (number of ones - dim_over_2) ???
             // Do we need complex here???
-            /*Complex32 factor = 
-                (number_of_ones + dim_over_2) % 2 
+            /*Complex32 factor =
+                (number_of_ones + dim_over_2) % 2
                     ? Complex32(1.0, 0.0)
                     : Complex32(-1.0, 0.0);
                     */
-            double factor = 
-                (number_of_ones + dim_over_2) % 2 
+            double factor =
+                (number_of_ones + dim_over_2) % 2
                     ? -1.0D
                     : 1.0D;
 
@@ -284,12 +281,9 @@ Torontonian::Update_mtx( matrix &mtx_in ){
         mtx[idx * dim + idx] += Complex16(1.0, 0.0);
     }
 
-    std::cout << "Modified matrix:" << std::endl;
-    mtx.print_matrix();
-
     // Can scaling be used here since we have to calculate 1-A^Z?
     // It brings a multiplying for each determinant.
-    // Should 
+    // Should
     ScaleMatrix();
 }
 

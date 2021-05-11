@@ -152,6 +152,9 @@ TorontonianRecursive_Tasks::TorontonianRecursive_Tasks( matrix &mtx_in ) {
 
     Update_mtx( mtx_in );
 
+    // number of modes spanning the gaussian state
+    num_of_modes = mtx.rows/2;
+
 
     if (mtx.rows % 2 != 0) {
         // The dimensions of the matrix should be even
@@ -184,8 +187,7 @@ TorontonianRecursive_Tasks::~TorontonianRecursive_Tasks() {
 double
 TorontonianRecursive_Tasks::calculate() {
 
-    // number of modes spanning the gaussian state
-    size_t num_of_modes = mtx.rows/2;
+
 
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
 
@@ -224,14 +226,36 @@ TorontonianRecursive_Tasks::calculate(unsigned long long start_idx, unsigned lon
     }
 
 
-    // number of modes spanning the gaussian state
-    size_t num_of_modes = mtx.rows/2;
-
     // create task group to spawn tasks
     tbb::task_group tg;
 
     // thread local storage for partial hafnian
     tbb::combinable<long double> priv_addend{[](){return 0.0L;}};
+
+
+    ///////////////////////////////////////////////////////////
+
+
+    // HERE TASK TO CALCULATE THE PARTIAL TORONTONIAN WHEN ARE MODES ARE SELECTED
+
+
+    ///////////////////////////////////////////////////////////
+
+
+    // construct the initial selection of the modes
+    PicVector<char> selected_index_holes;
+    selected_index_holes.push_back(num_of_modes-1);
+    //for (int idx = 0; idx<num_of_modes; idx++) {
+    //    selected_modes.push_back(idx);
+    //}
+/*
+for (size_t idx = 0; idx<selected_modes.size(); idx++) {
+std::cout << (short)selected_modes[idx] << ", ";
+}
+std::cout << std::endl;
+*/
+    // start task iterations originating from the initial selected modes
+    IterateOverSelectedModes( selected_index_holes, 0, priv_addend, tg );
 
     // for cycle over the combinations of occupancy
     tbb::parallel_for(start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
@@ -307,72 +331,88 @@ TorontonianRecursive_Tasks::calculate(unsigned long long start_idx, unsigned lon
 /**
 @brief Call to run iterations over the selected modes to calculate partial hafnians
 @param selected_modes Selected modes over which the iterations are run
-@param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @param mode_to_iterate The mode for which the occupancy numbers are iterated
 @param priv_addend Therad local storage for the partial hafnians
 @param tg Reference to a tbb::task_group
 */
 void
-TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg ) {
+TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_index_holes, int hole_to_iterate, tbb::combinable<long double>& priv_addend, tbb::task_group &tg ) {
 
+for (size_t idx = 0; idx<selected_index_holes.size(); idx++) {
+std::cout << (short)selected_index_holes[idx] << ", ";
+}
+std::cout << std::endl;
+
+    // add new index hole to th eiterations
+    if ( selected_index_holes[hole_to_iterate] < num_of_modes-1) {
+//    for (int new_hole_to_iterate = hole_to_iterate+1; new_hole_to_iterate <=  num_of_modes; new_hole_to_iterate++) {
+
+        int new_hole_to_iterate = hole_to_iterate+1;
 /*
-
-    // spawn iteration over the next mode if available
-    size_t new_mode_to_iterate = mode_to_iterate+1;
-    while ( new_mode_to_iterate < selected_modes.size() ) {
-
-
         // prevent the exponential explosion of spawned tasks (and save the stack space)
         // and spawn new task only if the current number of tasks is smaller than a cutoff
         if (task_num < max_task_num) {
 
 
-            if ( current_occupancy[new_mode_to_iterate] < occupancy[selected_modes[new_mode_to_iterate]]) {
+
+
+            {
+                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                task_num++;
+                    //std::cout << "task num: " << task_num << std::endl;
+            }
+
+            tg.run( [this, new_hole_to_iterate, selected_index_holes, &priv_addend, &tg ]() {
+
+                PicVector<char> new_selected_index_holes = selected_index_holes;
+                new_selected_index_holes.push_back(this->num_of_modes-1);
+                IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, priv_addend, tg );
 
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                    task_num++;
-                    //std::cout << "task num: " << task_num << std::endl;
+                    task_num--;
                 }
 
-                tg.run( [this, new_mode_to_iterate, selected_modes, current_occupancy, &priv_addend, &tg ]() {
+                return;
 
-                    PicState_int64 current_occupancy_new = current_occupancy.copy();
-                    current_occupancy_new[new_mode_to_iterate]++;
-                    IterateOverSelectedModes( selected_modes, current_occupancy_new, new_mode_to_iterate, priv_addend, tg );
+            });
 
-                    {
-                        tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                        task_num--;
-                    }
-
-                    return;
-
-                });
-
-
-            }
 
         }
-        else {
+*/
+
+  //      else {
            // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
-           if ( current_occupancy[new_mode_to_iterate] < occupancy[selected_modes[new_mode_to_iterate]]) {
-                PicState_int64 current_occupancy_new = current_occupancy.copy();
-                current_occupancy_new[new_mode_to_iterate]++;
-                IterateOverSelectedModes( selected_modes, current_occupancy_new, new_mode_to_iterate, priv_addend, tg );
-            }
+            PicVector<char> new_selected_index_holes = selected_index_holes;
+            new_selected_index_holes.push_back(num_of_modes-1);
+            IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, priv_addend, tg );
 
 
-        }
 
-        new_mode_to_iterate++;
+    //    }
 
+    }
+
+    // iterations over the selected index hole
+    if ( hole_to_iterate == 0 && selected_index_holes[hole_to_iterate] > 0) {
+
+        PicVector<char> new_selected_index_holes = selected_index_holes;
+        new_selected_index_holes[hole_to_iterate]--;
+        IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
+
+    }
+    else if (hole_to_iterate>0 && selected_index_holes[hole_to_iterate] > 1+selected_index_holes[hole_to_iterate-1]) {
+        PicVector<char> new_selected_index_holes = selected_index_holes;
+        new_selected_index_holes[hole_to_iterate]--;
+        IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
 
     }
 
 
-    // spawn task on the next filling factor value of the mode labeled by mode_to_iterate
-    if ( current_occupancy[mode_to_iterate] < occupancy[selected_modes[mode_to_iterate]]) {
+/*
+    // spawn task by iterating the selected index hole
+    while () {
+    //if ( current_occupancy[mode_to_iterate] < occupancy[selected_modes[mode_to_iterate]]) {
 
         // prevent the exponential explosion of spawned tasks (and save the stack space)
         // and spawn new task only if the current number of tasks is smaller than a cutoff
@@ -388,6 +428,7 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& sel
                 PicState_int64 current_occupancy_new = current_occupancy.copy();
                 current_occupancy_new[mode_to_iterate]++;
                 IterateOverSelectedModes( selected_modes, current_occupancy_new, mode_to_iterate, priv_addend, tg );
+
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
                     task_num--;
@@ -399,15 +440,17 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& sel
         }
         else {
             // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
+
             PicState_int64 current_occupancy_new = current_occupancy.copy();
             current_occupancy_new[mode_to_iterate]++;
             IterateOverSelectedModes( selected_modes, current_occupancy_new, mode_to_iterate, priv_addend, tg );
+
         }
 
     }
 
 
-
+/*
     // calculate the partial hafnian for the given filling factors of the selected occupancy
     Complex32 partial_hafnian = CalculatePartialHafnian( selected_modes, current_occupancy);
 

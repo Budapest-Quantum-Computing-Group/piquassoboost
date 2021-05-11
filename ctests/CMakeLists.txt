@@ -18,6 +18,7 @@ add_test(common_functionalities common_functionalities ...)
 
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
 add_executable (torontonian torontonian.cpp)
+add_executable (torontonian_recursive torontonian_recursive.cpp)
 add_executable (determinant_testing determinant_testing.cpp)
 add_executable (hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix.cpp)
 add_executable (loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix.cpp)
@@ -38,6 +39,12 @@ target_include_directories(hafnian_complex_matrix PRIVATE
                             ${EXTRA_INCLUDES})
                             
 target_include_directories(torontonian PRIVATE
+                            ../cpiquasso/common/source
+                            ../cpiquasso/sampling/source
+                            ${TBB_HEADER}
+                            ${EXTRA_INCLUDES})
+
+target_include_directories(torontonian_recursive PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
                             ${TBB_HEADER}
@@ -121,6 +128,14 @@ target_link_libraries (hafnian_complex_matrix
 
 
 target_link_libraries (torontonian 
+                           cpiquasso
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
+
+target_link_libraries (torontonian_recursive 
                            cpiquasso
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
@@ -266,6 +281,17 @@ target_compile_options(torontonian PRIVATE
     "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
 )
+
+
+# adding compile options
+target_compile_options(torontonian_recursive PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+
+
 
 # adding compile options
 target_compile_options(dot_stride PRIVATE
