@@ -6,7 +6,7 @@
 
 namespace pic {
 
-
+Complex16 determinant_byLU_decomposition( matrix& mtx );
 
 /**
 @brief Class to calculate the torontonian of a matrix.

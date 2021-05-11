@@ -32,15 +32,15 @@ int LAPACKE_zgetrf( int matrix_layout, int n, int m, pic::Complex16* a, int lda,
 
 namespace pic {
 
-pic::Complex16 determinant_byLU_decomposition( pic::matrix& mtx ){
-    pic::matrix& Q = mtx;
+Complex16 determinant_byLU_decomposition( matrix& mtx ){
+    matrix& Q = mtx;
 
     // calculate the inverse of matrix Q
     int* ipiv = (int*)scalable_aligned_malloc( Q.stride*sizeof(int), CACHELINE);
     LAPACKE_zgetrf( LAPACK_ROW_MAJOR, Q.rows, Q.cols, Q.get_data(), Q.stride, ipiv );
 
     //  calculate the determinant of Q
-    pic::Complex16 Qdet_cmplx(1.0,0.0);
+    Complex16 Qdet_cmplx(1.0,0.0);
     for (size_t idx=0; idx<Q.rows; idx++) {
         if (ipiv[idx] != idx+1) {
             Qdet_cmplx = -Qdet_cmplx * Q[idx*Q.stride + idx];

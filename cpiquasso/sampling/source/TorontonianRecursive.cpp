@@ -128,7 +128,7 @@ TorontonianRecursive::calculate() {
 TorontonianRecursive_Tasks::TorontonianRecursive_Tasks() {
 
     // set the maximal number of spawned tasks living at the same time
-    max_task_num = 300;
+    max_task_num = 100;
     // The current number of spawned tasks
     task_num = 0;
     // mutual exclusion to count the spawned tasks
@@ -163,7 +163,7 @@ TorontonianRecursive_Tasks::TorontonianRecursive_Tasks( matrix &mtx_in ) {
     }
 
     // set the maximal number of spawned tasks living at the same time
-    max_task_num = 300;
+    max_task_num = 100;
     // The current number of spawned tasks
     task_num = 0;
     // mutual exclusion to count the spawned tasks
@@ -232,81 +232,23 @@ TorontonianRecursive_Tasks::calculate(unsigned long long start_idx, unsigned lon
     // thread local storage for partial hafnian
     tbb::combinable<long double> priv_addend{[](){return 0.0L;}};
 
-
-    ///////////////////////////////////////////////////////////
-
-
-    // HERE TASK TO CALCULATE THE PARTIAL TORONTONIAN WHEN ARE MODES ARE SELECTED
-
-
-    ///////////////////////////////////////////////////////////
-
-
     // construct the initial selection of the modes
     PicVector<char> selected_index_holes;
+
+
+    // calculate the partial Torontonian for the selected index holes
+    long double torontonian = CalculatePartialTorontonian( selected_index_holes );
+
+    // add the first index hole in prior to the iterations
     selected_index_holes.push_back(num_of_modes-1);
-    //for (int idx = 0; idx<num_of_modes; idx++) {
-    //    selected_modes.push_back(idx);
-    //}
-/*
-for (size_t idx = 0; idx<selected_modes.size(); idx++) {
-std::cout << (short)selected_modes[idx] << ", ";
-}
-std::cout << std::endl;
-*/
+
     // start task iterations originating from the initial selected modes
     IterateOverSelectedModes( selected_index_holes, 0, priv_addend, tg );
-
-    // for cycle over the combinations of occupancy
-    tbb::parallel_for(start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
-    //for (unsigned long long permutation_idx = 1; permutation_idx < permutation_idx_max; permutation_idx++) {
-
-/*
-            // select modes corresponding to the binary representation of permutation_idx
-            PicVector<char> selected_modes;
-            selected_modes.reserve(num_of_modes);
-            size_t idx = 0;
-            for (int i = 1 << (num_of_modes-1); i > 0; i = i / 2) {
-                if (permutation_idx & i) {
-                    selected_modes.push_back(idx);
-                }
-                idx++;
-            }
-
-            // spawn iterations over the occupied numbers of the selected modes
-
-            // initial filling of the occupancy
-            bool skip_contribution = false;
-            PicState_int64 current_occupancy(selected_modes.size());
-            for (size_t idx=0;idx<selected_modes.size(); idx++) {
-                if (occupancy[selected_modes[idx]] > 0 ) {
-                     current_occupancy[idx] = 1;
-                }
-                else {
-                    skip_contribution = true;
-                    break;
-                }
-            }
-
-            if (skip_contribution) {
-                //if the maximal occupancy of one mode is zero, we skip this contribution
-                return;
-            }
-
-            // start task over iterations on selected column-pairs
-            IterateOverSelectedModes( selected_modes, current_occupancy, 0, priv_addend, tg );
-
-*/
-
-    //}
-
-    });
 
     // wait until all spawned tasks are completed
     tg.wait();
 
 
-    long double torontonian = 0.0L;
     priv_addend.combine_each([&](long double &a) {
         torontonian = torontonian + a;
     });
@@ -337,24 +279,21 @@ std::cout << std::endl;
 */
 void
 TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_index_holes, int hole_to_iterate, tbb::combinable<long double>& priv_addend, tbb::task_group &tg ) {
-
+/*
 for (size_t idx = 0; idx<selected_index_holes.size(); idx++) {
 std::cout << (short)selected_index_holes[idx] << ", ";
 }
 std::cout << std::endl;
-
+*/
     // add new index hole to th eiterations
     if ( selected_index_holes[hole_to_iterate] < num_of_modes-1) {
 //    for (int new_hole_to_iterate = hole_to_iterate+1; new_hole_to_iterate <=  num_of_modes; new_hole_to_iterate++) {
 
         int new_hole_to_iterate = hole_to_iterate+1;
-/*
+
         // prevent the exponential explosion of spawned tasks (and save the stack space)
         // and spawn new task only if the current number of tasks is smaller than a cutoff
         if (task_num < max_task_num) {
-
-
-
 
             {
                 tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
@@ -379,55 +318,31 @@ std::cout << std::endl;
 
 
         }
-*/
-
-  //      else {
+        else {
            // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
             PicVector<char> new_selected_index_holes = selected_index_holes;
             new_selected_index_holes.push_back(num_of_modes-1);
             IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, priv_addend, tg );
-
-
-
-    //    }
+        }
 
     }
 
     // iterations over the selected index hole
     if ( hole_to_iterate == 0 && selected_index_holes[hole_to_iterate] > 0) {
 
-        PicVector<char> new_selected_index_holes = selected_index_holes;
-        new_selected_index_holes[hole_to_iterate]--;
-        IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
-
-    }
-    else if (hole_to_iterate>0 && selected_index_holes[hole_to_iterate] > 1+selected_index_holes[hole_to_iterate-1]) {
-        PicVector<char> new_selected_index_holes = selected_index_holes;
-        new_selected_index_holes[hole_to_iterate]--;
-        IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
-
-    }
-
-
-/*
-    // spawn task by iterating the selected index hole
-    while () {
-    //if ( current_occupancy[mode_to_iterate] < occupancy[selected_modes[mode_to_iterate]]) {
-
-        // prevent the exponential explosion of spawned tasks (and save the stack space)
-        // and spawn new task only if the current number of tasks is smaller than a cutoff
         if (task_num < max_task_num) {
+
             {
                 tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
                 task_num++;
-                //std::cout << "task num: " << task_num << std::endl;
+                    //std::cout << "task num: " << task_num << std::endl;
             }
 
-            tg.run( [this, mode_to_iterate, selected_modes, current_occupancy, &priv_addend, &tg ](){
+            tg.run( [this, hole_to_iterate, selected_index_holes, &priv_addend, &tg ]() {
 
-                PicState_int64 current_occupancy_new = current_occupancy.copy();
-                current_occupancy_new[mode_to_iterate]++;
-                IterateOverSelectedModes( selected_modes, current_occupancy_new, mode_to_iterate, priv_addend, tg );
+                PicVector<char> new_selected_index_holes = selected_index_holes;
+                new_selected_index_holes[hole_to_iterate]--;
+                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
 
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
@@ -435,40 +350,64 @@ std::cout << std::endl;
                 }
 
                 return;
+
             });
+
 
         }
         else {
-            // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
+            PicVector<char> new_selected_index_holes = selected_index_holes;
+            new_selected_index_holes[hole_to_iterate]--;
+            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
+        }
 
-            PicState_int64 current_occupancy_new = current_occupancy.copy();
-            current_occupancy_new[mode_to_iterate]++;
-            IterateOverSelectedModes( selected_modes, current_occupancy_new, mode_to_iterate, priv_addend, tg );
+    }
+    else if (hole_to_iterate>0 && selected_index_holes[hole_to_iterate] > 1+selected_index_holes[hole_to_iterate-1]) {
 
+        if (task_num < max_task_num) {
+
+            {
+                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                task_num++;
+                    //std::cout << "task num: " << task_num << std::endl;
+            }
+
+            tg.run( [this, hole_to_iterate, selected_index_holes, &priv_addend, &tg ]() {
+
+                PicVector<char> new_selected_index_holes = selected_index_holes;
+                new_selected_index_holes[hole_to_iterate]--;
+                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
+
+                {
+                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
+                    task_num--;
+                }
+
+                return;
+
+            });
+
+
+        }
+        else {
+            PicVector<char> new_selected_index_holes = selected_index_holes;
+            new_selected_index_holes[hole_to_iterate]--;
+            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
         }
 
     }
 
 
-/*
-    // calculate the partial hafnian for the given filling factors of the selected occupancy
-    Complex32 partial_hafnian = CalculatePartialHafnian( selected_modes, current_occupancy);
 
-    // add partial hafnian to the sum including the combinatorial factors
-    unsigned long long combinatorial_fact = 1;
-    for (size_t idx=0; idx < selected_modes.size(); idx++) {
-        combinatorial_fact = combinatorial_fact * binomialCoeff(occupancy[selected_modes[idx]], // the maximal allowed occupancy
-                                                                 current_occupancy[idx] // the current occupancy
-                                                                 );
-    }
+    // calculate the partial Torontonian for the selected index holes
+    long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes );
 
-    ComplexM<long double> &hafnian_priv = priv_addend.local();
+    long double &torontonian_priv = priv_addend.local();
 //std::cout << "combinatorial_fact " << combinatorial_fact << std::endl;
 //std::cout << "partial_hafnian " << partial_hafnian << std::endl;
-    hafnian_priv += partial_hafnian * (long double)combinatorial_fact;
+    torontonian_priv += partial_torontonian;
 
 
-*/
 
 
 }
@@ -481,98 +420,83 @@ std::cout << std::endl;
 @return Returns with the calculated hafnian
 */
 long double
-TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& selected_modes ) {
-
-/*
-    size_t num_of_modes = sum(current_occupancy);
-    size_t total_num_of_modes = sum(occupancy);
-    size_t dim = total_num_of_modes*2;
+TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& selected_index_holes ) {
 
 
-
-    // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
-    double scale_factor_B = 0.0;
-    matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes, scale_factor_B);
-
-    // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
-    // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-    matrix32 traces(total_num_of_modes, 1);
-    if (num_of_modes != 0) {
-        //traces = calc_power_traces<matrix32, Complex32>(B, total_num_of_modes);
-        CalcPowerTraces(B, total_num_of_modes, traces);
-    }
-    else{
-        // in case we have no 1's in the binary representation of permutation_idx we get zeros
-        // this occurs once during the calculations
-        memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
-    }
+    size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 
 
-    // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
-    bool fact = ((total_num_of_modes - num_of_modes) % 2);
+    size_t dimension_of_B = 2 * number_selected_modes;
+    PicVector<char> positions_of_ones;
+    positions_of_ones.reserve(number_selected_modes);
+    if ( selected_index_holes.size() == 0 ) {
 
-
-    // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-    matrix32 aux0(total_num_of_modes + 1, 1);
-    matrix32 aux1(total_num_of_modes + 1, 1);
-    memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex32));
-    memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex32));
-    aux0[0] = 1.0;
-    // pointers to the auxiliary data arrays
-    Complex32 *p_aux0=NULL, *p_aux1=NULL;
-    double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
-    for (size_t idx = 1; idx <= total_num_of_modes; idx++) {
-
-
-        Complex32 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx);
-        Complex32 powfactor(1.0,0.0);
-
-        // refresh the scaling factor
-        inverse_scale_factor = inverse_scale_factor/scale_factor_B;
-
-
-
-        if (idx%2 == 1) {
-            p_aux0 = aux0.get_data();
-            p_aux1 = aux1.get_data();
-        }
-        else {
-            p_aux0 = aux1.get_data();
-            p_aux1 = aux0.get_data();
+        for (size_t idx=0; idx<num_of_modes; idx++) {
+            positions_of_ones.push_back(idx);
         }
 
-        memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(Complex32) );
-
-        for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
-            powfactor = powfactor * factor / ((double)jdx);
-
-
-            for (size_t kdx = idx * jdx + 1; kdx <= total_num_of_modes + 1; kdx++) {
-                p_aux1[kdx-1] += p_aux0[kdx-idx*jdx - 1]*powfactor;
-            }
-
-
-
-        }
-
-
-    }
-
-
-    if (fact) {
-        return -p_aux1[total_num_of_modes];
-//std::cout << -p_aux1[total_num_of_modes] << std::endl;
     }
     else {
-        return p_aux1[total_num_of_modes];
-//std::cout << p_aux1[total_num_of_modes] << std::endl;
+
+        size_t hole_idx = 0;
+        for (size_t idx=0; idx<num_of_modes; idx++) {
+
+            if ( idx == selected_index_holes[hole_idx] && hole_idx<selected_index_holes.size()) {
+                hole_idx++;
+                continue;
+            }
+            positions_of_ones.push_back(idx);
+        }
+    }
+    // matrix mtx corresponds to id - A^(Z), i.e. to the square matrix constructed from
+    // the elements of mtx = 1-A indexed by the rows and colums, where the binary representation of
+    // permutation_idx was 1
+    // details in Eq. (12) https://arxiv.org/pdf/1807.01639.pdf
+    // B = (1 - A^(Z))
+    // Calculating B^(Z)
+    matrix B(dimension_of_B, dimension_of_B);
+    for (size_t idx = 0; idx < number_selected_modes; idx++) {
+        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+            B[idx*B.stride + jdx]                           =  mtx[positions_of_ones[idx]*mtx.stride + (positions_of_ones[jdx])];
+            B[idx*B.stride + jdx + number_selected_modes]   = mtx[positions_of_ones[idx]*mtx.stride + (positions_of_ones[jdx]) + num_of_modes];
+            B[(idx + number_selected_modes)*B.stride + jdx] =   mtx[(positions_of_ones[idx]+num_of_modes)*mtx.stride + (positions_of_ones[jdx])];
+            B[(idx + number_selected_modes)*B.stride + jdx + number_selected_modes] = mtx[(positions_of_ones[idx]+num_of_modes)*mtx.stride + (positions_of_ones[jdx]) + num_of_modes];
+        }
+                //B[idx * dimension_of_B + idx] += Complex16(1.0, 0.0);
+                //B[(idx + number_selected_modes)*dimension_of_B + idx + number_selected_modes] += Complex16(1.0, 0.0);
     }
 
 
+            // calculating -1^(number of ones)
+            // !!! -1 ^ (number of ones - dim_over_2) ???
+            double factor =
+                (number_selected_modes + num_of_modes) % 2
+                    ? -1.0D
+                    : 1.0D;
 
-*/
+            // calculating the determinant of B
+            Complex16 determinant;
+            if (number_selected_modes != 0) {
+                // testing purpose (the matrix is not positive definite and selfadjoint)
+                determinant = determinant_byLU_decomposition(B);
+//                determinant = calc_determinant_of_selfadjoint_hessenberg_matrix<matrix, Complex16>(B);
+                // hafnian: calculate trace
+                //traces = calc_power_traces<matrix32, Complex32>(B, dim_over_2);
+            }
+            else{
+                determinant = 1.0;
+                //memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
+            }
 
-return 0.0L;
+            //std::cout<<"Det: "<< determinant.real()<<std::endl;
+
+            // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
+            double sqrt_determinant = std::sqrt(determinant.real());
+
+
+            return (long double) (factor / sqrt_determinant);
+
+
 }
 
 
