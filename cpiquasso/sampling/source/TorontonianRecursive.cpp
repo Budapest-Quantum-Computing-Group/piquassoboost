@@ -226,6 +226,13 @@ TorontonianRecursive_Tasks::calculate() {
     openblas_set_num_threads(NumThreads);
 #endif
 
+    // last correction comming from an empty submatrix contribution
+    double factor =
+                (num_of_modes) % 2
+                    ? -1.0D
+                    : 1.0D;
+
+    torontonian = torontonian + factor;
 
     return (double)torontonian;
 }
@@ -245,7 +252,7 @@ std::cout << (short)selected_index_holes[idx] << ", ";
 }
 std::cout << std::endl;
 */
-//std::cout << "reuse index: " << reuse_index << std::endl;
+//std::cout << "reuse_index: " << reuse_index << std::endl;
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;
@@ -266,8 +273,16 @@ std::cout << std::endl;
 
         PicVector<char> new_selected_index_holes = selected_index_holes;
         new_selected_index_holes[hole_to_iterate] = idx;
-        size_t reuse_index_new = idx < reuse_index ? idx : reuse_index;
+        size_t reuse_index_new = idx-hole_to_iterate < reuse_index ? idx-hole_to_iterate : reuse_index;
 
+//if ( idx == index_min )    reuse_index_new = new_selected_index_holes[0];//idx-1;
+/*
+std::cout << " bb "  << idx << " " << reuse_index_new << std::endl;
+for (size_t kdx = 0; kdx<new_selected_index_holes.size(); kdx++) {
+std::cout << (short)new_selected_index_holes[kdx] << ", ";
+}
+std::cout << std::endl;
+*/
         long double partial_torontonian = CalculatePartialTorontonian( new_selected_index_holes, L, reuse_index_new );
         long double &torontonian_priv = priv_addend.local();
         torontonian_priv += partial_torontonian;
@@ -275,140 +290,37 @@ std::cout << std::endl;
 
 
     // add new index hole to the iterations
+    if (selected_index_holes.size() == num_of_modes-1) return;
+
     int new_hole_to_iterate = hole_to_iterate+1;
-    for (size_t idx=index_min; idx<index_max; idx++) {
+    for (size_t idx=index_min; idx<index_max-1; idx++) {
 
         PicVector<char> new_selected_index_holes = selected_index_holes;
         new_selected_index_holes[hole_to_iterate] = idx;
         new_selected_index_holes.push_back(this->num_of_modes-1);
-        size_t reuse_index_new = idx < reuse_index ? idx : reuse_index;
 
-        IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, L, reuse_index_new, priv_addend, tg );
-    }
+//std::cout << "creating L_new" << std::endl;
+        size_t reuse_index_new = new_selected_index_holes[hole_to_iterate] +1 - selected_index_holes.size();//new_selected_index_holes[0];
 
 
+        matrix &&L_new = CreateAZ(new_selected_index_holes, L, reuse_index_new);
+        calc_cholesky_decomposition(L_new, 2*reuse_index_new);
+        reuse_index_new = L_new.rows/2-1;//num_of_modes-new_selected_index_holes.size()-1;
+
+//std::cout << "reuse_index_new: " << reuse_index_new << std::endl;
+
+//L.print_matrix();
+//L_new.print_matrix();
+//std::cout << "reuse index new: " << reuse_index_new << std::endl;
 /*
-    // iterations over the selected index hole
-    if ( hole_to_iterate == 0 && selected_index_holes[hole_to_iterate] > 0) {
-
-        if (task_num < max_task_num) {
-
-            {
-                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                task_num++;
-                    //std::cout << "task num: " << task_num << std::endl;
-            }
-
-            tg.run( [this, hole_to_iterate, selected_index_holes, reuse_index, &priv_addend, &tg ]() {
-
-                PicVector<char> new_selected_index_holes = selected_index_holes;
-                new_selected_index_holes[hole_to_iterate]--;
-                size_t reuse_index_new = reuse_index > 0 ? reuse_index-1 : 0;
-                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index_new, priv_addend, tg );
-
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                    task_num--;
-                }
-
-                return;
-
-            });
-
-
-        }
-        else {
-            PicVector<char> new_selected_index_holes = selected_index_holes;
-            new_selected_index_holes[hole_to_iterate]--;
-            size_t reuse_index_new = reuse_index > 0 ? reuse_index-1 : 0;
-            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index_new, priv_addend, tg );
-        }
-
-    }
-    else if (hole_to_iterate>0 && selected_index_holes[hole_to_iterate] > 1+selected_index_holes[hole_to_iterate-1]) {
-
-        if (task_num < max_task_num) {
-
-            {
-                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                task_num++;
-                    //std::cout << "task num: " << task_num << std::endl;
-            }
-
-            tg.run( [this, hole_to_iterate, selected_index_holes, reuse_index, &priv_addend, &tg ]() {
-
-                PicVector<char> new_selected_index_holes = selected_index_holes;
-                new_selected_index_holes[hole_to_iterate]--;
-                size_t reuse_index_new = reuse_index > 0 ? reuse_index-1 : 0;
-                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index_new, priv_addend, tg );
-
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                    task_num--;
-                }
-
-                return;
-
-            });
-
-
-        }
-        else {
-            PicVector<char> new_selected_index_holes = selected_index_holes;
-            new_selected_index_holes[hole_to_iterate]--;
-            size_t reuse_index_new = reuse_index > 0 ? reuse_index-1 : 0;
-            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index_new, priv_addend, tg );
-        }
-
-    }
-
+std::cout << "new selected holes: ";
+for (size_t kdx = 0; kdx<new_selected_index_holes.size(); kdx++) {
+std::cout << (short)new_selected_index_holes[kdx] << ", ";
+}
+std::cout << std::endl;
 */
-/*
-
-    // add new index hole to the iterations
-    if ( selected_index_holes[hole_to_iterate] < num_of_modes-1) {
-
-        int new_hole_to_iterate = hole_to_iterate+1;
-
-        // prevent the exponential explosion of spawned tasks (and save the stack space)
-        // and spawn new task only if the current number of tasks is smaller than a cutoff
-        if (task_num < max_task_num) {
-
-            {
-                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                task_num++;
-                    //std::cout << "task num: " << task_num << std::endl;
-            }
-
-            tg.run( [this, new_hole_to_iterate, selected_index_holes, reuse_index, &priv_addend, &tg ]() {
-
-                PicVector<char> new_selected_index_holes = selected_index_holes;
-                new_selected_index_holes.push_back(this->num_of_modes-1);
-                IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, reuse_index, priv_addend, tg );
-
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                    task_num--;
-                }
-
-                return;
-
-            });
-
-
-        }
-        else {
-           // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
-            PicVector<char> new_selected_index_holes = selected_index_holes;
-            new_selected_index_holes.push_back(num_of_modes-1);
-            IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, reuse_index, priv_addend, tg );
-        }
-
+        IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, L_new, reuse_index_new, priv_addend, tg );
     }
-
-*/
-
-
 
 
 
@@ -524,7 +436,7 @@ matrix
 TorontonianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_index_holes, matrix &L, const size_t reuse_index ) {
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
-
+//std::cout << "reuse index in Create AZ: " << reuse_index << std::endl;
     size_t dimension_of_B = 2 * number_selected_modes;
 
     PicVector<char> positions_of_ones;
@@ -546,43 +458,45 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_index_hole
                 continue;
             }
             positions_of_ones.push_back(idx);
+            //std::cout << idx << ", ";
         }
     }
+    //std::cout << std::endl;
 
 
     matrix B(dimension_of_B, dimension_of_B);
     for (size_t idx = 0; idx < reuse_index; idx++) {
 
         //Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
-        Complex16* L_data = L.get_data() + 2*(positions_of_ones[idx]*L.stride);
-        Complex16* B_data = B.get_data() + 2*(idx*B.stride);
+        Complex16* L_data = L.get_data() + 2*idx*L.stride;
+        Complex16* B_data = B.get_data() + 2*idx*B.stride;
 
-        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
-            memcpy( B_data + 2*jdx, L_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        for (size_t jdx = 0; jdx < reuse_index; jdx++) {
+            memcpy( B_data + 2*jdx, L_data + 2*jdx, 2*sizeof(Complex16) );
         }
 
         B_data   = B_data + B.stride;
         L_data   = L_data + L.stride;
 
-        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
-            memcpy( B_data + 2*jdx, L_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        for (size_t jdx = 0; jdx < reuse_index; jdx++) {
+            memcpy( B_data + 2*jdx, L_data + 2*jdx, 2*sizeof(Complex16) );
         }
 
     }
 
     for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
-
+//std::cout <<  (short)positions_of_ones[idx] << std::endl;
         Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
-        Complex16* B_data = B.get_data() + 2*(idx*B.stride);
+        Complex16* B_data   = B.get_data() + 2*(idx*B.stride);
 
-        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+        for (size_t jdx = 0; jdx <= idx; jdx++) {
             memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
         }
 
         B_data   = B_data + B.stride;
         mtx_data = mtx_data + mtx.stride;
 
-        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+        for (size_t jdx = 0; jdx <= idx; jdx++) {
             memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
         }
 
