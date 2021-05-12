@@ -183,13 +183,13 @@ TorontonianRecursive_Tasks::calculate() {
 
 
     // calculate the partial Torontonian for the selected index holes
-    long double torontonian = CalculatePartialTorontonian( selected_index_holes );
+    long double torontonian = CalculatePartialTorontonian( selected_index_holes, num_of_modes-1 );
 
     // add the first index hole in prior to the iterations
     selected_index_holes.push_back(num_of_modes-1);
 
     // start task iterations originating from the initial selected modes
-    IterateOverSelectedModes( selected_index_holes, 0, priv_addend, tg );
+    IterateOverSelectedModes( selected_index_holes, 0, num_of_modes-2, priv_addend, tg );
 
     // wait until all spawned tasks are completed
     tg.wait();
@@ -224,7 +224,7 @@ TorontonianRecursive_Tasks::calculate() {
 @param tg Reference to a tbb::task_group
 */
 void
-TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_index_holes, int hole_to_iterate, tbb::combinable<long double>& priv_addend, tbb::task_group &tg ) {
+TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_index_holes, int hole_to_iterate, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg ) {
 /*
 for (size_t idx = 0; idx<selected_index_holes.size(); idx++) {
 std::cout << (short)selected_index_holes[idx] << ", ";
@@ -246,11 +246,11 @@ std::cout << std::endl;
                     //std::cout << "task num: " << task_num << std::endl;
             }
 
-            tg.run( [this, new_hole_to_iterate, selected_index_holes, &priv_addend, &tg ]() {
+            tg.run( [this, new_hole_to_iterate, selected_index_holes, reuse_index, &priv_addend, &tg ]() {
 
                 PicVector<char> new_selected_index_holes = selected_index_holes;
                 new_selected_index_holes.push_back(this->num_of_modes-1);
-                IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, priv_addend, tg );
+                IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, reuse_index, priv_addend, tg );
 
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
@@ -267,7 +267,7 @@ std::cout << std::endl;
            // if the current number of tasks is greater than the maximal number of tasks, than the task is sequentialy
             PicVector<char> new_selected_index_holes = selected_index_holes;
             new_selected_index_holes.push_back(num_of_modes-1);
-            IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, priv_addend, tg );
+            IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, reuse_index, priv_addend, tg );
         }
 
     }
@@ -283,11 +283,11 @@ std::cout << std::endl;
                     //std::cout << "task num: " << task_num << std::endl;
             }
 
-            tg.run( [this, hole_to_iterate, selected_index_holes, &priv_addend, &tg ]() {
+            tg.run( [this, hole_to_iterate, selected_index_holes, reuse_index, &priv_addend, &tg ]() {
 
                 PicVector<char> new_selected_index_holes = selected_index_holes;
                 new_selected_index_holes[hole_to_iterate]--;
-                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
+                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index, priv_addend, tg );
 
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
@@ -303,7 +303,7 @@ std::cout << std::endl;
         else {
             PicVector<char> new_selected_index_holes = selected_index_holes;
             new_selected_index_holes[hole_to_iterate]--;
-            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
+            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index, priv_addend, tg );
         }
 
     }
@@ -317,11 +317,11 @@ std::cout << std::endl;
                     //std::cout << "task num: " << task_num << std::endl;
             }
 
-            tg.run( [this, hole_to_iterate, selected_index_holes, &priv_addend, &tg ]() {
+            tg.run( [this, hole_to_iterate, selected_index_holes, reuse_index, &priv_addend, &tg ]() {
 
                 PicVector<char> new_selected_index_holes = selected_index_holes;
                 new_selected_index_holes[hole_to_iterate]--;
-                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
+                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index, priv_addend, tg );
 
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
@@ -337,7 +337,7 @@ std::cout << std::endl;
         else {
             PicVector<char> new_selected_index_holes = selected_index_holes;
             new_selected_index_holes[hole_to_iterate]--;
-            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, priv_addend, tg );
+            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index, priv_addend, tg );
         }
 
     }
@@ -345,7 +345,7 @@ std::cout << std::endl;
 
 
     // calculate the partial Torontonian for the selected index holes
-    long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes );
+    long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes, reuse_index );
 
     long double &torontonian_priv = priv_addend.local();
 
@@ -364,7 +364,7 @@ std::cout << std::endl;
 @return Returns with the calculated hafnian
 */
 long double
-TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& selected_index_holes ) {
+TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& selected_index_holes, const size_t reuse_index ) {
 
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
