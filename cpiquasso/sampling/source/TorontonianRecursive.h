@@ -59,8 +59,6 @@ class TorontonianRecursive_Tasks : public Torontonian {
 
 
 protected:
-    /// The lower triangular L matrix of the Cholesky decomposition of the input matrix
-    matrix L;
     /// number of modes spanning the gaussian state
     size_t num_of_modes;
     /// The maximal number of spawned tasks living at the same time
@@ -117,7 +115,7 @@ protected:
 @param priv_addend Therad local storage for the partial hafnians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<char>& selected_modes, int mode_to_iterate, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg );
+void IterateOverSelectedModes( const PicVector<char>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg );
 
 
 /**
@@ -126,7 +124,7 @@ void IterateOverSelectedModes( const PicVector<char>& selected_modes, int mode_t
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-virtual long double CalculatePartialTorontonian( const PicVector<char>& selected_modes, const size_t reuse_index );
+virtual long double CalculatePartialTorontonian( const PicVector<char>& selected_modes, matrix &L, const size_t reuse_index );
 
 
 /**
