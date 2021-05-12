@@ -490,6 +490,12 @@ TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
     //mtx_reordered.print_matrix();
     mtx = mtx_reordered;
 
+    // calculate the Cholesky decomposition of the initial matrix to be later reused
+    L = mtx.copy();
+    calc_cholesky_decomposition(L);
+
+
+
     // Can scaling be used here since we have to calculate 1-A^Z?
     // It brings a multiplying for each determinant.
     // Should

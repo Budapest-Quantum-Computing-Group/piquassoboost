@@ -194,7 +194,8 @@ calc_cholesky_decomposition_lapack(matrix &matrix) {
 Complex16
 calc_determinant_cholesky_decomposition(matrix& mtx){
     // for small matrices nothing has to be casted into quad precision
-    if (mtx.rows <= 10) {
+
+//    if (mtx.rows <= 10) {
         calc_cholesky_decomposition(mtx);
 
         Complex16 determinant(1.0, 0.0);
@@ -205,7 +206,7 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
         }
 
         return mult_a_bconj( determinant, determinant);
-    }
+/*    }
     // The lapack function to calculate the Cholesky decomposition is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
     // quad precision
@@ -233,7 +234,7 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
             det *= mtx[idx * mtx.stride + idx];
         }
         return mult_a_bconj( det, det);
-    }
+  //  }
   /*
     else{
         // above a treshold matrix size all the calculations are done in quad precision
