@@ -96,11 +96,12 @@ virtual ~TorontonianRecursive_Tasks();
 double calculate();
 
 
+
 /**
-@brief Call to calculate the hafnian of a complex matrix
-@return Returns with the calculated hafnian
+@brief Call to update the memory address of the matrix mtx
+@param mtx_in Input matrix defined by
 */
-double calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx );
+void Update_mtx( matrix &mtx_in);
 
 
 

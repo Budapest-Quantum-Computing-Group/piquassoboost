@@ -67,46 +67,11 @@ TorontonianRecursive::calculate() {
     // number of modes spanning the gaussian state
     size_t num_of_modes = mtx.rows/2;
 
-    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
-
-#ifdef __MPI__
-/*
-    // Get the number of processes
-    int world_size;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    // Get the rank of the process
-    int current_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
-
-    PowerTraceHafnianRecursive_Tasks hafnian_calculator = PowerTraceHafnianRecursive_Tasks(mtx, occupancy);
-    Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
-
-    // send the calculated partial hafnian to rank 0
-    Complex16* partial_hafnians = new Complex16[world_size];
-
-    MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
-
-    hafnian = Complex16(0.0,0.0);
-    for (size_t idx=0; idx<world_size; idx++) {
-        hafnian = hafnian + partial_hafnians[idx];
-    }
-
-    // release memory on the zero rank
-    delete partial_hafnians;
-
-
-    return hafnian;
-*/
-#else
-    unsigned long long current_rank = 0;
-    unsigned long long world_size = 1;
 
     TorontonianRecursive_Tasks torontonian_calculator = TorontonianRecursive_Tasks(mtx);
-    double torontonian = torontonian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
+    double torontonian = torontonian_calculator.calculate();
 
     return torontonian;
-#endif
 
 
 }
@@ -180,28 +145,13 @@ TorontonianRecursive_Tasks::~TorontonianRecursive_Tasks() {
     delete task_count_mutex;
 }
 
+
 /**
 @brief Call to calculate the hafnian of a complex matrix
 @return Returns with the calculated hafnian
 */
 double
 TorontonianRecursive_Tasks::calculate() {
-
-
-
-    unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
-
-    return calculate(1, 1, permutation_idx_max );
-
-}
-
-
-/**
-@brief Call to calculate the hafnian of a complex matrix
-@return Returns with the calculated hafnian
-*/
-double
-TorontonianRecursive_Tasks::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
 
 
     if (mtx.rows == 0) {
@@ -220,10 +170,6 @@ TorontonianRecursive_Tasks::calculate(unsigned long long start_idx, unsigned lon
     openblas_set_num_threads(1);
 #endif
 
-    if (start_idx<1) {
-        std::cout << "start_idx must be at least 1" << std::endl;
-        exit(-1);
-    }
 
 
     // create task group to spawn tasks
@@ -287,7 +233,6 @@ std::cout << std::endl;
 */
     // add new index hole to th eiterations
     if ( selected_index_holes[hole_to_iterate] < num_of_modes-1) {
-//    for (int new_hole_to_iterate = hole_to_iterate+1; new_hole_to_iterate <=  num_of_modes; new_hole_to_iterate++) {
 
         int new_hole_to_iterate = hole_to_iterate+1;
 
@@ -403,8 +348,7 @@ std::cout << std::endl;
     long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes );
 
     long double &torontonian_priv = priv_addend.local();
-//std::cout << "combinatorial_fact " << combinatorial_fact << std::endl;
-//std::cout << "partial_hafnian " << partial_hafnian << std::endl;
+
     torontonian_priv += partial_torontonian;
 
 
@@ -427,6 +371,7 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& 
 
 
     size_t dimension_of_B = 2 * number_selected_modes;
+
     PicVector<char> positions_of_ones;
     positions_of_ones.reserve(number_selected_modes);
     if ( selected_index_holes.size() == 0 ) {
@@ -448,6 +393,8 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& 
             positions_of_ones.push_back(idx);
         }
     }
+
+
     // matrix mtx corresponds to id - A^(Z), i.e. to the square matrix constructed from
     // the elements of mtx = 1-A indexed by the rows and colums, where the binary representation of
     // permutation_idx was 1
@@ -456,14 +403,21 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& 
     // Calculating B^(Z)
     matrix B(dimension_of_B, dimension_of_B);
     for (size_t idx = 0; idx < number_selected_modes; idx++) {
+
+        Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
+        Complex16* B_data = B.get_data() + 2*(idx*B.stride);
+
         for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
-            B[idx*B.stride + jdx]                           =  mtx[positions_of_ones[idx]*mtx.stride + (positions_of_ones[jdx])];
-            B[idx*B.stride + jdx + number_selected_modes]   = mtx[positions_of_ones[idx]*mtx.stride + (positions_of_ones[jdx]) + num_of_modes];
-            B[(idx + number_selected_modes)*B.stride + jdx] =   mtx[(positions_of_ones[idx]+num_of_modes)*mtx.stride + (positions_of_ones[jdx])];
-            B[(idx + number_selected_modes)*B.stride + jdx + number_selected_modes] = mtx[(positions_of_ones[idx]+num_of_modes)*mtx.stride + (positions_of_ones[jdx]) + num_of_modes];
+            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
         }
-                //B[idx * dimension_of_B + idx] += Complex16(1.0, 0.0);
-                //B[(idx + number_selected_modes)*dimension_of_B + idx + number_selected_modes] += Complex16(1.0, 0.0);
+
+        B_data   = B_data + B.stride;
+        mtx_data = mtx_data + mtx.stride;
+
+        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        }
+
     }
 
 
@@ -478,17 +432,12 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& 
             Complex16 determinant;
             if (number_selected_modes != 0) {
                 // testing purpose (the matrix is not positive definite and selfadjoint)
-                determinant = determinant_byLU_decomposition(B);
-//                determinant = calc_determinant_of_selfadjoint_hessenberg_matrix<matrix, Complex16>(B);
-                // hafnian: calculate trace
-                //traces = calc_power_traces<matrix32, Complex32>(B, dim_over_2);
+                //determinant = determinant_byLU_decomposition(B);
+                determinant = calc_determinant_cholesky_decomposition(B);
             }
             else{
                 determinant = 1.0;
-                //memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
             }
-
-            //std::cout<<"Det: "<< determinant.real()<<std::endl;
 
             // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
             double sqrt_determinant = std::sqrt(determinant.real());
@@ -497,6 +446,54 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& 
             return (long double) (factor / sqrt_determinant);
 
 
+}
+
+
+
+/**
+@brief Call to update the memory address of the matrix mtx
+@param mtx_in Input matrix defined by
+*/
+void
+TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
+    mtx_orig = mtx_in;
+
+    size_t dim = mtx_in.rows;
+
+    // Calculating B := 1 - A
+    mtx = matrix(dim, dim);
+    for (size_t idx = 0; idx < dim; idx++) {
+        //Complex16 *row_B_idx = B.get_data() + idx * B.stride;
+        //Complex16 *row_mtx_pos_idx = mtx.get_data() + positions_of_ones[idx] * mtx.stride;
+        for (size_t jdx = 0; jdx < dim; jdx++) {
+            mtx[idx * dim + jdx] = -1.0 * mtx_in[idx * mtx_in.stride + jdx];
+        }
+        mtx[idx * dim + idx] += Complex16(1.0, 0.0);
+    }
+
+
+    // convert the input matrix from a1, a2, ... a_N, a_1^*, a_2^* ... a_N^* format to
+    // a_1^*,a_1^*,a_2,a_2^*, ... a_N,a_N^* format
+
+    size_t num_of_modes = dim/2;
+    matrix mtx_reordered = matrix(dim, dim);
+    for (size_t idx=0; idx<num_of_modes; idx++) {
+        for (size_t jdx=0; jdx<num_of_modes; jdx++) {
+            mtx_reordered[2*idx*mtx_reordered.stride + 2*jdx] = mtx[idx*mtx.stride + jdx];
+            mtx_reordered[2*idx*mtx_reordered.stride + 2*jdx+1] = mtx[idx*mtx.stride + jdx + num_of_modes];
+            mtx_reordered[(2*idx+1)*mtx_reordered.stride + 2*jdx] = mtx[(idx+num_of_modes)*mtx.stride + jdx];
+            mtx_reordered[(2*idx+1)*mtx_reordered.stride + 2*jdx+1] = mtx[(idx+num_of_modes)*mtx.stride + jdx + num_of_modes];
+        }
+    }
+
+    //mtx.print_matrix();
+    //mtx_reordered.print_matrix();
+    mtx = mtx_reordered;
+
+    // Can scaling be used here since we have to calculate 1-A^Z?
+    // It brings a multiplying for each determinant.
+    // Should
+    ScaleMatrix();
 }
 
 

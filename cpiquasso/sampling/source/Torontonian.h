@@ -60,7 +60,7 @@ virtual double calculate();
 @brief Call to update the memory address of the matrix mtx
 @param mtx_in Input matrix defined by
 */
-void Update_mtx( matrix &mtx_in);
+virtual void Update_mtx( matrix &mtx_in);
 
 
 protected:

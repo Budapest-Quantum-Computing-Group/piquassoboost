@@ -209,7 +209,7 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
     // The lapack function to calculate the Cholesky decomposition is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
     // quad precision
-    else if ( mtx.rows < 30 ) {
+    else {//if ( mtx.rows < 30 ) {
 
 
         // transform the matrix mtx into an upper Hessenberg format by calling lapack function
@@ -234,12 +234,13 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
         }
         return mult_a_bconj( det, det);
     }
+  /*
     else{
         // above a treshold matrix size all the calculations are done in quad precision
         // matrix size for which quad precision is necessary
         return Complex16(1.0, 0.0);
     }
-
+*/
 }
 
 
