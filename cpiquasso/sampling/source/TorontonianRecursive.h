@@ -136,7 +136,7 @@ virtual long double CalculatePartialTorontonian( const PicVector<char>& selected
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 matrix
-CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
+CreateAZ( const PicVector<char>& selected_index_holes, matrix &L, const size_t reuse_index );
 
 
 

@@ -263,9 +263,12 @@ std::cout << std::endl;
 
     // iterations over the selected index hole to calculate partial torontonians
     for (size_t idx=index_min; idx<index_max; idx++) {
+
         PicVector<char> new_selected_index_holes = selected_index_holes;
         new_selected_index_holes[hole_to_iterate] = idx;
-        long double partial_torontonian = CalculatePartialTorontonian( new_selected_index_holes, L, reuse_index*0 );
+        size_t reuse_index_new = idx < reuse_index ? idx : reuse_index;
+
+        long double partial_torontonian = CalculatePartialTorontonian( new_selected_index_holes, L, reuse_index_new );
         long double &torontonian_priv = priv_addend.local();
         torontonian_priv += partial_torontonian;
     }
@@ -274,10 +277,13 @@ std::cout << std::endl;
     // add new index hole to the iterations
     int new_hole_to_iterate = hole_to_iterate+1;
     for (size_t idx=index_min; idx<index_max; idx++) {
+
         PicVector<char> new_selected_index_holes = selected_index_holes;
         new_selected_index_holes[hole_to_iterate] = idx;
         new_selected_index_holes.push_back(this->num_of_modes-1);
-        IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, L, reuse_index*0, priv_addend, tg );
+        size_t reuse_index_new = idx < reuse_index ? idx : reuse_index;
+
+        IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, L, reuse_index_new, priv_addend, tg );
     }
 
 
@@ -425,99 +431,31 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 
 
-    size_t dimension_of_B = 2 * number_selected_modes;
+    matrix &&B = CreateAZ(selected_index_holes, L, reuse_index);
 
-    PicVector<char> positions_of_ones;
-    positions_of_ones.reserve(number_selected_modes);
-    if ( selected_index_holes.size() == 0 ) {
-
-        for (size_t idx=0; idx<num_of_modes; idx++) {
-            positions_of_ones.push_back(idx);
-        }
-
-    }
-    else {
-
-        size_t hole_idx = 0;
-        for (size_t idx=0; idx<num_of_modes; idx++) {
-
-            if ( idx == selected_index_holes[hole_idx] && hole_idx<selected_index_holes.size()) {
-                hole_idx++;
-                continue;
-            }
-            positions_of_ones.push_back(idx);
-        }
-    }
-
-
-    // matrix mtx corresponds to id - A^(Z), i.e. to the square matrix constructed from
-    // the elements of mtx = 1-A indexed by the rows and colums, where the binary representation of
-    // permutation_idx was 1
-    // details in Eq. (12) https://arxiv.org/pdf/1807.01639.pdf
-    // B = (1 - A^(Z))
-    // Calculating B^(Z)
-    matrix B(dimension_of_B, dimension_of_B);
-    for (size_t idx = 0; idx < reuse_index; idx++) {
-
-        //Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
-        Complex16* L_data = L.get_data() + 2*(positions_of_ones[idx]*L.stride);
-        Complex16* B_data = B.get_data() + 2*(idx*B.stride);
-
-        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
-            memcpy( B_data + 2*jdx, L_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
-        }
-
-        B_data   = B_data + B.stride;
-        L_data   = L_data + L.stride;
-
-        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
-            memcpy( B_data + 2*jdx, L_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
-        }
-
-    }
-
-    for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
-
-        Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
-        Complex16* B_data = B.get_data() + 2*(idx*B.stride);
-
-        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
-            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
-        }
-
-        B_data   = B_data + B.stride;
-        mtx_data = mtx_data + mtx.stride;
-
-        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
-            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
-        }
-
-    }
-
-
-            // calculating -1^(number of ones)
-            // !!! -1 ^ (number of ones - dim_over_2) ???
-            double factor =
+    // calculating -1^(number of ones)
+    // !!! -1 ^ (number of ones - dim_over_2) ???
+    double factor =
                 (number_selected_modes + num_of_modes) % 2
                     ? -1.0D
                     : 1.0D;
 
-            // calculating the determinant of B
-            Complex16 determinant;
-            if (number_selected_modes != 0) {
-                // testing purpose (the matrix is not positive definite and selfadjoint)
-                //determinant = determinant_byLU_decomposition(B);
-                determinant = calc_determinant_cholesky_decomposition(B, 2*reuse_index);
-            }
-            else{
-                determinant = 1.0;
-            }
+    // calculating the determinant of B
+    Complex16 determinant;
+    if (number_selected_modes != 0) {
+        // testing purpose (the matrix is not positive definite and selfadjoint)
+        //determinant = determinant_byLU_decomposition(B);
+        determinant = calc_determinant_cholesky_decomposition(B, 2*reuse_index);
+    }
+    else{
+        determinant = 1.0;
+    }
 
-            // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
-            double sqrt_determinant = std::sqrt(determinant.real());
+    // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
+    double sqrt_determinant = std::sqrt(determinant.real());
 
 
-            return (long double) (factor / sqrt_determinant);
+    return (long double) (factor / sqrt_determinant);
 
 
 }
@@ -583,105 +521,76 @@ TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 matrix
-TorontonianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
+TorontonianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_index_holes, matrix &L, const size_t reuse_index ) {
 
+    size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 
-//std::cout << "A" << std::endl;
-    matrix AZ(num_of_modes*2, num_of_modes*2);
+    size_t dimension_of_B = 2 * number_selected_modes;
 
-/*
-    memset(A.get_data(), 0, A.size()*sizeof(Complex16));
-    size_t row_idx = 0;
-    for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
+    PicVector<char> positions_of_ones;
+    positions_of_ones.reserve(number_selected_modes);
+    if ( selected_index_holes.size() == 0 ) {
 
-        size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*mtx.stride;
-        size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*mtx.stride;
-
-        for (size_t filling_factor_row=1; filling_factor_row<=current_occupancy[mode_idx]; filling_factor_row++) {
-
-            size_t row_offset_A_a = 2*row_idx*A.stride;
-            size_t row_offset_A_aconj = (2*row_idx+1)*A.stride;
-
-
-            size_t col_idx = 0;
-
-            for (size_t mode_jdx = 0; mode_jdx < selected_modes.size(); mode_jdx++) {
-
-
-                for (size_t filling_factor_col=1; filling_factor_col<=current_occupancy[mode_jdx]; filling_factor_col++) {
-
-                    if ( (row_idx == col_idx) || (mode_idx != mode_jdx) ) {
-
-                        A[row_offset_A_a + col_idx*2]   = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
-                        A[row_offset_A_aconj + col_idx*2+1] = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
-
-                    }
-
-                    A[row_offset_A_a + col_idx*2+1] = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2+1)];
-                    A[row_offset_A_aconj + col_idx*2]   = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2)];
-                    col_idx++;
-                }
-            }
-
-
-            row_idx++;
+        for (size_t idx=0; idx<num_of_modes; idx++) {
+            positions_of_ones.push_back(idx);
         }
 
-    }
-
-    // A^(Z), i.e. to the square matrix constructed from the input matrix
-    // for details see the text below Eq.(3.20) of arXiv 1805.12498
-    matrix AZ(num_of_modes*2, num_of_modes*2);
-    scale_factor_AZ = 0.0;
-    for (size_t idx = 0; idx < 2*num_of_modes; idx++) {
-        size_t row_offset = (idx^1)*A.stride;
-        for (size_t jdx = 0; jdx < 2*num_of_modes; jdx++) {
-            Complex16 &element = A[row_offset + jdx];
-            AZ[idx*AZ.stride + jdx] = element;
-            scale_factor_AZ = scale_factor_AZ + element.real()*element.real() + element.imag()*element.imag();
-        }
-    }
-
-
-    // scale matrix AZ -- when matrix elements of AZ are scaled, larger part of the computations can be kept in double precision
-    if ( scale_factor_AZ < 1e-8 ) {
-        scale_factor_AZ = 1.0;
     }
     else {
-        scale_factor_AZ = std::sqrt(scale_factor_AZ/2)/AZ.size();
-        for (size_t idx=0; idx<AZ.size(); idx++) {
-            AZ[idx] = AZ[idx]*scale_factor_AZ;
+
+        size_t hole_idx = 0;
+        for (size_t idx=0; idx<num_of_modes; idx++) {
+
+            if ( idx == selected_index_holes[hole_idx] && hole_idx<selected_index_holes.size()) {
+                hole_idx++;
+                continue;
+            }
+            positions_of_ones.push_back(idx);
         }
     }
 
-*/
 
+    matrix B(dimension_of_B, dimension_of_B);
+    for (size_t idx = 0; idx < reuse_index; idx++) {
 
-/*
-    // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
-    // the elements of mtx=A indexed by the rows and colums, where the binary representation of
-    // permutation_idx was 1
-    // for details see the text below Eq.(3.20) of arXiv 1805.12498
-    matrix B(total_num_of_modes*2, total_num_of_modes*2);
-    for (size_t idx = 0; idx < total_num_of_modes; idx++) {
+        //Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
+        Complex16* L_data = L.get_data() + 2*(positions_of_ones[idx]*L.stride);
+        Complex16* B_data = B.get_data() + 2*(idx*B.stride);
 
-        size_t row_offset_B_a = 2*idx*B.stride;
-        size_t row_offset_B_aconj = (2*idx+1)*B.stride;
-
-        size_t row_offset_mtx_a = 2*selected_modes[idx]*mtx.stride;
-        size_t row_offset_mtx_aconj = (2*selected_modes[idx]+1)*mtx.stride;
-
-        for (size_t jdx = 0; jdx < total_num_of_modes; jdx++) {
-            B[row_offset_B_a + jdx*2]   = mtx[row_offset_mtx_a + ((selected_modes[jdx]*2) ^ 1)];
-            B[row_offset_B_a + jdx*2+1] = mtx[row_offset_mtx_a + ((selected_modes[jdx]*2+1) ^ 1)];
-            B[row_offset_B_aconj + jdx*2]   = mtx[row_offset_mtx_aconj + ((selected_modes[jdx]*2) ^ 1)];
-            B[row_offset_B_aconj + jdx*2+1] = mtx[row_offset_mtx_aconj + ((selected_modes[jdx]*2+1) ^ 1)];
+        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+            memcpy( B_data + 2*jdx, L_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
         }
+
+        B_data   = B_data + B.stride;
+        L_data   = L_data + L.stride;
+
+        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+            memcpy( B_data + 2*jdx, L_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        }
+
     }
-*/
 
-    return AZ;
+    for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
 
+        Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
+        Complex16* B_data = B.get_data() + 2*(idx*B.stride);
+
+        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        }
+
+        B_data   = B_data + B.stride;
+        mtx_data = mtx_data + mtx.stride;
+
+        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        }
+
+    }
+
+
+
+    return B;
 
 }
 
