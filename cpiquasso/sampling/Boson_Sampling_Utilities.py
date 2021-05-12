@@ -174,3 +174,24 @@ class PowerTraceLoopHafnianRecursive(PowerTraceLoopHafnianRecursive_wrapper):
         return super(PowerTraceLoopHafnianRecursive, self).calculate()
 
 
+class Torontonian(Torontonian_wrapper):
+    """
+        This class is designed to calculate the torontonian of a selfadjoint positive definite matrix with eigenvalues between 0 and 1.
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        super(Torontonian, self).__init__(matrix=matrix)
+        pass
+
+       
+    def calculate(self):
+        """
+            :return: The Torontonian of the matrix.
+        """
+
+        # call the torontonian calculator of the parent class
+        return super(Torontonian, self).calculate()
+

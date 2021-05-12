@@ -1,9 +1,10 @@
- 
 #include <vector>
 
 #include <random>
 #include <chrono>
 #include <string>
+
+#include "constants_tests.h"
 
 #include "TorontonianUtilities.hpp"
 #include "Torontonian.h"
@@ -12,9 +13,7 @@
 #include "matrix.h"
 
 #include "dot.h"
-
 #include "matrix_helper.hpp"
-#include "constants_tests.h"
 
 
 
@@ -333,7 +332,7 @@ int test_calc_torontonian(){
 
     std::cout << "Torontonian value:" << std::endl;
     std::cout << result << std::endl;
-    assert(false);
+
 
     return 0;
 }
