@@ -9,7 +9,7 @@ namespace pic {
 @brief AVX kernel to
 */
 void
-calc_cholesky_decomposition_AVX(matrix& matrix) {
+calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
     // The above code with non-AVX instructions
        // storing in the same memory the results of the algorithm
@@ -17,11 +17,15 @@ calc_cholesky_decomposition_AVX(matrix& matrix) {
 
     __m256d neg2 = _mm256_setr_pd(-1.0, 1.0, -1.0, 1.0);
 
-    double* row_i = (double*)matrix.get_data();
-    row_i[0] = sqrt(row_i[0]);
+
+    if (reuse_index == 0) {
+        matrix[0] = sqrt(matrix[0]);
+        reuse_index++;
+    }
+    double* row_i = (double*)matrix.get_data() + 2*(reuse_index-1)*matrix.stride;
 
     // Decomposing a matrix into lower triangular matrices
-    for (int idx = 1; idx < n; idx++) {
+    for (int idx = reuse_index; idx < n; idx++) {
 
         row_i = row_i + 2*matrix.stride;
 

@@ -183,13 +183,21 @@ TorontonianRecursive_Tasks::calculate() {
 
 
     // calculate the partial Torontonian for the selected index holes
-    long double torontonian = CalculatePartialTorontonian( selected_index_holes, num_of_modes-1 );
+ //   long double torontonian_old = CalculatePartialTorontonian( selected_index_holes, 0 );
+
+//        std::cout << "full cholesky: "       <<   torontonian_old <<  std::endl;
+
+    long double torontonian = CalculatePartialTorontonian( selected_index_holes, num_of_modes );
+
+
+//std::cout << "full cholesky reuse: " <<   torontonian <<  std::endl;
+//exit(-1);
 
     // add the first index hole in prior to the iterations
     selected_index_holes.push_back(num_of_modes-1);
 
     // start task iterations originating from the initial selected modes
-    IterateOverSelectedModes( selected_index_holes, 0, num_of_modes-2, priv_addend, tg );
+    IterateOverSelectedModes( selected_index_holes, 0, (num_of_modes-1)*1, priv_addend, tg );
 
     // wait until all spawned tasks are completed
     tg.wait();
@@ -231,7 +239,8 @@ std::cout << (short)selected_index_holes[idx] << ", ";
 }
 std::cout << std::endl;
 */
-    // add new index hole to th eiterations
+//std::cout << "reuse index: " << reuse_index << std::endl;
+    // add new index hole to the iterations
     if ( selected_index_holes[hole_to_iterate] < num_of_modes-1) {
 
         int new_hole_to_iterate = hole_to_iterate+1;
@@ -287,7 +296,8 @@ std::cout << std::endl;
 
                 PicVector<char> new_selected_index_holes = selected_index_holes;
                 new_selected_index_holes[hole_to_iterate]--;
-                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index, priv_addend, tg );
+                size_t reuse_index_new = reuse_index > 0 ? reuse_index-1 : 0;
+                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index_new, priv_addend, tg );
 
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
@@ -303,7 +313,8 @@ std::cout << std::endl;
         else {
             PicVector<char> new_selected_index_holes = selected_index_holes;
             new_selected_index_holes[hole_to_iterate]--;
-            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index, priv_addend, tg );
+            size_t reuse_index_new = reuse_index > 0 ? reuse_index-1 : 0;
+            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index_new, priv_addend, tg );
         }
 
     }
@@ -321,7 +332,8 @@ std::cout << std::endl;
 
                 PicVector<char> new_selected_index_holes = selected_index_holes;
                 new_selected_index_holes[hole_to_iterate]--;
-                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index, priv_addend, tg );
+                size_t reuse_index_new = reuse_index > 0 ? reuse_index-1 : 0;
+                IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index_new, priv_addend, tg );
 
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
@@ -337,7 +349,8 @@ std::cout << std::endl;
         else {
             PicVector<char> new_selected_index_holes = selected_index_holes;
             new_selected_index_holes[hole_to_iterate]--;
-            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index, priv_addend, tg );
+            size_t reuse_index_new = reuse_index > 0 ? reuse_index-1 : 0;
+            IterateOverSelectedModes( new_selected_index_holes, hole_to_iterate, reuse_index_new, priv_addend, tg );
         }
 
     }
@@ -402,7 +415,26 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& 
     // B = (1 - A^(Z))
     // Calculating B^(Z)
     matrix B(dimension_of_B, dimension_of_B);
-    for (size_t idx = 0; idx < number_selected_modes; idx++) {
+    for (size_t idx = 0; idx < reuse_index; idx++) {
+
+        //Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
+        Complex16* L_data = L.get_data() + 2*(positions_of_ones[idx]*L.stride);
+        Complex16* B_data = B.get_data() + 2*(idx*B.stride);
+
+        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+            memcpy( B_data + 2*jdx, L_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        }
+
+        B_data   = B_data + B.stride;
+        L_data   = L_data + L.stride;
+
+        for (size_t jdx = 0; jdx < number_selected_modes; jdx++) {
+            memcpy( B_data + 2*jdx, L_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        }
+
+    }
+
+    for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
 
         Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
         Complex16* B_data = B.get_data() + 2*(idx*B.stride);
@@ -433,7 +465,7 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& 
             if (number_selected_modes != 0) {
                 // testing purpose (the matrix is not positive definite and selfadjoint)
                 //determinant = determinant_byLU_decomposition(B);
-                determinant = calc_determinant_cholesky_decomposition(B);
+                determinant = calc_determinant_cholesky_decomposition(B, 2*reuse_index);
             }
             else{
                 determinant = 1.0;
@@ -492,8 +524,7 @@ TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
 
     // calculate the Cholesky decomposition of the initial matrix to be later reused
     L = mtx.copy();
-    calc_cholesky_decomposition(L);
-
+    calc_cholesky_decomposition(L,0);
 
 
     // Can scaling be used here since we have to calculate 1-A^Z?

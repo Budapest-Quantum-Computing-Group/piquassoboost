@@ -9,7 +9,7 @@ namespace pic {
 /**
 */
 void
-calc_cholesky_decomposition_AVX(matrix &A);
+calc_cholesky_decomposition_AVX(matrix &A, const size_t reuse_index);
 
 
 } //PIC

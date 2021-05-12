@@ -28,7 +28,7 @@ namespace pic {
 // Works for selfadjoint positive definite matrices!
 // Basic version: no block matrices used.
 void
-calc_cholesky_decomposition(matrix& matrix);
+calc_cholesky_decomposition(matrix& matrix, const size_t reuse_index);
 
 
 
@@ -38,7 +38,7 @@ calc_cholesky_decomposition_lapack(matrix &matrix);
 
 // calculating determinant based on cholesky decomposition
 Complex16
-calc_determinant_cholesky_decomposition(matrix& mtx);
+calc_determinant_cholesky_decomposition(matrix& mtx, const size_t reuse_index);
 
 
 } // PIC
