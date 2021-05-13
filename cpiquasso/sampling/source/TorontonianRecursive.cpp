@@ -305,7 +305,7 @@ std::cout << std::endl;
 
         matrix &&L_new = CreateAZ(new_selected_index_holes, L, reuse_index_new);
         calc_cholesky_decomposition(L_new, 2*reuse_index_new);
-        reuse_index_new = L_new.rows/2-1;//num_of_modes-new_selected_index_holes.size()-1;
+        reuse_index_new = L_new.rows/2;//num_of_modes-new_selected_index_holes.size()-1;
 
 //std::cout << "reuse_index_new: " << reuse_index_new << std::endl;
 
@@ -471,16 +471,21 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_index_hole
         Complex16* L_data = L.get_data() + 2*idx*L.stride;
         Complex16* B_data = B.get_data() + 2*idx*B.stride;
 
-        for (size_t jdx = 0; jdx < reuse_index; jdx++) {
+        memcpy(B_data, L_data, 2*(idx+1)*sizeof(Complex16));
+        memcpy(B_data + B.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex16));
+
+/*
+        for (size_t jdx = 0; jdx <= idx; jdx++) {
             memcpy( B_data + 2*jdx, L_data + 2*jdx, 2*sizeof(Complex16) );
         }
 
         B_data   = B_data + B.stride;
         L_data   = L_data + L.stride;
 
-        for (size_t jdx = 0; jdx < reuse_index; jdx++) {
+        for (size_t jdx = 0; jdx <= idx; jdx++) {
             memcpy( B_data + 2*jdx, L_data + 2*jdx, 2*sizeof(Complex16) );
         }
+*/
 
     }
 
