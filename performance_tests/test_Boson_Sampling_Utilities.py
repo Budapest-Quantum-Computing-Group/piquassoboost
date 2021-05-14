@@ -8,12 +8,31 @@ import pytest
 import time
 from cpiquasso.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator
 
+from cpiquasso.sampling.Boson_Sampling_Utilities import Torontonian as torontonian_piquasso_boost_calculator
+
+from piquasso._math.torontonian import torontonian as torontonian_piquasso_calculator
+
 import itertools
 from typing import List, Optional
 
 from numpy import array, block, complex128, diag, ndarray, ones_like, sqrt, zeros, zeros_like
 from numpy.linalg import svd
 from scipy.special import binom
+
+
+def generate_random_matrix( dim ):
+    """ creading positive definite selfadjoint matrix A of dimension dim and with eigenvalues between 0 and 1 """
+
+    A = np.complex128(np.random.random([dim, dim]))
+    A_adjoint = A.conj().T
+
+    P = A @ A_adjoint
+    P += np.identity(len(P))
+
+    P_inverse = np.linalg.inv(P)
+    
+    return P_inverse
+
 
 # the python implementation class to calculate the permanent 
 class ChinHuhPermanentCalculator_python:
@@ -193,3 +212,60 @@ class TestBoson_Sampling_Utilities:
         assert abs(permanent_Cpp-permanent_python) < 1e-13
 
 
+    def test_Torontonian_calculator(self):
+        dim = 16
+        iter_loops = 10
+        print(' ')
+        print('*******************************************')
+        print('Torontonian calculation: (dimension: '+str(dim) + ', itreations: '+ str(iter_loops))
+
+        # create inputs for the torontonian calculations
+        mtxs = []
+        for idx in range(iter_loops):
+            mtxs.append( generate_random_matrix( dim ) )
+
+        # calculate torontonian by python code
+        min_time_piquasso = 100000
+        sum_time_piquasso = 0
+        for idx in range(iter_loops):
+            mtx = mtxs[idx]
+
+            start = time.time()   
+            torontonian_piquasso = torontonian_piquasso_calculator(mtx)
+            time_loc = time.time() - start
+       
+            if min_time_piquasso > time_loc:
+                min_time_piquasso = time_loc
+            sum_time_piquasso += time_loc
+
+
+        # calculate torontonian by c++ code
+        min_time_piquasso_boost = 100000
+        sum_time_piquasso_boost = 0
+        for idx in range(iter_loops):
+            mtx = mtxs[idx]
+
+            start = time.time()   
+            torontonian_piquasso_boost = torontonian_piquasso_boost_calculator(mtx).calculate()
+            time_loc = time.time() - start
+       
+            if min_time_piquasso_boost > time_loc:
+                min_time_piquasso_boost = time_loc
+            sum_time_piquasso_boost += time_loc
+
+
+        print('Torontonian calculated by python: ' + str(torontonian_piquasso))
+        print('Torontonian calculated by C++: ' + str(torontonian_piquasso_boost))
+        print('Minimal time elapsed with python: ' + str(min_time_piquasso))
+        print('Minimal time elapsed with C++: ' + str(min_time_piquasso_boost))
+        print('Average time elapsed with python: ' + str(sum_time_piquasso))
+        print('Average time elapsed with C++: ' + str(sum_time_piquasso_boost))
+        print( "Minimal speedup: " + str(min_time_piquasso/min_time_piquasso_boost) )
+        print( "Average speedup: " + str(sum_time_piquasso/sum_time_piquasso_boost) )
+        print(' ')
+        print(' ')
+
+        print( 'Difference between python and C++ result for last matrix: ' + str(abs(torontonian_piquasso-torontonian_piquasso_boost)))
+
+        # difference between the two calculations for the last matrix
+        assert abs(torontonian_piquasso-torontonian_piquasso_boost) < 1e-9 * abs(torontonian_piquasso)

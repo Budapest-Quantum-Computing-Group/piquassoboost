@@ -25,6 +25,8 @@ from .Boson_Sampling_Utilities_wrapper import PowerTraceHafnianRecursive_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnian_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnianRecursive_wrapper
 
+from .Torontonian_wrapper import Torontonian_wrapper
+
 
 class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
     """
@@ -173,4 +175,25 @@ class PowerTraceLoopHafnianRecursive(PowerTraceLoopHafnianRecursive_wrapper):
         # call the permanent calculator of the parent class
         return super(PowerTraceLoopHafnianRecursive, self).calculate()
 
+
+class Torontonian(Torontonian_wrapper):
+    """
+        This class is designed to calculate the torontonian of a selfadjoint positive definite matrix with eigenvalues between 0 and 1.
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        super(Torontonian, self).__init__(matrix=matrix)
+        pass
+
+       
+    def calculate(self):
+        """
+            :return: The Torontonian of the matrix.
+        """
+
+        # call the torontonian calculator of the parent class
+        return super(Torontonian, self).calculate()
 

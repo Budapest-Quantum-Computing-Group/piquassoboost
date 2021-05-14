@@ -1,9 +1,10 @@
-
 #include <vector>
 
 #include <random>
 #include <chrono>
 #include <string>
+
+#include "constants_tests.h"
 
 #include "TorontonianUtilities.hpp"
 #include "Torontonian.h"
@@ -12,9 +13,7 @@
 #include "matrix.h"
 
 #include "dot.h"
-
 #include "matrix_helper.hpp"
-#include "constants_tests.h"
 
 
 
@@ -66,6 +65,7 @@ int test_inverse_calculation(){
             return 1;
         }
     }
+    return 0;
 }
 
 template<class matrix_type, class complex_type>
@@ -219,13 +219,13 @@ int test_cholesky_decomposition_algorithms(){
 
     // vector for storing dfurations
     std::vector<long> durations;
-    for (int i = 0; i < size_of_blocks.size(); i++){
+    for (int i = 0; i < (int)size_of_blocks.size(); i++){
         durations.push_back(0);
     }
     //std::cout << "size_of_blocks.size() = "<< size_of_blocks.size()<<std::endl;
 
-    for (int dim = startDim; dim <=endDim; dim=dim+5){
-        for (int i = 0; i < size_of_blocks.size(); i++){
+    for (int dim = startDim; dim < endDim; dim++){
+        for (int i = 0; i < (int)size_of_blocks.size(); i++){
             durations[i] = 0;
         }
         long duration_basic = 0;
@@ -293,7 +293,7 @@ int test_cholesky_decomposition_algorithms(){
 
 
         std::cout << "Dimension: " << dim << std::endl;
-        for (int i = 0; i < size_of_blocks.size(); i++){
+        for (int i = 0; i < (int)size_of_blocks.size(); i++){
             durations[i] /= numberOfSamples;
             std::cout << "mtx time for block number " << size_of_blocks[i] << " : " << durations[i] << std::endl;
         }
@@ -347,9 +347,9 @@ int test_calc_torontonian(){
     double result = torontonian_calculator.calculate();
 
     std::cout << "["<<std::endl;
-    for (int i = 0; i < dim; i++){
+    for (int i = 0; i < (int)dim; i++){
         std::cout<<"[";
-        for (int j = 0; j < dim; j++){
+        for (int j = 0; j < (int)dim; j++){
             std::cout<<mtx[i*dim+j].real();
             std::cout<<" + ";
             std::cout<<mtx[i*dim+j].imag();
@@ -363,6 +363,7 @@ int test_calc_torontonian(){
     }
     std::cout << "]"<< std::endl<< "]"<< std::endl;
 
+    std::cout << "Torontonian value:" << std::endl;
     std::cout << result << std::endl;
 
 
