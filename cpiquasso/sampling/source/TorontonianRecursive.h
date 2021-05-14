@@ -115,7 +115,7 @@ protected:
 @param priv_addend Therad local storage for the partial hafnians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<char>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg );
+void IterateOverSelectedModes( const PicVector<int>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg );
 
 
 /**
@@ -124,7 +124,7 @@ void IterateOverSelectedModes( const PicVector<char>& selected_modes, int mode_t
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-virtual long double CalculatePartialTorontonian( const PicVector<char>& selected_modes, matrix L, const size_t reuse_index );
+virtual long double CalculatePartialTorontonian( const PicVector<int>& selected_modes, matrix L, const size_t reuse_index );
 
 
 /**
@@ -136,7 +136,7 @@ virtual long double CalculatePartialTorontonian( const PicVector<char>& selected
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 matrix
-CreateAZ( const PicVector<char>& selected_index_holes, matrix L, const size_t reuse_index );
+CreateAZ( const PicVector<int>& selected_index_holes, matrix L, const size_t reuse_index, bool inplace );
 
 
 

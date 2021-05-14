@@ -179,31 +179,20 @@ TorontonianRecursive_Tasks::calculate() {
     tbb::combinable<long double> priv_addend{[](){return 0.0L;}};
 
     // construct the initial selection of the modes
-    PicVector<char> selected_index_holes;
+    PicVector<int> selected_index_holes;
 
     // calculate the Cholesky decomposition of the initial matrix to be later reused
     matrix L = mtx.copy();
     calc_cholesky_decomposition(L,0);
 
-
-    // calculate the partial Torontonian for the selected index holes
- //   long double torontonian_old = CalculatePartialTorontonian( selected_index_holes, 0 );
-
-//        std::cout << "full cholesky: "       <<   torontonian_old <<  std::endl;
-
-
-
     long double torontonian = CalculatePartialTorontonian( selected_index_holes, L, num_of_modes);
-
-
-//std::cout << "full cholesky reuse: " <<   torontonian <<  std::endl;
-//exit(-1);
 
     // add the first index hole in prior to the iterations
     selected_index_holes.push_back(num_of_modes-1);
 
     // start task iterations originating from the initial selected modes
-    IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes, priv_addend, tg );
+    matrix &&L_new = CreateAZ(selected_index_holes, L, num_of_modes-1, false);
+    IterateOverSelectedModes( selected_index_holes, 0, L_new, num_of_modes-1, priv_addend, tg );
 
     // wait until all spawned tasks are completed
     tg.wait();
@@ -245,14 +234,7 @@ TorontonianRecursive_Tasks::calculate() {
 @param tg Reference to a tbb::task_group
 */
 void
-TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg ) {
-/*
-for (size_t idx = 0; idx<selected_index_holes.size(); idx++) {
-std::cout << (short)selected_index_holes[idx] << ", ";
-}
-std::cout << std::endl;
-*/
-//std::cout << "reuse_index: " << reuse_index << std::endl;
+TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg ) {
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;
@@ -268,66 +250,41 @@ std::cout << std::endl;
     }
 
 
-    // iterations over the selected index hole to calculate partial torontonians
-    for (size_t idx=index_min; idx<index_max; idx++) {
+    // ***** iterations over the selected index hole to calculate partial torontonians *****
 
-        PicVector<char> new_selected_index_holes = selected_index_holes;
-        new_selected_index_holes[hole_to_iterate] = idx;
-        size_t reuse_index_new = idx-hole_to_iterate < reuse_index ? idx-hole_to_iterate : reuse_index;
+    // first do the first iteration without spawning iterations with new index hole
 
-//if ( idx == index_min )    reuse_index_new = new_selected_index_holes[0];//idx-1;
-/*
-std::cout << " bb "  << idx << " " << reuse_index_new << std::endl;
-for (size_t kdx = 0; kdx<new_selected_index_holes.size(); kdx++) {
-std::cout << (short)new_selected_index_holes[kdx] << ", ";
-}
-std::cout << std::endl;
-*/
-        if (task_num < max_task_num) {
-            {
-                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                task_num++;
-                //std::cout << "task num: " << task_num << std::endl;
-            }
+    PicVector<int> selected_index_holes_new = selected_index_holes;
+    selected_index_holes_new[hole_to_iterate] = index_max-1;
+    size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
 
-            tg.run( [this, new_selected_index_holes, L, reuse_index_new, &priv_addend, &tg ](){
+    long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
+    long double &torontonian_priv = priv_addend.local();
+    torontonian_priv += partial_torontonian;
 
-                long double partial_torontonian = CalculatePartialTorontonian( new_selected_index_holes, L, reuse_index_new );
-                long double &torontonian_priv = priv_addend.local();
-                torontonian_priv += partial_torontonian;
-
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                    task_num--;
-                }
-
-                return;
-            });
-
-        }
-        else {
-
-            long double partial_torontonian = CalculatePartialTorontonian( new_selected_index_holes, L, reuse_index_new );
-            long double &torontonian_priv = priv_addend.local();
-            torontonian_priv += partial_torontonian;
-        }
-    }
-
-
-    // return if new index hole would give no nontrivial result
-    // (in this case the partial torontonian is unity and should be counted only once in function calculate)
-    if (selected_index_holes.size() == num_of_modes-1) return;
+    // logical variable to control whether spawning new iterations or not
+    bool stop_spawning_iterations = (selected_index_holes.size() == num_of_modes-1);
 
     // add new index hole to the iterations
     int new_hole_to_iterate = hole_to_iterate+1;
-    for (size_t idx=index_min; idx<index_max-1; idx++) {
 
-        PicVector<char> new_selected_index_holes = selected_index_holes;
-        new_selected_index_holes[hole_to_iterate] = idx;
-        new_selected_index_holes.push_back(this->num_of_modes-1);
+    // now do the rest of the iterations
+    //for (size_t idx=index_min; idx<index_max-1; idx++) {
+    for (size_t idx=index_max-1; idx>index_min; idx--) {
 
-//std::cout << "creating L_new" << std::endl;
-        size_t reuse_index_new = new_selected_index_holes[hole_to_iterate] + 1 - selected_index_holes.size();//new_selected_index_holes[0];
+        selected_index_holes_new[hole_to_iterate] = idx-1;
+        size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
+        long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
+        long double &torontonian_priv = priv_addend.local();
+        torontonian_priv += partial_torontonian;
+
+
+        // return if new index hole would give no nontrivial result
+        // (in this case the partial torontonian is unity and should be counted only once in function calculate)
+        if (stop_spawning_iterations) continue;
+
+
+        reuse_index_new = selected_index_holes_new[hole_to_iterate] + 1 - selected_index_holes.size();
 
         if (task_num < max_task_num) {
             {
@@ -336,12 +293,14 @@ std::cout << std::endl;
                 //std::cout << "task num: " << task_num << std::endl;
             }
 
-            tg.run( [this, new_selected_index_holes, L, reuse_index_new, new_hole_to_iterate, &priv_addend, &tg ](){
+            PicVector<int> selected_index_holes_new2 = selected_index_holes_new;
+            selected_index_holes_new2.push_back(this->num_of_modes-1);
+            matrix &&L_new = CreateAZ(selected_index_holes_new2, L, reuse_index_new, false);
+            tg.run( [this, selected_index_holes_new2, L_new, reuse_index_new, new_hole_to_iterate, &priv_addend, &tg ](){
 
-                matrix &&L_new = CreateAZ(new_selected_index_holes, L, reuse_index_new);
-                calc_cholesky_decomposition(L_new, 2*reuse_index_new);
-
-                IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, L_new, L_new.rows/2, priv_addend, tg );
+                matrix L = L_new;
+                calc_cholesky_decomposition(L, 2*reuse_index_new);
+                IterateOverSelectedModes( selected_index_holes_new2, new_hole_to_iterate, L, L_new.rows/2, priv_addend, tg );
 
                 {
                     tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
@@ -350,37 +309,21 @@ std::cout << std::endl;
 
                 return;
             });
-
         }
         else {
 
-
-            matrix &&L_new = CreateAZ(new_selected_index_holes, L, reuse_index_new);
+            PicVector<int> selected_index_holes_new2 = selected_index_holes_new;
+            selected_index_holes_new2.push_back(this->num_of_modes-1);
+            matrix &&L_new = CreateAZ(selected_index_holes_new2, L, reuse_index_new, false);
             calc_cholesky_decomposition(L_new, 2*reuse_index_new);
-            reuse_index_new = L_new.rows/2;//num_of_modes-new_selected_index_holes.size()-1;
+            reuse_index_new = L_new.rows/2;
 
-            IterateOverSelectedModes( new_selected_index_holes, new_hole_to_iterate, L_new, reuse_index_new, priv_addend, tg );
+            IterateOverSelectedModes( selected_index_holes_new2, new_hole_to_iterate, L_new, reuse_index_new, priv_addend, tg );
 
-        }
+       }
 
-//std::cout << "reuse_index_new: " << reuse_index_new << std::endl;
-
-//L.print_matrix();
-//L_new.print_matrix();
-//std::cout << "reuse index new: " << reuse_index_new << std::endl;
-/*
-std::cout << "new selected holes: ";
-for (size_t kdx = 0; kdx<new_selected_index_holes.size(); kdx++) {
-std::cout << (short)new_selected_index_holes[kdx] << ", ";
-}
-std::cout << std::endl;
-*/
 
     }
-
-
-
-
 
 
 }
@@ -393,13 +336,12 @@ std::cout << std::endl;
 @return Returns with the calculated hafnian
 */
 long double
-TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& selected_index_holes, matrix L, const size_t reuse_index ) {
+TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, matrix L, const size_t reuse_index ) {
 
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 
-
-    matrix &&B = CreateAZ(selected_index_holes, L, reuse_index);
+    matrix &&B = CreateAZ(selected_index_holes, L, reuse_index, true);
 
     // calculating -1^(number of ones)
     // !!! -1 ^ (number of ones - dim_over_2) ???
@@ -422,7 +364,6 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<char>& 
     // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
     double sqrt_determinant = std::sqrt(determinant.real());
 
-
     return (long double) (factor / sqrt_determinant);
 
 
@@ -443,8 +384,6 @@ TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
     // Calculating B := 1 - A
     mtx = matrix(dim, dim);
     for (size_t idx = 0; idx < dim; idx++) {
-        //Complex16 *row_B_idx = B.get_data() + idx * B.stride;
-        //Complex16 *row_mtx_pos_idx = mtx.get_data() + positions_of_ones[idx] * mtx.stride;
         for (size_t jdx = 0; jdx < dim; jdx++) {
             mtx[idx * dim + jdx] = -1.0 * mtx_in[idx * mtx_in.stride + jdx];
         }
@@ -466,8 +405,6 @@ TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
         }
     }
 
-    //mtx.print_matrix();
-    //mtx_reordered.print_matrix();
     mtx = mtx_reordered;
 
 
@@ -489,13 +426,13 @@ TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 matrix
-TorontonianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_index_holes, matrix L, const size_t reuse_index ) {
+TorontonianRecursive_Tasks::CreateAZ( const PicVector<int>& selected_index_holes, matrix L, const size_t reuse_index, bool inplace ) {
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 //std::cout << "reuse index in Create AZ: " << reuse_index << std::endl;
-    size_t dimension_of_B = 2 * number_selected_modes;
 
-    PicVector<char> positions_of_ones;
+
+    PicVector<int> positions_of_ones;
     positions_of_ones.reserve(number_selected_modes);
     if ( selected_index_holes.size() == 0 ) {
 
@@ -517,36 +454,30 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_index_hole
             //std::cout << idx << ", ";
         }
     }
-    //std::cout << std::endl;
 
 
-    matrix B(dimension_of_B, dimension_of_B);
-    for (size_t idx = 0; idx < reuse_index; idx++) {
+    // reuse the data in the L matrix (in place or copied to out of place
+    matrix B;
+    if (inplace) {
+        B = L;
+    }
+    else{
+        size_t dimension_of_B = 2 * number_selected_modes;
+        B = matrix(dimension_of_B, dimension_of_B);
+        for (size_t idx = 0; idx < reuse_index; idx++) {
 
-        //Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
-        Complex16* L_data = L.get_data() + 2*idx*L.stride;
-        Complex16* B_data = B.get_data() + 2*idx*B.stride;
+            Complex16* L_data = L.get_data() + 2*idx*L.stride;
+            Complex16* B_data = B.get_data() + 2*idx*B.stride;
 
-        memcpy(B_data, L_data, 2*(idx+1)*sizeof(Complex16));
-        memcpy(B_data + B.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex16));
+            memcpy(B_data, L_data, 2*(idx+1)*sizeof(Complex16));
+            memcpy(B_data + B.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex16));
 
-/*
-        for (size_t jdx = 0; jdx <= idx; jdx++) {
-            memcpy( B_data + 2*jdx, L_data + 2*jdx, 2*sizeof(Complex16) );
         }
-
-        B_data   = B_data + B.stride;
-        L_data   = L_data + L.stride;
-
-        for (size_t jdx = 0; jdx <= idx; jdx++) {
-            memcpy( B_data + 2*jdx, L_data + 2*jdx, 2*sizeof(Complex16) );
-        }
-*/
-
     }
 
+    // copy data from the input matrix
     for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
-//std::cout <<  (short)positions_of_ones[idx] << std::endl;
+
         Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
         Complex16* B_data   = B.get_data() + 2*(idx*B.stride);
 

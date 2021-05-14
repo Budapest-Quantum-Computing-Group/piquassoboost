@@ -50,6 +50,9 @@ Complex16 determinant_byLU_decomposition( matrix& mtx ){
         }
 
     }
+
+    scalable_aligned_free(ipiv);
+
     //std::cout << "complex det: " << Qdet_cmplx << std::endl;
     return Qdet_cmplx;
 }
@@ -217,8 +220,9 @@ Torontonian::calculate(){
             Complex16 determinant;
             if (number_of_ones != 0) {
                 // testing purpose (the matrix is not positive definite and selfadjoint)
-                determinant = determinant_byLU_decomposition(B);
-//                determinant = calc_determinant_of_selfadjoint_hessenberg_matrix<matrix, Complex16>(B);
+                //determinant = determinant_byLU_decomposition(B);
+                //determinant = calc_determinant_of_selfadjoint_hessenberg_matrix<matrix, Complex16>(B);
+                determinant = calc_determinant_cholesky_decomposition(B, 0);
                 // hafnian: calculate trace
                 //traces = calc_power_traces<matrix32, Complex32>(B, dim_over_2);
             }
