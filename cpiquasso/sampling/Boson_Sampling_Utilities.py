@@ -24,8 +24,7 @@ from .Boson_Sampling_Utilities_wrapper import PowerTraceHafnian_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceHafnianRecursive_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnian_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnianRecursive_wrapper
-
-from .Torontonian_wrapper import Torontonian_wrapper
+from .Boson_Sampling_Utilities_wrapper import Torontonian_wrapper
 
 
 class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):

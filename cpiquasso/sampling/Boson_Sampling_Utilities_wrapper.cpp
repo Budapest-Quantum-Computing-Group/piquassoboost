@@ -50,9 +50,13 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     if (PyType_Ready(&PowerTraceLoopHafnianRecursive_wrapper_Type) < 0)
         return NULL;
 
+    if (PyType_Ready(&Torontonian_wrapper_Type) < 0)
+        return NULL;
+
     m = PyModule_Create(&Boson_Sampling_Utilities_wrapper_Module);
     if (m == NULL)
         return NULL;
+
 
     Py_INCREF(&ChinHuhPermanentCalculator_wrapper_Type);
     if (PyModule_AddObject(m, "ChinHuhPermanentCalculator_wrapper", (PyObject *) &ChinHuhPermanentCalculator_wrapper_Type) < 0) {
@@ -92,40 +96,6 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
         return NULL;
     }
 
-    return m;
-}
-
-
-
-
-/**
-@brief Structure containing metadata about the module.
-*/
-static PyModuleDef Torontonian_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "Torontonian_wrapper_Module",
-    .m_doc = "Python binding for class Torontonian",
-    .m_size = -1,
-};
-
-/**
-@brief Method called when the Python module is initialized
-*/
-PyMODINIT_FUNC
-PyInit_Torontonian_wrapper(void)
-{
-    // initialize Numpy API
-    import_array();
-
-    PyObject *m;
-
-    if (PyType_Ready(&Torontonian_wrapper_Type) < 0)
-        return NULL;
-
-    m = PyModule_Create(&Torontonian_wrapper_Module);
-    if (m == NULL)
-        return NULL;
-
     Py_INCREF(&Torontonian_wrapper_Type);
     if (PyModule_AddObject(m, "Torontonian_wrapper", (PyObject *) &Torontonian_wrapper_Type) < 0) {
         Py_DECREF(&Torontonian_wrapper_Type);
@@ -133,9 +103,11 @@ PyInit_Torontonian_wrapper(void)
         return NULL;
     }
 
-
     return m;
 }
+
+
+
 
 
 

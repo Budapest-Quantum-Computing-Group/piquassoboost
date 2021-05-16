@@ -23,7 +23,7 @@ from .state_wrapper import GaussianState_Wrapper
 
 from piquasso._math.linalg import block_reduce
 
-from cpiquasso.sampling import Torontonian_wrapper
+from cpiquasso.sampling.Boson_Sampling_Utilities_wrapper import Torontonian_wrapper
 
 class GaussianState(GaussianState_Wrapper, pq.GaussianState):
     def __init__(self, *, d):
@@ -97,6 +97,6 @@ def calculate_threshold_detection_probability(
     OS_reduced = block_reduce(OS, reduce_on=occupation_numbers)
 
     return (
-        Torontonian_wrapper.Torontonian_wrapper(OS_reduced.astype(complex)).calculate()
+        Torontonian_wrapper(OS_reduced.astype(complex)).calculate()
         # torontonian(OS_reduced.astype(complex))
     ).real / np.sqrt(np.linalg.det(Q).real)
