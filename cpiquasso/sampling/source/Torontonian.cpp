@@ -25,15 +25,15 @@ int LAPACKE_zgetrf( int matrix_layout, int n, int m, pic::Complex16* a, int lda,
 
 namespace pic {
 
-pic::Complex16 determinant_byLU_decomposition( pic::matrix& mtx ){
-    pic::matrix& Q = mtx;
+Complex16 determinant_byLU_decomposition( matrix& mtx ){
+    matrix& Q = mtx;
 
     // calculate the inverse of matrix Q
     int* ipiv = (int*)scalable_aligned_malloc( Q.stride*sizeof(int), CACHELINE);
     LAPACKE_zgetrf( LAPACK_ROW_MAJOR, Q.rows, Q.cols, Q.get_data(), Q.stride, ipiv );
 
     //  calculate the determinant of Q
-    pic::Complex16 Qdet_cmplx(1.0,0.0);
+    Complex16 Qdet_cmplx(1.0,0.0);
     for (size_t idx=0; idx<Q.rows; idx++) {
         if (ipiv[idx] != idx+1) {
             Qdet_cmplx = -Qdet_cmplx * Q[idx*Q.stride + idx];
@@ -43,6 +43,9 @@ pic::Complex16 determinant_byLU_decomposition( pic::matrix& mtx ){
         }
 
     }
+
+    scalable_aligned_free(ipiv);
+
     //std::cout << "complex det: " << Qdet_cmplx << std::endl;
     return Qdet_cmplx;
 }
@@ -65,8 +68,6 @@ Torontonian::Torontonian(){
 Torontonian::Torontonian( matrix &mtx_in ){
     // in debug mode check the input matrix properties
     Update_mtx( mtx_in );
-    //std::cout << "Torontonian mtx in: "<<std::endl;
-    //mtx_in.print_matrix();
 }
 
 /**
@@ -130,14 +131,9 @@ Torontonian::calculate(){
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
         double &summand = summands.local();
-        //Complex32 &summand = summands.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
-            //std::cout << permutation_idx << " : " << std::bitset<32>(permutation_idx) <<std::endl;
 
-            // get the binary representation of permutation_idx
-            // also get the number of 1's in the representation and their position as i and i + dim_over_2
-            
             // with unsigned char the type std::vector does not work for me
             //std::vector<unsigned char> bin_rep;
             //std::vector<unsigned char> positions_of_ones;
@@ -169,7 +165,7 @@ Torontonian::calculate(){
             matrix B(dimension_of_B, dimension_of_B);
             for (size_t idx = 0; idx < number_of_ones; idx++) {
                 for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                    B[idx*dimension_of_B + jdx]                  = 
+                    B[idx*dimension_of_B + jdx]                  =
                         mtx[positions_of_ones[idx]*dim + (positions_of_ones[jdx])];
                     B[idx*dimension_of_B + jdx + number_of_ones] =
                         mtx[positions_of_ones[idx]*dim + (positions_of_ones[jdx]) + dim_over_2];
@@ -182,31 +178,22 @@ Torontonian::calculate(){
                 //B[(idx + number_of_ones)*dimension_of_B + idx + number_of_ones] += Complex16(1.0, 0.0);
             }
 
-            /*Complex32 factor = 
-                (number_of_ones + dim_over_2) % 2 
-                    ? Complex32(1.0, 0.0)
-                    : Complex32(-1.0, 0.0);
-                    */
-            double factor = 
-                (number_of_ones + dim_over_2) % 2 
+
+            double factor =
+                (number_of_ones + dim_over_2) % 2
                     ? -1.0D
                     : 1.0D;
 
             // calculating the determinant of B
             Complex16 determinant;
             if (number_of_ones != 0) {
-                // testing purpose (if the matrix is not positive definite and selfadjoint)
-                //determinant = determinant_byLU_decomposition(B);
-                // testing purpose (if the matrix is not positive definite)
-                //determinant = calc_determinant_of_selfadjoint_hessenberg_matrix<matrix, Complex16>(B);
-                determinant = calc_determinant_cholesky_decomposition<matrix, Complex16>(B);
+
+                determinant = calc_determinant_cholesky_decomposition(B, 0);
             }
             else{
                 determinant = 1.0;
-                //memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
             }
 
-            //std::cout<<"Det: "<< determinant.real()<<std::endl;
 
             // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
             double sqrt_determinant = std::sqrt(determinant.real());
@@ -257,12 +244,9 @@ Torontonian::Update_mtx( matrix &mtx_in ){
         mtx[idx * dim + idx] += Complex16(1.0, 0.0);
     }
 
-    //std::cout << "Modified matrix:" << std::endl;
-    //mtx.print_matrix();
-
     // Can scaling be used here since we have to calculate 1-A^Z?
     // It brings a multiplying for each determinant.
-    // Should 
+    // Should
     ScaleMatrix();
 }
 

@@ -119,12 +119,12 @@ calc_cholesky_decomposition(matrix& matrix)
 // Works for selfadjoint positive definite matrices!
 // Basic version: no block matrices used.
 void
-calc_cholesky_decomposition(matrix& matrix)
+calc_cholesky_decomposition(matrix& matrix, const size_t reuse_index)
 {
 
 #ifdef USE_AVX
 
-    calc_cholesky_decomposition_AVX( matrix );
+    calc_cholesky_decomposition_AVX( matrix, reuse_index );
     return;
 
 #else
@@ -132,7 +132,7 @@ calc_cholesky_decomposition(matrix& matrix)
     // storing in the same memory the results of the algorithm
     size_t n = matrix.cols;
     // Decomposing a matrix into lower triangular matrices
-    for (int i = 0; i < n; i++) {
+    for (int i = reuse_index; i < n; i++) {
         Complex16* row_i = matrix.get_data()+i*matrix.stride;
         for (int j = 0; j < i; j++) {
             {
@@ -192,10 +192,11 @@ calc_cholesky_decomposition_lapack(matrix &matrix) {
 
 // calculating determinant based on cholesky decomposition
 Complex16
-calc_determinant_cholesky_decomposition(matrix& mtx){
+calc_determinant_cholesky_decomposition(matrix& mtx, const size_t reuse_index){
     // for small matrices nothing has to be casted into quad precision
-    if (mtx.rows <= 10) {
-        calc_cholesky_decomposition(mtx);
+
+//    if (mtx.rows <= 10) {
+        calc_cholesky_decomposition(mtx, reuse_index);
 
         Complex16 determinant(1.0, 0.0);
 
@@ -204,12 +205,13 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
             determinant *= elem;
         }
 
+
         return mult_a_bconj( determinant, determinant);
-    }
+/*    }
     // The lapack function to calculate the Cholesky decomposition is more efficient for larger matrices, but for above a given cutoff quad precision is needed
     // for these matrices of moderate size, the coefficients of the characteristic polynomials are casted into quad precision and the traces are calculated in
     // quad precision
-    else if ( mtx.rows < 30 ) {
+    else {//if ( mtx.rows < 30 ) {
 
 
         // transform the matrix mtx into an upper Hessenberg format by calling lapack function
@@ -233,13 +235,14 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
             det *= mtx[idx * mtx.stride + idx];
         }
         return mult_a_bconj( det, det);
-    }
+  //  }
+  /*
     else{
         // above a treshold matrix size all the calculations are done in quad precision
         // matrix size for which quad precision is necessary
         return Complex16(1.0, 0.0);
     }
-
+*/
 }
 
 

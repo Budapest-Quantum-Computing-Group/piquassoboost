@@ -9,7 +9,7 @@ namespace pic {
 @brief AVX kernel to
 */
 void
-calc_cholesky_decomposition_AVX(matrix& matrix) {
+calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
     // The above code with non-AVX instructions
        // storing in the same memory the results of the algorithm
@@ -17,11 +17,15 @@ calc_cholesky_decomposition_AVX(matrix& matrix) {
 
     __m256d neg2 = _mm256_setr_pd(-1.0, 1.0, -1.0, 1.0);
 
-    double* row_i = (double*)matrix.get_data();
-    row_i[0] = sqrt(row_i[0]);
+
+    if (reuse_index == 0) {
+        matrix[0] = sqrt(matrix[0]);
+        reuse_index++;
+    }
+    double* row_i = (double*)matrix.get_data() + 2*(reuse_index-1)*matrix.stride;
 
     // Decomposing a matrix into lower triangular matrices
-    for (int idx = 1; idx < n; idx++) {
+    for (int idx = reuse_index; idx < n; idx++) {
 
         row_i = row_i + 2*matrix.stride;
 
@@ -129,14 +133,7 @@ calc_cholesky_decomposition_AVX(matrix& matrix) {
 
             // calculate vec3/row_j_norm and store it into row_i
             row_i_128              = _mm_div_pd(vec3, row_j2_norm_128);
-_mm_storeu_pd(row_i+2*j+2, row_i_128);
-//row_i[j+1]               = *((Complex16*)&row_i_128[0]);
-
-            //row_i[j+1] = (row_i[j+1] - *sum2) / row_j2[j+1];
-
-
-//std::cout << row_i_256[0] << " " << row_i_256[1] << " " << row_i[j] << std::endl;
-//std::cout << row_i_256[2] << " " << row_i_256[3] << " " << row_i[j+1] << std::endl;
+            _mm_storeu_pd(row_i+2*j+2, row_i_128);
 
             row_j = row_j + 2*matrix.stride;
             row_j2 = row_j2 + 2*matrix.stride;

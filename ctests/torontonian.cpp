@@ -167,7 +167,7 @@ int test_cholesky_decomposition(){
     pic::matrix mtx = pic::getRandomMatrix<pic::matrix, pic::Complex16>(dim, pic::POSITIVE_DEFINIT);
     pic::matrix mtx_copy = mtx.copy();
 
-    pic::calc_cholesky_decomposition(mtx);
+    pic::calc_cholesky_decomposition(mtx,0);
 
 
     // rewrite upper triangular element to zero:
@@ -248,7 +248,7 @@ int test_cholesky_decomposition_algorithms(){
 
 
             auto start = std::chrono::high_resolution_clock::now();
-            pic::calc_cholesky_decomposition(mtx2);
+            pic::calc_cholesky_decomposition(mtx2, 0);
             auto stop = std::chrono::high_resolution_clock::now();
 
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
