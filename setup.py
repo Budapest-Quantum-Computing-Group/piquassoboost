@@ -19,7 +19,14 @@ from setuptools import find_packages
 
 setup(
     name="cpiquasso",
-    packages=find_packages(),
+    packages=find_packages(
+        exclude=(
+            "tests", "tests.*",
+            "ctests", "ctests.*",
+            "performance_tests", "performance_tests.*",
+            "piquasso", "piquasso.*",
+        )
+    ),
     version='0.1',
     url="https://gitlab.inf.elte.hu/wigner-rcp-quantum-computing-and-information-group/cpiquasso",  # noqa: E501
     maintainer="The Piquasso team",
@@ -27,12 +34,10 @@ setup(
     include_package_data=True,
     install_requires=[
         "numpy>=1.19.4",
-        "quantum-blackbird>=0.2.4",
-        "BoSS-Tomev>=0.0.6",
-        "ninja",
-        "tbb-devel",
-        "mpi4py",
-        "ninja"
+        (
+            "piquasso@git+ssh://git@github.com/"
+            "Budapest-Quantum-Computing-Group/piquasso.git"
+        ),  # TODO: install a package instead!
     ],
     tests_require=["pytest"],
     description='The C++ binding for the Piquasso project',
@@ -48,4 +53,5 @@ setup(
         "Programming Language :: C++"
     ],
     license='Apache License 2.0.',
+    scripts=["check_AVX.cmake"],
 )
