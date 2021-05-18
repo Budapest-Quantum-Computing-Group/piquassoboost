@@ -134,7 +134,8 @@ calc_cholesky_decomposition(matrix& matrix, const size_t reuse_index)
     // Decomposing a matrix into lower triangular matrices
     for (int i = reuse_index; i < n; i++) {
         Complex16* row_i = matrix.get_data()+i*matrix.stride;
-        for (int j = 0; j < i; j++) {
+
+        for (int j = reuse_index; j < i; j++) {
             {
                 Complex16* row_j = matrix.get_data()+j*matrix.stride;
 

@@ -17,23 +17,15 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
     __m256d neg2 = _mm256_setr_pd(-1.0, 1.0, -1.0, 1.0);
 
-
-    if (reuse_index == 0) {
-        matrix[0] = sqrt(matrix[0]);
-        reuse_index++;
-    }
-    double* row_i = (double*)matrix.get_data() + 2*(reuse_index-1)*matrix.stride;
+    double* row_i = (double*)matrix.get_data() + 2*(reuse_index)*matrix.stride;
 
     // Decomposing a matrix into lower triangular matrices
     for (int idx = reuse_index; idx < n; idx++) {
 
-        row_i = row_i + 2*matrix.stride;
-
-
-        Complex16* row_j = matrix.get_data();
+        Complex16* row_j = matrix.get_data() + reuse_index*matrix.stride;
         Complex16* row_j2 = row_j + matrix.stride;
 
-        for (int j = 0; j < idx-1; j=j+2) {
+        for (int j = reuse_index; j < idx-1; j=j+2) {
 
             //Complex16 sum = 0;
             //Complex16 sum2 = 0;
@@ -267,29 +259,21 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
         Complex16* row_i_c = (Complex16*)row_i;
         row_i_c[idx] = sqrt(row_i_c[idx] - *sum);
 
-
+row_i = row_i + 2*matrix.stride;
     }
 
-
-
 /*
-    // The above code with non-AVX instructions
+
     // storing in the same memory the results of the algorithm
-    int n = matrix.cols;
-
-
-    Complex16* row_i = matrix.get_data();
-    row_i[0] = sqrt(row_i[0]);
-
+    size_t n = matrix.cols;
     // Decomposing a matrix into lower triangular matrices
-    for (int i = 1; i < n; i++) {
+    for (int i = reuse_index; i < n; i++) {
+        Complex16* row_i = matrix.get_data()+i*matrix.stride;
 
-        row_i = row_i + matrix.stride;
-
-        Complex16* row_j = matrix.get_data();
+        Complex16* row_j = matrix.get_data() + reuse_index*matrix.stride;
         Complex16* row_j2 = row_j + matrix.stride;
 
-        for (int j = 0; j < i-1; j=j+2) {
+        for (int j = reuse_index; j < i-1; j=j+2) {
 
             Complex16 sum = 0;
             Complex16 sum2 = 0;
@@ -320,8 +304,6 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
         }
 
-
-
         if ( i%2 == 1) {
             int j = i-1;
 
@@ -347,7 +329,6 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
         }
 
 
-
         Complex16 sum = 0;
         // summation for diagonals
         // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
@@ -361,12 +342,11 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
 
         row_i[i] = sqrt(row_i[i] - sum);
+        row_i = row_i + matrix.stride;
 
 
     }
 */
-
-
     return;
 
 }
