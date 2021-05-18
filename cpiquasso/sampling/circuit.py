@@ -15,12 +15,14 @@
 
 import numpy as np
 
+from BoSS.boson_sampling_utilities.boson_sampling_utilities import prepare_interferometer_matrix_in_expanded_space
 from .BosonSamplingSimulator import BosonSamplingSimulator
 from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
     GeneralizedCliffordsSimulationStrategy,
 )
 
 import piquasso as pq
+from piquasso.api.result import Result
 
 
 class SamplingCircuit(pq.SamplingState.circuit_class):
@@ -37,18 +39,29 @@ class SamplingCircuit(pq.SamplingState.circuit_class):
         algorithm.
         """
 
-        simulation_strategy = GeneralizedCliffordsSimulationStrategy(
-            self.state.interferometer
-        )
+        interferomteter = self.state.interferometer
+
+        if self.state.is_lossy:  # In case of losses we want specially prepared 2m x 2m interferometer matrix
+            interferometer = prepare_interferometer_matrix_in_expanded_space(self.state.interferometer)
+
+        simulation_strategy = GeneralizedCliffordsSimulationStrategy(interferometer)
         sampling_simulator = BosonSamplingSimulator(simulation_strategy)
 
         initial_state = np.array(self.state.initial_state)
 
+        if self.state.is_lossy:  # In case of losses we want 2m-modes input state (initialized with 0 at virtual modes)
+            for _ in initial_state:
+                np.append(initial_state, 0)
+
         samples = sampling_simulator.get_classical_simulation_results(
             initial_state,
-            samples_number=instruction.params["shots"],
+            samples_number=instruction.params["shots"]
         )
 
-        self.results.append(
-            pq.api.result.Result(instruction=instruction, samples=samples)
-        )
+        if self.state.is_lossy:  # Trim samples if necessary.
+            trimmed_samples = []
+            for sample in samples:
+                trimmed_samples.append(sample[:len(self.state.initial_state)])
+            samples = trimmed_samples
+
+        self.results.append(Result(instruction=instruction, samples=samples))
