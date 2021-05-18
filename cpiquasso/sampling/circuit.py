@@ -24,7 +24,7 @@ import piquasso as pq
 
 
 class SamplingCircuit(pq.SamplingState.circuit_class):
-    def sampling(self, operation):
+    def _sampling(self, instruction):
         """Simulates a boson sampling using generalized Clifford&Clifford algorithm
         from [Brod, Oszmaniec 2020].
 
@@ -44,7 +44,11 @@ class SamplingCircuit(pq.SamplingState.circuit_class):
 
         initial_state = np.array(self.state.initial_state)
 
-        self.state.results = sampling_simulator.get_classical_simulation_results(
+        samples = sampling_simulator.get_classical_simulation_results(
             initial_state,
-            samples_number=operation.params["shots"],
+            samples_number=instruction.params["shots"],
+        )
+
+        self.results.append(
+            pq.api.result.Result(instruction=instruction, samples=samples)
         )
