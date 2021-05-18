@@ -39,7 +39,7 @@ class SamplingCircuit(pq.SamplingState.circuit_class):
         algorithm.
         """
 
-        interferomteter = self.state.interferometer
+        interferometer = self.state.interferometer
 
         if self.state.is_lossy:  # In case of losses we want specially prepared 2m x 2m interferometer matrix
             interferometer = prepare_interferometer_matrix_in_expanded_space(self.state.interferometer)
@@ -51,7 +51,7 @@ class SamplingCircuit(pq.SamplingState.circuit_class):
 
         if self.state.is_lossy:  # In case of losses we want 2m-modes input state (initialized with 0 at virtual modes)
             for _ in initial_state:
-                np.append(initial_state, 0)
+                initial_state = np.append(initial_state, 0)
 
         samples = sampling_simulator.get_classical_simulation_results(
             initial_state,
