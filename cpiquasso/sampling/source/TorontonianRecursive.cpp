@@ -64,9 +64,6 @@ TorontonianRecursive::calculate() {
         return 0.0;
     }
 
-    // number of modes spanning the gaussian state
-    size_t num_of_modes = mtx.rows/2;
-
 
     TorontonianRecursive_Tasks torontonian_calculator = TorontonianRecursive_Tasks(mtx);
     double torontonian = torontonian_calculator.calculate();
@@ -179,7 +176,7 @@ TorontonianRecursive_Tasks::calculate() {
     tbb::combinable<long double> priv_addend{[](){return 0.0L;}};
 
     // construct the initial selection of the modes
-    PicVector<int> selected_index_holes;
+    PicVector<size_t> selected_index_holes;
 
     // calculate the Cholesky decomposition of the initial matrix to be later reused
     matrix L = mtx.copy();
@@ -191,9 +188,7 @@ TorontonianRecursive_Tasks::calculate() {
     selected_index_holes.push_back(num_of_modes-1);
 
     // start task iterations originating from the initial selected modes
-    //matrix &&L_new = CreateAZ(selected_index_holes, L, num_of_modes-1, false);
-    matrix L_new = L;
-    IterateOverSelectedModes( selected_index_holes, 0, L_new, num_of_modes-1, priv_addend, tg );
+    IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1, priv_addend, tg );
 
     // wait until all spawned tasks are completed
     tg.wait();
@@ -228,14 +223,15 @@ TorontonianRecursive_Tasks::calculate() {
 }
 
 /**
-@brief Call to run iterations over the selected modes to calculate partial hafnians
-@param selected_modes Selected modes over which the iterations are run
-@param mode_to_iterate The mode for which the occupancy numbers are iterated
-@param priv_addend Therad local storage for the partial hafnians
+@brief Call to run iterations over the selected modes to calculate partial torontonians
+@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
+@param hole_to_iterate The index indicating which hole index should be iterated
+@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
+@param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
 void
-TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg ) {
+TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg ) {
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;
@@ -255,7 +251,7 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<int>& sele
 
     // first do the first iteration without spawning iterations with new index hole
 
-    PicVector<int> selected_index_holes_new = selected_index_holes;
+    PicVector<size_t> selected_index_holes_new = selected_index_holes;
     selected_index_holes_new[hole_to_iterate] = index_max-1;
     size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
 
@@ -270,9 +266,8 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<int>& sele
     int new_hole_to_iterate = hole_to_iterate+1;
 
     // now do the rest of the iterations
-    //for (size_t idx=index_min; idx<index_max-1; idx++) {
     for (size_t idx=index_max-1; idx>index_min; idx--) {
-//std::cout << "idx" << std::endl;
+
         selected_index_holes_new[hole_to_iterate] = idx-1;
         size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
         long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
@@ -286,19 +281,18 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<int>& sele
 
 
         reuse_index_new = selected_index_holes_new[hole_to_iterate] + 1 - selected_index_holes.size();
-        matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new, false);
+        matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
         calc_cholesky_decomposition(L_new, 2*reuse_index_new);
 
         if (task_num < max_task_num) {
             {
                 tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
                 task_num++;
-                //std::cout << "task num: " << task_num << std::endl;
             }
 
-            PicVector<int> selected_index_holes_new2 = selected_index_holes_new;
+            PicVector<size_t> selected_index_holes_new2 = selected_index_holes_new;
             selected_index_holes_new2.push_back(this->num_of_modes-1);
-            //matrix &&L_new = L.copy();//CreateAZ(selected_index_holes_new2, L, reuse_index_new, false);
+
             tg.run( [this, selected_index_holes_new2, L_new, reuse_index_new, new_hole_to_iterate, &priv_addend, &tg ](){
 
                 matrix L = L_new;
@@ -315,11 +309,8 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<int>& sele
         }
         else {
 
-            PicVector<int> selected_index_holes_new2 = selected_index_holes_new;
-
+            PicVector<size_t> selected_index_holes_new2 = selected_index_holes_new;
             selected_index_holes_new2.push_back(this->num_of_modes-1);
-            //matrix &&L_new = L.copy();//CreateAZ(selected_index_holes_new2, L, reuse_index_new, false);
-
             reuse_index_new = L_new.rows/2-1;
 
             IterateOverSelectedModes( selected_index_holes_new2, new_hole_to_iterate, L_new, reuse_index_new, priv_addend, tg );
@@ -334,21 +325,21 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<int>& sele
 
 
 /**
-@brief Call to calculate the partial hafnian for given selected modes and their occupancies
-@param selected_modes Selected modes over which the iterations are run
-@param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
-@return Returns with the calculated hafnian
+@brief Call to calculate the partial torontonian for given selected modes and their occupancies
+@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
+@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
+@param reuse_index Index labeling the highest mode for which previous Cholesky decomposition can be reused.
+@return Returns with the calculated torontonian
 */
 long double
-TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, matrix L, const size_t reuse_index ) {
+TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>& selected_index_holes, matrix L, const size_t reuse_index ) {
 
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 
-    matrix &&B = CreateAZ(selected_index_holes, L, reuse_index, false);
+    matrix &&B = CreateAZ(selected_index_holes, L, reuse_index);
 
-    // calculating -1^(number of ones)
-    // !!! -1 ^ (number of ones - dim_over_2) ???
+    // calculating -1^(N-|Z|)
     double factor =
                 (number_selected_modes + num_of_modes) % 2
                     ? -1.0D
@@ -376,7 +367,7 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<int>& s
 
 
 /**
-@brief Call to update the memory address of the matrix mtx
+@brief Call to update the memory address of the matrix mtx and reorder the matrix elements into a_1^*,a_1^*,a_2,a_2^*, ... a_N,a_N^* order.
 @param mtx_in Input matrix defined by
 */
 void
@@ -422,21 +413,20 @@ TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
 
 
 /**
-@brief Call to construct matrix \f$ A^Z \f$ (see the text below Eq. (3.20) of arXiv 1805.12498) for the given modes and their occupancy
-@param selected_modes Selected modes over which the iterations are run
-@param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
-@param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
-@param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
+@brief Call to construct matrix \f$ A^Z \f$ (see the text below Eq. (2) of arXiv 2009.01177) for the given modes
+@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
+@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
+@param reuse_index Index labeling the highest mode for which previous Cholesky decomposition can be reused.
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 matrix
-TorontonianRecursive_Tasks::CreateAZ( const PicVector<int>& selected_index_holes, matrix L, const size_t reuse_index, bool inplace ) {
+TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_holes, matrix L, const size_t reuse_index ) {
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 //std::cout << "reuse index in Create AZ: " << reuse_index << std::endl;
 
 
-    PicVector<int> positions_of_ones;
+    PicVector<size_t> positions_of_ones;
     positions_of_ones.reserve(number_selected_modes);
     if ( selected_index_holes.size() == 0 ) {
 
@@ -459,112 +449,44 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<int>& selected_index_holes
         }
     }
 
-
     // reuse the data in the L matrix (in place or copied to out of place
-    matrix B;
-    if (inplace) {
-        B = L;
-    }
-    else{
-        size_t dimension_of_B = 2 * number_selected_modes;
-        B = matrix(dimension_of_B, dimension_of_B);
-        for (size_t idx = 0; idx < reuse_index; idx++) {
+    size_t dimension_of_AZ = 2 * number_selected_modes;
+    matrix AZ(dimension_of_AZ, dimension_of_AZ);
+    for (size_t idx = 0; idx < reuse_index; idx++) {
 
-            Complex16* L_data = L.get_data() + 2*idx*L.stride;
-            Complex16* B_data = B.get_data() + 2*idx*B.stride;
+        Complex16* L_data = L.get_data() + 2*idx*L.stride;
+        Complex16* AZ_data = AZ.get_data() + 2*idx*AZ.stride;
 
-            memcpy(B_data, L_data, 2*(idx+1)*sizeof(Complex16));
-            memcpy(B_data + B.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex16));
-
-        }
-
-        for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
-
-            Complex16* L_data = L.get_data() + 2*(idx+1)*L.stride;
-            Complex16* B_data = B.get_data() + 2*idx*B.stride;
-
-            memcpy(B_data, L_data, 2*(idx+1)*sizeof(Complex16));
-            memcpy(B_data + B.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex16));
-
-        }
-
+        memcpy(AZ_data, L_data, 2*(idx+1)*sizeof(Complex16));
+        memcpy(AZ_data + AZ.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex16));
 
     }
 
-    // copy data from the input matrix
+    // copy data from the input matrix and the reusable partial Cholesky decomposition matrix L
     for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
 
         Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
-        Complex16* B_data   = B.get_data() + 2*(idx*B.stride);
+        Complex16* L_data = L.get_data() + 2*(idx+1)*L.stride;
+        Complex16* AZ_data   = AZ.get_data() + 2*(idx*AZ.stride);
 
-int min_jdx;
-if (inplace) {
-    min_jdx = 0;
-}
-else {
-    min_jdx = reuse_index;
-    }
 
-// int min_jdx = reuse_index == 0 ? 0 : (reuse_index);
+        memcpy(AZ_data, L_data, 2*(idx+1)*sizeof(Complex16));
+        memcpy(AZ_data + AZ.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex16));
 
-        for (int jdx = min_jdx; jdx <= idx; jdx++) {
-            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        for (size_t jdx = reuse_index; jdx <= idx; jdx++) {
+            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
         }
 
-        B_data   = B_data + B.stride;
+        AZ_data   = AZ_data + AZ.stride;
         mtx_data = mtx_data + mtx.stride;
 
-        for (int jdx = min_jdx; jdx <= idx; jdx++) {
-            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+        for (size_t jdx = reuse_index; jdx <= idx; jdx++) {
+            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
         }
 
     }
 
-
-/*
-
-    // reuse the data in the L matrix (in place or copied to out of place
-size_t dimension_of_B = 2 * number_selected_modes;
-    matrix B2(dimension_of_B, dimension_of_B);
-
-    // copy data from the input matrix
-    for (size_t idx = 0; idx < number_selected_modes; idx++) {
-
-        Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
-        Complex16* B_data   = B2.get_data() + 2*(idx*B2.stride);
-
-
-        for (int jdx = 0; jdx <= idx; jdx++) {
-            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
-        }
-
-        B_data   = B_data + B2.stride;
-        mtx_data = mtx_data + mtx.stride;
-
-        for (int jdx = 0; jdx <= idx; jdx++) {
-            memcpy( B_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
-        }
-
-    }
-
-
-calc_cholesky_decomposition(B2, 0);
-    matrix B_new2 = B.copy();
-    calc_cholesky_decomposition(B_new2, 2*reuse_index);
-
-if ( true ) {//} reuse_index<number_selected_modes && reuse_index>0) {
-std::cout <<  "in place:" << inplace << " " <<   reuse_index << " " << B.rows << " " << B.cols << " " << L.rows << " " << L.cols << std::endl;
- //   L.print_matrix();
-//    B.print_matrix();
-
-
-B2.print_matrix();
-B_new2.print_matrix();
-
-    //exit(-1);
-}
-*/
-    return B;
+    return AZ;
 
 }
 
