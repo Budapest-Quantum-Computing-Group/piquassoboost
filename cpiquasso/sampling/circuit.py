@@ -40,28 +40,28 @@ class SamplingCircuit(pq.SamplingState.circuit_class):
         """
 
         interferometer = self.state.interferometer
+        initial_state = np.array(self.state.initial_state)
 
-        if self.state.is_lossy:  # In case of losses we want specially prepared 2m x 2m interferometer matrix
+        if self.state.is_lossy:  # Prepare inputs for lossy regime.
+            # In case of losses we want specially prepared 2m x 2m interferometer matrix
             interferometer = prepare_interferometer_matrix_in_expanded_space(self.state.interferometer)
+
+            # In case of losses we want 2m-modes input state (initialized with 0 on new modes)
+            for _ in initial_state:
+                initial_state = np.append(initial_state, 0)
 
         simulation_strategy = GeneralizedCliffordsSimulationStrategy(interferometer)
         sampling_simulator = BosonSamplingSimulator(simulation_strategy)
-
-        initial_state = np.array(self.state.initial_state)
-
-        if self.state.is_lossy:  # In case of losses we want 2m-modes input state (initialized with 0 at virtual modes)
-            for _ in initial_state:
-                initial_state = np.append(initial_state, 0)
 
         samples = sampling_simulator.get_classical_simulation_results(
             initial_state,
             samples_number=instruction.params["shots"]
         )
 
-        if self.state.is_lossy:  # Trim samples if necessary.
+        if self.state.is_lossy:  # Trim lossy state to initial size.
             trimmed_samples = []
             for sample in samples:
                 trimmed_samples.append(sample[:len(self.state.initial_state)])
-            samples = trimmed_samples
+            samples = trimmed_samples  # We want to return trimmed samples.
 
         self.results.append(Result(instruction=instruction, samples=samples))
