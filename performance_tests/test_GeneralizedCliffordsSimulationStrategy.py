@@ -60,11 +60,11 @@ class TestGeneralizedCliffordSimulationStrategy:
 
             t0 = time.time()
 
-            program.execute()
+            results = program.execute()
 
             print('C++ time elapsed: ' + str( time.time() - t0) + 's' )
 
-            hist = calc_histogram( program.state.results )
+            hist = calc_histogram(results[0].samples)
             for key in hist.keys():
                print( str(key) + ': ', str(hist[key])) 
 

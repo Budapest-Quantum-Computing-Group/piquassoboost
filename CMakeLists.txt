@@ -36,6 +36,7 @@ enable_testing()
 # find out python packages
 find_package(PythonInterp)
 find_package(PythonLibs)
+find_package(NumPy REQUIRED)
 
 
 exec_program(${PYTHON_EXECUTABLE}
@@ -78,15 +79,10 @@ endif()
 message("Include paths: " ${CMAKE_REQUIRED_INCLUDES})
 
 
+set(NUMPY_INC_DIR ${NumPy_INCLUDE_DIR})
 
-# Determine Numpy include directory
-exec_program(${PYTHON_EXECUTABLE}
-             ARGS "-c \"import numpy; print(numpy.get_include())\""
-             OUTPUT_VARIABLE NUMPY_INC_DIR
-             RETURN_VALUE NUMPY_NOT_FOUND
-            )
 
-if(NUMPY_NOT_FOUND)
+if(NOT NumPy_FOUND)
     message(FATAL_ERROR "NumPy headers not found")
 endif()
 
@@ -444,5 +440,3 @@ add_subdirectory (cpiquasso)
 add_subdirectory (ctests)
 
 install(TARGETS cpiquasso LIBRARY DESTINATION cpiquasso)
-
-

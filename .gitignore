@@ -1,6 +1,7 @@
 __pycache__
 dist
 build
+MANIFEST
 _skbuild
 cpiquasso.egg-info
 
