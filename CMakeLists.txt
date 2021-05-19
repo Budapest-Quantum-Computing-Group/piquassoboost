@@ -314,6 +314,7 @@ list(APPEND cpiquasso_files
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/ThresholdBosonSampling.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.cpp
     ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/RepeatedColumnPairs.cpp
@@ -412,6 +413,7 @@ set_target_properties(cpiquasso PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/ThresholdBosonSampling.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/RepeatedColumnPairs.h

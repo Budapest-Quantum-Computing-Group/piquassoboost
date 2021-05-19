@@ -130,3 +130,49 @@ set_target_properties( GaussianSimulationStrategyFast_wrapper PROPERTIES
 )
 
 install(TARGETS GaussianSimulationStrategyFast_wrapper LIBRARY DESTINATION cpiquasso/sampling/simulation_strategies)
+
+##########################################################
+
+
+
+add_library( ThresholdBosonSampling_wrapper MODULE
+    ${EXT_DIR}/ThresholdBosonSampling_wrapper.cpp
+    ${PROJECT_SOURCE_DIR}/cpiquasso/common/numpy_interface.cpp
+)
+
+
+target_link_libraries(ThresholdBosonSampling_wrapper cpiquasso ${BLAS_LIBRARIES})
+
+python_extension_module(ThresholdBosonSampling_wrapper)
+
+ADD_DEPENDENCIES (ThresholdBosonSampling_wrapper cpiquasso)
+
+
+# adding compile options
+target_compile_options(ThresholdBosonSampling_wrapper PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+
+target_include_directories(ThresholdBosonSampling_wrapper PUBLIC
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/
+                            ${PROJECT_SOURCE_DIR}/cpiquasso/common/
+                            ${EXTRA_INCLUDES}
+                            ${PYTHON_INCLUDE_DIR}
+                            ${NUMPY_INC_DIR})
+
+
+set_target_properties( ThresholdBosonSampling_wrapper PROPERTIES
+                        INSTALL_RPATH "$ORIGIN/../.."
+                        LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
+)
+
+install(TARGETS ThresholdBosonSampling_wrapper LIBRARY DESTINATION cpiquasso/sampling/simulation_strategies)
+
+
+
