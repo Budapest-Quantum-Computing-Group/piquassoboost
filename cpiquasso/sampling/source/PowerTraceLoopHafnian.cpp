@@ -33,7 +33,7 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian() : PowerTraceHafnian() {
 
 /**
 @brief Constructor of the class.
-@param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
+@param mtx_in A symmetric matrix for which the hafnian is calculated. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
 @return Returns with the instance of the class.
 */
 PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
@@ -45,8 +45,7 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
 
 
 /**
-@brief Call to calculate the hafnian of a complex matrix
-@param mtx The matrix
+@brief Call to calculate the hafnian of a complex matrix stored in the instance of the class
 @return Returns with the calculated hafnian
 */
 Complex16
@@ -108,7 +107,10 @@ PowerTraceLoopHafnian::calculate() {
 
 
 /**
-@brief Call to calculate the hafnian of a complex matrix
+@brief Call to calculate the hafnian of a complex matrix stored in the instance of the class
+@param start_idx The minimal index evaluated in the exponentially large sum (used to divide calculations between MPI processes)
+@param step_idx The index step in the exponentially large sum (used to divide calculations between MPI processes)
+@param max_idx The maximal indexe valuated in the exponentially large sum (used to divide calculations between MPI processes)
 @return Returns with the calculated hafnian
 */
 Complex16
@@ -332,7 +334,6 @@ PowerTraceLoopHafnian::Update_mtx( matrix &mtx_in) {
 
 /**
 @brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
-@param mtx_in Input matrix defined by
 */
 void
 PowerTraceLoopHafnian::ScaleMatrix() {

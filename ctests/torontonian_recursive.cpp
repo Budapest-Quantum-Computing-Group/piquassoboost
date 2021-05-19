@@ -30,7 +30,7 @@ get_random_density_matrix(size_t dim){
 int main(){
 
 
-    constexpr size_t dim = 60;
+    constexpr size_t dim = 50;
 
     // create random matrix to calculate the torontonian
     pic::matrix mtx = get_random_density_matrix<pic::matrix, pic::Complex16>(dim);

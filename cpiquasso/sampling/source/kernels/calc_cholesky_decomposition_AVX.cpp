@@ -6,10 +6,14 @@ static tbb::spin_mutex my_mutex;
 namespace pic {
 
 /**
-@brief AVX kernel to
+@brief AVX kernel to calculate in-place Cholesky decomposition of a matrix
+@param mtx A positive definite hermitian matrix with eigenvalues less then unity.  The decomposed matrix is stored in mtx.
+@param reuse_index Labels the row and column from which the Cholesky decomposition should be continued.
+@param determinant The determinant of the matrix is calculated and stored in this variable.
+(if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
 void
-calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
+calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index, Complex16 &determinant) {
 
     // The above code with non-AVX instructions
        // storing in the same memory the results of the algorithm
@@ -195,6 +199,7 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
             row_i_c[j] = (row_i_c[j] - *sum) / row_j[j];
 
+
 #ifdef DEBUG
             if (matrix.isnan()) {
 
@@ -258,11 +263,13 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
         Complex16* sum = (Complex16*)&sum1_128;
         Complex16* row_i_c = (Complex16*)row_i;
         row_i_c[idx] = sqrt(row_i_c[idx] - *sum);
+        determinant = determinant * row_i_c[idx];
 
-row_i = row_i + 2*matrix.stride;
+        row_i = row_i + 2*matrix.stride;
     }
 
 /*
+    // The AVX code above is equivalent to this code:
 
     // storing in the same memory the results of the algorithm
     size_t n = matrix.cols;

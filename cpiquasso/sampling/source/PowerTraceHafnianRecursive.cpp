@@ -29,9 +29,8 @@ namespace pic {
 
 /**
 @brief Constructor of the class.
-@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_1^*,a_1, a_1^*, ... a_n, a_n^* \f$ ordered covariance matrix of the Gaussian state,
-where \f$ n \f$ is the number of occupancy i n the Gaussian state).
-@param occupancy An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
 The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
@@ -141,9 +140,8 @@ PowerTraceHafnianRecursive_Tasks::PowerTraceHafnianRecursive_Tasks() {
 
 /**
 @brief Constructor of the class.
-@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_1^*,a_1, a_1^*, ... a_n, a_n^* \f$ ordered covariance matrix of the Gaussian state,
-where \f$ n \f$ is the number of occupancy i n the Gaussian state).
-@param occupancy An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
 The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
@@ -203,6 +201,9 @@ PowerTraceHafnianRecursive_Tasks::calculate() {
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
+@param start_idx The minimal index evaluated in the exponentially large sum (used to divide calculations between MPI processes)
+@param step_idx The index step in the exponentially large sum (used to divide calculations between MPI processes)
+@param max_idx The maximal indexe valuated in the exponentially large sum (used to divide calculations between MPI processes)
 @return Returns with the calculated hafnian
 */
 Complex16
@@ -459,7 +460,7 @@ std::cout << std::endl;
 @brief Call to calculate the partial hafnian for given selected modes and their occupancies
 @param selected_modes Selected modes over which the iterations are run
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
-@return Returns with the calculated hafnian
+@return Returns with the calculated partial hafnian
 */
 Complex32
 PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
@@ -672,7 +673,6 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 
 /**
 @brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
-@param mtx_in Input matrix defined by
 */
 void
 PowerTraceHafnianRecursive_Tasks::ScaleMatrix() {

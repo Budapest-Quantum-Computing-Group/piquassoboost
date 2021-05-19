@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include "TorontonianRecursive.h"
-#include "TorontonianUtilities.hpp"
+#include "TorontonianUtilities.h"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
 #include "common_functionalities.h"
@@ -103,7 +103,7 @@ TorontonianRecursive_Tasks::TorontonianRecursive_Tasks() {
 
 /**
 @brief Constructor of the class.
-@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_1^*,a_1, a_1^*, ... a_n, a_n^* \f$ ordered covariance matrix of the Gaussian state,
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state,
 where \f$ n \f$ is the number of occupancy i n the Gaussian state).
 @param occupancy An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
 The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
@@ -180,7 +180,7 @@ TorontonianRecursive_Tasks::calculate() {
 
     // calculate the Cholesky decomposition of the initial matrix to be later reused
     matrix L = mtx.copy();
-    calc_cholesky_decomposition(L,0);
+    calc_cholesky_decomposition(L);
 
     long double torontonian = CalculatePartialTorontonian( selected_index_holes, L, num_of_modes);
 
@@ -350,7 +350,7 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>
     if (number_selected_modes != 0) {
         // testing purpose (the matrix is not positive definite and selfadjoint)
         //determinant = determinant_byLU_decomposition(B);
-        determinant = calc_determinant_cholesky_decomposition(B, 2*reuse_index);
+        determinant = calc_determinant_cholesky_decomposition(B, L, 2*reuse_index);
     }
     else{
         determinant = 1.0;
@@ -452,6 +452,7 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_ho
     // reuse the data in the L matrix (in place or copied to out of place
     size_t dimension_of_AZ = 2 * number_selected_modes;
     matrix AZ(dimension_of_AZ, dimension_of_AZ);
+/*
     for (size_t idx = 0; idx < reuse_index; idx++) {
 
         Complex16* L_data = L.get_data() + 2*idx*L.stride;
@@ -461,6 +462,12 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_ho
         memcpy(AZ_data + AZ.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex16));
 
     }
+*/
+for (size_t idx = 0; idx < reuse_index; idx++) {
+    AZ[2*idx*AZ.stride + 2*idx] = L[2*idx*L.stride + 2*idx];
+    AZ[(2*idx+1)*AZ.stride + 2*idx+1] = L[(2*idx+1)*L.stride + 2*idx + 1];
+}
+
 
     // copy data from the input matrix and the reusable partial Cholesky decomposition matrix L
     for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
