@@ -5,6 +5,7 @@
 #include "PicState.h"
 #include "PicVector.hpp"
 
+
 #ifndef CPYTHON
 #include "tbb/tbb.h"
 #endif
@@ -115,7 +116,7 @@ protected:
 @param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg );
+void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<double>>& priv_addend, tbb::task_group &tg );
 
 
 /**

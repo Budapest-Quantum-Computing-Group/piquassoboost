@@ -10,7 +10,7 @@
 
 
 #include "matrix.h"
-#include "matrix32.h"
+
 
 
 extern "C" {
@@ -69,7 +69,7 @@ Complex16 calc_determinant_cholesky_decomposition(matrix& mtx);
 @param reuse_index Labels the row and column from which the Cholesky decomposition should be continued.
 @return Returns with the calculated determiant
 */
-Complex16 calc_determinant_cholesky_decomposition(matrix& mtx, matrix& L, const size_t reuse_index);
+Complex16 calc_determinant_cholesky_decomposition(matrix& mtx, const size_t reuse_index);
 
 
 } // PIC

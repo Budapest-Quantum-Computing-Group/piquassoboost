@@ -4,9 +4,9 @@
 #include "common_functionalities.h"
 #include <math.h>
 
-
-static tbb::spin_mutex my_mutex;
 /*
+static tbb::spin_mutex my_mutex;
+
 double time_nominator = 0.0;
 double time_nevezo = 0.0;
 */
@@ -64,17 +64,17 @@ calc_cholesky_decomposition(matrix& matrix, const size_t reuse_index, Complex16 
     // storing in the same memory the results of the algorithm
     size_t n = matrix.cols;
     // Decomposing a matrix into lower triangular matrices
-    for (int i = reuse_index; i < n; i++) {
+    for (size_t i = reuse_index; i < n; i++) {
         Complex16* row_i = matrix.get_data()+i*matrix.stride;
 
-        for (int j = reuse_index; j < i; j++) {
+        for (size_t j = reuse_index; j < i; j++) {
             {
                 Complex16* row_j = matrix.get_data()+j*matrix.stride;
 
                 Complex16 sum = 0;
                 // Evaluating L(i, j) using L(j, j)
                 // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
-                for (int k = 0; k < j; k++){
+                for (size_t k = 0; k < j; k++){
                     sum += mult_a_bconj( row_i[k], row_j[k]);
                 }
                 //std::cout << "L_("<<i<<","<<j<<") : sum: " << sum<<std::endl;
@@ -87,7 +87,7 @@ calc_cholesky_decomposition(matrix& matrix, const size_t reuse_index, Complex16 
         Complex16 sum = 0;
         // summation for diagnols
         // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
-        for (int k = 0; k < i; k++){
+        for (size_t k = 0; k < i; k++){
             sum += mult_a_bconj( row_i[k], row_i[k] );
         }
         row_i[i] = sqrt(row_i[i] - sum);
@@ -135,8 +135,7 @@ calc_cholesky_decomposition_lapack(matrix &matrix) {
 Complex16
 calc_determinant_cholesky_decomposition(matrix& mtx){
 
- matrix L;
- return  calc_determinant_cholesky_decomposition(mtx, L, 0);
+ return  calc_determinant_cholesky_decomposition(mtx, 0);
 
 }
 
@@ -149,7 +148,7 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
 @return Returns with the calculated determiant
 */
 Complex16
-calc_determinant_cholesky_decomposition(matrix& mtx, matrix& L, const size_t reuse_index){
+calc_determinant_cholesky_decomposition(matrix& mtx, const size_t reuse_index){
 
         Complex16 determinant(1.0, 0.0);
 
@@ -157,8 +156,9 @@ calc_determinant_cholesky_decomposition(matrix& mtx, matrix& L, const size_t reu
         calc_cholesky_decomposition(mtx, reuse_index, determinant);
 
         // multiply the result with the remaining diagonal elements of the Cholesky matrix L, that has been reused
-        for (size_t idx; idx < reuse_index; idx++){
-            determinant *= L[idx * L.stride + idx];
+
+        for (size_t idx=0; idx < reuse_index; idx++){
+                determinant *= mtx[idx * mtx.stride + idx];
         }
 
 

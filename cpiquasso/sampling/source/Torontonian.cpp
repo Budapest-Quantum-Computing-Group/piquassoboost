@@ -75,13 +75,13 @@ Torontonian::calculate(){
     const size_t dim_over_2 = mtx.rows / 2;
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
-    tbb::combinable<double> summands{[](){return 0.0D;}};
+    tbb::combinable<RealM<double>> summands{[](){return RealM<double>(0.0);}};
 
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
-        double &summand = summands.local();
+        RealM<double> &summand = summands.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
@@ -143,15 +143,15 @@ Torontonian::calculate(){
             double sqrt_determinant = std::sqrt(determinant.real());
             double value = factor / sqrt_determinant;
 
-            summand = summand + value;
+            summand += value;
 
         }
 
     });
 
     double res = 0.0D;
-    summands.combine_each([&res](double a) {
-        res = res + a;
+    summands.combine_each([&res](RealM<double>& a) {
+        res = res + a.get();
     });
 
 #if BLAS==0 // undefined BLAS

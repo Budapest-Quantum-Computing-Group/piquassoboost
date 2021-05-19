@@ -225,7 +225,6 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index, Complex16 &d
                 __m256d row_i_256 = _mm256_loadu_pd(row_i+kdx);
 
                 // calculate the multiplications  rowi*conj(row_i)
-                __m256d row_i_permuted = _mm256_permute_pd(row_i_256, 0x5);
                 __m256d vec3           = _mm256_mul_pd(row_i_256, row_i_256);
                 __m256d vec4           = _mm256_setr_pd(0.0, 0.0, 0.0, 0.0);
                 vec3                   = _mm256_hadd_pd(vec3, vec4);
@@ -241,14 +240,11 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index, Complex16 &d
 
             if (idx%2 == 1) {
 
-                __m128d neg2_128 = _mm256_castpd256_pd128(neg2);
-
                 int kdx = 2*(idx-1);
 
                 __m128d row_i_128 = _mm_loadu_pd(row_i+kdx);
 
                 // calculate the multiplications  rowi*conj(row_j)
-                __m128d row_i_permuted = _mm_permute_pd(row_i_128, 0x5);
                 __m128d vec3           = _mm_mul_pd(row_i_128, row_i_128);
                 __m128d vec4           = _mm_setr_pd(0.0, 0.0);
                 vec3                   = _mm_hadd_pd(vec3, vec4);

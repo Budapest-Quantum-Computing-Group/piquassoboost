@@ -173,7 +173,7 @@ TorontonianRecursive_Tasks::calculate() {
     tbb::task_group tg;
 
     // thread local storage for partial hafnian
-    tbb::combinable<long double> priv_addend{[](){return 0.0L;}};
+    tbb::combinable<RealM<double>> priv_addend{[](){return RealM<double>(0.0);}};
 
     // construct the initial selection of the modes
     PicVector<size_t> selected_index_holes;
@@ -194,12 +194,9 @@ TorontonianRecursive_Tasks::calculate() {
     tg.wait();
 
 
-    priv_addend.combine_each([&](long double &a) {
-        torontonian = torontonian + a;
+    priv_addend.combine_each([&](RealM<double> &a) {
+        torontonian = torontonian + a.get();
     });
-
-
-    //Complex16 res = summand;
 
 
 
@@ -231,7 +228,7 @@ TorontonianRecursive_Tasks::calculate() {
 @param tg Reference to a tbb::task_group
 */
 void
-TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg ) {
+TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<double>>& priv_addend, tbb::task_group &tg ) {
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;
@@ -255,8 +252,8 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
     selected_index_holes_new[hole_to_iterate] = index_max-1;
     size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
 
-    long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
-    long double &torontonian_priv = priv_addend.local();
+    double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
+    RealM<double> &torontonian_priv = priv_addend.local();
     torontonian_priv += partial_torontonian;
 
     // logical variable to control whether spawning new iterations or not
@@ -270,8 +267,8 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
 
         selected_index_holes_new[hole_to_iterate] = idx-1;
         size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
-        long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
-        long double &torontonian_priv = priv_addend.local();
+        double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
+        RealM<double> &torontonian_priv = priv_addend.local();
         torontonian_priv += partial_torontonian;
 
 
@@ -350,7 +347,7 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>
     if (number_selected_modes != 0) {
         // testing purpose (the matrix is not positive definite and selfadjoint)
         //determinant = determinant_byLU_decomposition(B);
-        determinant = calc_determinant_cholesky_decomposition(B, L, 2*reuse_index);
+        determinant = calc_determinant_cholesky_decomposition(B, 2*reuse_index);
     }
     else{
         determinant = 1.0;
@@ -359,7 +356,7 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>
     // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
     double sqrt_determinant = std::sqrt(determinant.real());
 
-    return (long double) (factor / sqrt_determinant);
+    return (factor / sqrt_determinant);
 
 
 }
@@ -453,6 +450,7 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_ho
     size_t dimension_of_AZ = 2 * number_selected_modes;
     matrix AZ(dimension_of_AZ, dimension_of_AZ);
 /*
+    // The first 2*(reuse_index-1) rows of the matrix are not touched during the calculations they can be reused from Cholesky matrix L
     for (size_t idx = 0; idx < reuse_index; idx++) {
 
         Complex16* L_data = L.get_data() + 2*idx*L.stride;
@@ -463,10 +461,13 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_ho
 
     }
 */
-for (size_t idx = 0; idx < reuse_index; idx++) {
-    AZ[2*idx*AZ.stride + 2*idx] = L[2*idx*L.stride + 2*idx];
-    AZ[(2*idx+1)*AZ.stride + 2*idx+1] = L[(2*idx+1)*L.stride + 2*idx + 1];
-}
+
+    // to calculate the determiannt only the diagonal elements of L are necessary
+    for (size_t idx = 0; idx < reuse_index; idx++) {
+        AZ[2*idx*AZ.stride + 2*idx] = L[2*idx*L.stride + 2*idx];
+        AZ[(2*idx+1)*AZ.stride + 2*idx+1] = L[(2*idx+1)*L.stride + 2*idx + 1];
+    }
+
 
 
     // copy data from the input matrix and the reusable partial Cholesky decomposition matrix L

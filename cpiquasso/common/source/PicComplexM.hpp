@@ -21,7 +21,7 @@ namespace pic {
 
 /**
 @brief Multi-precision representation of complex numbers used in the CPiquasso package.
-?????????????????????????
+This class can be used to sum up many complex numbers of different orders. (Used in hafnian calculations)
 */
 template<class scalar>
 class ComplexM {
