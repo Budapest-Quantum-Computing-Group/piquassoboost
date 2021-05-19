@@ -1,5 +1,5 @@
-#ifndef Torontonian_wrapper_H
-#define Torontonian_wrapper_H
+#ifndef TorontonianRecursive_wrapper_H
+#define TorontonianRecursive_wrapper_H
 
 
 
@@ -7,43 +7,43 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "structmember.h"
-#include "Torontonian.h"
+#include "TorontonianRecursive.h"
 #include "numpy_interface.h"
 
 /**
-This file contains the implementation of the python wrapper object for the C++ class Torontonian_wrapper. 
+This file contains the implementation of the python wrapper object for the C++ class TorontonianRecursive_wrapper. 
 It is included by the file Boson_Sampling_utilities.cpp
 */
 
 /**
-@brief Type definition of the Torontonian_wrapper Python class of the Torontonian_wrapper module
+@brief Type definition of the TorontonianRecursive_wrapper Python class of the TorontonianRecursive_wrapper module
 */
-typedef struct Torontonian_wrapper {
+typedef struct TorontonianRecursive_wrapper {
     PyObject_HEAD
     /// pointer to numpy matrix to keep it alive
     PyObject *matrix = NULL;
-    /// The C++ variant of class Torontonian
-    pic::Torontonian* calculator;
-} Torontonian_wrapper;
+    /// The C++ variant of class TorontonianRecursive
+    pic::TorontonianRecursive* calculator;
+} TorontonianRecursive_wrapper;
 
 
 /**
-@brief Creates an instance of class Torontonian and return with a pointer pointing to the class instance (C++ linking is needed)
+@brief Creates an instance of class TorontonianRecursive and return with a pointer pointing to the class instance (C++ linking is needed)
 @param matrix_mtx The matrix for which the hafnain should be calculated (Selfadjoint positive definite matrix with eigenvalues less than unity.)
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
-pic::Torontonian*
-create_Torontonian( pic::matrix &matrix_mtx ) {
+pic::TorontonianRecursive*
+create_TorontonianRecursive( pic::matrix &matrix_mtx ) {
 
-    return new pic::Torontonian(matrix_mtx);
+    return new pic::TorontonianRecursive(matrix_mtx);
 }
 
 /**
-@brief Call to deallocate an instance of Torontonian class
-@param ptr A pointer pointing to an instance of Torontonian class.
+@brief Call to deallocate an instance of TorontonianRecursive class
+@param ptr A pointer pointing to an instance of TorontonianRecursive class.
 */
 void
-release_Torontonian( pic::Torontonian*  instance ) {
+release_TorontonianRecursive( pic::TorontonianRecursive*  instance ) {
     if ( instance != NULL ) {
         delete instance;
     }
@@ -61,15 +61,15 @@ extern "C"
 
 
 /**
-@brief Method called when a python instance of the class Torontonian_wrapper is destroyed
-@param self A pointer pointing to an instance of class Torontonian_wrapper.
+@brief Method called when a python instance of the class TorontonianRecursive_wrapper is destroyed
+@param self A pointer pointing to an instance of class TorontonianRecursive_wrapper.
 */
 static void
-Torontonian_wrapper_dealloc(Torontonian_wrapper *self)
+TorontonianRecursive_wrapper_dealloc(TorontonianRecursive_wrapper *self)
 {
 
     // deallocate the instance of class N_Qubit_Decomposition
-    release_Torontonian( self->calculator );
+    release_TorontonianRecursive( self->calculator );
 
     // release numpy arrays
     Py_DECREF(self->matrix);
@@ -78,14 +78,14 @@ Torontonian_wrapper_dealloc(Torontonian_wrapper *self)
 }
 
 /**
-@brief Method called when a python instance of the class Torontonian_wrapper is allocated
-@param type A pointer pointing to a structure describing the type of the class Torontonian_wrapper.
+@brief Method called when a python instance of the class TorontonianRecursive_wrapper is allocated
+@param type A pointer pointing to a structure describing the type of the class TorontonianRecursive_wrapper.
 */
 static PyObject *
-Torontonian_wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+TorontonianRecursive_wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    Torontonian_wrapper *self;
-    self = (Torontonian_wrapper *) type->tp_alloc(type, 0);
+    TorontonianRecursive_wrapper *self;
+    self = (TorontonianRecursive_wrapper *) type->tp_alloc(type, 0);
     if (self != NULL) {}
 
     self->matrix = NULL;
@@ -95,13 +95,13 @@ Torontonian_wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 
 /**
-@brief Method called when a python instance of the class Torontonian_wrapper is initialized
-@param self A pointer pointing to an instance of the class Torontonian_wrapper.
-@param args A tuple of the input arguments: matrix (np.ndarray) The matrix for which the Torontonian should be calculated.
+@brief Method called when a python instance of the class TorontonianRecursive_wrapper is initialized
+@param self A pointer pointing to an instance of the class TorontonianRecursive_wrapper.
+@param args A tuple of the input arguments: matrix (np.ndarray) The matrix for which the TorontonianRecursive should be calculated.
 @param kwds A tuple of keywords
 */
 static int
-Torontonian_wrapper_init(Torontonian_wrapper *self, PyObject *args, PyObject *kwds)
+TorontonianRecursive_wrapper_init(TorontonianRecursive_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
     static char *kwlist[] = {(char*)"matrix", NULL};
@@ -130,8 +130,8 @@ Torontonian_wrapper_init(Torontonian_wrapper *self, PyObject *args, PyObject *kw
     // create PIC version of the input matrices
     pic::matrix matrix_mtx = numpy2matrix(self->matrix);
 
-    // create instance of class Torontonian
-    self->calculator = create_Torontonian( matrix_mtx );
+    // create instance of class TorontonianRecursive
+    self->calculator = create_TorontonianRecursive( matrix_mtx );
 
     return 0;
 }
@@ -139,12 +139,12 @@ Torontonian_wrapper_init(Torontonian_wrapper *self, PyObject *args, PyObject *kw
 
 
 /**
-@brief Wrapper function to call the calculate method of C++ class Torontonian
-@param self A pointer pointing to an instance of the class Torontonian_wrapper.
-@return Returns with a PyObject containing the calculated torontonian.
+@brief Wrapper function to call the calculate method of C++ class TorontonianRecursive
+@param self A pointer pointing to an instance of the class TorontonianRecursive_wrapper.
+@return Returns with a PyObject containing the calculated TorontonianRecursive.
 */
 static PyObject *
-Torontonian_wrapper_calculate(Torontonian_wrapper *self)
+TorontonianRecursive_wrapper_calculate(TorontonianRecursive_wrapper *self)
 {
 
     // start the calculation of the permanent
@@ -158,12 +158,12 @@ Torontonian_wrapper_calculate(Torontonian_wrapper *self)
 
 /**
 @brief Method to call get attribute matrix
-@param self A pointer pointing to an instance of the class Torontonian_wrapper.
+@param self A pointer pointing to an instance of the class TorontonianRecursive_wrapper.
 @param closure Set to NULL pointer
 @return Returns with a PyObject containing matrix.
 */
 static PyObject *
-Torontonian_wrapper_getmatrix(Torontonian_wrapper *self, void *closure)
+TorontonianRecursive_wrapper_getmatrix(TorontonianRecursive_wrapper *self, void *closure)
 {
     Py_INCREF(self->matrix);
     return self->matrix;
@@ -171,13 +171,13 @@ Torontonian_wrapper_getmatrix(Torontonian_wrapper *self, void *closure)
 
 /**
 @brief Method to call set attribute matrix
-@param self A pointer pointing to an instance of the class Torontonian_wrapper.
+@param self A pointer pointing to an instance of the class TorontonianRecursive_wrapper.
 @param matrix_arg A PyObject containing the matrix.
 @param closure Set to NULL pointer
 @return Returns with 0 in case of success.
 */
 static int
-Torontonian_wrapper_setmatrix(Torontonian_wrapper *self, PyObject *matrix_arg, void *closure)
+TorontonianRecursive_wrapper_setmatrix(TorontonianRecursive_wrapper *self, PyObject *matrix_arg, void *closure)
 {
     // set the array on the Python side
     Py_DECREF(self->matrix);
@@ -205,24 +205,24 @@ Torontonian_wrapper_setmatrix(Torontonian_wrapper *self, PyObject *matrix_arg, v
 
 
 /**
-@brief list of set and get function implementations for the python object Torontonian_wrapper
+@brief list of set and get function implementations for the python object TorontonianRecursive_wrapper
 */
-static PyGetSetDef Torontonian_wrapper_getsetters[] = {
-    {"matrix", (getter) Torontonian_wrapper_getmatrix, (setter) Torontonian_wrapper_setmatrix,
+static PyGetSetDef TorontonianRecursive_wrapper_getsetters[] = {
+    {"matrix", (getter) TorontonianRecursive_wrapper_getmatrix, (setter) TorontonianRecursive_wrapper_setmatrix,
      "matrix", NULL},
     {NULL}  /* Sentinel */
 };
 
 /**
-@brief Structure containing metadata about the members of class Torontonian_wrapper.
+@brief Structure containing metadata about the members of class TorontonianRecursive_wrapper.
 */
-static PyMemberDef Torontonian_wrapper_Members[] = {
+static PyMemberDef TorontonianRecursive_wrapper_Members[] = {
     {NULL}  /* Sentinel */
 };
 
 
-static PyMethodDef Torontonian_wrapper_Methods[] = {
-    {"calculate", (PyCFunction) Torontonian_wrapper_calculate, METH_NOARGS,
+static PyMethodDef TorontonianRecursive_wrapper_Methods[] = {
+    {"calculate", (PyCFunction) TorontonianRecursive_wrapper_calculate, METH_NOARGS,
      "Method to calculate the torontonian."
     },
     {NULL}  /* Sentinel */
@@ -230,14 +230,14 @@ static PyMethodDef Torontonian_wrapper_Methods[] = {
 
 
 /**
-@brief A structure describing the type of the class Torontonian_wrapper.
+@brief A structure describing the type of the class TorontonianRecursive_wrapper.
 */
-static PyTypeObject Torontonian_wrapper_Type = {
+static PyTypeObject TorontonianRecursive_wrapper_Type = {
   PyVarObject_HEAD_INIT(NULL, 0)
-  "Torontonian_wrapper.Torontonian_wrapper", /*tp_name*/
-  sizeof(Torontonian_wrapper), /*tp_basicsize*/
+  "TorontonianRecursive_wrapper.TorontonianRecursive_wrapper", /*tp_name*/
+  sizeof(TorontonianRecursive_wrapper), /*tp_basicsize*/
   0, /*tp_itemsize*/
-  (destructor) Torontonian_wrapper_dealloc, /*tp_dealloc*/
+  (destructor) TorontonianRecursive_wrapper_dealloc, /*tp_dealloc*/
   #if PY_VERSION_HEX < 0x030800b4
   0, /*tp_print*/
   #endif
@@ -270,17 +270,17 @@ static PyTypeObject Torontonian_wrapper_Type = {
   0, /*tp_weaklistoffset*/
   0, /*tp_iter*/
   0, /*tp_iternext*/
-  Torontonian_wrapper_Methods, /*tp_methods*/
-  Torontonian_wrapper_Members, /*tp_members*/
-  Torontonian_wrapper_getsetters, /*tp_getset*/
+  TorontonianRecursive_wrapper_Methods, /*tp_methods*/
+  TorontonianRecursive_wrapper_Members, /*tp_members*/
+  TorontonianRecursive_wrapper_getsetters, /*tp_getset*/
   0, /*tp_base*/
   0, /*tp_dict*/
   0, /*tp_descr_get*/
   0, /*tp_descr_set*/
   0, /*tp_dictoffset*/
-  (initproc) Torontonian_wrapper_init, /*tp_init*/
+  (initproc) TorontonianRecursive_wrapper_init, /*tp_init*/
   0, /*tp_alloc*/
-  Torontonian_wrapper_new, /*tp_new*/
+  TorontonianRecursive_wrapper_new, /*tp_new*/
   0, /*tp_free*/
   0, /*tp_is_gc*/
   0, /*tp_bases*/
@@ -308,4 +308,4 @@ static PyTypeObject Torontonian_wrapper_Type = {
 
 
 
-#endif //Torontonian_wrapper_H
+#endif //TorontonianRecursive_wrapper_H

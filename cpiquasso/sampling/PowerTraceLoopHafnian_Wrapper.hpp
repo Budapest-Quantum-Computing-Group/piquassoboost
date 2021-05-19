@@ -146,7 +146,7 @@ static PyObject *
 PowerTraceLoopHafnian_Wrapper_calculate(PowerTraceLoopHafnian_wrapper *self)
 {
 
-    // start the calculation of the permanent
+    // start the calculation of the loop hafnian
     pic::Complex16 ret = self->calculator->calculate();
 
     return Py_BuildValue("D", &ret);
@@ -214,7 +214,7 @@ static PyMemberDef PowerTraceLoopHafnian_wrapper_Members[] = {
 
 static PyMethodDef PowerTraceLoopHafnian_wrapper_Methods[] = {
     {"calculate", (PyCFunction) PowerTraceLoopHafnian_Wrapper_calculate, METH_NOARGS,
-     "Method to calculate the permanent."
+     "Method to calculate the loop hafnian."
     },
     {NULL}  /* Sentinel */
 };

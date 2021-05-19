@@ -18,7 +18,7 @@ To perform the calculation the given matrix has to be positive definite and self
 class Torontonian {
 
 protected:
-    /// The input matrix. Must be positive definite matrix with eigenvalues between 0 and 1.
+    /// The input matrix. Must be selfadjoint positive definite matrix with eigenvalues between 0 and 1.
     matrix mtx_orig;
     /** The scaled input matrix for which the calculations are performed.
     If the mean magnitude of the matrix elements is one, the treshold of quad precision can be set to higher values.

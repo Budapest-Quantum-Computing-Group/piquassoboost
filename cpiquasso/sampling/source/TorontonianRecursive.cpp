@@ -29,8 +29,7 @@ namespace pic {
 
 /**
 @brief Constructor of the class.
-@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_1^*,a_1, a_1^*, ... a_n, a_n^* \f$ ordered covariance matrix of the Gaussian state,
-where \f$ n \f$ is the number of occupancy i n the Gaussian state).
+@param mtx_in A selfadjoint matrix for which the torontonian is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.) matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @param occupancy An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
 The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
 (The matrix mtx itself does not contain any repeated rows and column.)
@@ -103,8 +102,7 @@ TorontonianRecursive_Tasks::TorontonianRecursive_Tasks() {
 
 /**
 @brief Constructor of the class.
-@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state,
-where \f$ n \f$ is the number of occupancy i n the Gaussian state).
+@param mtx_in A selfadjoint matrix for which the torontonian is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.) matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @param occupancy An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
 The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
 (The matrix mtx itself does not contain any repeated rows and column.)

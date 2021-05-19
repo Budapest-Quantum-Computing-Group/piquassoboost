@@ -27,7 +27,7 @@ public:
 
 /**
 @brief Constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
+@param mtx_in A selfadjoint matrix for which the torontonian is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.) matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @return Returns with the instance of the class.
 */
 TorontonianRecursive( matrix &mtx_in );
@@ -79,7 +79,7 @@ TorontonianRecursive_Tasks();
 
 /**
 @brief Constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
+@param mtx_in A selfadjoint matrix for which the torontonian is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.) matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @return Returns with the instance of the class.
 */
 TorontonianRecursive_Tasks( matrix &mtx_in );
