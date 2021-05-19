@@ -5,7 +5,7 @@
 #include <chrono>
 #include <string>
 
-#include "TorontonianUtilities.hpp"
+#include "TorontonianUtilities.h"
 #include "Torontonian.h"
 #include "TorontonianRecursive.h"
 
@@ -27,6 +27,9 @@ get_random_density_matrix(size_t dim){
 }
 
 
+/**
+@brief Unit test to compare torontonian calculators implemented in piqausso boost
+*/
 int main(){
 
 

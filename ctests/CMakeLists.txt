@@ -4,7 +4,6 @@
 # add tests to the build
 add_test(hafnian_complex_matrix hafnian_complex_matrix ...)
 add_test(torontonian torontonian ...)
-add_test(determinant_testing determinant_testing ...)
 add_test(hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix ...)
 add_test(loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix ...)
 add_test(brute_force_hafnian_complex_matrix brute_force_hafnian_complex_matrix ...)
@@ -19,7 +18,6 @@ add_test(common_functionalities common_functionalities ...)
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
 add_executable (torontonian torontonian.cpp)
 add_executable (torontonian_recursive torontonian_recursive.cpp)
-add_executable (determinant_testing determinant_testing.cpp)
 add_executable (hafnian_recursive_complex_matrix hafnian_recursive_complex_matrix.cpp)
 add_executable (loop_hafnian_recursive_complex_matrix loop_hafnian_recursive_complex_matrix.cpp)
 add_executable (brute_force_hafnian_complex_matrix brute_force_hafnian_complex_matrix.cpp)
@@ -48,12 +46,6 @@ target_include_directories(torontonian_recursive PRIVATE
                             ../cpiquasso/common/source
                             ../cpiquasso/sampling/source
                             ${TBB_HEADER}
-                            ${EXTRA_INCLUDES})
-
-target_include_directories(determinant_testing PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/sampling/source
-                            ../cpiquasso/sampling/simulation_strategies/source
                             ${EXTRA_INCLUDES})
 
 target_include_directories(hafnian_recursive_complex_matrix PRIVATE
@@ -136,15 +128,6 @@ target_link_libraries (torontonian
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (torontonian_recursive 
-                           cpiquasso
-                           ${TBBMALLOC_LIB}
-                           ${TBBMALLOC_PROXY_LIB}
-                           ${TBB_LIB}
-                           ${BLAS_LIBRARIES}
-                           ${MPI_C_LIBRARIES})
-
-
-target_link_libraries (determinant_testing 
                            cpiquasso
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
