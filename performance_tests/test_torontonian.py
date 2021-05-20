@@ -1,10 +1,8 @@
 import numpy as np
-from thewalrus.libwalrus import haf_complex
 
 from cpiquasso.sampling.Boson_Sampling_Utilities import Torontonian, TorontonianRecursive
 import time
 
-from thewalrus import tor
 
 def generate_random_matrix( dim ):
     """ creading positive definite selfadjoint matrix A of dimension dim and with eigenvalues between 0 and 1 """
@@ -30,8 +28,6 @@ class TestTorontonian:
     def test_value(self):
         """Check torontonian of thewalrus and piquasso"""
 
-        thewalrus_tor = -10000
-        cpiquasso_tor = -10000
 
         # generate the random matrix
         dim = 40
@@ -100,4 +96,4 @@ class TestTorontonian:
         print(' ')
         print(' ')
 
-        print( 'Relative difference between walrus and piquasso result: ' + str(abs(thewalrus_tor-cpiquasso_tor)/abs(cpiquasso_tor)*100) + '%')
+        print( 'Relative difference between the two piquasso result: ' + str(abs(cpiquasso_tor_recursive-cpiquasso_tor)/abs(cpiquasso_tor)*100) + '%')
