@@ -5,9 +5,10 @@
 #include <chrono>
 #include <string>
 
-#include "TorontonianUtilities.hpp"
+#include "TorontonianUtilities.h"
 #include "Torontonian.h"
 #include "TorontonianRecursive.h"
+
 
 #include "matrix32.h"
 #include "matrix.h"
@@ -27,10 +28,13 @@ get_random_density_matrix(size_t dim){
 }
 
 
+/**
+@brief Unit test to compare torontonian calculators implemented in piqausso boost
+*/
 int main(){
 
 
-    constexpr size_t dim = 60;
+    constexpr size_t dim = 50;
 
     // create random matrix to calculate the torontonian
     pic::matrix mtx = get_random_density_matrix<pic::matrix, pic::Complex16>(dim);

@@ -174,7 +174,7 @@ static PyObject *
 PowerTraceLoopHafnianRecursive_Wrapper_calculate(PowerTraceLoopHafnianRecursive_wrapper *self)
 {
 
-    // start the calculation of the permanent
+    // start the calculation of the loop hafnian
     pic::Complex16 ret = self->calculator->calculate();
 
     return Py_BuildValue("D", &ret);
@@ -250,7 +250,7 @@ static PyMemberDef PowerTraceLoopHafnianRecursive_wrapper_Members[] = {
 
 static PyMethodDef PowerTraceLoopHafnianRecursive_wrapper_Methods[] = {
     {"calculate", (PyCFunction) PowerTraceLoopHafnianRecursive_Wrapper_calculate, METH_NOARGS,
-     "Method to calculate the permanent."
+     "Method to calculate the loop hafnian."
     },
     {NULL}  /* Sentinel */
 };

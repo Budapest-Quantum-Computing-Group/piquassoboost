@@ -28,7 +28,6 @@ set(PYTHON_PLAT_LIB)
 #enable test target
 enable_testing()
 
-
 #################################################################
 # checking python developer packages
 
@@ -53,7 +52,7 @@ message("PYTHONPATH is set to "$ENV{PYTHONPATH})
 
 # contruct library directories
 exec_program(${PYTHON_EXECUTABLE}
-             ARGS "-c \"import sys; ret=';'.join(sys.path); print(ret)\""
+             ARGS "-c \"import site; tmp = [s + '/../..' for s in site.getsitepackages()]; ret=';'.join(tmp); print(ret)\""
              OUTPUT_VARIABLE PYTHON_SYS_PATH
              RETURN_VALUE SYSPATH_NOT_FOUND
             )
@@ -68,7 +67,7 @@ message("Python syspaths: " ${PYTHON_SYS_PATH})
 
 # contruct include directories
 exec_program(${PYTHON_EXECUTABLE}
-             ARGS "-c \"import sys; tmp = [s + '/../../../include' for s in sys.path]; ret=';'.join(tmp); print(ret)\""
+             ARGS "-c \"import site; tmp = [s + '/../../../include' for s in site.getsitepackages()]; ret=';'.join(tmp); print(ret)\""
              OUTPUT_VARIABLE CMAKE_REQUIRED_INCLUDES
              RETURN_VALUE SYSPATH_NOT_FOUND
             )
@@ -133,10 +132,12 @@ endif()
 #################################################################
 # find CBLAS libraries. Hints are given by numpy library directory via variable BLAS_DIR
 
+set(ENV{LD_LIBRARY_PATH} "${BLAS_DIR}:$ENV{LD_LIBRARY_PATH}")
+
 find_package(BLAS REQUIRED)
 
 # make difference between MKL and OPENBLAS by checking specific functions
-set(CMAKE_REQUIRED_LIBRARIES "${BLAS_LIBRARIES}")
+set(CMAKE_REQUIRED_LIBRARIES "${BLAS_LIBRARIES}" "-lm")
 check_function_exists(MKL_Set_Num_Threads BLAS_IS_MKL)
 check_function_exists(openblas_set_num_threads BLAS_IS_OPENBLAS)
 set(CMAKE_REQUIRED_LIBRARIES "")
@@ -241,19 +242,16 @@ else()
 
   find_library(TBB_LIB tbb
                PATHS ${PYTHON_SYS_PATH}
-               PATH_SUFFIXES "/../../../lib"
                NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_LIB tbbmalloc
                PATHS ${PYTHON_SYS_PATH}
-               PATH_SUFFIXES "/../../../lib"
                NO_DEFAULT_PATH
                REQUIRED)
 
   find_library(TBBMALLOC_PROXY_LIB tbbmalloc_proxy
                PATHS ${PYTHON_SYS_PATH}
-               PATH_SUFFIXES "/../../../lib"
                NO_DEFAULT_PATH
                REQUIRED)
   
@@ -363,7 +361,7 @@ target_compile_options(cpiquasso PRIVATE
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
 )
 
-
+message("ooooooooooooooo: " ${TBBMALLOC_LIB})
 # adding linking options
 target_link_libraries(cpiquasso PRIVATE
     "$<$<CONFIG:Debug>:${BLAS_LIBRARIES}>"

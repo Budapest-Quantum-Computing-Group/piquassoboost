@@ -5,6 +5,7 @@
 #include "PicState.h"
 #include "PicVector.hpp"
 
+
 #ifndef CPYTHON
 #include "tbb/tbb.h"
 #endif
@@ -26,7 +27,7 @@ public:
 
 /**
 @brief Constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
+@param mtx_in A selfadjoint matrix for which the torontonian is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.) matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @return Returns with the instance of the class.
 */
 TorontonianRecursive( matrix &mtx_in );
@@ -78,7 +79,7 @@ TorontonianRecursive_Tasks();
 
 /**
 @brief Constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
+@param mtx_in A selfadjoint matrix for which the torontonian is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.) matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @return Returns with the instance of the class.
 */
 TorontonianRecursive_Tasks( matrix &mtx_in );
@@ -108,35 +109,35 @@ void Update_mtx( matrix &mtx_in);
 protected:
 
 /**
-@brief Call to run iterations over the selected modes to calculate partial hafnians
-@param selected_modes Selected modes over which the iterations are run
-@param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
-@param mode_to_iterate The mode for which the occupancy numbers are iterated
-@param priv_addend Therad local storage for the partial hafnians
+@brief Call to run iterations over the selected modes to calculate partial torontonians
+@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
+@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
+@param hole_to_iterate The index indicating which hole index should be iterated
+@param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<int>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<long double>& priv_addend, tbb::task_group &tg );
+void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<double>>& priv_addend, tbb::task_group &tg );
 
 
 /**
-@brief Call to calculate the partial hafnian for given selected modes and their occupancies
-@param selected_modes Selected modes over which the iterations are run
-@param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
-@return Returns with the calculated hafnian
+@brief Call to calculate the partial torontonian for given selected modes and their occupancies
+@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
+@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
+@param reuse_index Index labeling the highest mode for which previous Cholesky decomposition can be reused.
+@return Returns with the calculated torontonian
 */
-virtual long double CalculatePartialTorontonian( const PicVector<int>& selected_modes, matrix L, const size_t reuse_index );
+virtual long double CalculatePartialTorontonian( const PicVector<size_t>& selected_modes, matrix L, const size_t reuse_index );
 
 
 /**
-@brief Call to construct matrix \f$ A^Z \f$ (see the text below Eq. (3.20) of arXiv 1805.12498) for the given modes and their occupancy
-@param selected_modes Selected modes over which the iterations are run
-@param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
-@param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
-@param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
+@brief Call to construct matrix \f$ A^Z \f$ (see the text below Eq. (2) of arXiv 2009.01177) for the given modes
+@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
+@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
+@param reuse_index Index labeling the highest mode for which previous Cholesky decomposition can be reused.
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 matrix
-CreateAZ( const PicVector<int>& selected_index_holes, matrix L, const size_t reuse_index, bool inplace );
+CreateAZ( const PicVector<size_t>& selected_index_holes, matrix L, const size_t reuse_index );
 
 
 

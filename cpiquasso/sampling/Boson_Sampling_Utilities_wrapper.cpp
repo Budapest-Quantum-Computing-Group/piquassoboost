@@ -8,6 +8,7 @@
 #include "PowerTraceLoopHafnian_Wrapper.hpp"
 #include "PowerTraceLoopHafnianRecursive_Wrapper.hpp"
 #include "Torontonian_wrapper.hpp"
+#include "TorontonianRecursive_wrapper.hpp"
 
 
 extern "C"
@@ -51,6 +52,9 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
         return NULL;
 
     if (PyType_Ready(&Torontonian_wrapper_Type) < 0)
+        return NULL;
+
+    if (PyType_Ready(&TorontonianRecursive_wrapper_Type) < 0)
         return NULL;
 
     m = PyModule_Create(&Boson_Sampling_Utilities_wrapper_Module);
@@ -99,6 +103,13 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     Py_INCREF(&Torontonian_wrapper_Type);
     if (PyModule_AddObject(m, "Torontonian_wrapper", (PyObject *) &Torontonian_wrapper_Type) < 0) {
         Py_DECREF(&Torontonian_wrapper_Type);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    Py_INCREF(&TorontonianRecursive_wrapper_Type);
+    if (PyModule_AddObject(m, "TorontonianRecursive_wrapper", (PyObject *) &TorontonianRecursive_wrapper_Type) < 0) {
+        Py_DECREF(&TorontonianRecursive_wrapper_Type);
         Py_DECREF(m);
         return NULL;
     }

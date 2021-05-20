@@ -28,8 +28,10 @@ public:
 
 /**
 @brief Constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
-@param occupancy An array describing the occupancy to be used to calculate the hafnian. The i-th mode is repeated occupancy[i] times.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
+(The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
 PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in );
@@ -81,8 +83,10 @@ PowerTraceHafnianRecursive_Tasks();
 
 /**
 @brief Constructor of the class.
-@param mtx_in The covariance matrix of the Gaussian state.
-@param occupancy An array describing the occupancy to be used to calculate the hafnian. The i-th mode is repeated occupancy[i] times.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
+(The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
 PowerTraceHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in );
@@ -102,6 +106,9 @@ Complex16 calculate();
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
+@param start_idx The minimal index evaluated in the exponentially large sum (used to divide calculations between MPI processes)
+@param step_idx The index step in the exponentially large sum (used to divide calculations between MPI processes)
+@param max_idx The maximal indexe valuated in the exponentially large sum (used to divide calculations between MPI processes)
 @return Returns with the calculated hafnian
 */
 Complex16 calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx );
@@ -125,7 +132,7 @@ void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicS
 @brief Call to calculate the partial hafnian for given selected modes and their occupancies
 @param selected_modes Selected modes over which the iterations are run
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
-@return Returns with the calculated hafnian
+@return Returns with the calculated partial hafnian
 */
 virtual Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
 
@@ -146,7 +153,6 @@ CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_o
 
 /**
 @brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
-@param mtx_in Input matrix defined by
 */
 virtual void ScaleMatrix();
 

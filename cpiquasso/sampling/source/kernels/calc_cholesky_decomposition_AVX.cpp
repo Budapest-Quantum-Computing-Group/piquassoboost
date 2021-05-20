@@ -6,10 +6,14 @@ static tbb::spin_mutex my_mutex;
 namespace pic {
 
 /**
-@brief AVX kernel to
+@brief AVX kernel to calculate in-place Cholesky decomposition of a matrix
+@param mtx A positive definite hermitian matrix with eigenvalues less then unity.  The decomposed matrix is stored in mtx.
+@param reuse_index Labels the row and column from which the Cholesky decomposition should be continued.
+@param determinant The determinant of the matrix is calculated and stored in this variable.
+(if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
 void
-calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
+calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index, Complex16 &determinant) {
 
     // The above code with non-AVX instructions
        // storing in the same memory the results of the algorithm
@@ -17,23 +21,15 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
     __m256d neg2 = _mm256_setr_pd(-1.0, 1.0, -1.0, 1.0);
 
-
-    if (reuse_index == 0) {
-        matrix[0] = sqrt(matrix[0]);
-        reuse_index++;
-    }
-    double* row_i = (double*)matrix.get_data() + 2*(reuse_index-1)*matrix.stride;
+    double* row_i = (double*)matrix.get_data() + 2*(reuse_index)*matrix.stride;
 
     // Decomposing a matrix into lower triangular matrices
     for (int idx = reuse_index; idx < n; idx++) {
 
-        row_i = row_i + 2*matrix.stride;
-
-
-        Complex16* row_j = matrix.get_data();
+        Complex16* row_j = matrix.get_data() + reuse_index*matrix.stride;
         Complex16* row_j2 = row_j + matrix.stride;
 
-        for (int j = 0; j < idx-1; j=j+2) {
+        for (int j = reuse_index; j < idx-1; j=j+2) {
 
             //Complex16 sum = 0;
             //Complex16 sum2 = 0;
@@ -203,6 +199,7 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
             row_i_c[j] = (row_i_c[j] - *sum) / row_j[j];
 
+
 #ifdef DEBUG
             if (matrix.isnan()) {
 
@@ -228,7 +225,6 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
                 __m256d row_i_256 = _mm256_loadu_pd(row_i+kdx);
 
                 // calculate the multiplications  rowi*conj(row_i)
-                __m256d row_i_permuted = _mm256_permute_pd(row_i_256, 0x5);
                 __m256d vec3           = _mm256_mul_pd(row_i_256, row_i_256);
                 __m256d vec4           = _mm256_setr_pd(0.0, 0.0, 0.0, 0.0);
                 vec3                   = _mm256_hadd_pd(vec3, vec4);
@@ -244,14 +240,11 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
             if (idx%2 == 1) {
 
-                __m128d neg2_128 = _mm256_castpd256_pd128(neg2);
-
                 int kdx = 2*(idx-1);
 
                 __m128d row_i_128 = _mm_loadu_pd(row_i+kdx);
 
                 // calculate the multiplications  rowi*conj(row_j)
-                __m128d row_i_permuted = _mm_permute_pd(row_i_128, 0x5);
                 __m128d vec3           = _mm_mul_pd(row_i_128, row_i_128);
                 __m128d vec4           = _mm_setr_pd(0.0, 0.0);
                 vec3                   = _mm_hadd_pd(vec3, vec4);
@@ -266,30 +259,24 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
         Complex16* sum = (Complex16*)&sum1_128;
         Complex16* row_i_c = (Complex16*)row_i;
         row_i_c[idx] = sqrt(row_i_c[idx] - *sum);
+        determinant = determinant * row_i_c[idx];
 
-
+        row_i = row_i + 2*matrix.stride;
     }
 
-
-
 /*
-    // The above code with non-AVX instructions
+    // The AVX code above is equivalent to this code:
+
     // storing in the same memory the results of the algorithm
-    int n = matrix.cols;
-
-
-    Complex16* row_i = matrix.get_data();
-    row_i[0] = sqrt(row_i[0]);
-
+    size_t n = matrix.cols;
     // Decomposing a matrix into lower triangular matrices
-    for (int i = 1; i < n; i++) {
+    for (int i = reuse_index; i < n; i++) {
+        Complex16* row_i = matrix.get_data()+i*matrix.stride;
 
-        row_i = row_i + matrix.stride;
-
-        Complex16* row_j = matrix.get_data();
+        Complex16* row_j = matrix.get_data() + reuse_index*matrix.stride;
         Complex16* row_j2 = row_j + matrix.stride;
 
-        for (int j = 0; j < i-1; j=j+2) {
+        for (int j = reuse_index; j < i-1; j=j+2) {
 
             Complex16 sum = 0;
             Complex16 sum2 = 0;
@@ -320,8 +307,6 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
         }
 
-
-
         if ( i%2 == 1) {
             int j = i-1;
 
@@ -347,7 +332,6 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
         }
 
 
-
         Complex16 sum = 0;
         // summation for diagonals
         // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
@@ -361,12 +345,11 @@ calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index) {
 
 
         row_i[i] = sqrt(row_i[i] - sum);
+        row_i = row_i + matrix.stride;
 
 
     }
 */
-
-
     return;
 
 }

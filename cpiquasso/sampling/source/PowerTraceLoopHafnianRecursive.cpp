@@ -28,9 +28,8 @@ namespace pic {
 
 /**
 @brief Constructor of the class.
-@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_1^*,a_1, a_1^*, ... a_n, a_n^* \f$ ordered covariance matrix of the Gaussian state,
-where \f$ n \f$ is the number of occupancy i n the Gaussian state).
-@param occupancy An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
 The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
@@ -127,9 +126,8 @@ PowerTraceLoopHafnianRecursive::calculate() {
 
 /**
 @brief Constructor of the class.
-@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_1^*,a_1, a_1^*, ... a_n, a_n^* \f$ ordered covariance matrix of the Gaussian state,
-where \f$ n \f$ is the number of occupancy i n the Gaussian state).
-@param occupancy An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
 The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
@@ -173,8 +171,8 @@ PowerTraceLoopHafnianRecursive_Tasks::~PowerTraceLoopHafnianRecursive_Tasks() {
 
 /**
 @brief Call to calculate the partial hafnian for given selected modes and their occupancies
-@param selected_modes Selected modes over which the iterations are run
-@param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
+@param selected_modes Selected column pairs over which the iterations are run
+@param current_occupancy Current occupancy of the selected column pairs for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
 Complex32
@@ -331,7 +329,7 @@ PowerTraceLoopHafnianRecursive_Tasks::ScaleMatrix() {
 
 /**
 @brief Call to create diagonal elements corresponding to the diagonal elements of the input  matrix used in the loop correction
-@param selected_modes Selected modes over which the iterations are run
+@param selected_modes Selected columns pairs over which the iterations are run
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
 @return Returns with the constructed matrix \f$ A^Z \f$.

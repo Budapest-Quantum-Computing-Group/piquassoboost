@@ -1,56 +1,12 @@
 #include "Torontonian.h"
-#include "TorontonianUtilities.hpp"
-
+#include "TorontonianUtilities.h"
 #include "common_functionalities.h"
-
 #include "tbb/tbb.h"
 
 
 #include <bitset>
 
-/*
-    Questions
-        scaling?
-        templating?
-        bitátírás a perm_numberből?
-*/
-
-
-extern "C" {
-
-
-/// Definition of the LAPACKE_zgetri function from LAPACKE to calculate the LU decomposition of a matrix
-int LAPACKE_zgetrf( int matrix_layout, int n, int m, pic::Complex16* a, int lda, int* ipiv );
-}
-
 namespace pic {
-
-Complex16 determinant_byLU_decomposition( matrix& mtx ){
-    matrix& Q = mtx;
-
-    // calculate the inverse of matrix Q
-    int* ipiv = (int*)scalable_aligned_malloc( Q.stride*sizeof(int), CACHELINE);
-    LAPACKE_zgetrf( LAPACK_ROW_MAJOR, Q.rows, Q.cols, Q.get_data(), Q.stride, ipiv );
-
-    //  calculate the determinant of Q
-    Complex16 Qdet_cmplx(1.0,0.0);
-    for (size_t idx=0; idx<Q.rows; idx++) {
-        if (ipiv[idx] != idx+1) {
-            Qdet_cmplx = -Qdet_cmplx * Q[idx*Q.stride + idx];
-        }
-        else {
-            Qdet_cmplx = Qdet_cmplx * Q[idx*Q.stride + idx];
-        }
-
-    }
-
-    scalable_aligned_free(ipiv);
-
-    //std::cout << "complex det: " << Qdet_cmplx << std::endl;
-    return Qdet_cmplx;
-}
-
-
 
 /**
 @brief Default constructor of the class.
@@ -80,10 +36,8 @@ Torontonian::~Torontonian(){
 /**
 @brief Call to calculate the torontonian of a complex matrix
 @return Returns with the calculated torontonian
-
-Calculation based on: https://arxiv.org/pdf/1807.01639.pdf
+Calculation based on Eq. (2) of arXiv 2009.01177)
 */
-//Complex16
 double
 Torontonian::calculate(){
     if ( mtx.rows != mtx.cols) {
@@ -121,16 +75,13 @@ Torontonian::calculate(){
     const size_t dim_over_2 = mtx.rows / 2;
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
-    //tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
-    // torontonian: thread local storages for the partial hafnians
-    tbb::combinable<double> summands{[](){return 0.0D;}};
-
+    tbb::combinable<RealM<double>> summands{[](){return RealM<double>(0.0);}};
 
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
-        double &summand = summands.local();
+        RealM<double> &summand = summands.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
@@ -156,12 +107,7 @@ Torontonian::calculate(){
 
             size_t dimension_of_B = 2 * number_of_ones;
 
-            // matrix mtx corresponds to id - A^(Z), i.e. to the square matrix constructed from
-            // the elements of mtx = 1-A indexed by the rows and colums, where the binary representation of
-            // permutation_idx was 1
-            // details in Eq. (12) https://arxiv.org/pdf/1807.01639.pdf
-            // B = (1 - A^(Z))
-            // Calculating B^(Z)
+            // matrix mtx corresponds to 1 - A^(Z), i.e. to the square matrix constructed from
             matrix B(dimension_of_B, dimension_of_B);
             for (size_t idx = 0; idx < number_of_ones; idx++) {
                 for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
@@ -174,8 +120,6 @@ Torontonian::calculate(){
                     B[(idx + number_of_ones)*dimension_of_B + jdx + number_of_ones] =
                         mtx[(positions_of_ones[idx]+dim_over_2)*dim + (positions_of_ones[jdx]) + dim_over_2];
                 }
-                //B[idx * dimension_of_B + idx] += Complex16(1.0, 0.0);
-                //B[(idx + number_of_ones)*dimension_of_B + idx + number_of_ones] += Complex16(1.0, 0.0);
             }
 
 
@@ -188,7 +132,7 @@ Torontonian::calculate(){
             Complex16 determinant;
             if (number_of_ones != 0) {
 
-                determinant = calc_determinant_cholesky_decomposition(B, 0);
+                determinant = calc_determinant_cholesky_decomposition(B);
             }
             else{
                 determinant = 1.0;
@@ -199,16 +143,15 @@ Torontonian::calculate(){
             double sqrt_determinant = std::sqrt(determinant.real());
             double value = factor / sqrt_determinant;
 
-            summand = summand + value;
+            summand += value;
 
         }
 
     });
 
-    //Complex32 res(0,0);
     double res = 0.0D;
-    summands.combine_each([&res](double a) {
-        res = res + a;
+    summands.combine_each([&res](RealM<double>& a) {
+        res = res + a.get();
     });
 
 #if BLAS==0 // undefined BLAS
@@ -257,7 +200,7 @@ Torontonian::Update_mtx( matrix &mtx_in ){
 @param mtx_in Input matrix defined by
 */
 void Torontonian::ScaleMatrix(){
-    //mtx = mtx_orig.copy();
+
 }
 
 
