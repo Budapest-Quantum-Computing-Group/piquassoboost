@@ -62,12 +62,6 @@ class TorontonianRecursive_Tasks : public Torontonian {
 protected:
     /// number of modes spanning the gaussian state
     size_t num_of_modes;
-    /// The maximal number of spawned tasks living at the same time
-    short max_task_num;
-    /// The current number of spawned tasks
-    int task_num;
-    /// mutual exclusion to count the spawned tasks
-    tbb::spin_mutex* task_count_mutex;
 
 public:
 

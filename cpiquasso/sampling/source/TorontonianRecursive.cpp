@@ -88,13 +88,6 @@ TorontonianRecursive::calculate() {
 */
 TorontonianRecursive_Tasks::TorontonianRecursive_Tasks() {
 
-    // set the maximal number of spawned tasks living at the same time
-    max_task_num = 0;
-    // The current number of spawned tasks
-    task_num = 0;
-    // mutual exclusion to count the spawned tasks
-    task_count_mutex = new tbb::spin_mutex();
-
 }
 
 
@@ -122,13 +115,6 @@ TorontonianRecursive_Tasks::TorontonianRecursive_Tasks( matrix &mtx_in ) {
         exit(-1);
     }
 
-    // set the maximal number of spawned tasks living at the same time
-    max_task_num = 0;
-    // The current number of spawned tasks
-    task_num = 0;
-    // mutual exclusion to count the spawned tasks
-    task_count_mutex = new tbb::spin_mutex();
-
 
 }
 
@@ -137,7 +123,7 @@ TorontonianRecursive_Tasks::TorontonianRecursive_Tasks( matrix &mtx_in ) {
 @brief Destructor of the class.
 */
 TorontonianRecursive_Tasks::~TorontonianRecursive_Tasks() {
-    delete task_count_mutex;
+
 }
 
 
