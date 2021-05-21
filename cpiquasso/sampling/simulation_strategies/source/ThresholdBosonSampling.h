@@ -155,7 +155,7 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 @param Qdet The determinant of matrix Q.
 @param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
 @param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
-@param current_output The fock representation of the current output for which the probability is calculated
+@param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
 virtual double calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output );

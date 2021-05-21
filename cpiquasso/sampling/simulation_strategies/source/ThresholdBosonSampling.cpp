@@ -10,6 +10,8 @@
 #include "BruteForceHafnian.h"
 #include "BruteForceLoopHafnian.h"
 
+#include "Torontonian.h"
+
 #ifdef __MPI__
 #include <mpi.h>
 #endif // MPI
@@ -311,15 +313,17 @@ ThresholdBosonSampling::getSample() {
         // the chosen index of the probabilities
         size_t chosen_index = 0;
 
-        // get the probabilities for different photon counts on the output mode mode_idx
-        for (size_t photon_num=0; photon_num<2; photon_num++) {
+        // calculate probabilities whether there are any photons on the mode mode_idx
+        for (size_t photon_num=0; photon_num<1; photon_num++) {
 
+            // current output variable is used for storing the conditions for the conditional probablities.
             // create array for the new output state
             PicState_int64 current_output(output_sample.size()+1, 0);
             memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
 
 
-            // set the number of photons in the last mode do be sampled
+
+            // set the number of photons in the last mode to be sampled
             current_output[mode_idx-1] = photon_num;
 
             // calculate the probability associated with observing current_output
@@ -328,12 +332,19 @@ ThresholdBosonSampling::getSample() {
             // sometimes the probability is negative which is coming from a negative hafnian.
             prob = prob > 0 ? prob : 0;
 
-            prob_sum = prob_sum + prob/current_state_probability;
+            if (prob > rand_num){
+                current_state_probability = prob;
+                current_output[mode_idx-1] = 0;
+            }else{
+                current_state_probability = 1.0 - prob;
+                current_output[mode_idx-1] = 1;
+            }
+            /*prob_sum = prob_sum + prob/current_state_probability;
             if ( prob_sum >= rand_num ) {
                 chosen_index = photon_num;
                 current_state_probability = prob;
                 break;
-            }
+            }*/
 
         }
 
@@ -614,7 +625,7 @@ ThresholdBosonSampling::calc_HamiltonMatrix( matrix& Qinv ) {
 @param Qdet The determinant of matrix Q.
 @param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
 @param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
-@param current_output The fock representation of the current output for which the probability is calculated
+@param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
 double
@@ -655,11 +666,12 @@ ThresholdBosonSampling::calc_probability( matrix& Qinv, const double& Qdet, matr
 
     }
 
-
+    // Normalization of the last modes is always 1 in threshold calculation.
+    // division by s_1!...s_m! is not needed here. Reference: Eq. (14) https://journals.aps.org/prresearch/pdf/10.1103/PhysRevResearch.2.023005
     // divide Normalization factor by s_1!...s_m! in Eq (10) of arXiv 2010.15595v3
-    for (size_t idx=0;idx<current_output.size(); idx++) {
+    /*for (size_t idx=0;idx<current_output.size(); idx++) {
         Normalization = Normalization/factorial(current_output[idx]);
-    }
+    }*/
 
     // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
     matrix&& A_S = create_A_S( A, current_output );
@@ -667,44 +679,12 @@ ThresholdBosonSampling::calc_probability( matrix& Qinv, const double& Qdet, matr
 
 
     /// Calculate the torontonian of A_S
-
-    // calculate the hafnian of A_S
-    Complex16 hafnian;
-    if (m.size()==0) {
-
-
-        // gaussian state without displacement
-        if (A_S.rows <= 10) {
-            BruteForceHafnian hafnian_calculator = BruteForceHafnian(A_S);
-            hafnian = hafnian_calculator.calculate();
-        }
-        else {
-            PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
-            hafnian = hafnian_calculator.calculate();
-        }
-    }
-    else {
-        // gaussian state with displacement
-
-        // calculate gamma according to Eq (9) of arXiv 2010.15595v3 and set them into the diagonal of A_S
-        diag_correction_of_A_S( A_S, Qinv, m, current_output );
-
-        if (A_S.rows <= 2) {
-            BruteForceLoopHafnian hafnian_calculator = BruteForceLoopHafnian(A_S);
-            hafnian = hafnian_calculator.calculate();
-        }
-        else {
-            PowerTraceLoopHafnian hafnian_calculator = PowerTraceLoopHafnian(A_S);
-            hafnian = hafnian_calculator.calculate();
-        }
-
-
-
-    }
+    Torontonian torontonian_calculator(A_S);
+    double torontonian = torontonian_calculator.calculate();
 
 
     // calculate the probability associated with the current output
-    double prob = Normalization*hafnian.real();
+    double prob = Normalization*torontonian;
 
 
     return prob;
@@ -784,6 +764,15 @@ ThresholdBosonSampling::create_A_S( matrix& A, PicState_int64& current_output ) 
                     col_idx++;
                 }
             }
+
+            // 0 0 0 0 0 0 0 0
+            // 0 1 0 1 0 1 0 1
+            // 0 0 0 0 0 0 0 0
+            // 0 1 0 1 0 1 0 1
+            // 0 0 0 0 0 0 0 0
+            // 0 1 0 1 0 1 0 1
+            // 0 0 0 0 0 0 0 0
+            // 0 1 0 1 0 1 0 1
 
             col_idx = 0;
             // insert column elements
