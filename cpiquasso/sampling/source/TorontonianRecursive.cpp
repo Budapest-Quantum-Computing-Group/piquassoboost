@@ -89,7 +89,7 @@ TorontonianRecursive::calculate() {
 TorontonianRecursive_Tasks::TorontonianRecursive_Tasks() {
 
     // set the maximal number of spawned tasks living at the same time
-    max_task_num = 300;
+    max_task_num = 0;
     // The current number of spawned tasks
     task_num = 0;
     // mutual exclusion to count the spawned tasks
@@ -123,7 +123,7 @@ TorontonianRecursive_Tasks::TorontonianRecursive_Tasks( matrix &mtx_in ) {
     }
 
     // set the maximal number of spawned tasks living at the same time
-    max_task_num = 300;
+    max_task_num = 0;
     // The current number of spawned tasks
     task_num = 0;
     // mutual exclusion to count the spawned tasks
@@ -166,10 +166,6 @@ TorontonianRecursive_Tasks::calculate() {
 #endif
 
 
-
-    // create task group to spawn tasks
-    tbb::task_group tg;
-
     // thread local storage for partial hafnian
     tbb::combinable<RealM<double>> priv_addend{[](){return RealM<double>(0.0);}};
 
@@ -180,16 +176,14 @@ TorontonianRecursive_Tasks::calculate() {
     matrix L = mtx.copy();
     calc_cholesky_decomposition(L);
 
-    long double torontonian = CalculatePartialTorontonian( selected_index_holes, L, num_of_modes);
+    double torontonian = CalculatePartialTorontonian( selected_index_holes, L, num_of_modes);
 
     // add the first index hole in prior to the iterations
     selected_index_holes.push_back(num_of_modes-1);
 
     // start task iterations originating from the initial selected modes
-    IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1, priv_addend, tg );
+    IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1, priv_addend );
 
-    // wait until all spawned tasks are completed
-    tg.wait();
 
 
     priv_addend.combine_each([&](RealM<double> &a) {
@@ -226,7 +220,7 @@ TorontonianRecursive_Tasks::calculate() {
 @param tg Reference to a tbb::task_group
 */
 void
-TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<double>>& priv_addend, tbb::task_group &tg ) {
+TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<double>>& priv_addend ) {
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;
@@ -261,8 +255,9 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
     int new_hole_to_iterate = hole_to_iterate+1;
 
     // now do the rest of the iterations
-    for (size_t idx=index_max-1; idx>index_min; idx--) {
+    tbb::parallel_for( index_min+1,  index_max, (size_t)1, [&](size_t idx){
 
+        PicVector<size_t> selected_index_holes_new = selected_index_holes;
         selected_index_holes_new[hole_to_iterate] = idx-1;
         size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
         double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
@@ -272,48 +267,21 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
 
         // return if new index hole would give no nontrivial result
         // (in this case the partial torontonian is unity and should be counted only once in function calculate)
-        if (stop_spawning_iterations) continue;
+        if (stop_spawning_iterations) return;
 
 
         reuse_index_new = selected_index_holes_new[hole_to_iterate] + 1 - selected_index_holes.size();
         matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
         calc_cholesky_decomposition(L_new, 2*reuse_index_new);
 
-        if (task_num < max_task_num) {
-            {
-                tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                task_num++;
-            }
+        PicVector<size_t> selected_index_holes_new2 = selected_index_holes_new;
+        selected_index_holes_new2.push_back(this->num_of_modes-1);
+        reuse_index_new = L_new.rows/2-1;
 
-            PicVector<size_t> selected_index_holes_new2 = selected_index_holes_new;
-            selected_index_holes_new2.push_back(this->num_of_modes-1);
+        IterateOverSelectedModes( selected_index_holes_new2, new_hole_to_iterate, L_new, reuse_index_new, priv_addend );
 
-            tg.run( [this, selected_index_holes_new2, L_new, reuse_index_new, new_hole_to_iterate, &priv_addend, &tg ](){
+    });
 
-                matrix L = L_new;
-                //calc_cholesky_decomposition(L, 2*reuse_index_new);
-                IterateOverSelectedModes( selected_index_holes_new2, new_hole_to_iterate, L, L_new.rows/2-1, priv_addend, tg );
-
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{*task_count_mutex};
-                    task_num--;
-                }
-
-                return;
-            });
-        }
-        else {
-
-            PicVector<size_t> selected_index_holes_new2 = selected_index_holes_new;
-            selected_index_holes_new2.push_back(this->num_of_modes-1);
-            reuse_index_new = L_new.rows/2-1;
-
-            IterateOverSelectedModes( selected_index_holes_new2, new_hole_to_iterate, L_new, reuse_index_new, priv_addend, tg );
-
-       }
-
-
-    }
 
 
 }
@@ -465,8 +433,6 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_ho
         AZ[2*idx*AZ.stride + 2*idx] = L[2*idx*L.stride + 2*idx];
         AZ[(2*idx+1)*AZ.stride + 2*idx+1] = L[(2*idx+1)*L.stride + 2*idx + 1];
     }
-
-
 
     // copy data from the input matrix and the reusable partial Cholesky decomposition matrix L
     for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
