@@ -87,7 +87,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
 
 
     cutoff = 0;
-    max_photons = 0;
 
 #ifdef __MPI__
     // Get the number of processes
@@ -105,10 +104,9 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
 @brief Constructor of the class.
 @param covariance_matrix The covariance matrix describing the gaussian state
 @param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Returns with the instance of the class.
 */
-GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, const size_t& cutoff, const size_t& max_photons ) {
+GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, const size_t& cutoff ) {
 
 #ifdef __MPI__
     // Get the number of processes
@@ -126,7 +124,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
 
     state = GaussianState_Cov( covariance_matrix, qudratures );
     setCutoff( cutoff );
-    setMaxPhotons( max_photons );
 
 
 
@@ -142,10 +139,9 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
 @param covariance_matrix The covariance matrix describing the gaussian state
 @param displacement The mean (displacement) of the Gaussian state
 @param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Returns with the instance of the class.
 */
-GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, matrix& displacement, const size_t& cutoff, const size_t& max_photons ) {
+GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matrix, matrix& displacement, const size_t& cutoff ) {
 
 #ifdef __MPI__
     // Get the number of processes
@@ -167,7 +163,6 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     state = GaussianState_Cov(covariance_matrix, displacement, qudratures);
 
     setCutoff( cutoff );
-    setMaxPhotons( max_photons );
 
     dim = covariance_matrix.rows;
     dim_over_2 = dim/2;
@@ -212,16 +207,6 @@ GaussianSimulationStrategy::setCutoff( const size_t& cutoff_in ) {
 
 }
 
-/**
-@brief Call to set the maximum number of photons that can be counted in the output samples.
-@param max_photons_in The maximum number of photons that can be counted in the output samples.
-*/
-void
-GaussianSimulationStrategy::setMaxPhotons( const size_t& max_photons_in ) {
-
-    max_photons = max_photons_in;
-
-}
 
 
 /**
@@ -360,9 +345,6 @@ exit(-1);
         current_output[mode_idx-1] = chosen_index;
         current_output.number_of_photons = output_sample.number_of_photons + chosen_index;
 
-        if (current_output.number_of_photons > max_photons) {
-            return PicState_int64(0);
-        }
 
         output_sample = current_output;
 

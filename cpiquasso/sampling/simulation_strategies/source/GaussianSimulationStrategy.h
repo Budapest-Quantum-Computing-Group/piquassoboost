@@ -32,8 +32,6 @@ protected:
 
     /// cutoff of the Fock basis truncation.
     size_t cutoff;
-    /// the maximum number of photons that can be counted in the output samples.
-    size_t max_photons;
     /// The dimension of the covariance matrix
     size_t dim;
     /// The number of the input modes stored by the covariance matrix
@@ -59,10 +57,9 @@ GaussianSimulationStrategy();
 @brief Constructor of the class. (The displacement is set to zero by this constructor)
 @param covariance_matrix_in The covariance matrix describing the gaussian state
 @param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Returns with the instance of the class.
 */
-GaussianSimulationStrategy( matrix &covariance_matrix_in, const size_t& cutoff, const size_t& max_photons );
+GaussianSimulationStrategy( matrix &covariance_matrix_in, const size_t& cutoff );
 
 
 /**
@@ -70,10 +67,9 @@ GaussianSimulationStrategy( matrix &covariance_matrix_in, const size_t& cutoff, 
 @param covariance_matrix_in The covariance matrix describing the gaussian state
 @param displacement The mean (displacement) of the Gaussian state
 @param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Returns with the instance of the class.
 */
-GaussianSimulationStrategy( matrix &covariance_matrix_in, matrix& displacement_in, const size_t& cutoff, const size_t& max_photons );
+GaussianSimulationStrategy( matrix &covariance_matrix_in, matrix& displacement_in, const size_t& cutoff );
 
 /**
 @brief Destructor of the class
@@ -93,11 +89,6 @@ void Update_covariance_matrix( matrix &covariance_matrix_in );
 */
 void setCutoff( const size_t& cutoff_in );
 
-/**
-@brief Call to set the maximum number of photons that can be counted in the output samples.
-@param max_photons_in The maximum number of photons that can be counted in the output samples.
-*/
-void setMaxPhotons( const size_t& max_photons_in );
 
 /**
 @brief Call to get samples from the gaussian state

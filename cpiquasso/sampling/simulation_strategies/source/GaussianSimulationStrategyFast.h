@@ -37,10 +37,9 @@ GaussianSimulationStrategyFast();
 @brief Constructor of the class. (The displacement is set to zero by this constructor)
 @param covariance_matrix_in The covariance matrix describing the gaussian state
 @param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Returns with the instance of the class.
 */
-GaussianSimulationStrategyFast( matrix &covariance_matrix_in, const size_t& cutoff, const size_t& max_photons );
+GaussianSimulationStrategyFast( matrix &covariance_matrix_in, const size_t& cutoff );
 
 
 /**
@@ -48,10 +47,9 @@ GaussianSimulationStrategyFast( matrix &covariance_matrix_in, const size_t& cuto
 @param covariance_matrix_in The covariance matrix describing the gaussian state
 @param displacement The mean (displacement) of the Gaussian state
 @param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Returns with the instance of the class.
 */
-GaussianSimulationStrategyFast( matrix &covariance_matrix_in, matrix& displacement_in, const size_t& cutoff, const size_t& max_photons );
+GaussianSimulationStrategyFast( matrix &covariance_matrix_in, matrix& displacement_in, const size_t& cutoff );
 
 
 
