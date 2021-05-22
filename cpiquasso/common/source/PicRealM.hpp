@@ -88,11 +88,11 @@ void add( const scalar &value, size_t index) {
 
     scalar tmp = addends[index];
 
-    if ( abs(tmp)*ORDER_CUTOFF > abs(value) ) {
+    if ( std::abs(tmp)*ORDER_CUTOFF > std::abs(value) ) {
         addends[index] = value;
         add( tmp, index+1);
     }
-    else if ( abs(tmp) < value*abs(ORDER_CUTOFF) ) {
+    else if ( std::abs(tmp) < std::abs(value)*ORDER_CUTOFF ) {
         add( value, index+1);
     }
     else {

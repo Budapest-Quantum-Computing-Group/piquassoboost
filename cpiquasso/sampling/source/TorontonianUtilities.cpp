@@ -155,6 +155,14 @@ calc_determinant_cholesky_decomposition(matrix& mtx, const size_t reuse_index){
         // calculate the rest of the Cholesky decomposition and calculate the determinant
         calc_cholesky_decomposition(mtx, reuse_index, determinant);
 
+#ifdef DEBUG
+        if (reuse_index > mtx.rows ) {
+            std::cout << "calc_determinant_cholesky_decomposition: reuse index should be smaller than the matrix size!" << std::endl;
+            exit(-1);
+        }
+
+#endif
+
         // multiply the result with the remaining diagonal elements of the Cholesky matrix L, that has been reused
 
         for (size_t idx=0; idx < reuse_index; idx++){

@@ -209,13 +209,13 @@ void
 TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<double>>& priv_addend ) {
 
     // calculate the partial Torontonian for the selected index holes
-    size_t index_min=0;
-    size_t index_max=0;
+    size_t index_min;
+    size_t index_max;
     if ( hole_to_iterate == 0 ) {
         index_min = 0;
         index_max = selected_index_holes[hole_to_iterate]+1;
     }
-    else if (hole_to_iterate>0 ) {
+    else {
         index_min = selected_index_holes[hole_to_iterate-1]+1;
         index_max = selected_index_holes[hole_to_iterate]+1;
 
