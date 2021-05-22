@@ -42,8 +42,7 @@ sum( PicState_int64 &vec) {
 */
 CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy() {
    // seed the random generator
-   srand ( time ( NULL));
-
+    seed(time(NULL));
 }
 
 
@@ -57,8 +56,7 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
     Update_interferometer_matrix( interferometer_matrix_in );
 
     // seed the random generator
-    srand ( time ( NULL));
-
+    seed(time(NULL));
 }
 
 
@@ -66,6 +64,15 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 @brief Destructor of the class
 */
 CGeneralizedCliffordsSimulationStrategy::~CGeneralizedCliffordsSimulationStrategy() {
+}
+
+/**
+@brief Seeds the simulation with a specified value
+@param value The value to seed with
+*/
+void
+CGeneralizedCliffordsSimulationStrategy::seed(unsigned long long int value) {
+    srand(value);
 }
 
 /**

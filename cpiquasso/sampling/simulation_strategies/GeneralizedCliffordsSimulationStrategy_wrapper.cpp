@@ -131,7 +131,14 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
     pic::matrix interferometer_matrix_mtx = numpy2matrix(self->interferometer_matrix);
 
     // create instance of class ChinHuhPermanentCalculator
-    self->simulation_strategy = cerate_ChinHuhPermanentCalculator( interferometer_matrix_mtx );
+    self->simulation_strategy = cerate_ChinHuhPermanentCalculator(
+        interferometer_matrix_mtx
+    );
+
+    PyObject* constants = PyImport_ImportModule("piquasso.api.constants");
+    PyObject* result = PyObject_CallMethod(constants, "get_seed", "");
+
+    self->simulation_strategy->seed(PyLong_AsUnsignedLongLong(result));
 
     return 0;
 }

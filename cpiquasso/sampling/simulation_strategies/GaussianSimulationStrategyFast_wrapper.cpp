@@ -161,6 +161,11 @@ GaussianSimulationStrategyFast_wrapper_init(GaussianSimulationStrategyFast_wrapp
     // create instance of class ChinHuhPermanentCalculator
     self->simulation_strategy = create_ChinHuhPermanentCalculator( covariance_matrix_mtx, m_mtx, fock_cutoff );
 
+    PyObject* constants = PyImport_ImportModule("piquasso.api.constants");
+    PyObject* result = PyObject_CallMethod(constants, "get_seed", "");
+
+    self->simulation_strategy->seed(PyLong_AsUnsignedLongLong(result));
+
     return 0;
 }
 
