@@ -224,10 +224,7 @@ GaussianSimulationStrategy::simulate( int samples_number ) {
     std::vector<PicState_int64> samples;
     samples.reserve(samples_number);
     for (size_t idx=0; idx < samples_number; idx++) {
-        PicState_int64&& sample = getSample();
-        if (sample.size() > 0 ) {
-            samples.push_back(sample);
-        }
+        samples.push_back(getSample());
     }
 
     return samples;
@@ -292,6 +289,8 @@ GaussianSimulationStrategy::getSample() {
         // the chosen index of the probabilities
         size_t chosen_index = 0;
 
+        matrix_base<double> conditional_probabilities = matrix_base<double>(1, cutoff);
+
         // get the probabilities for different photon counts on the output mode mode_idx
         for (size_t photon_num=0; photon_num<cutoff; photon_num++) {
 
@@ -309,7 +308,11 @@ GaussianSimulationStrategy::getSample() {
             // sometimes the probability is negative which is coming from a negative hafnian.
             prob = prob > 0 ? prob : 0;
 
-            prob_sum = prob_sum + prob/current_state_probability;
+            double conditional_probability = prob / current_state_probability;
+            conditional_probabilities[photon_num] = conditional_probability;
+
+            prob_sum = prob_sum + conditional_probability;
+
             if ( prob_sum >= rand_num ) {
                 chosen_index = photon_num;
                 current_state_probability = prob;
@@ -319,25 +322,8 @@ GaussianSimulationStrategy::getSample() {
         }
 
         if (prob_sum < rand_num ) {
-            // when the chosen index corresponds to the cutoff the number of photons cannot be determined, so we return from the sampling
-            return PicState_int64(0);
+            chosen_index = sample_from_probabilities(conditional_probabilities);
         }
-
-/*
-if ( prob_sum > 1 ) {
-probabilities_renormalized.print_matrix();
-
-FILE *fp = fopen("bad_matrix", "wb");
-fwrite( &A.rows, sizeof(size_t), 1, fp);
-fwrite( &A.cols, sizeof(size_t), 1, fp);
-fwrite( A.get_data(), sizeof(Complex16), A.size(), fp);
-fwrite( &output_sample.cols, sizeof(size_t), 1, fp);
-fwrite( output_sample.get_data(), sizeof(int64_t), output_sample.size(), fp);
-fclose(fp);
-exit(-1);
-
-}
-*/
 
         // The sampled current state:
         PicState_int64 current_output(output_sample.size()+1, 0);
