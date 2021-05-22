@@ -17,9 +17,9 @@
 
 
 
-/*
-static tbb::spin_mutex mymutex;
 
+static tbb::spin_mutex my_mutex;
+/*
 double time_nominator = 0.0;
 double time_nevezo = 0.0;
 */
@@ -160,9 +160,9 @@ TorontonianRecursive_Tasks::calculate() {
 
     // calculate the Cholesky decomposition of the initial matrix to be later reused
     matrix L = mtx.copy();
-    calc_cholesky_decomposition(L);
+    Complex16 determinant = calc_determinant_cholesky_decomposition(L);
 
-    double torontonian = CalculatePartialTorontonian( selected_index_holes, L, num_of_modes);
+    double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
 
     // add the first index hole in prior to the iterations
     selected_index_holes.push_back(num_of_modes-1);
@@ -209,8 +209,8 @@ void
 TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<double>>& priv_addend ) {
 
     // calculate the partial Torontonian for the selected index holes
-    size_t index_min;
-    size_t index_max;
+    size_t index_min=0;
+    size_t index_max=0;
     if ( hole_to_iterate == 0 ) {
         index_min = 0;
         index_max = selected_index_holes[hole_to_iterate]+1;
@@ -230,7 +230,10 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
     selected_index_holes_new[hole_to_iterate] = index_max-1;
     size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
 
-    double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
+    matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
+    Complex16 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
+
+    double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
     RealM<double> &torontonian_priv = priv_addend.local();
     torontonian_priv += partial_torontonian;
 
@@ -243,10 +246,15 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
     // now do the rest of the iterations
     tbb::parallel_for( index_min+1,  index_max, (size_t)1, [&](size_t idx){
 
+
         PicVector<size_t> selected_index_holes_new = selected_index_holes;
         selected_index_holes_new[hole_to_iterate] = idx-1;
         size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
-        double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, L, reuse_index_new );
+
+        matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
+        Complex16 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
+
+        double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
         RealM<double> &torontonian_priv = priv_addend.local();
         torontonian_priv += partial_torontonian;
 
@@ -254,11 +262,6 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
         // return if new index hole would give no nontrivial result
         // (in this case the partial torontonian is unity and should be counted only once in function calculate)
         if (stop_spawning_iterations) return;
-
-
-        reuse_index_new = selected_index_holes_new[hole_to_iterate] + 1 - selected_index_holes.size();
-        matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
-        calc_cholesky_decomposition(L_new, 2*reuse_index_new);
 
         PicVector<size_t> selected_index_holes_new2 = selected_index_holes_new;
         selected_index_holes_new2.push_back(this->num_of_modes-1);
@@ -273,38 +276,26 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
 }
 
 
+
+
 /**
 @brief Call to calculate the partial torontonian for given selected modes and their occupancies
-@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
-@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
-@param reuse_index Index labeling the highest mode for which previous Cholesky decomposition can be reused.
+@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A_Z.
+@param determinant The determinant of the submatrix A_Z
 @return Returns with the calculated torontonian
 */
-long double
-TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>& selected_index_holes, matrix L, const size_t reuse_index ) {
+double
+TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>& selected_index_holes, const Complex16 &determinant ) {
 
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 
-    matrix &&B = CreateAZ(selected_index_holes, L, reuse_index);
 
     // calculating -1^(N-|Z|)
     double factor =
                 (number_selected_modes + num_of_modes) % 2
                     ? -1.0D
                     : 1.0D;
-
-    // calculating the determinant of B
-    Complex16 determinant;
-    if (number_selected_modes != 0) {
-        // testing purpose (the matrix is not positive definite and selfadjoint)
-        //determinant = determinant_byLU_decomposition(B);
-        determinant = calc_determinant_cholesky_decomposition(B, 2*reuse_index);
-    }
-    else{
-        determinant = 1.0;
-    }
-
     // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
     double sqrt_determinant = std::sqrt(determinant.real());
 

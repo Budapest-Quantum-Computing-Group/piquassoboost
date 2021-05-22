@@ -115,12 +115,11 @@ void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode
 
 /**
 @brief Call to calculate the partial torontonian for given selected modes and their occupancies
-@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
-@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
-@param reuse_index Index labeling the highest mode for which previous Cholesky decomposition can be reused.
+@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A_Z.
+@param determinant The determinant of the submatrix A_Z
 @return Returns with the calculated torontonian
 */
-virtual long double CalculatePartialTorontonian( const PicVector<size_t>& selected_modes, matrix L, const size_t reuse_index );
+virtual double CalculatePartialTorontonian( const PicVector<size_t>& selected_modes, const Complex16 &determinant );
 
 
 /**
