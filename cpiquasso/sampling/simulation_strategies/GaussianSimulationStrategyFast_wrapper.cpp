@@ -29,13 +29,12 @@ typedef struct GaussianSimulationStrategyFast_wrapper {
 @param covariance_matrix The covariance matrix describing the gaussian state
 @param displacement The mean (displacement) of the Gaussian state
 @param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
 pic::GaussianSimulationStrategyFast*
-cerate_ChinHuhPermanentCalculator( pic::matrix &covariance_matrix_mtx, pic::matrix &displacement, const size_t& cutoff, const size_t& max_photons ) {
+create_ChinHuhPermanentCalculator( pic::matrix &covariance_matrix_mtx, pic::matrix &displacement, const size_t& cutoff ) {
 
-    return new pic::GaussianSimulationStrategyFast(covariance_matrix_mtx, displacement, cutoff, max_photons);
+    return new pic::GaussianSimulationStrategyFast(covariance_matrix_mtx, displacement, cutoff );
 
 }
 
@@ -116,17 +115,16 @@ static int
 GaussianSimulationStrategyFast_wrapper_init(GaussianSimulationStrategyFast_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"covariance_matrix", (char*)"m", (char*)"fock_cutoff", (char*)"max_photons", NULL};
+    static char *kwlist[] = {(char*)"covariance_matrix", (char*)"m", (char*)"fock_cutoff", NULL};
 
     // initiate variables for input arguments
     PyObject *covariance_matrix_arg = NULL;
     PyObject *m_arg = NULL;
     int fock_cutoff = 0;
-    int max_photons = 0;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOii", kwlist,
-                                     &covariance_matrix_arg, &m_arg, &fock_cutoff, &max_photons))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOi", kwlist,
+                                     &covariance_matrix_arg, &m_arg, &fock_cutoff ))
         return -1;
 
     // convert python object array to numpy C API array
@@ -161,7 +159,7 @@ GaussianSimulationStrategyFast_wrapper_init(GaussianSimulationStrategyFast_wrapp
     pic::matrix m_mtx = numpy2matrix(self->m);
 
     // create instance of class ChinHuhPermanentCalculator
-    self->simulation_strategy = cerate_ChinHuhPermanentCalculator( covariance_matrix_mtx, m_mtx, fock_cutoff , max_photons );
+    self->simulation_strategy = create_ChinHuhPermanentCalculator( covariance_matrix_mtx, m_mtx, fock_cutoff );
 
     return 0;
 }
