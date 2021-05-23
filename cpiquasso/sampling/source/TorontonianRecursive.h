@@ -110,7 +110,7 @@ protected:
 @param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<double>>& priv_addend );
+void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend );
 
 
 /**
@@ -119,7 +119,7 @@ void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode
 @param determinant The determinant of the submatrix A_Z
 @return Returns with the calculated torontonian
 */
-virtual double CalculatePartialTorontonian( const PicVector<size_t>& selected_modes, const Complex16 &determinant );
+virtual long double CalculatePartialTorontonian( const PicVector<size_t>& selected_modes, const Complex16 &determinant );
 
 
 /**

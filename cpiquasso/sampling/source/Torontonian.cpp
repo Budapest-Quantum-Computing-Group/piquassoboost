@@ -75,13 +75,13 @@ Torontonian::calculate(){
     const size_t dim_over_2 = mtx.rows / 2;
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
-    tbb::combinable<RealM<double>> summands{[](){return RealM<double>(0.0);}};
+    tbb::combinable<RealM<long double>> summands{[](){return RealM<long double>(0.0);}};
 
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
-        RealM<double> &summand = summands.local();
+        RealM<long double> &summand = summands.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
@@ -123,10 +123,10 @@ Torontonian::calculate(){
             }
 
 
-            double factor =
+            long double factor =
                 (number_of_ones + dim_over_2) % 2
-                    ? -1.0D
-                    : 1.0D;
+                    ? -1.0
+                    : 1.0;
 
             // calculating the determinant of B
             Complex16 determinant;
@@ -139,8 +139,8 @@ Torontonian::calculate(){
 
 
             // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
-            double sqrt_determinant = std::sqrt(determinant.real()*scale_factors[number_of_ones]);
-            double value = factor / sqrt_determinant;
+            long double sqrt_determinant = std::sqrt(determinant.real()*scale_factors[number_of_ones]);
+            long double value = factor / sqrt_determinant;
 
             summand += value;
 
@@ -148,8 +148,8 @@ Torontonian::calculate(){
 
     });
 
-    double res = 0.0D;
-    summands.combine_each([&res](RealM<double>& a) {
+    long double res = 0.0;
+    summands.combine_each([&res](RealM<long double>& a) {
         res = res + a.get();
     });
 
@@ -162,7 +162,7 @@ Torontonian::calculate(){
 #endif
 
 
-    return res;
+    return (double) res;
 }
 
 /**
@@ -231,7 +231,7 @@ void Torontonian::ScaleMatrix(){
 
         // fill up the vector of scale factors
         scale_factors.reserve(mtx.size()/2);
-        double overall_scale_factor = 1.0;
+        long double overall_scale_factor = 1.0;
 
         scale_factors.push_back(overall_scale_factor);
         for (size_t idx=0; idx<mtx.size()/2; idx++) {

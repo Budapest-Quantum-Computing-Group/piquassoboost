@@ -25,7 +25,7 @@ protected:
     */
     matrix mtx;
     /// The scale factors derived from the scaling of the input matrix used to scale the calculated determinants
-    std::vector<double> scale_factors;
+    std::vector<long double> scale_factors;
 
 
 public:

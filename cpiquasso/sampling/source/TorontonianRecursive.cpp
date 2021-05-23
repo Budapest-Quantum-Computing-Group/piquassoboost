@@ -153,7 +153,7 @@ TorontonianRecursive_Tasks::calculate() {
 
 
     // thread local storage for partial hafnian
-    tbb::combinable<RealM<double>> priv_addend{[](){return RealM<double>(0.0);}};
+    tbb::combinable<RealM<long double>> priv_addend{[](){return RealM<long double>(0.0);}};
 
     // construct the initial selection of the modes
     PicVector<size_t> selected_index_holes;
@@ -162,7 +162,7 @@ TorontonianRecursive_Tasks::calculate() {
     matrix L = mtx.copy();
     Complex16 determinant = calc_determinant_cholesky_decomposition(L);
 
-    double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
+    long double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
 
     // add the first index hole in prior to the iterations
     selected_index_holes.push_back(num_of_modes-1);
@@ -172,7 +172,7 @@ TorontonianRecursive_Tasks::calculate() {
 
 
 
-    priv_addend.combine_each([&](RealM<double> &a) {
+    priv_addend.combine_each([&](RealM<long double> &a) {
         torontonian = torontonian + a.get();
     });
 
@@ -206,7 +206,7 @@ TorontonianRecursive_Tasks::calculate() {
 @param tg Reference to a tbb::task_group
 */
 void
-TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<double>>& priv_addend ) {
+TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend ) {
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;
@@ -233,8 +233,8 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
     matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
     Complex16 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
 
-    double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
-    RealM<double> &torontonian_priv = priv_addend.local();
+    long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
+    RealM<long double> &torontonian_priv = priv_addend.local();
     torontonian_priv += partial_torontonian;
 
     // logical variable to control whether spawning new iterations or not
@@ -254,8 +254,8 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
         matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
         Complex16 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
 
-        double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
-        RealM<double> &torontonian_priv = priv_addend.local();
+        long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
+        RealM<long double> &torontonian_priv = priv_addend.local();
         torontonian_priv += partial_torontonian;
 
 
@@ -284,7 +284,7 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
 @param determinant The determinant of the submatrix A_Z
 @return Returns with the calculated torontonian
 */
-double
+long double
 TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>& selected_index_holes, const Complex16 &determinant ) {
 
 
@@ -292,14 +292,14 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>
 
 
     // calculating -1^(N-|Z|)
-    double factor =
+    long double factor =
                 (number_selected_modes + num_of_modes) % 2
-                    ? -1.0D
-                    : 1.0D;
+                    ? -1.0
+                    : 1.0;
 
 
     // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
-    double sqrt_determinant = std::sqrt(determinant.real()*scale_factors[number_selected_modes]);
+    long double sqrt_determinant = std::sqrt(determinant.real()*scale_factors[number_selected_modes]);
 
     return (factor / sqrt_determinant);
 
