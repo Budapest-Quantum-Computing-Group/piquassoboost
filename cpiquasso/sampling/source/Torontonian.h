@@ -24,8 +24,8 @@ protected:
     If the mean magnitude of the matrix elements is one, the treshold of quad precision can be set to higher values.
     */
     matrix mtx;
-    /// The scale factor of the input matric
-    double scale_factor;
+    /// The scale factors derived from the scaling of the input matrix used to scale the calculated determinants
+    std::vector<double> scale_factors;
 
 
 public:

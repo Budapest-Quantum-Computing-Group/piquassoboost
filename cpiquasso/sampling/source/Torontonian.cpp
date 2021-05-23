@@ -131,16 +131,7 @@ Torontonian::calculate(){
             // calculating the determinant of B
             Complex16 determinant;
             if (number_of_ones != 0) {
-
                 determinant = calc_determinant_cholesky_decomposition(B);
-
-                // factor to scale the determinant coming from the initial scaling of the input matrix
-                double overall_scale_factor = scale_factor;
-                for (size_t idx=0; idx<number_of_ones-1; idx++) {
-                    overall_scale_factor *= scale_factor;
-                }
-                determinant.real( determinant.real()*overall_scale_factor);
-
             }
             else{
                 determinant = 1.0;
@@ -148,7 +139,7 @@ Torontonian::calculate(){
 
 
             // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
-            double sqrt_determinant = std::sqrt(determinant.real());
+            double sqrt_determinant = std::sqrt(determinant.real()*scale_factors[number_of_ones]);
             double value = factor / sqrt_determinant;
 
             summand += value;
@@ -211,12 +202,16 @@ void Torontonian::ScaleMatrix(){
 
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
     if ( mtx.rows <= 10) {
-        scale_factor = 1.0;
+        scale_factors.reserve(mtx.size()/2+1);
+
+        for (size_t idx=0; idx<mtx.size()/2+1; idx++) {
+            scale_factors.push_back(1.0);
+        }
     }
     else {
 
         // determine the scale factor
-        scale_factor = 0.0;
+        double scale_factor = 0.0;
         for (size_t idx=0; idx<mtx.size(); idx++) {
             scale_factor = scale_factor + std::sqrt( mtx[idx].real()*mtx[idx].real() + mtx[idx].imag()*mtx[idx].imag() );
         }
@@ -233,6 +228,17 @@ void Torontonian::ScaleMatrix(){
         // during the calculations the dimension of the submatirces would be always even,
         // thus it is sufficient to know only the square of the scaling factor
         scale_factor = scale_factor*scale_factor;
+
+        // fill up the vector of scale factors
+        scale_factors.reserve(mtx.size()/2);
+        double overall_scale_factor = 1.0;
+
+        scale_factors.push_back(overall_scale_factor);
+        for (size_t idx=0; idx<mtx.size()/2; idx++) {
+            overall_scale_factor *= scale_factor;
+            scale_factors.push_back(overall_scale_factor);
+        }
+
 
     }
 
