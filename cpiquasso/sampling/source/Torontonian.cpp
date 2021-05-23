@@ -133,6 +133,14 @@ Torontonian::calculate(){
             if (number_of_ones != 0) {
 
                 determinant = calc_determinant_cholesky_decomposition(B);
+
+                // factor to scale the determinant coming from the initial scaling of the input matrix
+                double overall_scale_factor = scale_factor;
+                for (size_t idx=0; idx<number_of_ones-1; idx++) {
+                    overall_scale_factor *= scale_factor;
+                }
+                determinant.real( determinant.real()*overall_scale_factor);
+
             }
             else{
                 determinant = 1.0;
@@ -200,6 +208,33 @@ Torontonian::Update_mtx( matrix &mtx_in ){
 @param mtx_in Input matrix defined by
 */
 void Torontonian::ScaleMatrix(){
+
+    // scale the matrix to have the mean magnitudes matrix elements equal to one.
+    if ( mtx.rows <= 10) {
+        scale_factor = 1.0;
+    }
+    else {
+
+        // determine the scale factor
+        scale_factor = 0.0;
+        for (size_t idx=0; idx<mtx.size(); idx++) {
+            scale_factor = scale_factor + std::sqrt( mtx[idx].real()*mtx[idx].real() + mtx[idx].imag()*mtx[idx].imag() );
+        }
+        scale_factor = scale_factor/mtx.size()/std::sqrt(2);
+        //scale_factor = scale_factor*mtx_orig.rows;
+
+        double inverse_scale_factor = 1/scale_factor;
+
+        // scaling the matrix elements
+        for (size_t idx=0; idx<mtx.size(); idx++) {
+            mtx[idx] = mtx[idx]*inverse_scale_factor;
+        }
+
+        // during the calculations the dimension of the submatirces would be always even,
+        // thus it is sufficient to know only the square of the scaling factor
+        scale_factor = scale_factor*scale_factor;
+
+    }
 
 }
 

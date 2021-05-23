@@ -296,8 +296,16 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>
                 (number_selected_modes + num_of_modes) % 2
                     ? -1.0D
                     : 1.0D;
+
+    // factor to scale the determinant coming from the initial scaling of the input matrix
+    double overall_scale_factor = scale_factor;
+    for (size_t idx=0; idx<number_selected_modes-1; idx++) {
+        overall_scale_factor *= scale_factor;
+    }
+
+
     // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
-    double sqrt_determinant = std::sqrt(determinant.real());
+    double sqrt_determinant = std::sqrt(determinant.real()*overall_scale_factor);
 
     return (factor / sqrt_determinant);
 
