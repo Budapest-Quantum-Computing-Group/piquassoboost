@@ -44,7 +44,7 @@ void calc_cholesky_decomposition(matrix& mtx, const size_t reuse_index);
 @param determinant The determinant of the matrix is calculated and stored in this variable.
 (if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
-void calc_cholesky_decomposition(matrix& mtx, const size_t reuse_index, Complex16 &determinant);
+void calc_cholesky_decomposition(matrix& mtx, const size_t reuse_index, Complex32 &determinant);
 
 
 /**
@@ -59,7 +59,7 @@ void calc_cholesky_decomposition_lapack(matrix &matrix);
 @param mtx A positive definite hermitian matrix with eigenvalues less then unity.  The decomposed matrix is stored in mtx.
 @return Returns with the calculated determiant
 */
-Complex16 calc_determinant_cholesky_decomposition(matrix& mtx);
+Complex32 calc_determinant_cholesky_decomposition(matrix& mtx);
 
 
 /**
@@ -69,7 +69,7 @@ Complex16 calc_determinant_cholesky_decomposition(matrix& mtx);
 @param reuse_index Labels the row and column from which the Cholesky decomposition should be continued.
 @return Returns with the calculated determiant
 */
-Complex16 calc_determinant_cholesky_decomposition(matrix& mtx, const size_t reuse_index);
+Complex32 calc_determinant_cholesky_decomposition(matrix& mtx, const size_t reuse_index);
 
 
 } // PIC

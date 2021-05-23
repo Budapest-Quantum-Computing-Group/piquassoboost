@@ -129,7 +129,7 @@ Torontonian::calculate(){
                     : 1.0;
 
             // calculating the determinant of B
-            Complex16 determinant;
+            Complex32 determinant;
             if (number_of_ones != 0) {
                 determinant = calc_determinant_cholesky_decomposition(B);
             }

@@ -119,7 +119,7 @@ void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode
 @param determinant The determinant of the submatrix A_Z
 @return Returns with the calculated torontonian
 */
-virtual long double CalculatePartialTorontonian( const PicVector<size_t>& selected_modes, const Complex16 &determinant );
+virtual long double CalculatePartialTorontonian( const PicVector<size_t>& selected_modes, const Complex32 &determinant );
 
 
 /**

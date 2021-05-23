@@ -21,7 +21,7 @@ namespace pic {
 void
 calc_cholesky_decomposition(matrix& matrix)
 {
-    Complex16 determinant(0.0,0.0);
+    Complex32 determinant(0.0,0.0);
     calc_cholesky_decomposition( matrix, 0, determinant);
     return;
 }
@@ -35,7 +35,7 @@ calc_cholesky_decomposition(matrix& matrix)
 void
 calc_cholesky_decomposition(matrix& matrix, const size_t reuse_index)
 {
-    Complex16 determinant(0.0,0.0);
+    Complex32 determinant(0.0,0.0);
     calc_cholesky_decomposition( matrix, reuse_index, determinant);
     return;
 }
@@ -49,10 +49,10 @@ calc_cholesky_decomposition(matrix& matrix, const size_t reuse_index)
 (if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
 void
-calc_cholesky_decomposition(matrix& matrix, const size_t reuse_index, Complex16 &determinant)
+calc_cholesky_decomposition(matrix& matrix, const size_t reuse_index, Complex32 &determinant)
 {
 
-    determinant = Complex16(1.0,0.0);
+    determinant = Complex32(1.0,0.0);
 
 #ifdef USE_AVX
 
@@ -132,7 +132,7 @@ calc_cholesky_decomposition_lapack(matrix &matrix) {
 @param mtx A positive definite hermitian matrix with eigenvalues less then unity.  The decomposed matrix is stored in mtx.
 @return Returns with the calculated determiant
 */
-Complex16
+Complex32
 calc_determinant_cholesky_decomposition(matrix& mtx){
 
  return  calc_determinant_cholesky_decomposition(mtx, 0);
@@ -147,10 +147,10 @@ calc_determinant_cholesky_decomposition(matrix& mtx){
 @param reuse_index Labels the row and column from which the Cholesky decomposition should be continued.
 @return Returns with the calculated determiant
 */
-Complex16
+Complex32
 calc_determinant_cholesky_decomposition(matrix& mtx, const size_t reuse_index){
 
-        Complex16 determinant(1.0, 0.0);
+        Complex32 determinant(1.0, 0.0);
 
         // calculate the rest of the Cholesky decomposition and calculate the determinant
         calc_cholesky_decomposition(mtx, reuse_index, determinant);

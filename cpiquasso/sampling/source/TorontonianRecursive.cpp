@@ -160,7 +160,7 @@ TorontonianRecursive_Tasks::calculate() {
 
     // calculate the Cholesky decomposition of the initial matrix to be later reused
     matrix L = mtx.copy();
-    Complex16 determinant = calc_determinant_cholesky_decomposition(L);
+    Complex32 determinant = calc_determinant_cholesky_decomposition(L);
 
     long double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
 
@@ -231,7 +231,7 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
     size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
 
     matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
-    Complex16 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
+    Complex32 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
 
     long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
     RealM<long double> &torontonian_priv = priv_addend.local();
@@ -252,7 +252,7 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
         size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
 
         matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
-        Complex16 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
+        Complex32 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
 
         long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
         RealM<long double> &torontonian_priv = priv_addend.local();
@@ -285,7 +285,7 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
 @return Returns with the calculated torontonian
 */
 long double
-TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>& selected_index_holes, const Complex16 &determinant ) {
+TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>& selected_index_holes, const Complex32 &determinant ) {
 
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
