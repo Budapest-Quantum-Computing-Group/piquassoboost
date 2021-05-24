@@ -9,6 +9,7 @@
 #endif
 
 
+#include "matrix.h"
 #include "matrix32.h"
 
 
