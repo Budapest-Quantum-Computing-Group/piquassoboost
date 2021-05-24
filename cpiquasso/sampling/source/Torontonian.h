@@ -2,6 +2,7 @@
 #define Torontonian_H
 
 #include "matrix.h"
+#include "matrix32.h"
 #include "PicRealM.hpp"
 
 
@@ -23,7 +24,7 @@ protected:
     /** The scaled input matrix for which the calculations are performed.
     If the mean magnitude of the matrix elements is one, the treshold of quad precision can be set to higher values.
     */
-    matrix mtx;
+    matrix32 mtx;
     /// The scale factors derived from the scaling of the input matrix used to scale the calculated determinants
     std::vector<long double> scale_factors;
 

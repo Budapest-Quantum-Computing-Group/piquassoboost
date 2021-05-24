@@ -76,7 +76,7 @@ TorontonianRecursive_Tasks();
 @param mtx_in A selfadjoint matrix for which the torontonian is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.) matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @return Returns with the instance of the class.
 */
-TorontonianRecursive_Tasks( matrix &mtx_in );
+TorontonianRecursive_Tasks( matrix32 &mtx_in );
 
 
 /**
@@ -96,7 +96,7 @@ double calculate();
 @brief Call to update the memory address of the matrix mtx
 @param mtx_in Input matrix defined by
 */
-void Update_mtx( matrix &mtx_in);
+void Update_mtx( matrix32 &mtx_in);
 
 
 
@@ -110,7 +110,7 @@ protected:
 @param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend );
+void IterateOverSelectedModes( const PicVector<size_t>& selected_modes, int mode_to_iterate, matrix32 &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend );
 
 
 /**
@@ -129,8 +129,8 @@ virtual long double CalculatePartialTorontonian( const PicVector<size_t>& select
 @param reuse_index Index labeling the highest mode for which previous Cholesky decomposition can be reused.
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-matrix
-CreateAZ( const PicVector<size_t>& selected_index_holes, matrix L, const size_t reuse_index );
+matrix32
+CreateAZ( const PicVector<size_t>& selected_index_holes, matrix32 &L, const size_t reuse_index );
 
 
 

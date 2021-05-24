@@ -38,7 +38,10 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 TorontonianRecursive::TorontonianRecursive( matrix &mtx_in ) {
     assert(isSymmetric(mtx_in));
 
-    mtx = mtx_in;
+    mtx = matrix32(mtx_in.rows, mtx_in.cols);
+    for (size_t idx=0; idx<mtx_in.size(); idx++) {
+        mtx[idx] = mtx_in[idx];
+    }
 
 }
 
@@ -101,7 +104,7 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-TorontonianRecursive_Tasks::TorontonianRecursive_Tasks( matrix &mtx_in ) {
+TorontonianRecursive_Tasks::TorontonianRecursive_Tasks( matrix32 &mtx_in ) {
 
     Update_mtx( mtx_in );
 
@@ -159,7 +162,7 @@ TorontonianRecursive_Tasks::calculate() {
     PicVector<size_t> selected_index_holes;
 
     // calculate the Cholesky decomposition of the initial matrix to be later reused
-    matrix L = mtx.copy();
+    matrix32 L = mtx.copy();
     Complex32 determinant = calc_determinant_cholesky_decomposition(L);
 
     long double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
@@ -206,7 +209,7 @@ TorontonianRecursive_Tasks::calculate() {
 @param tg Reference to a tbb::task_group
 */
 void
-TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend ) {
+TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix32 &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend ) {
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;
@@ -230,7 +233,7 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
     selected_index_holes_new[hole_to_iterate] = index_max-1;
     size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
 
-    matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
+    matrix32 &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
     Complex32 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
 
     long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
@@ -251,7 +254,7 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
         selected_index_holes_new[hole_to_iterate] = idx-1;
         size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
 
-        matrix &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
+        matrix32 &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
         Complex32 determinant = calc_determinant_cholesky_decomposition(L_new, 2*reuse_index_new);
 
         long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
@@ -313,18 +316,18 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>
 @param mtx_in Input matrix defined by
 */
 void
-TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
-    mtx_orig = mtx_in;
+TorontonianRecursive_Tasks::Update_mtx( matrix32 &mtx_in ){
+    //mtx_orig = mtx_in;
 
     size_t dim = mtx_in.rows;
 
     // Calculating B := 1 - A
-    mtx = matrix(dim, dim);
+    mtx = matrix32(dim, dim);
     for (size_t idx = 0; idx < dim; idx++) {
         for (size_t jdx = 0; jdx < dim; jdx++) {
             mtx[idx * dim + jdx] = -1.0 * mtx_in[idx * mtx_in.stride + jdx];
         }
-        mtx[idx * dim + idx] += Complex16(1.0, 0.0);
+        mtx[idx * dim + idx] += Complex32(1.0, 0.0);
     }
 
 
@@ -332,7 +335,7 @@ TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
     // a_1^*,a_1^*,a_2,a_2^*, ... a_N,a_N^* format
 
     size_t num_of_modes = dim/2;
-    matrix mtx_reordered = matrix(dim, dim);
+    matrix32 mtx_reordered = matrix32(dim, dim);
     for (size_t idx=0; idx<num_of_modes; idx++) {
         for (size_t jdx=0; jdx<num_of_modes; jdx++) {
             mtx_reordered[2*idx*mtx_reordered.stride + 2*jdx] = mtx[idx*mtx.stride + jdx];
@@ -361,8 +364,8 @@ TorontonianRecursive_Tasks::Update_mtx( matrix &mtx_in ){
 @param reuse_index Index labeling the highest mode for which previous Cholesky decomposition can be reused.
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-matrix
-TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_holes, matrix L, const size_t reuse_index ) {
+matrix32
+TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_holes, matrix32 &L, const size_t reuse_index ) {
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 //std::cout << "reuse index in Create AZ: " << reuse_index << std::endl;
@@ -393,7 +396,7 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_ho
 
     // reuse the data in the L matrix (in place or copied to out of place
     size_t dimension_of_AZ = 2 * number_selected_modes;
-    matrix AZ(dimension_of_AZ, dimension_of_AZ);
+    matrix32 AZ(dimension_of_AZ, dimension_of_AZ);
 /*
     // The first 2*(reuse_index-1) rows of the matrix are not touched during the calculations they can be reused from Cholesky matrix L
     for (size_t idx = 0; idx < reuse_index; idx++) {
@@ -416,23 +419,23 @@ TorontonianRecursive_Tasks::CreateAZ( const PicVector<size_t>& selected_index_ho
     // copy data from the input matrix and the reusable partial Cholesky decomposition matrix L
     for (size_t idx = reuse_index; idx < number_selected_modes; idx++) {
 
-        Complex16* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
-        Complex16* L_data = L.get_data() + 2*(idx+1)*L.stride;
-        Complex16* AZ_data   = AZ.get_data() + 2*(idx*AZ.stride);
+        Complex32* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
+        Complex32* L_data = L.get_data() + 2*(idx+1)*L.stride;
+        Complex32* AZ_data   = AZ.get_data() + 2*(idx*AZ.stride);
 
 
-        memcpy(AZ_data, L_data, 2*(idx+1)*sizeof(Complex16));
-        memcpy(AZ_data + AZ.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex16));
+        memcpy(AZ_data, L_data, 2*(idx+1)*sizeof(Complex32));
+        memcpy(AZ_data + AZ.stride, L_data + L.stride, 2*(idx+1)*sizeof(Complex32));
 
         for (size_t jdx = reuse_index; jdx <= idx; jdx++) {
-            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex32) );
         }
 
         AZ_data   = AZ_data + AZ.stride;
         mtx_data = mtx_data + mtx.stride;
 
         for (size_t jdx = reuse_index; jdx <= idx; jdx++) {
-            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex16) );
+            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(Complex32) );
         }
 
     }

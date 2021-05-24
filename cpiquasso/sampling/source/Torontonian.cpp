@@ -108,7 +108,7 @@ Torontonian::calculate(){
             size_t dimension_of_B = 2 * number_of_ones;
 
             // matrix mtx corresponds to 1 - A^(Z), i.e. to the square matrix constructed from
-            matrix B(dimension_of_B, dimension_of_B);
+            matrix32 B(dimension_of_B, dimension_of_B);
             for (size_t idx = 0; idx < number_of_ones; idx++) {
                 for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
                     B[idx*dimension_of_B + jdx]                  =
@@ -176,14 +176,14 @@ Torontonian::Update_mtx( matrix &mtx_in ){
     size_t dim = mtx_in.rows;
 
     // Calculating B := 1 - A
-    mtx = matrix(dim, dim);
+    mtx = matrix32(dim, dim);
     for (size_t idx = 0; idx < dim; idx++) {
         //Complex16 *row_B_idx = B.get_data() + idx * B.stride;
         //Complex16 *row_mtx_pos_idx = mtx.get_data() + positions_of_ones[idx] * mtx.stride;
         for (size_t jdx = 0; jdx < dim; jdx++) {
             mtx[idx * dim + jdx] = -1.0 * mtx_in[idx * mtx_in.stride + jdx];
         }
-        mtx[idx * dim + idx] += Complex16(1.0, 0.0);
+        mtx[idx * dim + idx] += Complex32(1.0, 0.0);
     }
 
     // Can scaling be used here since we have to calculate 1-A^Z?
@@ -211,14 +211,14 @@ void Torontonian::ScaleMatrix(){
     else {
 
         // determine the scale factor
-        double scale_factor = 0.0;
+        long double scale_factor = 0.0;
         for (size_t idx=0; idx<mtx.size(); idx++) {
             scale_factor = scale_factor + std::sqrt( mtx[idx].real()*mtx[idx].real() + mtx[idx].imag()*mtx[idx].imag() );
         }
         scale_factor = scale_factor/mtx.size()/std::sqrt(2);
         //scale_factor = scale_factor*mtx_orig.rows;
 
-        double inverse_scale_factor = 1/scale_factor;
+        long double inverse_scale_factor = 1/scale_factor;
 
         // scaling the matrix elements
         for (size_t idx=0; idx<mtx.size(); idx++) {
