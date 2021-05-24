@@ -266,11 +266,10 @@ TorontonianRecursive_Tasks::IterateOverSelectedModes( const PicVector<size_t>& s
         // (in this case the partial torontonian is unity and should be counted only once in function calculate)
         if (stop_spawning_iterations) return;
 
-        PicVector<size_t> selected_index_holes_new2 = selected_index_holes_new;
-        selected_index_holes_new2.push_back(this->num_of_modes-1);
+        selected_index_holes_new.push_back(this->num_of_modes-1);
         reuse_index_new = L_new.rows/2-1;
 
-        IterateOverSelectedModes( selected_index_holes_new2, new_hole_to_iterate, L_new, reuse_index_new, priv_addend );
+        IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new, priv_addend );
 
     });
 
@@ -299,10 +298,16 @@ TorontonianRecursive_Tasks::CalculatePartialTorontonian( const PicVector<size_t>
                 (number_selected_modes + num_of_modes) % 2
                     ? -1.0
                     : 1.0;
-
-
+/*
+                    {
+      tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+if (number_selected_modes == 11) {
+std::cout << factor*determinant.real()  << std::endl;
+}
+                    }
+*/
     // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
-    long double sqrt_determinant = std::sqrt(determinant.real()*scale_factors[number_selected_modes]);
+    long double sqrt_determinant = std::sqrt(determinant.real());
 
     return (factor / sqrt_determinant);
 

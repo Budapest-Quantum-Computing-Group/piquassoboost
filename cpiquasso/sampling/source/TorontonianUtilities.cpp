@@ -57,6 +57,82 @@ calc_cholesky_decomposition(matrix32& matrix, const size_t reuse_index, Complex3
     // storing in the same memory the results of the algorithm
     size_t n = matrix.cols;
     // Decomposing a matrix into lower triangular matrices
+    for (int i = reuse_index; i < n; i++) {
+        Complex32* row_i = matrix.get_data()+i*matrix.stride;
+
+        Complex32* row_j = matrix.get_data() + reuse_index*matrix.stride;
+        Complex32* row_j2 = row_j + matrix.stride;
+
+        for (int j = reuse_index; j < i-1; j=j+2) {
+
+            Complex32 sum = 0;
+            Complex32 sum2 = 0;
+            // Evaluating L(i, j) using L(j, j)
+            // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
+            for (int k = 0; k < j; k++){
+                sum += mult_a_bconj( row_i[k], row_j[k]);
+                sum2 += mult_a_bconj( row_i[k], row_j2[k]);
+            }
+
+            row_i[j] = (row_i[j] - sum) / row_j[j];
+
+            sum2 += mult_a_bconj( row_i[j], row_j2[j]);
+            row_i[j+1] = (row_i[j+1] - sum2) / row_j2[j+1];
+
+            row_j = row_j + 2*matrix.stride;
+            row_j2 = row_j2 + 2*matrix.stride;
+
+        }
+
+        if ( i%2 == 1) {
+            int j = i-1;
+
+            row_j = matrix.get_data() + j * matrix.stride;
+
+            Complex16 sum = 0;
+            // Evaluating L(i, j) using L(j, j)
+            // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
+            for (int k = 0; k < j; k++){
+                sum += mult_a_bconj( row_i[k], row_j[k]);
+            }
+
+            row_i[j] = (row_i[j] - sum) / row_j[j];
+
+#ifdef DEBUG
+            if (matrix.isnan()) {
+
+                std::cout << "matrix is NAN" << std::endl;
+                matrix.print_matrix();
+                exit(-1);
+             }
+#endif
+        }
+
+
+        Complex32 sum = 0;
+        // summation for diagonals
+        // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
+        for (int k = 0; k < i-1; k=k+2){
+            sum += mult_a_bconj( row_i[k], row_i[k] ) + mult_a_bconj( row_i[k+1], row_i[k+1] );
+        }
+
+        if ( i%2 == 1) {
+            sum += mult_a_bconj( row_i[i-1], row_i[i-1] );
+        }
+
+
+        row_i[i] = sqrt(row_i[i] - sum);
+        determinant = determinant * row_i[i];
+        row_i = row_i + matrix.stride;
+
+    }
+
+    /*
+
+
+    // storing in the same memory the results of the algorithm
+    size_t n = matrix.cols;
+    // Decomposing a matrix into lower triangular matrices
     for (size_t i = reuse_index; i < n; i++) {
         Complex32* row_i = matrix.get_data()+i*matrix.stride;
 
@@ -83,7 +159,7 @@ calc_cholesky_decomposition(matrix32& matrix, const size_t reuse_index, Complex3
         row_i[i] = sqrt(row_i[i] - sum);
         determinant = determinant * row_i[i];
     }
-
+*/
     return;
 
 

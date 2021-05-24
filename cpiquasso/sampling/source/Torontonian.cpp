@@ -139,7 +139,7 @@ Torontonian::calculate(){
 
 
             // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
-            long double sqrt_determinant = std::sqrt(determinant.real()*scale_factors[number_of_ones]);
+            long double sqrt_determinant = std::sqrt(determinant.real());
             long double value = factor / sqrt_determinant;
 
             summand += value;
@@ -199,7 +199,7 @@ Torontonian::Update_mtx( matrix &mtx_in ){
 @param mtx_in Input matrix defined by
 */
 void Torontonian::ScaleMatrix(){
-
+/*
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
     if ( mtx.rows <= 10) {
         scale_factors.reserve(mtx.size()/2+1);
@@ -215,7 +215,7 @@ void Torontonian::ScaleMatrix(){
         for (size_t idx=0; idx<mtx.size(); idx++) {
             scale_factor = scale_factor + std::sqrt( mtx[idx].real()*mtx[idx].real() + mtx[idx].imag()*mtx[idx].imag() );
         }
-        scale_factor = scale_factor/mtx.size()/std::sqrt(2);
+        scale_factor = scale_factor/mtx.rows/std::sqrt(2);
         //scale_factor = scale_factor*mtx_orig.rows;
 
         long double inverse_scale_factor = 1/scale_factor;
@@ -241,7 +241,7 @@ void Torontonian::ScaleMatrix(){
 
 
     }
-
+*/
 }
 
 
