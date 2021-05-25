@@ -62,22 +62,10 @@ ThresholdBosonSampling();
 /**
 @brief Constructor of the class. (The displacement is set to zero by this constructor)
 @param covariance_matrix_in The covariance matrix describing the gaussian state
-@param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Returns with the instance of the class.
 */
-ThresholdBosonSampling( matrix &covariance_matrix_in, const size_t& cutoff, const size_t& max_photons );
+ThresholdBosonSampling( matrix &covariance_matrix_in );
 
-
-/**
-@brief Constructor of the class.
-@param covariance_matrix_in The covariance matrix describing the gaussian state
-@param displacement The mean (displacement) of the Gaussian state
-@param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
-@return Returns with the instance of the class.
-*/
-ThresholdBosonSampling( matrix &covariance_matrix_in, matrix& displacement_in, const size_t& cutoff, const size_t& max_photons );
 
 /**
 @brief Destructor of the class
@@ -90,18 +78,6 @@ virtual ~ThresholdBosonSampling();
 */
 void Update_covariance_matrix( matrix &covariance_matrix_in );
 
-
-/**
-@brief Call to set the cutoff of the Fock basis truncation
-@param cutoff_in The cutoff of the Fock basis truncation
-*/
-void setCutoff( const size_t& cutoff_in );
-
-/**
-@brief Call to set the maximum number of photons that can be counted in the output samples.
-@param max_photons_in The maximum number of photons that can be counted in the output samples.
-*/
-void setMaxPhotons( const size_t& max_photons_in );
 
 /**
 @brief Call to get samples from the gaussian state
@@ -153,31 +129,20 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 @brief Call to calculate the probability associated with observing output state given by current_output
 @param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
 @param Qdet The determinant of matrix Q.
-@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
-@param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
+@param O Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
-virtual double calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output );
+virtual double calc_probability( matrix& Qinv, const double& Qdet, matrix& O, PicState_int64& current_output );
 
 
 /**
-@brief Call to add correction coming from the displacement to the diagonal elements of A_S (see Eq. (11) in arXiv 2010.15595)
-@param A_S Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
-(The output is returned via this variable)
-@param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
-@param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
-@param current_output The Fock representation of the current output for which the probability is calculated
-*/
-void diag_correction_of_A_S( matrix& A_S, matrix& Qinv, matrix& m, PicState_int64& current_output );
-
-/**
-@brief Call to create matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
-@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+@brief Call to create matrix O_S according to the main text below Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+@param O Hamilton matrix O
 @param current_output The fock representation of the current output for which the probability is calculated
-@return Returns with the A_S matrix
+@return Returns with the O_S matrix
 */
-matrix create_A_S( matrix& A, PicState_int64& current_output );
+matrix create_O_S( matrix& O, PicState_int64& current_output );
 
 
 /**

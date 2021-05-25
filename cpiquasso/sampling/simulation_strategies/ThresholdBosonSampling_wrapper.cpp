@@ -28,15 +28,12 @@ typedef struct ThresholdBosonSampling_wrapper {
 /**
 @brief Creates an instance of class ChinHuhPermanentCalculator and return with a pointer pointing to the class instance (C++ linking is needed)
 @param covariance_matrix The covariance matrix describing the gaussian state
-@param displacement The mean (displacement) of the Gaussian state
-@param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
 pic::ThresholdBosonSampling*
-create_ThresholdBosonSamplingCalculator( pic::matrix &covariance_matrix_mtx, pic::matrix &displacement, const size_t& cutoff, const size_t& max_photons ) {
+create_ThresholdBosonSamplingCalculator( pic::matrix &covariance_matrix_mtx ) {
 
-    return new pic::ThresholdBosonSampling(covariance_matrix_mtx, displacement, cutoff, max_photons);
+    return new pic::ThresholdBosonSampling(covariance_matrix_mtx);
 
 }
 
@@ -78,12 +75,6 @@ ThresholdBosonSampling_wrapper_dealloc(ThresholdBosonSampling_wrapper *self)
         self->covariance_matrix = NULL;
     }
 
-    // release numpy arrays
-    if (self->m != NULL) {
-        Py_DECREF(self->m);
-        self->m = NULL;
-    }
-
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
@@ -99,7 +90,6 @@ ThresholdBosonSampling_wrapper_new(PyTypeObject *type, PyObject *args, PyObject 
     if (self != NULL) {}
 
     self->covariance_matrix = NULL;
-    self->m = NULL;
     self->simulation_strategy = NULL;
 
     return (PyObject *) self;
@@ -117,17 +107,14 @@ static int
 ThresholdBosonSampling_wrapper_init(ThresholdBosonSampling_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"covariance_matrix", (char*)"m", (char*)"fock_cutoff", (char*)"max_photons", NULL};
+    static char *kwlist[] = {(char*)"covariance_matrix", NULL};
 
     // initiate variables for input arguments
     PyObject *covariance_matrix_arg = NULL;
-    PyObject *m_arg = NULL;
-    int fock_cutoff = 0;
-    int max_photons = 0;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOii", kwlist,
-                                     &covariance_matrix_arg, &m_arg, &fock_cutoff, &max_photons))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,
+                                     &covariance_matrix_arg))
         return -1;
 
     // convert python object array to numpy C API array
@@ -143,26 +130,11 @@ ThresholdBosonSampling_wrapper_init(ThresholdBosonSampling_wrapper *self, PyObje
         self->covariance_matrix = PyArray_FROM_OTF(covariance_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
 
-    // establish memory contiguous arrays for C calculations
-    if ( m_arg != Py_None && PyArray_IS_C_CONTIGUOUS(m_arg) && PyArray_TYPE(covariance_matrix_arg) == NPY_COMPLEX128 ) {
-        self->m = m_arg;
-        Py_INCREF(self->m);
-    }
-    else if ( m_arg != Py_None ) {
-        self->m = PyArray_FROM_OTF(m_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
-    }
-    else {
-        self->m = m_arg;
-        Py_INCREF(self->m);
-    }
-
-
     // create PIC version of the input matrices
     pic::matrix covariance_matrix_mtx = numpy2matrix(self->covariance_matrix);
-    pic::matrix m_mtx = numpy2matrix(self->m);
-
+    
     // create instance of class ThresholdBosonSampling_wrapperCalculator
-    self->simulation_strategy = create_ThresholdBosonSamplingCalculator( covariance_matrix_mtx, m_mtx, fock_cutoff , max_photons );
+    self->simulation_strategy = create_ThresholdBosonSamplingCalculator( covariance_matrix_mtx );
 
     return 0;
 }
@@ -172,7 +144,7 @@ ThresholdBosonSampling_wrapper_init(ThresholdBosonSampling_wrapper *self, PyObje
 /**
 @brief Wrapper function to call the simulate method of C++ class CGaussianState
 @param self A pointer pointing to an instance of the class ThresholdBosonSampling_wrapper.
-@param args A tuple of the input arguments: ??????????????
+@param args A tuple of the input arguments: sample_num
 */
 static PyObject *
 ThresholdBosonSampling_wrapper_simulate(ThresholdBosonSampling_wrapper *self, PyObject *args)

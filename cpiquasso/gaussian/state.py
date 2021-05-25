@@ -23,7 +23,10 @@ from .state_wrapper import GaussianState_Wrapper
 
 from piquasso._math.linalg import block_reduce
 
-from cpiquasso.sampling.Boson_Sampling_Utilities_wrapper import Torontonian_wrapper
+#from cpiquasso.sampling.Boson_Sampling_Utilities_wrapper import Torontonian_wrapper
+
+from cpiquasso.sampling.simulation_strategies import ThresholdBosonSampling
+
 
 class GaussianState(GaussianState_Wrapper, pq.GaussianState):
     def __init__(self, *, d):
@@ -76,27 +79,10 @@ class GaussianState(GaussianState_Wrapper, pq.GaussianState):
                 f"mean={self.mean}"
             )
 
-        return self._apply_general_particle_number_measurement(
-            cutoff=2,
-            modes=modes,
-            shots=shots,
-            calculation=calculate_threshold_detection_probability,
-        )
+        reduced_state = self.reduced(modes)
 
-def calculate_threshold_detection_probability(
-    state,
-    subspace_modes,
-    occupation_numbers,
-):
-    Q = state.husimi_cov
+        #import pdb
+        #pdb.set_trace()
 
-    d = len(subspace_modes)
-
-    OS = (np.identity(2 * d, dtype=complex) - np.linalg.inv(Q)).conj()
-
-    OS_reduced = block_reduce(OS, reduce_on=occupation_numbers)
-
-    return (
-        Torontonian_wrapper(OS_reduced.astype(complex)).calculate()
-        # torontonian(OS_reduced.astype(complex))
-    ).real / np.sqrt(np.linalg.det(Q).real)
+        th = ThresholdBosonSampling.ThresholdBosonSampling( covariance_matrix=reduced_state.xp_cov/4.0 )
+        return th.simulate(shots)

@@ -4,11 +4,11 @@
 #include <tbb/tbb.h>
 
 
-
-#include "PowerTraceHafnian.h"
-#include "PowerTraceLoopHafnian.h"
-#include "BruteForceHafnian.h"
-#include "BruteForceLoopHafnian.h"
+// To erase:
+//   - cutoff
+//   - max_photons
+//   - ne vágja le, ha túlmentünk a rand_num-on
+//   - displacement
 
 #include "Torontonian.h"
 
@@ -110,81 +110,11 @@ ThresholdBosonSampling::ThresholdBosonSampling() :
 /**
 @brief Constructor of the class.
 @param covariance_matrix The covariance matrix describing the gaussian state
-@param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
 @return Returns with the instance of the class.
 */
-ThresholdBosonSampling::ThresholdBosonSampling( matrix &covariance_matrix, const size_t& cutoff, const size_t& max_photons )
-    : GaussianSimulationStrategy(covariance_matrix, cutoff, max_photons) {
-/*
-#ifdef __MPI__
-    // Get the number of processes
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    // Get the rank of the process
-    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
-
-    // ensure that each MPI process gets the same input matrix from rank 0
-
-    void* syncronized_data = (void*)covariance_matrix.get_data();
-    MPI_Bcast(syncronized_data, covariance_matrix.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-#endif
-
-    state = GaussianState_Cov( covariance_matrix, qudratures );
-    setCutoff( cutoff );
-    setMaxPhotons( max_photons );
-
-
-
-    dim = covariance_matrix.rows;
-    dim_over_2 = dim/2;
-*/
-
-}
-
-
-/**
-@brief Constructor of the class.
-@param covariance_matrix The covariance matrix describing the gaussian state
-@param displacement The mean (displacement) of the Gaussian state
-@param cutoff the Fock basis truncation.
-@param max_photons specifies the maximum number of photons that can be counted in the output samples.
-@return Returns with the instance of the class.
-*/
-ThresholdBosonSampling::ThresholdBosonSampling( matrix &covariance_matrix, matrix& displacement, const size_t& cutoff, const size_t& max_photons )
-    : GaussianSimulationStrategy(covariance_matrix, displacement, cutoff, max_photons) {
-/*
-#ifdef __MPI__
-    // Get the number of processes
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    // Get the rank of the process
-    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
-
-    // ensure that each MPI process gets the same input matrix from rank 0
-
-    void* syncronized_data = (void*)covariance_matrix.get_data();
-    MPI_Bcast(syncronized_data, covariance_matrix.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    syncronized_data = displacement.get_data();
-    MPI_Bcast(syncronized_data, displacement.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-#endif
-
-    state = GaussianState_Cov(covariance_matrix, displacement, qudratures);
-
-    setCutoff( cutoff );
-    setMaxPhotons( max_photons );
-
-    dim = covariance_matrix.rows;
-    dim_over_2 = dim/2;
-
-    // seed the random generator
-    srand ( time ( NULL));
-
-*/
-
+ThresholdBosonSampling::ThresholdBosonSampling( matrix &covariance_matrix )
+    : GaussianSimulationStrategy(covariance_matrix, 1) 
+{   
 }
 
 
@@ -207,28 +137,6 @@ ThresholdBosonSampling::Update_covariance_matrix( matrix &covariance_matrix ) {
 
 }
 
-/**
-@brief Call to set the cutoff of the Fock basis truncation
-@param cutoff_in The cutoff of the Fock basis truncation
-*/
-void
-ThresholdBosonSampling::setCutoff( const size_t& cutoff_in ) {
-
-    cutoff = cutoff_in;
-
-}
-
-/**
-@brief Call to set the maximum number of photons that can be counted in the output samples.
-@param max_photons_in The maximum number of photons that can be counted in the output samples.
-*/
-void
-ThresholdBosonSampling::setMaxPhotons( const size_t& max_photons_in ) {
-
-    max_photons = max_photons_in;
-
-}
-
 
 /**
 @brief Call to determine the resultant state after traversing through linear interferometer.
@@ -239,7 +147,6 @@ ThresholdBosonSampling::simulate( int samples_number ) {
 
     // seed the random generator
     srand ( time( NULL) );
-
 
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
@@ -261,10 +168,11 @@ ThresholdBosonSampling::simulate( int samples_number ) {
 @return Returns with the a sample from a gaussian state
 */
 PicState_int64
-ThresholdBosonSampling::getSample() {
-
+ThresholdBosonSampling::getSample() {    
+    // get husimi covariance matrix. It is stored in state.get_covariance_matrix()
     // convert the sampled Gaussian state into complex amplitude representation
     state.ConvertToComplexAmplitudes();
+    // from now the basis is the creation/annihilation operators in a_1,\dots,a_N, a^\dagger_1,\dots, a^\dagger_N ordering.
 
     PicState_int64 output_sample(0);
     output_sample.number_of_photons = 0;
@@ -274,29 +182,31 @@ ThresholdBosonSampling::getSample() {
 
     // The number of modes is equal to dim_over_2 (becose the covariance matrix conatains p,q quadratires)
     // for loop to sample 1,2,3,...dim_over_2 modes
-    // These samplings depends from each other by the chain rule of probabilites (see Eq (13) in arXiv 2010.15595)
+    // These samplings depends from each other by the chain rule of probabilites (see Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time))
     for (size_t mode_idx=1; mode_idx<=dim_over_2; mode_idx++) {
-
         // modes to be extracted to get reduced gaussian state
         PicState_int64 indices_2_extract(mode_idx);
         for (size_t idx=0; idx<mode_idx; idx++) {
             indices_2_extract[idx] = idx;
         }
 
+        // reduced covariance matrix in reduced gaussian state to the first mode_idx modes
         // get the reduced gaussian state describing the first mode_idx modes
         GaussianState_Cov reduced_state = state.getReducedGaussianState( indices_2_extract );
+        
 
-        // calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595 and the determinant of Q
         // since the determinant can be calculated by LU factorization, which is also necessary to calculate the inverse, we
-        // calculatet the inverse and the determiant in one shot.
+        // calculate the inverse and the determiant in one shot.
+        // Calculate Q matrix defined by \sigma + 0.5 * Id
+        // Calculate the determinant of Q
+        // Caluclate the inverse of Q
         double Qdet(0.0);
         matrix&& Qinv = calc_Qinv( reduced_state, Qdet );
 
-        // calculate the Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
-        matrix&& A = calc_HamiltonMatrix( Qinv );
-
-        // get the displacement vector
-        matrix m = reduced_state.get_m();
+        // calculate the matrix O(k) defined by Id - \sigma(k)^{-1}
+        // calculate the Hamilton matrix A defined by Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time
+        // O := 1 - Q^-1
+        matrix&& O = calc_HamiltonMatrix( Qinv );
 
 
         // create a random double that is used to sample from the probabilities
@@ -307,77 +217,64 @@ ThresholdBosonSampling::getSample() {
             MPI_Bcast(&rand_num, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif // MPI
 
-        // the sum of the calculated probabilities
-        double prob_sum = 0.0;
-
         // the chosen index of the probabilities
         size_t chosen_index = 0;
 
+
+        // Calculate if the photon number on the current mode was zero
         // calculate probabilities whether there are any photons on the mode mode_idx
-        for (size_t photon_num=0; photon_num<1; photon_num++) {
 
-            // current output variable is used for storing the conditions for the conditional probablities.
-            // create array for the new output state
-            PicState_int64 current_output(output_sample.size()+1, 0);
-            memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
+        // current output variable is used for storing the conditions for the conditional probablities.
+        // create array for the new output state
+        PicState_int64 current_output0(output_sample.size()+1, 0);
+        memcpy(current_output0.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
+
+        // set the number of photons in the last mode to 0
+        current_output0[mode_idx-1] = 0;
+
+        // calculate the probability associated with observing current_output
+        double prob0 = calc_probability(Qinv, Qdet, O, current_output0);
+
+        // sometimes the probability is negative which is coming from a negative hafnian.
+        prob0 = prob0 > 0 ? prob0 : 0;
+
+        double current_prob0 = prob0 / current_state_probability;
 
 
+        // Calculate if the photon number on the current mode was one
+    
+        // current output variable is used for storing the conditions for the conditional probablities.
+        // create array for the new output state
+        PicState_int64 current_output1(output_sample.size()+1, 0);
+        memcpy(current_output1.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
 
-            // set the number of photons in the last mode to be sampled
-            current_output[mode_idx-1] = photon_num;
+        // set the number of photons in the last mode to 1
+        current_output1[mode_idx-1] = 1;
 
-            // calculate the probability associated with observing current_output
-            double prob = calc_probability(Qinv, Qdet, A, m, current_output);
+        // calculate the probability associated with observing current_output
+        double prob1 = calc_probability(Qinv, Qdet, O, current_output1);
 
-            // sometimes the probability is negative which is coming from a negative hafnian.
-            prob = prob > 0 ? prob : 0;
+        // sometimes the probability is negative which is coming from a negative hafnian.
+        prob1 = prob1 > 0 ? prob1 : 0;
 
-            if (prob > rand_num){
-                current_state_probability = prob;
-                current_output[mode_idx-1] = 0;
-            }else{
-                current_state_probability = 1.0 - prob;
-                current_output[mode_idx-1] = 1;
-            }
-            /*prob_sum = prob_sum + prob/current_state_probability;
-            if ( prob_sum >= rand_num ) {
-                chosen_index = photon_num;
-                current_state_probability = prob;
-                break;
-            }*/
+        double current_prob1 = prob1 / current_state_probability;
 
+        if (current_prob0 > rand_num){
+            current_state_probability = prob0;
+            chosen_index = 0;
+        }
+        else{
+            current_state_probability = prob1;
+            chosen_index = 1;
         }
 
-        if (prob_sum < rand_num ) {
-            // when the chosen index corresponds to the cutoff the number of photons cannot be determined, so we return from the sampling
-            return PicState_int64(0);
-        }
-
-/*
-if ( prob_sum > 1 ) {
-probabilities_renormalized.print_matrix();
-
-FILE *fp = fopen("bad_matrix", "wb");
-fwrite( &A.rows, sizeof(size_t), 1, fp);
-fwrite( &A.cols, sizeof(size_t), 1, fp);
-fwrite( A.get_data(), sizeof(Complex16), A.size(), fp);
-fwrite( &output_sample.cols, sizeof(size_t), 1, fp);
-fwrite( output_sample.get_data(), sizeof(int64_t), output_sample.size(), fp);
-fclose(fp);
-exit(-1);
-
-}
-*/
 
         // The sampled current state:
         PicState_int64 current_output(output_sample.size()+1, 0);
+
         memcpy(current_output.get_data(), output_sample.get_data(), output_sample.size()*sizeof(int64_t));
         current_output[mode_idx-1] = chosen_index;
         current_output.number_of_photons = output_sample.number_of_photons + chosen_index;
-
-        if (current_output.number_of_photons > (int)max_photons) {
-            return PicState_int64(0);
-        }
 
         output_sample = current_output;
 
@@ -390,66 +287,6 @@ exit(-1);
 
 
 
-/**
-@brief Call to calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595
-@param state An instance of Gaussian state in the Fock representation. (If the Gaussian state is in quadrature representation, than it is transformed into Fock-space representation)
-@return Returns with the Hamilton matrix A.
-*/
-matrix
-ThresholdBosonSampling::calc_Qinv( GaussianState_Cov& state ) {
-
-
-    if ( state.get_representation() != complex_amplitudes ) {
-        state.ConvertToComplexAmplitudes();
-    }
-
-
-    // calculate Q matrix from Eq (3) in arXiv 2010.15595v3)
-    matrix Q = state.get_covariance_matrix();
-
-    for (size_t idx=0; idx<Q.rows; idx++) {
-        Q[idx*Q.stride+idx].real( Q[idx*Q.stride+idx].real() + 0.5 );
-    }
-
-
-#ifdef DEBUG
-    // for checking the matrix inversion
-    matrix Qcopy = Q.copy();
-#endif // DEBUG
-
-
-    // calculate A matrix from Eq (4) in arXiv 2010.15595v3)
-    matrix Qinv = Q; //just to reuse the memory of Q for the inverse
-
-
-    // calculate the inverse of matrix Q
-    int* ipiv = (int*)scalable_aligned_malloc( Q.stride*sizeof(int), CACHELINE);
-    LAPACKE_zgetrf( LAPACK_ROW_MAJOR, Q.rows, Q.cols, Q.get_data(), Q.stride, ipiv );
-    int info = LAPACKE_zgetri( LAPACK_ROW_MAJOR, Q.rows, Q.get_data(), Q.stride, ipiv );
-    scalable_aligned_free( ipiv );
-
-    if ( info <0 ) {
-        std::cout << "inversion was not successfull. Exiting" << std::endl;
-        exit(-1);
-    }
-
-#ifdef DEBUG
-    // for checking the inversion
-    matrix C = dot(Qinv, Qcopy);
-    for (size_t idx=0; idx<C.rows; idx++) {
-        C[idx.C.stride+idx].real( C[idx.C.stride+idx].real() - 1.0);
-    }
-    double diff=0.0;
-    for (size_t idx=0; idx<C.size(); idx++) {
-        assert( abs(C[idx]) > 1e-9);
-    }
-#endif // DEBUG
-
-
-    return Qinv;
-
-}
-
 
 /**
 @brief Call to calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595 and the determinant of Q.
@@ -461,26 +298,19 @@ calculatet the inverse and the determiant in one shot.
 */
 matrix
 ThresholdBosonSampling::calc_Qinv( GaussianState_Cov& state, double& Qdet ) {
-
-
-
     if ( state.get_representation() != complex_amplitudes ) {
         state.ConvertToComplexAmplitudes();
     }
 
     // calculate Q matrix from Eq (3) in arXiv 2010.15595v3)
+    // Q = \sigma + 1/2 * Id
     matrix Q = state.get_covariance_matrix();
     for (size_t idx=0; idx<Q.rows; idx++) {
-        Q[idx*Q.stride+idx].real( Q[idx*Q.stride+idx].real() + 0.5 );
+        Q[idx*Q.stride+idx].real( Q[idx*Q.stride+idx].real() + 0.5);
     }
 
-#ifdef DEBUG
-    // for checking the matrix inversion
-    matrix Qcopy = Q.copy();
-#endif // DEBUG
 
-
-    // calculate A matrix from Eq (4) in arXiv 2010.15595v3)
+    // calculate matrix from Eq (4) in arXiv 2010.15595v3)
     matrix Qinv = Q; //just to reuse the memory of Q for the inverse
 
     // calculate the inverse of matrix Q
@@ -498,7 +328,7 @@ ThresholdBosonSampling::calc_Qinv( GaussianState_Cov& state, double& Qdet ) {
         }
 
     }
-    Qdet = Qdet_cmplx.real(); // the determinant of a symmetric matrix is real
+    Qdet = Qdet_cmplx.real(); // the determinant of a selfadjoint matrix is real
 
     int info = LAPACKE_zgetri( LAPACK_ROW_MAJOR, Q.rows, Q.get_data(), Q.stride, ipiv );
     scalable_aligned_free( ipiv );
@@ -508,17 +338,8 @@ ThresholdBosonSampling::calc_Qinv( GaussianState_Cov& state, double& Qdet ) {
         exit(-1);
     }
 
-#ifdef DEBUG
-    // for checking the inversion
-    matrix C = dot(Qinv, Qcopy);
-    for (size_t idx=0; idx<C.rows; idx++) {
-        C[idx*C.stride+idx].real( C[idx*C.stride+idx].real() - 1.0);
-    }
 
-    for (size_t idx=0; idx<C.size(); idx++) {
-        assert( abs(C[idx]) > 1e-9);
-    }
-#endif // DEBUG
+
 
     return Qinv;
 
@@ -534,105 +355,37 @@ ThresholdBosonSampling::calc_Qinv( GaussianState_Cov& state, double& Qdet ) {
 */
 matrix
 ThresholdBosonSampling::calc_HamiltonMatrix( matrix& Qinv ) {
-
-    //calculate A = X (1-Qinv)    X=(0,1;1,0)
-
-/*
-    // calculate -XQinv
     // multiply by -1 the elements of Qinv and store the result in the corresponding rows of A
-    matrix A(Qinv.rows, Qinv.cols);
-    double* Qinv_data_d = (double*)Qinv.get_data();
-    double* A_data_d    = (double*)A.get_data();
-    size_t number_of_modes = Qinv.rows/2;
-    for (size_t row_idx = 0; row_idx<number_of_modes ; row_idx++) {
+    matrix O(Qinv.rows, Qinv.cols);
+    for (size_t row_idx = 0; row_idx<O.rows ; row_idx++) {
 
-        size_t row_offset1 = row_idx*Qinv.stride*2;
-        size_t row_offset2 = (row_idx+number_of_modes)*Qinv.stride*2;
-
-         // rows 1:N from (-Qinv) to rows N+1:2N in A --- effect of X
-        for (size_t col_idx = 0; col_idx<2*Qinv.cols; col_idx++) {
-
-            A_data_d[row_offset2 + col_idx] = -Qinv_data_d[row_offset1 + col_idx];
+        for (size_t col_idx = 0; col_idx<O.cols; col_idx++) {
+            O[row_idx*O.stride + col_idx] = -1.0 * Qinv[row_idx*Qinv.stride+col_idx];
 
         }
-
-        // rows N+1:2N from (-Qinv) to rows 1:N in A --- effect of X
-        for (size_t col_idx = 0; col_idx<2*Qinv.cols; col_idx++) {
-
-            A_data_d[row_offset1 + col_idx] = -Qinv_data_d[row_offset2 + col_idx];
-
-        }
-
-
+        O[row_idx*O.stride + row_idx] += 1.0;
 
     }
-*/
-    // calculate -XQinv
-    // multiply by -1 the elements of Qinv and store the result in the corresponding rows of A
-    matrix A(Qinv.rows, Qinv.cols);
-    __m256d neg = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
-    Complex16* Qinv_data_d = Qinv.get_data();
-    Complex16* A_data_d    = A.get_data();
-    size_t number_of_modes = Qinv.rows/2;
-    for (size_t row_idx = 0; row_idx<number_of_modes ; row_idx++) {
-
-        size_t row_offset1 = row_idx*Qinv.stride;
-        size_t row_offset2 = (row_idx+number_of_modes)*Qinv.stride;
-
-         // rows 1:N form (-Qinv) to rows N+1:2N in A --- effect of X
-        for (size_t col_idx = 0; col_idx<Qinv.cols; col_idx=col_idx+2) {
-
-            __m256d Qinv_vec = _mm256_loadu_pd((double*)(Qinv_data_d + row_offset1 + col_idx));
-            Qinv_vec = _mm256_mul_pd(Qinv_vec, neg);
-            _mm256_storeu_pd((double*)(A_data_d + row_offset2 + col_idx), Qinv_vec);
-
-        }
-
-        // rows N+1:2N from (-Qinv) to rows 1:N in A --- effect of X
-        for (size_t col_idx = 0; col_idx<Qinv.cols; col_idx=col_idx+2) {
-
-            __m256d Qinv_vec = _mm256_loadu_pd((double*)(Qinv_data_d + row_offset2 + col_idx));
-            Qinv_vec = _mm256_mul_pd(Qinv_vec, neg);
-            _mm256_storeu_pd((double*)(A_data_d + row_offset1 + col_idx), Qinv_vec);
-
-        }
-
-
-
-    }
-
-
-    // calculate X-XQinv
-    // add X to the matrix elements of -XQinv
-    for (size_t row_idx = 0; row_idx<number_of_modes; row_idx++) {
-
-        A[row_idx*A.stride+row_idx+number_of_modes].real(A[row_idx*A.stride+row_idx+number_of_modes].real() + 1);
-        A[(row_idx+number_of_modes)*A.stride+row_idx].real(A[(row_idx+number_of_modes)*A.stride+row_idx].real() + 1);
-
-    }
-
-
-
-
-    return A;
-
+    return O;
 }
 
 
 /**
 @brief Call to calculate the probability associated with observing output state given by current_output
+
+The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+
 @param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
 @param Qdet The determinant of matrix Q.
-@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
-@param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
+@param O Hamilton matrix 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
 double
-ThresholdBosonSampling::calc_probability( matrix& Qinv, const double& Qdet, matrix& A, matrix& m, PicState_int64& current_output ) {
-
-    // calculate the normalization factor defined by Eq. (10) in arXiv 2010.15595v3
+ThresholdBosonSampling::calc_probability( matrix& Qinv, const double& Qdet, matrix& O, PicState_int64& current_output ) {
+    // calculate the normalization factor defined by the equation in the article
     double Normalization = 1.0/sqrt(Qdet);
+
 
 #ifdef DEBUG
     if (Qdet<0) {
@@ -641,47 +394,12 @@ ThresholdBosonSampling::calc_probability( matrix& Qinv, const double& Qdet, matr
     }
 #endif
 
-    if (m.size()>0) {
+    // create Matrix O_S according to the main text below Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+    matrix&& O_S = create_O_S( O, current_output );
 
-        // calculate Q_inv * conj(alpha)
-        matrix tmp(m.size(),1);
-        for (size_t row_idx=0; row_idx<m.size(); row_idx++) {
-            tmp[row_idx] = Complex16(0.0,0.0);
-            size_t row_offset = row_idx*Qinv.stride;
-
-            for (size_t col_idx=0; col_idx<m.size(); col_idx++) {
-                tmp[row_idx] = tmp[row_idx] + mult_a_bconj( Qinv[row_offset+col_idx], m[col_idx] );
-            }
-        }
-
-
-        // calculate alpha * Qinv * conj(alpha)
-        Complex16 inner_prod(0.0,0.0);
-        for (size_t idx=0; idx<m.size(); idx++) {
-            inner_prod = inner_prod + m[idx]*tmp[idx];
-        }
-
-        Normalization = exp(-0.5*inner_prod.real())*Normalization;
-
-
-    }
-
-    // Normalization of the last modes is always 1 in threshold calculation.
-    // division by s_1!...s_m! is not needed here. Reference: Eq. (14) https://journals.aps.org/prresearch/pdf/10.1103/PhysRevResearch.2.023005
-    // divide Normalization factor by s_1!...s_m! in Eq (10) of arXiv 2010.15595v3
-    /*for (size_t idx=0;idx<current_output.size(); idx++) {
-        Normalization = Normalization/factorial(current_output[idx]);
-    }*/
-
-    // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
-    matrix&& A_S = create_A_S( A, current_output );
-
-
-
-    /// Calculate the torontonian of A_S
-    Torontonian torontonian_calculator(A_S);
+    /// Calculate the torontonian of O_S
+    Torontonian torontonian_calculator(O_S);
     double torontonian = torontonian_calculator.calculate();
-
 
     // calculate the probability associated with the current output
     double prob = Normalization*torontonian;
@@ -691,56 +409,87 @@ ThresholdBosonSampling::calc_probability( matrix& Qinv, const double& Qdet, matr
 
 }
 
-/**
-@brief Call to add correction coming from the displacement to the diagonal elements of A_S (see Eq. (11) in arXiv 2010.15595)
-@param A_S Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
-(The output is returned via this variable)
-@param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
-@param m The displacement \f$ \alpha \f$ defined by Eq (8) of Ref. arXiv 2010.15595
-@param current_output The Fock representation of the current output for which the probability is calculated
-*/
-void
-ThresholdBosonSampling::diag_correction_of_A_S( matrix& A_S, matrix& Qinv, matrix& m, PicState_int64& current_output ) {
-
-    matrix gamma(Qinv.rows, 1);
-    for (size_t row_idx=0; row_idx<Qinv.rows; row_idx++) {
-
-        size_t row_offset = row_idx*Qinv.stride;
-        gamma[row_idx] = Complex16(0.0,0.0);
-
-        for (size_t col_idx=0; col_idx<Qinv.rows; col_idx++) {
-            gamma[row_idx] = gamma[row_idx] + mult_a_bconj( Qinv[row_offset + col_idx], m[col_idx] );
-        }
-    }
-    // store gamma values into matrix A_S
-    size_t num_of_modes = current_output.size();
-    size_t num_of_repeated_modes = A_S.rows/2;
-    size_t row_idx = 0;
-    for (size_t idx=0; idx<num_of_modes; idx++) {
-        for (int row_repeat=0; row_repeat<current_output[idx]; row_repeat++) {
-
-            A_S[row_idx*A_S.stride + row_idx] = gamma[idx];
-            A_S[(row_idx+num_of_repeated_modes)*A_S.stride + row_idx + num_of_repeated_modes] = gamma[idx+num_of_modes];
-
-
-            row_idx++;
-        }
-    }
-
-
-    return;
-}
-
 
 
 /**
-@brief Call to create matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
-@param A Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+@brief Call to create matrix O_S according to the main text below Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+@param O Hamilton matrix O
 @param current_output The fock representation of the current output for which the probability is calculated
-@return Returns with the A_S matrix
+@return Returns with the O_S matrix
 */
 matrix
-ThresholdBosonSampling::create_A_S( matrix& A, PicState_int64& current_output ) {
+ThresholdBosonSampling::create_O_S( matrix& O, PicState_int64& current_output ) {
+
+    size_t dim_O_S = sum(current_output);
+    size_t dim_O = current_output.size();
+
+    matrix O_S(2*dim_O_S, 2*dim_O_S);
+    memset(O_S.get_data(), 0, O_S.size()*sizeof(Complex16));
+
+    size_t row_idx_O_S = 0;
+    for (size_t idx_output=0; idx_output<current_output.size(); idx_output++) {
+        // we inserting element to current row if the current output is 1
+        if (current_output[idx_output]) {
+            size_t row_offset = row_idx_O_S*O_S.stride;
+            size_t row_offset_O = idx_output*O.stride;
+            size_t col_idx_O_S = 0;
+            // insert column elements to the upper left block
+            for (size_t jdx_output=0; jdx_output<current_output.size(); jdx_output++) {
+                // we inserting element if the current output is 1
+                if (current_output[jdx_output]) {
+                    if ( (row_idx_O_S == col_idx_O_S) || (idx_output != jdx_output) ) {
+                        O_S[row_offset + col_idx_O_S] = O[row_offset_O + jdx_output];
+                    }
+                    col_idx_O_S++;
+                }
+            }
+
+            col_idx_O_S = 0;
+            // insert column elements to the upper right block
+            for (size_t jdx_output=0; jdx_output<current_output.size(); jdx_output++) {
+                // we inserting element if the current output is 1
+                if (current_output[jdx_output]) {
+                    O_S[row_offset + col_idx_O_S + dim_O_S] = O[row_offset_O + jdx_output + dim_O];
+                    col_idx_O_S++;
+                }
+
+            }
+
+            row_offset = (row_idx_O_S+dim_O_S)*O_S.stride;
+            row_offset_O = (idx_output+dim_O)*O.stride;
+            col_idx_O_S = 0;
+            // insert column elements to the lower left block
+            for (size_t jdx_output=0; jdx_output<current_output.size(); jdx_output++) {
+                // we inserting element if the current output is 1
+                if (current_output[jdx_output]) {
+                    O_S[row_offset + col_idx_O_S] = O[row_offset_O + jdx_output];
+                    col_idx_O_S++;
+                }
+            }
+
+            col_idx_O_S = 0;
+            // insert column elements to the lower right block
+            for (size_t jdx_output=0; jdx_output<current_output.size(); jdx_output++) {
+                // we inserting element if the current output is 1
+                if (current_output[jdx_output]) {
+                    if ( (row_idx_O_S == col_idx_O_S) || (idx_output != jdx_output) ) {
+                        O_S[row_offset + col_idx_O_S + dim_O_S] = O[row_offset_O + jdx_output + dim_O];
+                    }
+                    col_idx_O_S++;
+                }
+
+            }
+
+
+            row_idx_O_S++;
+        }
+
+
+    }
+
+    return O_S;
+
+/*
 
     size_t dim_A_S = sum(current_output);
     size_t dim_A = current_output.size();
@@ -753,44 +502,35 @@ ThresholdBosonSampling::create_A_S( matrix& A, PicState_int64& current_output ) 
         for (size_t row_repeat=0; (int)row_repeat<current_output[idx]; row_repeat++) {
 
             size_t row_offset = row_idx*A_S.stride;
-            size_t row_offset_A = idx*A.stride;
+            size_t row_offset_A = idx*O.stride;
             size_t col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; (int)col_repeat<current_output[jdx]; col_repeat++) {
                     if ( (row_idx == col_idx) || (idx != jdx) ) {
-                        A_S[row_offset + col_idx] = A[row_offset_A + jdx];
+                        A_S[row_offset + col_idx] = O[row_offset_A + jdx];
                     }
                     col_idx++;
                 }
             }
 
-            // 0 0 0 0 0 0 0 0
-            // 0 1 0 1 0 1 0 1
-            // 0 0 0 0 0 0 0 0
-            // 0 1 0 1 0 1 0 1
-            // 0 0 0 0 0 0 0 0
-            // 0 1 0 1 0 1 0 1
-            // 0 0 0 0 0 0 0 0
-            // 0 1 0 1 0 1 0 1
-
             col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; (int)col_repeat<current_output[jdx]; col_repeat++) {
-                    A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
+                    A_S[row_offset + col_idx + dim_A_S] = O[row_offset_A + jdx + dim_A];
                     col_idx++;
                 }
 
             }
 
             row_offset = (row_idx+dim_A_S)*A_S.stride;
-            row_offset_A = (idx+dim_A)*A.stride;
+            row_offset_A = (idx+dim_A)*O.stride;
             col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; (int)col_repeat<current_output[jdx]; col_repeat++) {
-                    A_S[row_offset + col_idx] = A[row_offset_A + jdx];
+                    A_S[row_offset + col_idx] = O[row_offset_A + jdx];
                     col_idx++;
                 }
             }
@@ -800,7 +540,7 @@ ThresholdBosonSampling::create_A_S( matrix& A, PicState_int64& current_output ) 
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; (int)col_repeat<current_output[jdx]; col_repeat++) {
                     if ( (row_idx == col_idx) || (idx != jdx) ) {
-                        A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
+                        A_S[row_offset + col_idx + dim_A_S] = O[row_offset_A + jdx + dim_A];
                     }
                     col_idx++;
                 }
@@ -815,6 +555,7 @@ ThresholdBosonSampling::create_A_S( matrix& A, PicState_int64& current_output ) 
     }
 
     return A_S;
+*/
 
 }
 

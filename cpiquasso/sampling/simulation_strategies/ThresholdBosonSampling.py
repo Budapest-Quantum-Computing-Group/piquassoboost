@@ -19,10 +19,11 @@ from .ThresholdBosonSampling_wrapper import ThresholdBosonSampling_wrapper
 class ThresholdBosonSampling(
     ThresholdBosonSampling_wrapper
 ):
-    def __init__(self, covariance_matrix, m=None, fock_cutoff=2, max_photons=20):
+#    def __init__(self, covariance_matrix, m=None, fock_cutoff=2, max_photons=20):
+        #super().__init__(covariance_matrix=covariance_matrix, m=m, fock_cutoff=fock_cutoff, max_photons=max_photons)
 
-        super().__init__(covariance_matrix=covariance_matrix, m=m, fock_cutoff=fock_cutoff, max_photons=max_photons)
-
+    def __init__(self, covariance_matrix):
+        super().__init__(covariance_matrix=covariance_matrix)
 
     def simulate(self, samples_number: int = 1):
         """
