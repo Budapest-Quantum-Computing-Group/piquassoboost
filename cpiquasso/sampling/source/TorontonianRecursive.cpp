@@ -57,10 +57,11 @@ TorontonianRecursive::~TorontonianRecursive() {
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
+@param use_extended Logical variable to indicate whether use extended precision for cholesky decomposition (default), or not.
 @return Returns with the calculated hafnian
 */
 double
-TorontonianRecursive::calculate() {
+TorontonianRecursive::calculate(bool use_extended = true) {
 
     if (mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
@@ -68,9 +69,19 @@ TorontonianRecursive::calculate() {
     }
 
 
+    double torontonian;
 
-    TorontonianRecursive_Tasks<matrix32, Complex32> torontonian_calculator = TorontonianRecursive_Tasks<matrix32, Complex32>(mtx);
-    double torontonian = torontonian_calculator.calculate();
+    if (use_extended) {
+        TorontonianRecursive_Tasks<matrix32, Complex32> torontonian_calculator(mtx);
+        torontonian = torontonian_calculator.calculate();
+    }
+    else {
+        TorontonianRecursive_Tasks<matrix, Complex16> torontonian_calculator(mtx);
+        torontonian = torontonian_calculator.calculate();
+    }
+
+
+
 
     return torontonian;
 

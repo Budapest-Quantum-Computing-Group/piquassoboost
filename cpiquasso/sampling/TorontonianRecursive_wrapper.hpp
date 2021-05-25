@@ -11,7 +11,7 @@
 #include "numpy_interface.h"
 
 /**
-This file contains the implementation of the python wrapper object for the C++ class TorontonianRecursive_wrapper. 
+This file contains the implementation of the python wrapper object for the C++ class TorontonianRecursive_wrapper.
 It is included by the file Boson_Sampling_utilities.cpp
 */
 
@@ -144,11 +144,30 @@ TorontonianRecursive_wrapper_init(TorontonianRecursive_wrapper *self, PyObject *
 @return Returns with a PyObject containing the calculated TorontonianRecursive.
 */
 static PyObject *
-TorontonianRecursive_wrapper_calculate(TorontonianRecursive_wrapper *self)
+TorontonianRecursive_wrapper_calculate(TorontonianRecursive_wrapper *self, PyObject *args, PyObject *kwds)
 {
+    // The tuple of expected keywords
+    static char *kwlist[] = {(char*)"use_extended", NULL};
+
+    // initiate variables for input arguments
+    bool use_extended = true;
+    PyObject *use_extended_arg = NULL;
+
+    // parsing input arguments
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,  &use_extended_arg))  {
+        double ret = 0.0;
+        return Py_BuildValue("D", &ret);
+    }
+
+    if (PyObject_IsTrue(use_extended_arg)) {
+        use_extended = true;
+    }
+    else {
+        use_extended = false;
+    }
 
     // start the calculation of the permanent
-    pic::Complex16 ret = self->calculator->calculate();
+    double ret = self->calculator->calculate(use_extended);
 
     return Py_BuildValue("D", &ret);
 }
@@ -222,7 +241,7 @@ static PyMemberDef TorontonianRecursive_wrapper_Members[] = {
 
 
 static PyMethodDef TorontonianRecursive_wrapper_Methods[] = {
-    {"calculate", (PyCFunction) TorontonianRecursive_wrapper_calculate, METH_NOARGS,
+    {"calculate", (PyCFunction) TorontonianRecursive_wrapper_calculate, METH_VARARGS | METH_KEYWORDS,
      "Method to calculate the torontonian."
     },
     {NULL}  /* Sentinel */

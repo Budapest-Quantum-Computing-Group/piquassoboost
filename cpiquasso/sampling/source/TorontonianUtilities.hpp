@@ -14,37 +14,6 @@ namespace pic {
 
 
 /**
-@brief Call to calculate in-place Cholesky decomposition of a matrix. The decomposed matrix is stored in mtx.
-@param mtx A positive definite hermitian matrix with eigenvalues less then unity.
-*/
-/*
-template<class matrix_type, class complex_type>
-void
-calc_cholesky_decomposition(matrix_type& matrix)
-{
-    Complex32 determinant(0.0,0.0);
-    calc_cholesky_decomposition<matrix_type, complex_type>( matrix, 0, determinant);
-    return;
-}
-*/
-
-/**
-@brief Call to calculate in-place Cholesky decomposition of a matrix
-@param mtx A positive definite hermitian matrix with eigenvalues less then unity.  The decomposed matrix is stored in mtx.
-@param reuse_index Labels the row and column from which the Cholesky decomposition should be continued.
-*/
-/*
-template<class matrix_type, class complex_type>
-void
-calc_cholesky_decomposition(matrix_type& matrix, const size_t reuse_index)
-{
-    Complex32 determinant(0.0,0.0);
-    calc_cholesky_decomposition<matrix_type, complex_type>( matrix, reuse_index, determinant);
-    return;
-}
-*/
-
-/**
 @brief Call to calculate in-place Cholesky decomposition of a matrix
 @param mtx A positive definite hermitian matrix with eigenvalues less then unity.  The decomposed matrix is stored in mtx.
 @param reuse_index Labels the row and column from which the Cholesky decomposition should be continued.
@@ -104,7 +73,7 @@ template<class matrix_type, class complex_type>
 Complex32
 calc_determinant_cholesky_decomposition(matrix_type& mtx){
 
- return  calc_determinant_cholesky_decomposition(mtx, 0);
+ return  calc_determinant_cholesky_decomposition<matrix_type, complex_type>(mtx, 0);
 
 }
 
@@ -123,7 +92,7 @@ calc_determinant_cholesky_decomposition(matrix_type& mtx, const size_t reuse_ind
         Complex32 determinant(1.0, 0.0);
 
         // calculate the rest of the Cholesky decomposition and calculate the determinant
-        calc_cholesky_decomposition<matrix_type, complex_type>(mtx, reuse_index, determinant);
+        calc_cholesky_decomposition(mtx, reuse_index, determinant);
 
 #ifdef DEBUG
         if (reuse_index > mtx.rows ) {

@@ -196,7 +196,7 @@ protected:
 @param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
-IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix32 &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend ) {
+IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix_type &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend ) {
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;

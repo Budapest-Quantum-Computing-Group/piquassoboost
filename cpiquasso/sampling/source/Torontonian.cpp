@@ -1,5 +1,5 @@
 #include "Torontonian.h"
-#include "TorontonianUtilities.h"
+#include "TorontonianUtilities.hpp"
 #include "common_functionalities.h"
 #include "tbb/tbb.h"
 
@@ -131,7 +131,7 @@ Torontonian::calculate(){
             // calculating the determinant of B
             Complex32 determinant;
             if (number_of_ones != 0) {
-                determinant = calc_determinant_cholesky_decomposition(B);
+                determinant = calc_determinant_cholesky_decomposition<matrix32, Complex32>(B);
             }
             else{
                 determinant = 1.0;

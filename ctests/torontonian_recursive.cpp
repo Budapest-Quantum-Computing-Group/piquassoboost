@@ -51,10 +51,19 @@ int main(){
     // create class instance for recursive torontonian calculator
     tbb::tick_count t2 = tbb::tick_count::now();
     pic::TorontonianRecursive recursive_torontonian_calculator(mtx);
-    double result_recursive = recursive_torontonian_calculator.calculate();
+    double result_recursive_extended = recursive_torontonian_calculator.calculate(true);
     tbb::tick_count t3 = tbb::tick_count::now();
 
-    std::cout << "recursive torontonian calculator: " << result_recursive<< std::endl;
+    std::cout << "recursive torontonian calculator extended precision: " << result_recursive_extended<< std::endl;
+
+
+    // create class instance for recursive torontonian calculator
+    tbb::tick_count t4 = tbb::tick_count::now();
+    recursive_torontonian_calculator = pic::TorontonianRecursive(mtx);
+    double result_recursive_basic = recursive_torontonian_calculator.calculate(false);
+    tbb::tick_count t5 = tbb::tick_count::now();
+
+    std::cout << "recursive torontonian calculator basic precision: " << result_recursive_basic<< std::endl;
 
     std::cout << (t1-t0).seconds() << " " << (t3-t2).seconds() << " " << (t1-t0).seconds()/(t3-t2).seconds() << std::endl;
 

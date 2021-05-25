@@ -43,9 +43,10 @@ virtual ~TorontonianRecursive();
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
+@param use_extended Logical variable to indicate whether use extended precision for cholesky decomposition (default), or not.
 @return Returns with the calculated hafnian
 */
-virtual double calculate();
+virtual double calculate(bool use_extended);
 
 /**
 @brief Call to update the memory address of the matrix mtx

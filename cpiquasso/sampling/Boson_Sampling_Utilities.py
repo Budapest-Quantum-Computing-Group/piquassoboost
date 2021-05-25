@@ -214,11 +214,11 @@ class TorontonianRecursive(TorontonianRecursive_wrapper):
         pass
 
        
-    def calculate(self):
+    def calculate(self, use_extended=False):
         """
             :return: The Torontonian of the matrix.
         """
 
         # call the torontonian calculator of the parent class
-        return super(TorontonianRecursive, self).calculate()
+        return super(TorontonianRecursive, self).calculate(use_extended=use_extended)
 
