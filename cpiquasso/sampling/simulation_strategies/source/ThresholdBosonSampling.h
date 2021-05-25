@@ -28,28 +28,6 @@ From a given a gaussian state it calculates the threshold boson sampling.
 */
 class ThresholdBosonSampling : public GaussianSimulationStrategy{
 // All members and fields are inherited from base class GaussianSimulationStrategy
-/*
-protected:
-
-    /// object describing the Gaussian state
-    GaussianState_Cov state;
-
-    /// cutoff of the Fock basis truncation.
-    size_t cutoff;
-    /// the maximum number of photons that can be counted in the output samples.
-    size_t max_photons;
-    /// The dimension of the covariance matrix
-    size_t dim;
-    /// The number of the input modes stored by the covariance matrix
-    size_t dim_over_2;
-
-#ifdef __MPI__
-    /// The number of processes in MPI run
-    int world_size;
-    /// Get current rank of the process
-    int current_rank;
-#endif // MPI
-*/
 
 public:
 
@@ -60,7 +38,7 @@ public:
 ThresholdBosonSampling();
 
 /**
-@brief Constructor of the class. (The displacement is set to zero by this constructor)
+@brief Constructor of the class.
 @param covariance_matrix_in The covariance matrix describing the gaussian state
 @return Returns with the instance of the class.
 */
@@ -100,25 +78,10 @@ PicState_int64 getSample();
 
 
 /**
-@brief Call to calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595
-@param state An instance of Gaussian state in the Fock representation. (If the Gaussian state is in quadrature representation, than it is transformed into Fock-space representation)
-@return Returns with the Hamilton matrix A.
-*/
-matrix calc_Qinv( GaussianState_Cov& state );
+@brief Call to calculate the Hamilton matrix A defined by Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
 
-/**
-@brief Call to calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595 and the determinant of Q.
-Since the determinant can be calculated by LU factorization, which is also necessary to calculate the inverse, we
-calculatet the inverse and the determiant in one shot.
-@param state An instance of Gaussian state in the Fock representation. (If the Gaussian state is in quadrature representation, than it is transformed into Fock-space representation)
-@param Qdet The calculated determinant of the matrix Q is stored into this value.
-@return Returns with the Hamilton matrix A.
-*/
-matrix calc_Qinv( GaussianState_Cov& state, double& Qdet );
+O = 1 - Qinv
 
-
-/**
-@brief Call to calculate the Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
 @param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
 @return Returns with the Hamilton matrix A.
 */
@@ -127,9 +90,12 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 
 /**
 @brief Call to calculate the probability associated with observing output state given by current_output
+
+The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+
 @param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
 @param Qdet The determinant of matrix Q.
-@param O Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
+@param O Hamilton matrix 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
@@ -143,15 +109,6 @@ virtual double calc_probability( matrix& Qinv, const double& Qdet, matrix& O, Pi
 @return Returns with the O_S matrix
 */
 matrix create_O_S( matrix& O, PicState_int64& current_output );
-
-
-/**
-@brief Call to sample from a probability array.
-@param probabilities Array of probabilities from which the sampling should be taken
-@return Returns with the index of the chosen probability value
-*/
-size_t sample_from_probabilities( matrix_base<double>& probabilities );
-
 
 }; //ThresholdBosonSampling
 
