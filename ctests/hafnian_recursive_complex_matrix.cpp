@@ -55,9 +55,7 @@ create_repeated_mtx( pic::matrix& A, pic::PicState_int64& filling_factors ) {
             // insert column elements
             for (size_t jdx=0; jdx<filling_factors.size(); jdx++) {
                 for (size_t col_repeat=0; col_repeat<filling_factors[jdx]; col_repeat++) {
-                    if ( (row_idx == col_idx) || (idx != jdx) ) {
-                        A_S[row_offset + col_idx] = A[row_offset_A + jdx];
-                    }
+                    A_S[row_offset + col_idx] = A[row_offset_A + jdx];
                     col_idx++;
                 }
             }
@@ -87,9 +85,7 @@ create_repeated_mtx( pic::matrix& A, pic::PicState_int64& filling_factors ) {
             // insert column elements
             for (size_t jdx=0; jdx<filling_factors.size(); jdx++) {
                 for (size_t col_repeat=0; col_repeat<filling_factors[jdx]; col_repeat++) {
-                    if ( (row_idx == col_idx) || (idx != jdx) ) {
-                        A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
-                    }
+                    A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
                     col_idx++;
                 }
 

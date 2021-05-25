@@ -145,8 +145,7 @@ virtual Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes
 @param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-matrix
-CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
+virtual matrix CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
 
 
 

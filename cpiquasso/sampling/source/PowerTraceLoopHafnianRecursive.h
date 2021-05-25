@@ -22,6 +22,8 @@ class PowerTraceLoopHafnianRecursive : public PowerTraceLoopHafnian {
 
 
 protected:
+    /// The diagonal elements of the input matrix
+    matrix diag;
     /// An array describing the occupancy to be used to calculate the hafnian. The i-th mode is repeated occupancy[i] times.
     PicState_int64 occupancy;
 
@@ -36,6 +38,18 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 @return Returns with the instance of the class.
 */
 PowerTraceLoopHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in );
+
+
+/**
+@brief Constructor of the class.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param diag_elements_in
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
+(The matrix mtx itself does not contain any repeated rows and column.)
+@return Returns with the instance of the class.
+*/
+PowerTraceLoopHafnianRecursive( matrix &mtx_in, matrix &diag_in, PicState_int64& occupancy_in );
 
 
 /**
@@ -63,6 +77,9 @@ purpose loop hafnian calculator. This algorithm accounts for the repeated occupa
 */
 class PowerTraceLoopHafnianRecursive_Tasks : public PowerTraceHafnianRecursive_Tasks {
 
+protected:
+    /// The diagonal elements of the input matrix
+    matrix diag;
 
 public:
 
@@ -75,6 +92,18 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 @return Returns with the instance of the class.
 */
 PowerTraceLoopHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in );
+
+
+/**
+@brief Constructor of the class.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param diag_elements_in
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
+(The matrix mtx itself does not contain any repeated rows and column.)
+@return Returns with the instance of the class.
+*/
+PowerTraceLoopHafnianRecursive_Tasks( matrix &mtx_in, matrix &diag_elements_in, PicState_int64& occupancy_in );
 
 
 /**
@@ -94,6 +123,15 @@ protected:
 Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
 
 
+/**
+@brief Call to construct matrix \f$ A^Z \f$ (see the text below Eq. (3.20) of arXiv 1805.12498) for the given modes and their occupancy
+@param selected_modes Selected modes over which the iterations are run
+@param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
+@param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
+@param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
+@return Returns with the constructed matrix \f$ A^Z \f$.
+*/
+matrix CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
 
 /**
 @brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498

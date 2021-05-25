@@ -15,7 +15,7 @@
 #endif // MPI
 
 /*
-static tbb::spin_mutex my_mutex;
+static tbb::spin_mutex mymutex;
 
 double time_nominator = 0.0;
 double time_nevezo = 0.0;
@@ -39,6 +39,33 @@ PowerTraceLoopHafnianRecursive::PowerTraceLoopHafnianRecursive( matrix &mtx_in, 
 
     mtx = mtx_in;
     occupancy = occupancy_in;
+
+    diag = matrix(mtx.rows,1);
+    for (size_t idx=0; idx<mtx.rows; idx++) {
+        diag[idx] = mtx[idx*mtx.stride + idx];
+    }
+
+}
+
+
+/**
+@brief Constructor of the class.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param diag_elements_in
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
+(The matrix mtx itself does not contain any repeated rows and column.)
+@return Returns with the instance of the class.
+*/
+PowerTraceLoopHafnianRecursive::PowerTraceLoopHafnianRecursive( matrix &mtx_in, matrix &diag_in, PicState_int64& occupancy_in ) {
+    assert(isSymmetric(mtx_in));
+
+
+    mtx = mtx_in;
+    diag = diag_in;
+    occupancy = occupancy_in;
+    
+
 
 }
 
@@ -77,7 +104,7 @@ PowerTraceLoopHafnianRecursive::calculate() {
     int current_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
-    PowerTraceLoopHafnianRecursive_Tasks hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks(mtx, occupancy);
+    PowerTraceLoopHafnianRecursive_Tasks hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks(mtx, diag, occupancy);
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
 
     // send the calculated partial hafnian to rank 0
@@ -100,7 +127,7 @@ PowerTraceLoopHafnianRecursive::calculate() {
     unsigned long long current_rank = 0;
     unsigned long long world_size = 1;
 
-    PowerTraceLoopHafnianRecursive_Tasks hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks(mtx, occupancy);
+    PowerTraceLoopHafnianRecursive_Tasks hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks(mtx, diag, occupancy);
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
 
     return hafnian;
@@ -132,11 +159,11 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-PowerTraceLoopHafnianRecursive_Tasks::PowerTraceLoopHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in ) {
+PowerTraceLoopHafnianRecursive_Tasks::PowerTraceLoopHafnianRecursive_Tasks( matrix &mtx_in, matrix &diag_in, PicState_int64& occupancy_in ) {
+
     assert(isSymmetric(mtx_in));
 
     Update_mtx( mtx_in );
-
     occupancy = occupancy_in;
 
 
@@ -149,6 +176,50 @@ PowerTraceLoopHafnianRecursive_Tasks::PowerTraceLoopHafnianRecursive_Tasks( matr
         // The dimensions of the matrix should be even
         std::cout << "In PowerTraceHafnianRecursive_Tasks algorithm the dimensions of the matrix should strictly be even. Exiting" << std::endl;
         exit(-1);
+    }
+
+    // set the maximal number of spawned tasks living at the same time
+    max_task_num = 300;
+    // The current number of spawned tasks
+    task_num = 0;
+    // mutual exclusion to count the spawned tasks
+    task_count_mutex = new tbb::spin_mutex();
+
+    diag = diag_in;
+
+}
+
+
+
+/**
+@brief Constructor of the class.
+@param mtx_in A symmetric matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
+@param occupancy_in An \f$ n \f$ long array describing the number of rows an columns to be repeated during the hafnian calculation.
+The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupancy[i] times.
+(The matrix mtx itself does not contain any repeated rows and column.)
+@return Returns with the instance of the class.
+*/
+PowerTraceLoopHafnianRecursive_Tasks::PowerTraceLoopHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in ) {
+    assert(isSymmetric(mtx_in));
+
+    Update_mtx( mtx_in );
+    occupancy = occupancy_in;
+
+
+    if (mtx.rows != 2*occupancy.size()) {
+        std::cout << "The length of array occupancy should be equal to the half of the dimension of the input matrix mtx. Exiting" << std::endl;
+        exit(-1);
+    }
+
+    if (mtx.rows % 2 != 0) {
+        // The dimensions of the matrix should be even
+        std::cout << "In PowerTraceHafnianRecursive_Tasks algorithm the dimensions of the matrix should strictly be even. Exiting" << std::endl;
+        exit(-1);
+    }
+
+    diag = matrix(mtx.rows,1);
+    for (size_t idx=0; idx<mtx.rows; idx++) {
+        diag[idx] = mtx[idx*mtx.stride + idx];
     }
 
     // set the maximal number of spawned tasks living at the same time
@@ -187,6 +258,7 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
 
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
     double scale_factor_B = 0.0;
+
     matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes, scale_factor_B);
 
     // diag_elements corresponds to the diagonal elements of the input  matrix used in the loop correction
@@ -219,7 +291,6 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
 
     // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
     bool fact = ((total_num_of_modes - num_of_modes) % 2);
-
 
     // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
     matrix32 aux0(total_num_of_modes + 1, 1);
@@ -267,14 +338,15 @@ PowerTraceLoopHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<c
 
     }
 
-
     if (fact) {
-        return  -p_aux1[total_num_of_modes];
 //std::cout << -p_aux1[total_num_of_modes] << std::endl;
+        return  -p_aux1[total_num_of_modes];
+
     }
     else {
-        return p_aux1[total_num_of_modes];
 //std::cout << p_aux1[total_num_of_modes] << std::endl;
+        return p_aux1[total_num_of_modes];
+
     }
 
 
@@ -289,7 +361,7 @@ void
 PowerTraceLoopHafnianRecursive_Tasks::ScaleMatrix() {
 
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
-    if ( mtx_orig.rows <= 10) {
+    if ( mtx_orig.rows <= 100000) {
         mtx = mtx_orig;
         scale_factor = 1.0;
     }
@@ -322,9 +394,137 @@ PowerTraceLoopHafnianRecursive_Tasks::ScaleMatrix() {
             }
         }
 
+        // scaling the matrix elements
+        for (size_t row_idx=0; row_idx<mtx_orig.rows; row_idx++) {
+
+            size_t row_offset = row_idx*mtx.stride;
+
+            for (size_t col_idx=0; col_idx<mtx_orig.cols; col_idx++) {
+                if (col_idx == row_idx ) {
+                    mtx[row_offset+col_idx] = mtx[row_offset+col_idx]*sqrt(inverse_scale_factor);
+                }
+                else {
+                    mtx[row_offset+col_idx] = mtx[row_offset+col_idx]*inverse_scale_factor;
+                }
+
+            }
+        }
+
     }
 
 }
+
+
+
+/**
+@brief Call to construct matrix \f$ A^Z \f$ (see the text below Eq. (3.20) of arXiv 1805.12498) for the given modes and their occupancy
+@param selected_modes Selected modes over which the iterations are run
+@param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
+@param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
+@param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
+@return Returns with the constructed matrix \f$ A^Z \f$.
+*/
+matrix
+PowerTraceLoopHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
+
+
+    matrix A(num_of_modes*2, num_of_modes*2);
+    memset(A.get_data(), 0, A.size()*sizeof(Complex16));
+    size_t row_idx = 0;
+    for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
+
+        size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*mtx.stride;
+        size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*mtx.stride;
+
+        for (size_t filling_factor_row=1; filling_factor_row<=current_occupancy[mode_idx]; filling_factor_row++) {
+
+            size_t row_offset_A_a = 2*row_idx*A.stride;
+            size_t row_offset_A_aconj = (2*row_idx+1)*A.stride;
+
+
+            size_t col_idx = 0;
+
+            for (size_t mode_jdx = 0; mode_jdx < selected_modes.size(); mode_jdx++) {
+
+                for (size_t filling_factor_col=1; filling_factor_col<=current_occupancy[mode_jdx]; filling_factor_col++) {
+
+                    A[row_offset_A_a + col_idx*2]   = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
+                    A[row_offset_A_aconj + col_idx*2+1] = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];  
+                    A[row_offset_A_a + col_idx*2+1] = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2+1)];
+                    A[row_offset_A_aconj + col_idx*2]   = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2)];
+                    col_idx++;
+                }
+            }
+
+            A[row_offset_A_a + 2*row_idx]       = diag[selected_modes[mode_idx]*2];
+            A[row_offset_A_aconj + 2*row_idx+1] = diag[selected_modes[mode_idx]*2+1];
+
+            row_idx++;
+        }
+
+    }
+/*
+{
+    tbb::spin_mutex::scoped_lock my_lock{mymutex};
+    A.print_matrix();
+}
+*/
+    // A^(Z), i.e. to the square matrix constructed from the input matrix
+    // for details see the text below Eq.(3.20) of arXiv 1805.12498
+    matrix AZ(num_of_modes*2, num_of_modes*2);
+    scale_factor_AZ = 0.0;
+    for (size_t idx = 0; idx < 2*num_of_modes; idx++) {
+        size_t row_offset = (idx^1)*A.stride;
+        for (size_t jdx = 0; jdx < 2*num_of_modes; jdx++) {
+            Complex16 &element = A[row_offset + jdx];
+            AZ[idx*AZ.stride + jdx] = element;
+            scale_factor_AZ = scale_factor_AZ + element.real()*element.real() + element.imag()*element.imag();
+        }
+    }
+
+
+    // scale matrix AZ -- when matrix elements of AZ are scaled, larger part of the computations can be kept in double precision
+    if ( scale_factor_AZ < 1e-8 ) {
+        scale_factor_AZ = 1.0;
+    }
+    else {
+        scale_factor_AZ = std::sqrt(scale_factor_AZ/2)/AZ.size();
+        for (size_t idx=0; idx<AZ.size(); idx++) {
+            AZ[idx] = AZ[idx]*scale_factor_AZ;
+        }
+    }
+
+
+
+
+/*
+    // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
+    // the elements of mtx=A indexed by the rows and colums, where the binary representation of
+    // permutation_idx was 1
+    // for details see the text below Eq.(3.20) of arXiv 1805.12498
+    matrix B(total_num_of_modes*2, total_num_of_modes*2);
+    for (size_t idx = 0; idx < total_num_of_modes; idx++) {
+
+        size_t row_offset_B_a = 2*idx*B.stride;
+        size_t row_offset_B_aconj = (2*idx+1)*B.stride;
+
+        size_t row_offset_mtx_a = 2*selected_modes[idx]*mtx.stride;
+        size_t row_offset_mtx_aconj = (2*selected_modes[idx]+1)*mtx.stride;
+
+        for (size_t jdx = 0; jdx < total_num_of_modes; jdx++) {
+            B[row_offset_B_a + jdx*2]   = mtx[row_offset_mtx_a + ((selected_modes[jdx]*2) ^ 1)];
+            B[row_offset_B_a + jdx*2+1] = mtx[row_offset_mtx_a + ((selected_modes[jdx]*2+1) ^ 1)];
+            B[row_offset_B_aconj + jdx*2]   = mtx[row_offset_mtx_aconj + ((selected_modes[jdx]*2) ^ 1)];
+            B[row_offset_B_aconj + jdx*2+1] = mtx[row_offset_mtx_aconj + ((selected_modes[jdx]*2+1) ^ 1)];
+        }
+    }
+*/
+
+    return AZ;
+
+
+}
+
 
 
 /**
@@ -348,8 +548,8 @@ PowerTraceLoopHafnianRecursive_Tasks::CreateDiagElements( const PicVector<char>&
 
         for (size_t filling_factor_row=1; filling_factor_row<=current_occupancy[mode_idx]; filling_factor_row++) {
 
-            diag_elements[2*row_idx]   = mtx[row_offset_mtx_a + selected_modes[mode_idx]*2];
-            diag_elements[2*row_idx+1] = mtx[row_offset_mtx_aconj + selected_modes[mode_idx]*2 + 1];
+            diag_elements[2*row_idx]   = diag[selected_modes[mode_idx]*2];
+            diag_elements[2*row_idx+1] = diag[selected_modes[mode_idx]*2 + 1];
 
             row_idx++;
         }
