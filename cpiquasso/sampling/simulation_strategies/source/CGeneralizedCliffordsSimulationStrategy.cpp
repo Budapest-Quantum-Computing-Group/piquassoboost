@@ -449,11 +449,15 @@ double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 
 
     double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag(); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
 
+    int64_t photon_num = 0;
+    for (size_t idx=0; idx<input_state.size(); idx++) {
+        photon_num = photon_num + input_state[idx];
+    }
+    probability = probability/factorial( photon_num );
+
+
     for (size_t idx=0; idx<input_state.size(); idx++) {
         probability = probability/factorial( input_state[idx] );
-    }
-    for (size_t idx=0; idx<output_state.size(); idx++) {
-        probability = probability/factorial( output_state[idx] );
     }
 
     return probability;
