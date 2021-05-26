@@ -99,6 +99,15 @@ GaussianSimulationStrategy::GaussianSimulationStrategy() {
 
 }
 
+/**
+@brief Seeds the simulation with a specified value
+@param value The value to seed with
+*/
+void
+GaussianSimulationStrategy::seed(unsigned long long int value) {
+    srand(value);
+}
+
 
 /**
 @brief Constructor of the class.
@@ -130,7 +139,7 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     dim = covariance_matrix.rows;
     dim_over_2 = dim/2;
 
-
+    seed(time(NULL));
 }
 
 
@@ -167,11 +176,7 @@ GaussianSimulationStrategy::GaussianSimulationStrategy( matrix &covariance_matri
     dim = covariance_matrix.rows;
     dim_over_2 = dim/2;
 
-    // seed the random generator
-    srand ( time ( NULL));
-
-
-
+    seed(time(NULL));
 }
 
 
@@ -215,11 +220,6 @@ GaussianSimulationStrategy::setCutoff( const size_t& cutoff_in ) {
 */
 std::vector<PicState_int64>
 GaussianSimulationStrategy::simulate( int samples_number ) {
-
-    // seed the random generator
-    srand ( time( NULL) );
-
-
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
     samples.reserve(samples_number);

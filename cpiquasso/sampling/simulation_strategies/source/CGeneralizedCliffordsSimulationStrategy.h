@@ -58,6 +58,13 @@ CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in );
 */
 ~CGeneralizedCliffordsSimulationStrategy();
 
+
+/**
+@brief Seeds the simulation with a specified value
+@param value The value to seed with
+*/
+void seed(unsigned long long int value);
+
 /**
 @brief Call to update the memor address of the stored matrix iinterferometer_matrix
 @param interferometer_matrix_in The matrix describing the interferometer

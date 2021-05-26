@@ -91,6 +91,13 @@ void setCutoff( const size_t& cutoff_in );
 
 
 /**
+@brief Seeds the simulation with a specified value
+@param value The value to seed with
+*/
+void seed(unsigned long long int seed);
+
+
+/**
 @brief Call to get samples from the gaussian state
 @param samples_number The number of shots for which the output should be determined
 @return Returns with the samples of the gaussian state
