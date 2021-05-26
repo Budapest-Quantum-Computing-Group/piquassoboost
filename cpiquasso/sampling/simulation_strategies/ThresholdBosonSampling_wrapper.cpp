@@ -26,9 +26,9 @@ typedef struct ThresholdBosonSampling_wrapper {
 
 
 /**
-@brief Creates an instance of class ChinHuhPermanentCalculator and return with a pointer pointing to the class instance (C++ linking is needed)
+@brief Creates an instance of class ThresholdBosonSampling and return with a pointer pointing to the class instance (C++ linking is needed)
 @param covariance_matrix The covariance matrix describing the gaussian state
-@return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
+@return Return with a void pointer pointing to the new instance of ThresholdBosonSampling class.
 */
 pic::ThresholdBosonSampling*
 create_ThresholdBosonSamplingCalculator( pic::matrix &covariance_matrix_mtx ) {
@@ -66,7 +66,7 @@ static void
 ThresholdBosonSampling_wrapper_dealloc(ThresholdBosonSampling_wrapper *self)
 {
 
-    // deallocate the instance of class N_Qubit_Decomposition
+    // deallocate the instance of class ThresholdBosonSampling
     release_ThresholdBosonSamplingCalculator( self->simulation_strategy );
 
     // release numpy arrays
@@ -99,8 +99,8 @@ ThresholdBosonSampling_wrapper_new(PyTypeObject *type, PyObject *args, PyObject 
 /**
 @brief Method called when a python instance of the class ThresholdBosonSampling_wrapper is initialized
 @param self A pointer pointing to an instance of the class ThresholdBosonSampling_wrapper.
-@param args A tuple of the input arguments: qbit_num (integer)
-qbit_num: the number of qubits spanning the operations
+@param args A tuple of the input arguments: covariance_matrix (matrix)
+covariance_matrix: the covariance matrix of the current state
 @param kwds A tuple of keywords
 */
 static int
@@ -142,9 +142,9 @@ ThresholdBosonSampling_wrapper_init(ThresholdBosonSampling_wrapper *self, PyObje
 
 
 /**
-@brief Wrapper function to call the simulate method of C++ class CGaussianState
+@brief Wrapper function to call the simulate method of C++ class ThresholdBosonSampling
 @param self A pointer pointing to an instance of the class ThresholdBosonSampling_wrapper.
-@param args A tuple of the input arguments: sample_num
+@param args A tuple of the input arguments: sample_num (number of samples to be calculated)
 */
 static PyObject *
 ThresholdBosonSampling_wrapper_simulate(ThresholdBosonSampling_wrapper *self, PyObject *args)
@@ -322,7 +322,7 @@ static PyTypeObject ThresholdBosonSampling_wrapper_Type = {
 static PyModuleDef ThresholdBosonSampling_wrapper_Module = {
     PyModuleDef_HEAD_INIT,
     .m_name = "ThresholdBosonSampling_wrapper",
-    .m_doc = "Python binding for class ChinHuhPermanentCalculator",
+    .m_doc = "Python binding for class ThresholdBosonSampling",
     .m_size = -1,
 };
 

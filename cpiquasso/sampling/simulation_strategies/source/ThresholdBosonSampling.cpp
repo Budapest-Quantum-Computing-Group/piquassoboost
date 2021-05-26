@@ -14,53 +14,15 @@
 #include<stdio.h>
 #include<stdlib.h>
 
-//#include "lapacke.h"
-
-extern "C" {
-
-#define LAPACK_ROW_MAJOR               101
-
-/// Definition of the LAPACKE_zgetri function from LAPACKE to calculate the LU decomposition of a matrix
-int LAPACKE_zgetrf( int matrix_layout, int n, int m, pic::Complex16* a, int lda, int* ipiv );
-
-/// Definition of the LAPACKE_zgetri function from LAPACKE to calculate the inverse of a matirx
-int LAPACKE_zgetri( int matrix_layout, int n, pic::Complex16* a, int lda, const int* ipiv );
-
-}
-
-
 
 namespace pic {
 
 
 
-/**
-@brief Function to calculate factorial of a number.
-@param n The input number
-@return Returns with the factorial of the number
-*/
-static double factorial(int64_t n) {
-
-
-
-    if ( n == 0 ) return 1;
-    if ( n == 1 ) return 1;
-
-    int64_t ret=1;
-
-    for (int64_t idx=2; idx<=n; idx++) {
-        ret = ret*idx;
-    }
-
-    return (double) ret;
-
-
-}
-
 
 /**
 @brief Call to calculate sum of integers stored in a PicState
-@param vec a container if integers
+@param vec a container of integers
 @return Returns with the sum of the elements of the container
 */
 static inline int64_t
@@ -103,7 +65,7 @@ ThresholdBosonSampling::~ThresholdBosonSampling()
 {}
 
 /**
-@brief Call to update the memor address of the stored matrix interferometer_matrix
+@brief Call to update the memory address of the stored matrix covariance_matrix
 @param covariance_matrix The covariance matrix describing the gaussian state
 */
 void
@@ -114,6 +76,7 @@ ThresholdBosonSampling::Update_covariance_matrix( matrix &covariance_matrix ) {
 
 /**
 @brief Call to determine the resultant state after traversing through linear interferometer.
+@param samples_number The number of shots for which the output should be determined
 @return Returns with the resultant state after traversing through linear interferometer.
 */
 std::vector<PicState_int64>
@@ -143,7 +106,6 @@ ThresholdBosonSampling::simulate( int samples_number ) {
 */
 PicState_int64
 ThresholdBosonSampling::getSample() {    
-    // get husimi covariance matrix. It is stored in state.get_covariance_matrix()
     // convert the sampled Gaussian state into complex amplitude representation
     state.ConvertToComplexAmplitudes();
     // from now the basis is the creation/annihilation operators in a_1,\dots,a_N, a^\dagger_1,\dots, a^\dagger_N ordering.

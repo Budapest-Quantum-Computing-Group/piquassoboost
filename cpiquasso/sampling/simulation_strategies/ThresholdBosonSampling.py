@@ -19,17 +19,14 @@ from .ThresholdBosonSampling_wrapper import ThresholdBosonSampling_wrapper
 class ThresholdBosonSampling(
     ThresholdBosonSampling_wrapper
 ):
-#    def __init__(self, covariance_matrix, m=None, fock_cutoff=2, max_photons=20):
-        #super().__init__(covariance_matrix=covariance_matrix, m=m, fock_cutoff=fock_cutoff, max_photons=max_photons)
-
     def __init__(self, covariance_matrix):
         super().__init__(covariance_matrix=covariance_matrix)
 
     def simulate(self, samples_number: int = 1):
         """
-            Returns sample from linear optics experiments given output state.
-            :param input_state: Input state in particle basis.
-            :return: A resultant state after traversing through interferometer.
+            Returns samples from piquasso circuit. It applies threshold measurement.
+            :param sample_number: number of samples to be calculated.
+            :return: Simulation results.
         """
 
         return super().simulate(samples_number)

@@ -23,8 +23,6 @@ from .state_wrapper import GaussianState_Wrapper
 
 from piquasso._math.linalg import block_reduce
 
-#from cpiquasso.sampling.Boson_Sampling_Utilities_wrapper import Torontonian_wrapper
-
 from cpiquasso.sampling.simulation_strategies import ThresholdBosonSampling
 
 
@@ -80,9 +78,6 @@ class GaussianState(GaussianState_Wrapper, pq.GaussianState):
             )
 
         reduced_state = self.reduced(modes)
-
-        #import pdb
-        #pdb.set_trace()
 
         th = ThresholdBosonSampling.ThresholdBosonSampling( covariance_matrix=reduced_state.xp_cov/4.0 )
         return th.simulate(shots)
