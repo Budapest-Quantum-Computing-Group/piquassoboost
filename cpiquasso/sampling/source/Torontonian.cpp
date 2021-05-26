@@ -1,5 +1,5 @@
 #include "Torontonian.h"
-#include "TorontonianUtilities.h"
+#include "TorontonianUtilities.hpp"
 #include "common_functionalities.h"
 #include "tbb/tbb.h"
 
@@ -75,13 +75,13 @@ Torontonian::calculate(){
     const size_t dim_over_2 = mtx.rows / 2;
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
-    tbb::combinable<RealM<double>> summands{[](){return RealM<double>(0.0);}};
+    tbb::combinable<RealM<long double>> summands{[](){return RealM<long double>(0.0);}};
 
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
-        RealM<double> &summand = summands.local();
+        RealM<long double> &summand = summands.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
@@ -108,7 +108,7 @@ Torontonian::calculate(){
             size_t dimension_of_B = 2 * number_of_ones;
 
             // matrix mtx corresponds to 1 - A^(Z), i.e. to the square matrix constructed from
-            matrix B(dimension_of_B, dimension_of_B);
+            matrix32 B(dimension_of_B, dimension_of_B);
             for (size_t idx = 0; idx < number_of_ones; idx++) {
                 for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
                     B[idx*dimension_of_B + jdx]                  =
@@ -123,16 +123,15 @@ Torontonian::calculate(){
             }
 
 
-            double factor =
+            long double factor =
                 (number_of_ones + dim_over_2) % 2
-                    ? -1.0D
-                    : 1.0D;
+                    ? -1.0
+                    : 1.0;
 
             // calculating the determinant of B
-            Complex16 determinant;
+            Complex32 determinant;
             if (number_of_ones != 0) {
-
-                determinant = calc_determinant_cholesky_decomposition(B);
+                determinant = calc_determinant_cholesky_decomposition<matrix32, Complex32>(B);
             }
             else{
                 determinant = 1.0;
@@ -140,8 +139,8 @@ Torontonian::calculate(){
 
 
             // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
-            double sqrt_determinant = std::sqrt(determinant.real());
-            double value = factor / sqrt_determinant;
+            long double sqrt_determinant = std::sqrt(determinant.real());
+            long double value = factor / sqrt_determinant;
 
             summand += value;
 
@@ -149,8 +148,8 @@ Torontonian::calculate(){
 
     });
 
-    double res = 0.0D;
-    summands.combine_each([&res](RealM<double>& a) {
+    long double res = 0.0;
+    summands.combine_each([&res](RealM<long double>& a) {
         res = res + a.get();
     });
 
@@ -163,7 +162,7 @@ Torontonian::calculate(){
 #endif
 
 
-    return res;
+    return (double) res;
 }
 
 /**
@@ -177,14 +176,14 @@ Torontonian::Update_mtx( matrix &mtx_in ){
     size_t dim = mtx_in.rows;
 
     // Calculating B := 1 - A
-    mtx = matrix(dim, dim);
+    mtx = matrix32(dim, dim);
     for (size_t idx = 0; idx < dim; idx++) {
         //Complex16 *row_B_idx = B.get_data() + idx * B.stride;
         //Complex16 *row_mtx_pos_idx = mtx.get_data() + positions_of_ones[idx] * mtx.stride;
         for (size_t jdx = 0; jdx < dim; jdx++) {
             mtx[idx * dim + jdx] = -1.0 * mtx_in[idx * mtx_in.stride + jdx];
         }
-        mtx[idx * dim + idx] += Complex16(1.0, 0.0);
+        mtx[idx * dim + idx] += Complex32(1.0, 0.0);
     }
 
     // Can scaling be used here since we have to calculate 1-A^Z?
@@ -200,7 +199,49 @@ Torontonian::Update_mtx( matrix &mtx_in ){
 @param mtx_in Input matrix defined by
 */
 void Torontonian::ScaleMatrix(){
+/*
+    // scale the matrix to have the mean magnitudes matrix elements equal to one.
+    if ( mtx.rows <= 10) {
+        scale_factors.reserve(mtx.size()/2+1);
 
+        for (size_t idx=0; idx<mtx.size()/2+1; idx++) {
+            scale_factors.push_back(1.0);
+        }
+    }
+    else {
+
+        // determine the scale factor
+        long double scale_factor = 0.0;
+        for (size_t idx=0; idx<mtx.size(); idx++) {
+            scale_factor = scale_factor + std::sqrt( mtx[idx].real()*mtx[idx].real() + mtx[idx].imag()*mtx[idx].imag() );
+        }
+        scale_factor = scale_factor/mtx.rows/std::sqrt(2);
+        //scale_factor = scale_factor*mtx_orig.rows;
+
+        long double inverse_scale_factor = 1/scale_factor;
+
+        // scaling the matrix elements
+        for (size_t idx=0; idx<mtx.size(); idx++) {
+            mtx[idx] = mtx[idx]*inverse_scale_factor;
+        }
+
+        // during the calculations the dimension of the submatirces would be always even,
+        // thus it is sufficient to know only the square of the scaling factor
+        scale_factor = scale_factor*scale_factor;
+
+        // fill up the vector of scale factors
+        scale_factors.reserve(mtx.size()/2);
+        long double overall_scale_factor = 1.0;
+
+        scale_factors.push_back(overall_scale_factor);
+        for (size_t idx=0; idx<mtx.size()/2; idx++) {
+            overall_scale_factor *= scale_factor;
+            scale_factors.push_back(overall_scale_factor);
+        }
+
+
+    }
+*/
 }
 
 

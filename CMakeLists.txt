@@ -361,7 +361,6 @@ target_compile_options(cpiquasso PRIVATE
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
 )
 
-message("ooooooooooooooo: " ${TBBMALLOC_LIB})
 # adding linking options
 target_link_libraries(cpiquasso PRIVATE
     "$<$<CONFIG:Debug>:${BLAS_LIBRARIES}>"

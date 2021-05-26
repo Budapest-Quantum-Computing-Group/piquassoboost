@@ -9,7 +9,7 @@
 #include "numpy_interface.h"
 
 /**
-This file contains the implementation of the python wrapper object for the C++ class PowerTraceHafnian_wrapper. 
+This file contains the implementation of the python wrapper object for the C++ class PowerTraceHafnian_wrapper.
 It is included by the file Boson_Sampling_Utilities_wrapper.cpp
 */
 

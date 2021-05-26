@@ -13,7 +13,7 @@ namespace pic {
 (if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
 void
-calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index, Complex16 &determinant) {
+calc_cholesky_decomposition_AVX(matrix& matrix, size_t reuse_index, Complex32 &determinant) {
 
     // The above code with non-AVX instructions
        // storing in the same memory the results of the algorithm
