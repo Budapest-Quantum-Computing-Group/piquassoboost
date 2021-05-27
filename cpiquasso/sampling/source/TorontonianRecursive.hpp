@@ -8,6 +8,9 @@
 #include "tbb/tbb.h"
 #endif
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
 
 namespace pic {
 
@@ -34,6 +37,13 @@ protected:
     /// number of modes spanning the gaussian state
     size_t num_of_modes;
 
+#ifdef __MPI__
+    /// The number of MPI processes
+    int world_size;
+    // The rank of the MPI process
+    int current_rank;
+#endif // MPI
+
 public:
 
 /**
@@ -41,6 +51,15 @@ public:
 @return Returns with the instance of the class.
 */
 TorontonianRecursive_Tasks() {
+
+
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+#endif // MPI
 
 }
 
@@ -62,6 +81,14 @@ TorontonianRecursive_Tasks( matrix &mtx_in ) {
         std::cout << "In PowerTraceHafnianRecursive_Tasks algorithm the dimensions of the matrix should strictly be even. Exiting" << std::endl;
         exit(-1);
     }
+
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+#endif // MPI
 
 }
 
@@ -107,13 +134,29 @@ double calculate() {
     matrix_type L = mtx.copy();
     Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L);
 
+#ifdef __MPI__
+    long double torontonian;
+    if (current_rank==0) {
+        torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
+    }
+    else {
+        torontonian = 0.0;
+    }
+#else*/
     long double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
+#endif // MPI
+
+
 
     // add the first index hole in prior to the iterations
     selected_index_holes.push_back(num_of_modes-1);
 
     // start task iterations originating from the initial selected modes
+#ifdef __MPI__
+    IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1, priv_addend, 0 );
+#else
     IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1, priv_addend );
+#endif
 
 
 
@@ -136,8 +179,31 @@ double calculate() {
                 (num_of_modes) % 2
                     ? -1.0
                     : 1.0;
+#ifdef __MPI__
+    if (current_rank == 0) {
+        torontonian = torontonian + factor;
+    }
 
+    // send the calculated partial torontonians to all processes
+    long double* partial_torontonians = new long double[world_size];
+
+    MPI_Allgather(&torontonian, 1, MPI_LONG_DOUBLE, partial_torontonians, 1, MPI_LONG_DOUBLE, MPI_COMM_WORLD);
+
+    torontonian = 0.0;
+    for (size_t idx=0; idx<world_size; idx++) {
+        torontonian = torontonian + partial_torontonians[idx];
+    }
+
+    // release memory on the zero rank
+    delete partial_torontonians;
+
+
+#else
     torontonian = torontonian + factor;
+#endif
+
+
+
 
     return (double)torontonian;
 }
@@ -149,7 +215,12 @@ double calculate() {
 @param mtx_in Input matrix defined by
 */
 void Update_mtx( matrix &mtx_in) {
-    //mtx_orig = mtx_in;
+
+#ifdef __MPI__
+    // ensure that each MPI process gets the same input matrix from rank 0
+    void* syncronized_data = (void*)mtx_in.get_data();
+    MPI_Bcast(syncronized_data, mtx_in.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
 
     size_t dim = mtx_in.rows;
 
@@ -196,7 +267,11 @@ protected:
 @param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
+#ifdef __MPI__
+IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix_type &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend, const size_t reminder ) {
+#else
 IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix_type &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend ) {
+#endif
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;
@@ -216,16 +291,41 @@ IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hol
 
     // first do the first iteration without spawning iterations with new index hole
 
+
+
+#ifdef __MPI__
+    size_t reminder_new = (reminder + index_max-1) % world_size;
+
+
+        PicVector<size_t> selected_index_holes_new = selected_index_holes;
+        selected_index_holes_new[hole_to_iterate] = index_max-1;
+
+        size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
+        matrix_type &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
+        Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
+
+    if ( current_rank == reminder_new) {
+        long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
+        RealM<long double> &torontonian_priv = priv_addend.local();
+        torontonian_priv += partial_torontonian;
+    }
+
+#else
+
     PicVector<size_t> selected_index_holes_new = selected_index_holes;
     selected_index_holes_new[hole_to_iterate] = index_max-1;
-    size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
 
+    size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
     matrix_type &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
     Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
 
     long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
     RealM<long double> &torontonian_priv = priv_addend.local();
     torontonian_priv += partial_torontonian;
+
+#endif
+
+
 
     // logical variable to control whether spawning new iterations or not
     bool stop_spawning_iterations = (selected_index_holes.size() == num_of_modes-1);
@@ -236,9 +336,27 @@ IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hol
     // now do the rest of the iterations
     tbb::parallel_for( index_min+1,  index_max, (size_t)1, [&](size_t idx){
 
-
         PicVector<size_t> selected_index_holes_new = selected_index_holes;
         selected_index_holes_new[hole_to_iterate] = idx-1;
+
+#ifdef __MPI__
+
+        size_t reminder_new = (reminder + idx-1) % world_size;
+        size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
+        matrix_type L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
+        Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
+        if ( current_rank == reminder_new) {
+
+            long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
+            RealM<long double> &torontonian_priv = priv_addend.local();
+            torontonian_priv += partial_torontonian;
+        }
+        //else {
+
+        //}
+#else
+
+
         size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
 
         matrix_type &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
@@ -248,6 +366,8 @@ IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hol
         RealM<long double> &torontonian_priv = priv_addend.local();
         torontonian_priv += partial_torontonian;
 
+#endif
+
 
         // return if new index hole would give no nontrivial result
         // (in this case the partial torontonian is unity and should be counted only once in function calculate)
@@ -256,7 +376,7 @@ IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hol
         selected_index_holes_new.push_back(this->num_of_modes-1);
         reuse_index_new = L_new.rows/2-1;
 
-        IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new, priv_addend );
+        IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new, priv_addend, reminder_new );
 
     });
 
