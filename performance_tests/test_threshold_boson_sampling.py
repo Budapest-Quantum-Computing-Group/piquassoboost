@@ -22,10 +22,10 @@ class TestThresholdBosonSampling:
         pq.use(pq._DefaultPlugin)
 
         # Number of modes
-        d = 12
+        d = 10
 
         # Number of shots
-        shots = 1000
+        shots = 10000
 
         # rundom parameters for squeezing gates
         squeezing_params_r = np.random.random(d)
@@ -52,7 +52,7 @@ class TestThresholdBosonSampling:
 
         # Measuring runtime
         startTime = time.time()
-        pq_results = np.array(pq_program.execute()[0].samples)
+        pypq_results = np.array(pq_program.execute()[0].samples)
         endTime = time.time()
 
         piquasso_time = endTime - startTime
@@ -78,7 +78,7 @@ class TestThresholdBosonSampling:
 
         # Measuring runtime
         startTime = time.time()
-        pq_results = np.array(pq_program.execute()[0].samples)
+        cpq_results = np.array(pq_program.execute()[0].samples)
         endTime = time.time()
 
         piquasso_boost_time = endTime - startTime
@@ -90,4 +90,6 @@ class TestThresholdBosonSampling:
         print('Number of modes: ', d)
         print('Time elapsed with piquasso      : ' + str(piquasso_time))
         print('Time elapsed with piquasso boost: ' + str(piquasso_boost_time))
+        print('The result of piquasso python: \n' , pypq_results)
+        print('The result of piquasso C++:    \n' , cpq_results)
         print( "speedup: " + str(piquasso_time/piquasso_boost_time) )

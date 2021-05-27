@@ -8,9 +8,32 @@
 #include "GaussianState_Cov.h"
 #include "GaussianSimulationStrategy.h"
 #include <random>
+#include <unordered_map>
 
 namespace pic {
 
+/**
+@brief Structure representing a state with the Hamilton matrix defined by Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+
+This data is precalculated before the simulation since it is the same for all mode indices.
+matrix O: the matrix describing the substructure of the gaussian state (Matrix O defined below Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.)
+double Qdet: determinant of the matrix Q defined by Eq. (2) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+*/
+struct ThresholdMeasurementSubstate{
+    /**
+    @brief Constructor of the class.
+    @param O The matrix O
+    @param Qdet Determinant of Q
+    @return Returns with the instance of the class.
+    */
+    ThresholdMeasurementSubstate( matrix& O, double Qdet );
+
+    /// the Hamilton matrix O defined by Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time
+    matrix O;
+
+    /// Determinant of the matrix Q
+    double Qdet;
+};
 
 
 
@@ -65,10 +88,19 @@ void Update_covariance_matrix( matrix &covariance_matrix_in );
 std::vector<PicState_int64> simulate( int samples_number );
 
 protected:
+    /// The individual probability layers of the possible occupation numbers 
+    std::unordered_map<PicState_int64, double, PicStateHash> pmfs;
 
+    /// Space for storing the threshold measurement specific datas for a sample which are equal in all samples.
+    std::vector<ThresholdMeasurementSubstate> substates;
 
+    /// Boolean to store the information whether we have to calculate new torontonian or not
+    bool torontonian_calculation_needed;
 
+    /// Value of the torontonian in the current calculation. If the occupation number is 0 on the last mode, the torontonian does not change.
+    double last_torontonian;
 
+void fillSubstates( int mode_number );
 
 /**
 @brief Call to get one sample from the gaussian state
@@ -93,13 +125,12 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 
 The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
 
-@param Qinv An instace of matrix class conatining the inverse of matrix Q calculated by method get_Qinv.
 @param Qdet The determinant of matrix Q.
 @param O Hamilton matrix 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
-virtual double calc_probability( matrix& Qinv, const double& Qdet, matrix& O, PicState_int64& current_output );
+virtual double calc_probability( const double& Qdet, matrix& O, PicState_int64& current_output );
 
 
 /**
