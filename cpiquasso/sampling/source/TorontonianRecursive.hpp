@@ -19,6 +19,131 @@ namespace pic {
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
 
+
+/**
+@brief Listener class
+*/
+class MPIListener {
+
+protected:
+    /// The number of MPI processes
+    int world_size;
+    /// The rank of the MPI process
+    int current_rank;
+    /// vector
+    std::vector<int> active_processes;
+
+public:
+
+/**
+@brief Nullary constructor of the class.
+@return Returns with the instance of the class.
+*/
+MPIListener() {
+
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+    // initialize activity vector
+    active_processes.reserve(world_size);
+    for (size_t idx=0; idx<world_size; idx++) {
+        active_processes.push_back(0);
+    }
+
+
+}
+
+
+
+/**
+@brief
+@return
+*/
+ActivateCurrentProcess() {
+
+    active_processes[current_rank] = 1;
+    SendActivity();
+    return;
+
+}
+
+
+/**
+@brief
+@return
+*/
+DisableCurrentProcess() {
+
+    active_processes[current_rank] = 0;
+    SendActivity();
+    return;
+
+}
+
+
+/**
+@brief
+@return
+*/
+SendActivity() {
+
+    int connected_rank = (current_rank-1+world_size) % world_size;
+    MPI_Send(&active_processes[current_rank], 1, MPI_INT, connected_rank, 0, MPI_COMM_WORLD);
+
+    return;
+
+}
+
+
+/**
+@brief
+@return
+*/
+ListenToActivity( ) {
+
+    int connected_rank = (current_rank+1) % world_size;
+
+    //while (IsThereActiveProcess()) {
+        MPI_Recv( &active_processes[connected_rank], 1, MPI_INT, connected_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        std::cout << current_rank << ": activity of connected process: " << connected_rank << " is " << active_processes[connected_rank] << std::endl;
+    //}
+
+}
+
+
+
+/**
+@brief
+@return
+*/
+int CheckConnectedProcess() {
+
+    int connected_rank = (current_rank+1) % world_size;
+    return active_processes[connected_rank];
+
+}
+
+/**
+@brief
+@return
+*/
+int IsThereActiveProcess() {
+
+    for (size_t idx=0; idx<active_processes.size(); idx++ ) {
+        if (active_processes[idx] == 1) return 1;
+    }
+
+    return 0;
+
+}
+
+
+};
+
+
 /**
 @brief Class to calculate the hafnian of a complex matrix by a recursive power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
 purpose hafnian calculator. This algorithm accounts for the repeated occupancy in the covariance matrix.
@@ -40,8 +165,10 @@ protected:
 #ifdef __MPI__
     /// The number of MPI processes
     int world_size;
-    // The rank of the MPI process
+    /// The rank of the MPI process
     int current_rank;
+    /// MPI activity listener
+    MPIListener listener;
 #endif // MPI
 
 public:
@@ -59,6 +186,9 @@ TorontonianRecursive_Tasks() {
 
     // Get the rank of the process
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+    // initialize MPI activity listener
+    listener = MPIListener();
 #endif // MPI
 
 }
@@ -134,17 +264,13 @@ double calculate() {
     matrix_type L = mtx.copy();
     Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L);
 
-#ifdef __MPI__
     long double torontonian;
-    if (current_rank==0) {
+    if (current_rank == 0) {
         torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
     }
-    else {
+    else{
         torontonian = 0.0;
     }
-#else*/
-    long double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
-#endif // MPI
 
 
 
@@ -153,7 +279,8 @@ double calculate() {
 
     // start task iterations originating from the initial selected modes
 #ifdef __MPI__
-    IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1, priv_addend, 0 );
+    StartMPIIterations( L, priv_addend );
+    //IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1, priv_addend, 0 );
 #else
     IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1, priv_addend );
 #endif
@@ -174,17 +301,13 @@ double calculate() {
     openblas_set_num_threads(NumThreads);
 #endif
 
-    // last correction comming from an empty submatrix contribution
-    double factor =
-                (num_of_modes) % 2
-                    ? -1.0
-                    : 1.0;
-#ifdef __MPI__
     if (current_rank == 0) {
+        // last correction comming from an empty submatrix contribution
+        double factor =  (num_of_modes) % 2  ? -1.0 : 1.0;
         torontonian = torontonian + factor;
     }
 
-    // send the calculated partial torontonians to all processes
+    // send the calculated partial hafnian to rank 0
     long double* partial_torontonians = new long double[world_size];
 
     MPI_Allgather(&torontonian, 1, MPI_LONG_DOUBLE, partial_torontonians, 1, MPI_LONG_DOUBLE, MPI_COMM_WORLD);
@@ -196,12 +319,6 @@ double calculate() {
 
     // release memory on the zero rank
     delete partial_torontonians;
-
-
-#else
-    torontonian = torontonian + factor;
-#endif
-
 
 
 
@@ -259,6 +376,82 @@ void Update_mtx( matrix &mtx_in) {
 
 protected:
 
+
+/**
+@brief Call to run iterations over the selected modes to calculate partial torontonians
+@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
+@param priv_addend Therad local storage for the partial torontonians
+@param tg Reference to a tbb::task_group
+*/
+//#ifdef __MPI__
+StartMPIIterations( matrix_type &L, tbb::combinable<RealM<long double>>& priv_addend ) {
+
+    // start activity on the current MPI process
+    listener.ActivateCurrentProcess();
+    listener.ListenToActivity();
+    // dispatch activity listener
+    std::thread asyncThread = std::thread{
+        [this]() {
+            this->listener.ListenToActivity();
+        }
+    };
+
+    size_t index_min = 0;
+    size_t index_max = num_of_modes;
+
+    // ***** iterations over the selected index hole to calculate partial torontonians *****
+
+    // first do the first iteration without spawning iterations with new index hole
+    // construct the initial selection of the modes
+    PicVector<size_t> selected_index_holes;
+    selected_index_holes.push_back(index_max-1);
+
+if ( current_rank == 0) {
+
+    size_t reuse_index_new = index_max-1;
+    matrix_type &&L_new = CreateAZ(selected_index_holes, L, reuse_index_new);
+    Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
+
+    long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes, determinant );
+    RealM<long double> &torontonian_priv = priv_addend.local();
+    torontonian_priv += partial_torontonian;
+}
+
+
+    // now do the rest of the iterations
+    for( size_t idx = index_min+1+current_rank;  idx < index_max; idx=idx+world_size){
+
+        PicVector<size_t> selected_index_holes_new = selected_index_holes;
+        selected_index_holes_new[0] = idx-1;
+
+        size_t reuse_index_new = idx-1;
+
+        matrix_type &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
+        Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
+
+        long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
+        RealM<long double> &torontonian_priv = priv_addend.local();
+        torontonian_priv += partial_torontonian;
+
+        selected_index_holes_new.push_back(this->num_of_modes-1);
+        reuse_index_new = L_new.rows/2-1;
+
+        IterateOverSelectedModes( selected_index_holes_new, 1, L_new, reuse_index_new, priv_addend );
+
+    }
+
+    // indicate that current process has finished activity
+    listener.DisableCurrentProcess();
+
+
+    // wait to finish for the async thread
+    asyncThread.join();
+
+}
+//#endif
+
+
+
 /**
 @brief Call to run iterations over the selected modes to calculate partial torontonians
 @param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
@@ -267,11 +460,8 @@ protected:
 @param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
-#ifdef __MPI__
-IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix_type &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend, const size_t reminder ) {
-#else
 IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hole_to_iterate, matrix_type &L, const size_t reuse_index, tbb::combinable<RealM<long double>>& priv_addend ) {
-#endif
+
 
     // calculate the partial Torontonian for the selected index holes
     size_t index_min;
@@ -290,28 +480,6 @@ IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hol
     // ***** iterations over the selected index hole to calculate partial torontonians *****
 
     // first do the first iteration without spawning iterations with new index hole
-
-
-
-#ifdef __MPI__
-    size_t reminder_new = (reminder + index_max-1) % world_size;
-
-
-        PicVector<size_t> selected_index_holes_new = selected_index_holes;
-        selected_index_holes_new[hole_to_iterate] = index_max-1;
-
-        size_t reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
-        matrix_type &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
-        Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
-
-    if ( current_rank == reminder_new) {
-        long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
-        RealM<long double> &torontonian_priv = priv_addend.local();
-        torontonian_priv += partial_torontonian;
-    }
-
-#else
-
     PicVector<size_t> selected_index_holes_new = selected_index_holes;
     selected_index_holes_new[hole_to_iterate] = index_max-1;
 
@@ -323,39 +491,20 @@ IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hol
     RealM<long double> &torontonian_priv = priv_addend.local();
     torontonian_priv += partial_torontonian;
 
-#endif
 
 
 
     // logical variable to control whether spawning new iterations or not
     bool stop_spawning_iterations = (selected_index_holes.size() == num_of_modes-1);
-
     // add new index hole to the iterations
     int new_hole_to_iterate = hole_to_iterate+1;
 
     // now do the rest of the iterations
     tbb::parallel_for( index_min+1,  index_max, (size_t)1, [&](size_t idx){
+    //for( size_t idx = index_min+1;  idx < index_max; idx++){
 
         PicVector<size_t> selected_index_holes_new = selected_index_holes;
         selected_index_holes_new[hole_to_iterate] = idx-1;
-
-#ifdef __MPI__
-
-        size_t reminder_new = (reminder + idx-1) % world_size;
-        size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
-        matrix_type L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
-        Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
-        if ( current_rank == reminder_new) {
-
-            long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
-            RealM<long double> &torontonian_priv = priv_addend.local();
-            torontonian_priv += partial_torontonian;
-        }
-        //else {
-
-        //}
-#else
-
 
         size_t reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
 
@@ -366,8 +515,6 @@ IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hol
         RealM<long double> &torontonian_priv = priv_addend.local();
         torontonian_priv += partial_torontonian;
 
-#endif
-
 
         // return if new index hole would give no nontrivial result
         // (in this case the partial torontonian is unity and should be counted only once in function calculate)
@@ -376,9 +523,15 @@ IterateOverSelectedModes( const PicVector<size_t>& selected_index_holes, int hol
         selected_index_holes_new.push_back(this->num_of_modes-1);
         reuse_index_new = L_new.rows/2-1;
 
-        IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new, priv_addend, reminder_new );
+        if (!listener.CheckConnectedProcess()) {
+            //std::cout << current_rank << " connected process is iddle" << std::endl;
+        }
+
+        IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new, priv_addend);
 
     });
+
+
 
 
 
