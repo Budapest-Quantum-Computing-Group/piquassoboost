@@ -109,14 +109,6 @@ protected:
 */
 PicState_int64 getSample();
 
-
-/**
-@brief Call to calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595
-@param state An instance of Gaussian state in the Fock representation. (If the Gaussian state is in quadrature representation, than it is transformed into Fock-space representation)
-@return Returns with the Hamilton matrix A.
-*/
-matrix calc_Qinv( GaussianState_Cov& state );
-
 /**
 @brief Call to calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595 and the determinant of Q.
 Since the determinant can be calculated by LU factorization, which is also necessary to calculate the inverse, we

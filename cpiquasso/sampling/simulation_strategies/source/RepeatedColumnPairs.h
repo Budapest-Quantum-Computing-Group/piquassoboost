@@ -136,9 +136,10 @@ void ConstructMatrixForRecursivePowerTrace(matrix &mtx, PicState_int64& modes, m
 @param mtx The input matrix for which the repeated matrix should be constructed.
 @param modes The mode occupancies for which the mode pairs are determined.
 @param mtx_out A matrix (not preallocated) to reference the constructed matrix.
+@param diags_out A matrix (not preallocated) to reference the constructed diagonal elements.
 @param repeated_column_pairs An array containing the repeating factors of the successive column pairs is returned by this reference.
 */
-void ConstructMatrixForRecursiveLoopPowerTrace(matrix &mtx, matrix& gamma, PicState_int64& modes, matrix &mtx_out, PicState_int64& repeated_column_pairs);
+void ConstructMatrixForRecursiveLoopPowerTrace(matrix &mtx, matrix& gamma, PicState_int64& modes, matrix &mtx_out, matrix &diags_out, PicState_int64& repeated_column_pairs);
 
 
 } //PIC
