@@ -2,7 +2,7 @@
 #define THRESHOLD_BOSON_SAMPLING_H
 
 // Limit for mode number to use pmfs (caching)
-constexpr int limit_for_using_pmfs = 20;
+constexpr int limit_for_using_pmfs = 100;
 
 #include "matrix.h"
 #include "PicVector.hpp"
@@ -99,7 +99,7 @@ protected:
     std::vector<ThresholdMeasurementSubstate> substates;
 
     /// function pointer to the probability calculation method. Until a certain threshold we use the cache-using version, above the non-cache version
-    std::function<double( pic::ThresholdBosonSampling&, const double&, matrix&, PicState_int64& )>calc_probability_TBS;
+    std::function<double( pic::ThresholdBosonSampling&, PicState_int64& )>calc_probability_TBS;
 
 
 void fillSubstates( int mode_number );
@@ -123,16 +123,16 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 
 
 /**
-@brief Same as calc_probability_without_cache method.
+@brief Same as calc_probability method.
 
 It stores the already calculated values.
 
-@param Qdet_sqrt_rec See at calc_probability_without_cache
-@param O See at calc_probability_without_cache 
-@param current_output See at calc_probability_without_cache
-@return See at calc_probability_without_cache
+@param Qdet_sqrt_rec See at calc_probability
+@param O See at calc_probability 
+@param current_output See at calc_probability
+@return See at calc_probability
 */
-double calc_probability_cache( const double& Qdet_sqrt_rec, matrix& O, PicState_int64& current_output );
+double calc_probability_cache( PicState_int64& current_output );
 
 /**
 @brief Call to calculate the probability associated with observing output state given by current_output
@@ -145,7 +145,7 @@ The cache version has the ability to save results from calculation and find the 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
-double calc_probability_without_cache( const double& Qdet_sqrt_rec, matrix& O, PicState_int64& current_output );
+double calc_probability( PicState_int64& current_output );
 
 
 /**
