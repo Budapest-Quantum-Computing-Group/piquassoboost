@@ -19,9 +19,9 @@ namespace pic {
 
 
 
-ThresholdMeasurementSubstate::ThresholdMeasurementSubstate( matrix& O, double Qdet )
+ThresholdMeasurementSubstate::ThresholdMeasurementSubstate( matrix& O, double Qdet_sqrt_rec )
     : O(O)
-    , Qdet(Qdet)
+    , Qdet_sqrt_rec(Qdet_sqrt_rec)
 {}
 
 
@@ -52,7 +52,6 @@ ThresholdBosonSampling::ThresholdBosonSampling() :
     GaussianSimulationStrategy()
 {
     pmfs = std::unordered_map<PicState_int64, double, PicStateHash>();
-    torontonian_calculation_needed = true;
 }
 
 
@@ -65,8 +64,6 @@ ThresholdBosonSampling::ThresholdBosonSampling( matrix &covariance_matrix )
     : GaussianSimulationStrategy(covariance_matrix, 1)
 {
     pmfs = std::unordered_map<PicState_int64, double, PicStateHash>();
-    torontonian_calculation_needed = true;
-    last_torontonian = 1.0;
 }
 
 
@@ -139,8 +136,10 @@ void ThresholdBosonSampling::fillSubstates( int mode_number ){
         // Calculate Q matrix defined by \sigma + 0.5 * Id
         // Calculate the determinant of Q
         // Caluclate the inverse of Q
-        double Qdet(0.0);
+        double Qdet(1.0);
         matrix&& Qinv = calc_Qinv( reduced_state, Qdet );
+
+        double Qdet_sqrt_rec = 1.0 / std::sqrt(Qdet);
 
         //// This depends only on mode number and mode idx
 
@@ -149,7 +148,8 @@ void ThresholdBosonSampling::fillSubstates( int mode_number ){
         // O := 1 - Q^-1
         matrix&& O = calc_HamiltonMatrix( Qinv );
 
-        substates.push_back( ThresholdMeasurementSubstate(O, Qdet) );
+        substates.push_back( ThresholdMeasurementSubstate(O, Qdet_sqrt_rec) );
+        std::cout << mode_idx<<" qdet_sqrt_rec "<< Qdet_sqrt_rec<< std::endl;
     }
 }
 
@@ -168,13 +168,12 @@ ThresholdBosonSampling::getSample() {
     // probability of the sampled state
     double last_probability = 1.0;
 
-    torontonian_calculation_needed = true;
 
     // The number of modes is equal to dim_over_2 (because the covariance matrix contains p,q quadratires)
     // for loop to sample 1,2,3,...dim_over_2 modes
     // These samplings depends from each other by the chain rule of probabilites (see Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time))
     for (size_t mode_idx=1; mode_idx<=dim_over_2; mode_idx++) {
-        const double Qdet = substates[mode_idx].Qdet;
+        const double Qdet_sqrt_rec = substates[mode_idx].Qdet_sqrt_rec;
         matrix& O = substates[mode_idx].O;
 
         // create a random double that is used to sample from the probabilities
@@ -200,7 +199,7 @@ ThresholdBosonSampling::getSample() {
         current_output0[mode_idx-1] = 0;
 
         // calculate the probability associated with observing current_output
-        double prob0 = calc_probability( Qdet, O, current_output0 );
+        double prob0 = calc_probability( Qdet_sqrt_rec, O, current_output0 );
 
         // sometimes the probability is negative which is coming from a negative hafnian.
         prob0 = prob0 > 0 ? prob0 : 0;
@@ -219,7 +218,7 @@ ThresholdBosonSampling::getSample() {
         current_output1[mode_idx-1] = 1;
 
         // calculate the probability associated with observing current_output
-        double prob1 = calc_probability( Qdet, O, current_output1 );
+        double prob1 = calc_probability( Qdet_sqrt_rec, O, current_output1 );
 
         // sometimes the probability is negative which is coming from a negative hafnian.
         prob1 = prob1 > 0 ? prob1 : 0;
@@ -228,17 +227,16 @@ ThresholdBosonSampling::getSample() {
 
         assert ( std::abs(prob1 - (last_probability - prob0) ) < 0.000000000001 );
 #endif // DEBUG
-
+        std::cout<<"prob0: "<< current_prob0<< " randnum: "<<rand_num<<std::endl;
         if (current_prob0 > rand_num){
             last_probability = prob0;
             chosen_index = 0;
-            torontonian_calculation_needed = false;
         }
         else{
             last_probability = last_probability - prob0;
             chosen_index = 1;
-            torontonian_calculation_needed = true;
         }
+        //std::cout << "on mode: "<< mode_idx<< " curr chosen: "<<chosen_index<< std::endl;
 
 
         // The sampled current state:
@@ -249,7 +247,7 @@ ThresholdBosonSampling::getSample() {
         current_output.number_of_photons = output_sample.number_of_photons + chosen_index;
 
         output_sample = current_output;
-
+        //std::cout << "---------new mode"<<std::endl;
     }
 
     return output_sample;
@@ -287,37 +285,52 @@ ThresholdBosonSampling::calc_HamiltonMatrix( matrix& Qinv ) {
 
 The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
 
-@param Qdet The determinant of matrix Q.
+@param Qdet_sqrt_rec 1 over the square root of determinant of matrix Q.
 @param O Hamilton matrix 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
 double
-ThresholdBosonSampling::calc_probability( const double& Qdet, matrix& O, PicState_int64& current_output ) {
+ThresholdBosonSampling::calc_probability( const double& Qdet_sqrt_rec, matrix& O, PicState_int64& current_output ) {
     // calculate the normalization factor defined by the square root of the determinant of matrix Q
-    double Normalization = 1.0/sqrt(Qdet);
+    const double Normalization = Qdet_sqrt_rec;
 
 #ifdef DEBUG
-    if (Qdet<0) {
+    if (Qdet_sqrt_rec<0) {
         std::cout << "Determinant of matrix Q is negative" << std::endl;
         exit(-1);
     }
 #endif // DEBUG
     
-    if (torontonian_calculation_needed){
-        // Saving results of the calculation to cache:
-        //   key: current_output 
-        //   value: torontonian value
-
-        // create Matrix O_S according to the main text below Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
-        matrix&& O_S = create_O_S( O, current_output );
-
-        /// Calculate the torontonian of O_S
-        Torontonian torontonian_calculator(O_S);
-        last_torontonian = torontonian_calculator.calculate();
+    // Saving results of the calculation to cache:
+    //   key: current_output 
+    //   value: torontonian value
+    
+    // checks whether the pmfs contains the current output already
+    if (0){
+        // return with the stored value from pmfs
+        //return 1.0;
+    // otherwise calculate the probability
+    }else{
+        
     }
+    
+    //std::cout << "curr output: " ;
+    //PicState_int64& tmp = current_output;
+    //for(int i = 0; i < tmp.size(); i++){
+    //    std::cout << tmp[i]<<" ";
+    //}
+    //std::cout<<std::endl;
+
+    // create Matrix O_S according to the main text below Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+    matrix&& O_S = create_O_S( O, current_output );
+
+    /// Calculate the torontonian of O_S
+    Torontonian torontonian_calculator(O_S);
+    double torontonian = torontonian_calculator.calculate();
+
     // calculate the probability associated with the current output
-    double prob = Normalization*last_torontonian;
+    double prob = Normalization*torontonian;
 
 
     return prob;

@@ -17,22 +17,22 @@ namespace pic {
 
 This data is precalculated before the simulation since it is the same for all mode indices.
 matrix O: the matrix describing the substructure of the gaussian state (Matrix O defined below Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.)
-double Qdet: determinant of the matrix Q defined by Eq. (2) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+double Qdet_sqrt_rec: 1 over the square root of the determinant of the matrix Q defined by Eq. (2) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
 */
 struct ThresholdMeasurementSubstate{
     /**
     @brief Constructor of the class.
     @param O The matrix O
-    @param Qdet Determinant of Q
+    @param Qdet_sqrt_rec 1 / sqrt( det(Q) )
     @return Returns with the instance of the class.
     */
-    ThresholdMeasurementSubstate( matrix& O, double Qdet );
+    ThresholdMeasurementSubstate( matrix& O, double Qdet_sqrt_rec );
 
     /// the Hamilton matrix O defined by Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time
     matrix O;
 
     /// Determinant of the matrix Q
-    double Qdet;
+    double Qdet_sqrt_rec;
 };
 
 
@@ -94,12 +94,6 @@ protected:
     /// Space for storing the threshold measurement specific datas for a sample which are equal in all samples.
     std::vector<ThresholdMeasurementSubstate> substates;
 
-    /// Boolean to store the information whether we have to calculate new torontonian or not
-    bool torontonian_calculation_needed;
-
-    /// Value of the torontonian in the current calculation. If the occupation number is 0 on the last mode, the torontonian does not change.
-    double last_torontonian;
-
 void fillSubstates( int mode_number );
 
 /**
@@ -125,12 +119,12 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 
 The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
 
-@param Qdet The determinant of matrix Q.
+@param Qdet_sqrt_rec 1 over the square root of determinant of matrix Q.
 @param O Hamilton matrix 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
-virtual double calc_probability( const double& Qdet, matrix& O, PicState_int64& current_output );
+virtual double calc_probability( const double& Qdet_sqrt_rec, matrix& O, PicState_int64& current_output );
 
 
 /**
