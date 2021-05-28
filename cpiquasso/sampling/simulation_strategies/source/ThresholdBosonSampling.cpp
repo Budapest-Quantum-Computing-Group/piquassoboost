@@ -155,7 +155,6 @@ void ThresholdBosonSampling::fillSubstates( int mode_number ){
         matrix&& O = calc_HamiltonMatrix( Qinv );
 
         substates.push_back( ThresholdMeasurementSubstate(O, Qdet_sqrt_rec) );
-        //std::cout << mode_idx<<" qdet_sqrt_rec "<< Qdet_sqrt_rec<< std::endl;
     }
 }
 
@@ -233,7 +232,6 @@ ThresholdBosonSampling::getSample() {
 
         assert ( std::abs(prob1 - (last_probability - prob0) ) < 0.000000000001 );
 #endif // DEBUG
-        //std::cout<<"prob0: "<< current_prob0<< " randnum: "<<rand_num<<std::endl;
         if (current_prob0 > rand_num){
             last_probability = prob0;
             chosen_index = 0;
@@ -242,7 +240,6 @@ ThresholdBosonSampling::getSample() {
             last_probability = last_probability - prob0;
             chosen_index = 1;
         }
-        //std::cout << "on mode: "<< mode_idx<< " curr chosen: "<<chosen_index<< std::endl;
 
 
         // The sampled current state:
@@ -253,7 +250,6 @@ ThresholdBosonSampling::getSample() {
         current_output.number_of_photons = output_sample.number_of_photons + chosen_index;
 
         output_sample = current_output;
-        //std::cout << "---------new mode------------"<<std::endl;
     }
 
     return output_sample;
@@ -359,7 +355,6 @@ ThresholdBosonSampling::calc_probability_without_cache( const double& Qdet_sqrt_
     pmfs.insert( {current_output, prob} );
 
     return prob;
-
 }
 
 /**
