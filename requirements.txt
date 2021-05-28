@@ -6,3 +6,4 @@ ninja
 numpy
 tbb-devel
 mpi4py
+networkx
