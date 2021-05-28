@@ -262,10 +262,10 @@ std::cout << std::endl;
 
         ModePair& mode_pair = mode_pairs[idx];
 
-        if ( is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[4*idx] = row[inverse_permutation[mode_pair.mode1]];
-        if ( is_row_mode_conjugated || (row_mode != mode_pair.mode2) ) row_permuted[4*idx+1] = row[inverse_permutation[mode_pair.mode2]];
-        if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[4*idx+2] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
-        if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode2) ) row_permuted[4*idx+3] = row[inverse_permutation[mode_pair.mode2] + dim_over_2];
+        row_permuted[4*idx] = row[inverse_permutation[mode_pair.mode1]];
+        row_permuted[4*idx+1] = row[inverse_permutation[mode_pair.mode2]];
+        row_permuted[4*idx+2] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
+        row_permuted[4*idx+3] = row[inverse_permutation[mode_pair.mode2] + dim_over_2];
 
     }
 
@@ -287,10 +287,10 @@ std::cout << std::endl;
 
         if (tmp == 2) {
 
-            if ( is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[offset]   = row[inverse_permutation[mode_pair.mode1]];
-            if ( is_row_mode_conjugated || (row_mode != mode_pair.mode2) ) row_permuted[offset+1] = row[inverse_permutation[mode_pair.mode2]];
-            if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[offset+2] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
-            if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode2) ) row_permuted[offset+3] = row[inverse_permutation[mode_pair.mode2] + dim_over_2];
+            row_permuted[offset]   = row[inverse_permutation[mode_pair.mode1]];
+            row_permuted[offset+1] = row[inverse_permutation[mode_pair.mode2]];
+            row_permuted[offset+2] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
+            row_permuted[offset+3] = row[inverse_permutation[mode_pair.mode2] + dim_over_2];
             offset = offset + 4;
             tmp = 0;
         }
@@ -302,8 +302,8 @@ std::cout << std::endl;
 
     if (tmp == 1) {
 
-        if ( is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[offset]   = row[inverse_permutation[mode_pair.mode1]];
-        if ( !is_row_mode_conjugated || (row_mode != mode_pair.mode1) ) row_permuted[offset+1] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
+        row_permuted[offset]   = row[inverse_permutation[mode_pair.mode1]];
+        row_permuted[offset+1] = row[inverse_permutation[mode_pair.mode1] + dim_over_2];
     }
 
 
@@ -557,22 +557,34 @@ std::cout << std::endl;
 @brief Call to replace the diagonal elements of the constructed repeated matrix by the array gamma.
 (The elements of gamma are permuted and repeated in the same fashion as the elements of the original matrix)
  The modes corresponding to a given mode pair are placed next to each other.
-@param mtx The input matrix for which the diagonal elements should be replaced
+@param diags The prealloctaed array for the diagonal elements
 @param gamma The diagonal elements that are about to be used in the replacement
 @param single_modes The single modes determined by DetermineModePairs.
 @param mode_pairs The mode pairs determined by DetermineModePairs.
 @param inverse_permutation The array containing the permutation indices determined by SortModes
 */
-void ReplaceDiagonalForDisplacedGBS(matrix &mtx, matrix& gamma, std::vector<SingleMode>& single_modes, std::vector<ModePair>& mode_pairs, PicState_int64& inverse_permutation) {
+void CreateDiagonalForDisplacedGBS(matrix &diags, matrix& gamma, std::vector<SingleMode>& single_modes, std::vector<ModePair>& mode_pairs, PicState_int64& inverse_permutation) {
 
+    // determine the size of the output matrix
+    size_t dim=0;
+    size_t dim_over_2=0;
+    for (size_t idx=0; idx<single_modes.size(); idx++) {
+        dim_over_2 = dim_over_2 + 1;
+    }
 
-    size_t dim_over_2 = gamma.size()/2;
+    for (size_t idx=0; idx<mode_pairs.size(); idx++) {
+        dim_over_2 = dim_over_2 + 2;
+    }
+    dim = 2*dim_over_2;
+    diags = matrix(dim,1);
+
+    dim_over_2 = gamma.size()/2;
     // add the diagonal correction to the Hamilton's matrix
     for (size_t idx=0; idx<mode_pairs.size(); idx++) {
-        mtx[4*idx*mtx.stride + 4*idx] = gamma[inverse_permutation[mode_pairs[idx].mode1]];
-        mtx[(4*idx+1)*mtx.stride + 4*idx+1] = gamma[inverse_permutation[mode_pairs[idx].mode2]];
-        mtx[(4*idx+2)*mtx.stride + 4*idx+2] = gamma[inverse_permutation[mode_pairs[idx].mode1]+dim_over_2];
-        mtx[(4*idx+3)*mtx.stride + 4*idx+3] = gamma[inverse_permutation[mode_pairs[idx].mode2]+dim_over_2];
+        diags[4*idx] = gamma[inverse_permutation[mode_pairs[idx].mode1]];
+        diags[4*idx+1] = gamma[inverse_permutation[mode_pairs[idx].mode2]];
+        diags[4*idx+2] = gamma[inverse_permutation[mode_pairs[idx].mode1]+dim_over_2];
+        diags[4*idx+3] = gamma[inverse_permutation[mode_pairs[idx].mode2]+dim_over_2];
     }
 
 size_t offset = 4*(mode_pairs.size());
@@ -593,10 +605,10 @@ size_t offset = 4*(mode_pairs.size());
 
         if (tmp == 2) {
 
-            mtx[(offset)*mtx.stride + offset] = gamma[inverse_permutation[mode_pair.mode1]];
-            mtx[(offset+1)*mtx.stride + offset+1] = gamma[inverse_permutation[mode_pair.mode2]];
-            mtx[(offset+2)*mtx.stride + offset+2] = gamma[inverse_permutation[mode_pair.mode1]+dim_over_2];
-            mtx[(offset+3)*mtx.stride + offset+3] = gamma[inverse_permutation[mode_pair.mode2]+dim_over_2];
+            diags[offset] = gamma[inverse_permutation[mode_pair.mode1]];
+            diags[offset+1] = gamma[inverse_permutation[mode_pair.mode2]];
+            diags[offset+2] = gamma[inverse_permutation[mode_pair.mode1]+dim_over_2];
+            diags[offset+3] = gamma[inverse_permutation[mode_pair.mode2]+dim_over_2];
             offset = offset + 4;
 
 
@@ -610,8 +622,8 @@ size_t offset = 4*(mode_pairs.size());
 
     if (tmp == 1) {
 
-        mtx[(offset)*mtx.stride + offset] = gamma[inverse_permutation[mode_pair.mode1]];
-        mtx[(offset+1)*mtx.stride + offset+1] = gamma[inverse_permutation[mode_pair.mode1]+dim_over_2];
+        diags[offset] = gamma[inverse_permutation[mode_pair.mode1]];
+        diags[offset+1] = gamma[inverse_permutation[mode_pair.mode1]+dim_over_2];
     }
 
     return;
@@ -627,9 +639,10 @@ size_t offset = 4*(mode_pairs.size());
 @param mtx The input matrix for which the repeated matrix should be constructed.
 @param modes The mode occupancies for which the mode pairs are determined.
 @param mtx_out A matrix (not preallocated) to reference the constructed matrix.
+@param diags_out A matrix (not preallocated) to reference the constructed diagonal elements.
 @param repeated_column_pairs An array containing the repeating factors of the successive column pairs is returned by this reference.
 */
-void ConstructMatrixForRecursiveLoopPowerTrace(matrix &mtx, matrix& gamma, PicState_int64& modes, matrix &mtx_out, PicState_int64& repeated_column_pairs) {
+void ConstructMatrixForRecursiveLoopPowerTrace(matrix &mtx, matrix& gamma, PicState_int64& modes, matrix &mtx_out, matrix &diags_out, PicState_int64& repeated_column_pairs) {
 
     // preallocate and initialize computing arrays
     PicState_int64 sorted_modes = modes.copy();
@@ -653,7 +666,7 @@ void ConstructMatrixForRecursiveLoopPowerTrace(matrix &mtx, matrix& gamma, PicSt
 
 
     // replace the diagonal elements of the constructed matrix according to according to Eq (11) of arXiv 2010.15595v3
-    ReplaceDiagonalForDisplacedGBS(mtx_out, gamma, single_modes, mode_pairs, inverse_permutation);
+    CreateDiagonalForDisplacedGBS(diags_out, gamma, single_modes, mode_pairs, inverse_permutation);
 
 
 

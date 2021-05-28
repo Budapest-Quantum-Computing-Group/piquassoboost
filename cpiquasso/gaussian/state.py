@@ -17,12 +17,13 @@ import numpy as np
 
 import piquasso as pq
 
-from piquasso._math.linalg import is_symmetric, is_selfadjoint
-
 from .state_wrapper import GaussianState_Wrapper
 
 from piquasso._math.linalg import block_reduce
 
+from cpiquasso.sampling.simulation_strategies.GaussianSimulationStrategy import (
+    GaussianSimulationStrategyFast
+)
 from cpiquasso.sampling.Boson_Sampling_Utilities_wrapper import Torontonian_wrapper
 
 class GaussianState(GaussianState_Wrapper, pq.GaussianState):
@@ -83,14 +84,23 @@ class GaussianState(GaussianState_Wrapper, pq.GaussianState):
             calculation=calculate_threshold_detection_probability,
         )
 
+    def _apply_particle_number_measurement(self, *, cutoff, modes, shots):
+        reduced_state = self.reduced(modes)
+
+        return GaussianSimulationStrategyFast(
+            covariance_matrix=reduced_state.cov / (2 * pq.api.constants.HBAR),
+            m=reduced_state.mean / np.sqrt(pq.api.constants.HBAR),
+            fock_cutoff=cutoff,
+        ).simulate(shots)
+
 def calculate_threshold_detection_probability(
     state,
     subspace_modes,
     occupation_numbers,
 ):
-    Q = state.husimi_cov
-
     d = len(subspace_modes)
+
+    Q = (state.complex_covariance + np.identity(2 * d)) / 2
 
     OS = (np.identity(2 * d, dtype=complex) - np.linalg.inv(Q)).conj()
 

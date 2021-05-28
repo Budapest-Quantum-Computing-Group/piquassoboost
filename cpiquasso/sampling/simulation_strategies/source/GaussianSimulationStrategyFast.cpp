@@ -153,7 +153,6 @@ GaussianSimulationStrategyFast::calc_probability( matrix& Qinv, const double& Qd
             }
         }
 
-
         // calculate alpha * Qinv * conj(alpha)
         Complex16 inner_prod(0.0,0.0);
         for (size_t idx=0; idx<m.size(); idx++) {
@@ -235,7 +234,6 @@ else {
         // calculate gamma according to Eq (9) of arXiv 2010.15595v3 and set them into the diagonal of A_S
         diag_correction_of_A_S( A_S, Qinv, m, current_output );
 
-
         PowerTraceLoopHafnian hafnian_calculator = PowerTraceLoopHafnian(A_S);
         hafnian = hafnian_calculator.calculate();
 */
@@ -243,18 +241,17 @@ else {
 
         // prepare input matrix for recursive hafnian algorithm
         matrix mtx_permuted;
+        matrix diags_permuted;
         PicState_int64 repeated_column_pairs;
 
         // calculate gamma according to Eq (9) of arXiv 2010.15595v3
         matrix&& gamma = CalcGamma( Qinv, m, selected_modes );
 
-        ConstructMatrixForRecursiveLoopPowerTrace(A, gamma, current_output, mtx_permuted, repeated_column_pairs);
+        ConstructMatrixForRecursiveLoopPowerTrace(A, gamma, current_output, mtx_permuted, diags_permuted, repeated_column_pairs);
 
-
-        PowerTraceLoopHafnianRecursive hafnian_calculator_recursive = PowerTraceLoopHafnianRecursive(mtx_permuted, repeated_column_pairs);
+        PowerTraceLoopHafnianRecursive hafnian_calculator_recursive = PowerTraceLoopHafnianRecursive(mtx_permuted, diags_permuted, repeated_column_pairs);
         hafnian = hafnian_calculator_recursive.calculate();
         //Complex16 hafnian2 = hafnian_calculator_recursive.calculate();
-
 
 /*
 {
@@ -291,8 +288,6 @@ else {
 */
 matrix
 GaussianSimulationStrategyFast::CalcGamma( matrix& Qinv, matrix& m, PicState_int64& selected_modes ) {
-//std::cout << "GaussianSimulationStrategyFast::diag_correction_of_A " << A.rows << " " << Qinv.rows << " " << Qinv.cols << " " << m.size() << std::endl;
-//selected_modes.print_matrix();
 
     matrix gamma(Qinv.rows, 1);
     //memset(gamma.get_data(), 0, gamma.size()*sizeof(Complex16));
@@ -305,6 +300,7 @@ GaussianSimulationStrategyFast::CalcGamma( matrix& Qinv, matrix& m, PicState_int
             gamma[row_idx] = gamma[row_idx] + mult_a_bconj( Qinv[row_offset + col_idx], m[col_idx] );
         }
     }
+
 
     return gamma;
 

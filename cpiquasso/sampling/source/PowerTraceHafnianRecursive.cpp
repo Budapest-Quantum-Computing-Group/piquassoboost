@@ -209,7 +209,6 @@ PowerTraceHafnianRecursive_Tasks::calculate() {
 Complex16
 PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
 
-
     if (mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return Complex16(1,0);
@@ -324,7 +323,6 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
 */
 void
 PowerTraceHafnianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg ) {
-
 
 
     // spawn iteration over the next mode if available
@@ -590,13 +588,8 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 
                 for (size_t filling_factor_col=1; filling_factor_col<=current_occupancy[mode_jdx]; filling_factor_col++) {
 
-                    if ( (row_idx == col_idx) || (mode_idx != mode_jdx) ) {
-
-                        A[row_offset_A_a + col_idx*2]   = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
-                        A[row_offset_A_aconj + col_idx*2+1] = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
-
-                    }
-
+                    A[row_offset_A_a + col_idx*2]   = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
+                    A[row_offset_A_aconj + col_idx*2+1] = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
                     A[row_offset_A_a + col_idx*2+1] = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2+1)];
                     A[row_offset_A_aconj + col_idx*2]   = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2)];
                     col_idx++;

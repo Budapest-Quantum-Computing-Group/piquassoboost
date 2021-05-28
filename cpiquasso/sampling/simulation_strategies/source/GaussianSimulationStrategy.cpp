@@ -224,10 +224,7 @@ GaussianSimulationStrategy::simulate( int samples_number ) {
     std::vector<PicState_int64> samples;
     samples.reserve(samples_number);
     for (size_t idx=0; idx < samples_number; idx++) {
-        PicState_int64&& sample = getSample();
-        if (sample.size() > 0 ) {
-            samples.push_back(sample);
-        }
+        samples.push_back(getSample());
     }
 
     return samples;
@@ -274,6 +271,28 @@ GaussianSimulationStrategy::getSample() {
         // calculate the Hamilton matrix A defined by Eq. (4) of Ref. arXiv 2010.15595 (or Eq (4) of Ref. Craig S. Hamilton et. al, Phys. Rev. Lett. 119, 170501 (2017)).
         matrix&& A = calc_HamiltonMatrix( Qinv );
 
+
+        // calculate transformation X*Qinv*X for further usage
+        matrix XQinvX(Qinv.rows, Qinv.cols);
+        for (size_t idx=0; idx<Qinv.rows/2; idx++) {
+            Complex16* XQinvX_data = XQinvX.get_data() + (idx+Qinv.rows/2)*XQinvX.stride;
+            Complex16* Qinv_data = Qinv.get_data() + (idx)*Qinv.stride;
+
+            memcpy(XQinvX_data, Qinv_data + Qinv.cols/2, Qinv.cols/2*sizeof(Complex16));
+            memcpy(XQinvX_data + Qinv.cols/2, Qinv_data, Qinv.cols/2*sizeof(Complex16));
+        }
+
+        for (size_t idx=Qinv.rows/2; idx<Qinv.rows; idx++) {
+            Complex16* XQinvX_data = XQinvX.get_data() + (idx-Qinv.rows/2)*XQinvX.stride;
+            Complex16* Qinv_data = Qinv.get_data() + (idx)*Qinv.stride;
+
+            memcpy(XQinvX_data, Qinv_data + Qinv.cols/2, Qinv.cols/2*sizeof(Complex16));
+            memcpy(XQinvX_data + Qinv.cols/2, Qinv_data, Qinv.cols/2*sizeof(Complex16));
+
+        }
+        Qinv = XQinvX;
+
+    
         // get the displacement vector
         matrix m = reduced_state.get_m();
 
@@ -292,6 +311,8 @@ GaussianSimulationStrategy::getSample() {
         // the chosen index of the probabilities
         size_t chosen_index = 0;
 
+        matrix_base<double> conditional_probabilities = matrix_base<double>(1, cutoff);
+
         // get the probabilities for different photon counts on the output mode mode_idx
         for (size_t photon_num=0; photon_num<cutoff; photon_num++) {
 
@@ -309,7 +330,11 @@ GaussianSimulationStrategy::getSample() {
             // sometimes the probability is negative which is coming from a negative hafnian.
             prob = prob > 0 ? prob : 0;
 
-            prob_sum = prob_sum + prob/current_state_probability;
+            double conditional_probability = prob / current_state_probability;
+            conditional_probabilities[photon_num] = conditional_probability;
+
+            prob_sum = prob_sum + conditional_probability;
+
             if ( prob_sum >= rand_num ) {
                 chosen_index = photon_num;
                 current_state_probability = prob;
@@ -319,25 +344,8 @@ GaussianSimulationStrategy::getSample() {
         }
 
         if (prob_sum < rand_num ) {
-            // when the chosen index corresponds to the cutoff the number of photons cannot be determined, so we return from the sampling
-            return PicState_int64(0);
+            chosen_index = sample_from_probabilities(conditional_probabilities);
         }
-
-/*
-if ( prob_sum > 1 ) {
-probabilities_renormalized.print_matrix();
-
-FILE *fp = fopen("bad_matrix", "wb");
-fwrite( &A.rows, sizeof(size_t), 1, fp);
-fwrite( &A.cols, sizeof(size_t), 1, fp);
-fwrite( A.get_data(), sizeof(Complex16), A.size(), fp);
-fwrite( &output_sample.cols, sizeof(size_t), 1, fp);
-fwrite( output_sample.get_data(), sizeof(int64_t), output_sample.size(), fp);
-fclose(fp);
-exit(-1);
-
-}
-*/
 
         // The sampled current state:
         PicState_int64 current_output(output_sample.size()+1, 0);
@@ -355,67 +363,6 @@ exit(-1);
 }
 
 
-
-
-/**
-@brief Call to calculate the inverse of matrix Q defined by Eq (3) of Ref. arXiv 2010.15595
-@param state An instance of Gaussian state in the Fock representation. (If the Gaussian state is in quadrature representation, than it is transformed into Fock-space representation)
-@return Returns with the Hamilton matrix A.
-*/
-matrix
-GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state ) {
-
-
-    if ( state.get_representation() != complex_amplitudes ) {
-        state.ConvertToComplexAmplitudes();
-    }
-
-
-    // calculate Q matrix from Eq (3) in arXiv 2010.15595v3)
-    matrix Q = state.get_covariance_matrix();
-
-    for (size_t idx=0; idx<Q.rows; idx++) {
-        Q[idx*Q.stride+idx].real( Q[idx*Q.stride+idx].real() + 0.5 );
-    }
-
-
-#ifdef DEBUG
-    // for checking the matrix inversion
-    matrix Qcopy = Q.copy();
-#endif // DEBUG
-
-
-    // calculate A matrix from Eq (4) in arXiv 2010.15595v3)
-    matrix Qinv = Q; //just to reuse the memory of Q for the inverse
-
-
-    // calculate the inverse of matrix Q
-    int* ipiv = (int*)scalable_aligned_malloc( Q.stride*sizeof(int), CACHELINE);
-    LAPACKE_zgetrf( LAPACK_ROW_MAJOR, Q.rows, Q.cols, Q.get_data(), Q.stride, ipiv );
-    int info = LAPACKE_zgetri( LAPACK_ROW_MAJOR, Q.rows, Q.get_data(), Q.stride, ipiv );
-    scalable_aligned_free( ipiv );
-
-    if ( info <0 ) {
-        std::cout << "inversion was not successfull. Exiting" << std::endl;
-        exit(-1);
-    }
-
-#ifdef DEBUG
-    // for checking the inversion
-    matrix C = dot(Qinv, Qcopy);
-    for (size_t idx=0; idx<C.rows; idx++) {
-        C[idx.C.stride+idx].real( C[idx.C.stride+idx].real() - 1.0);
-    }
-    double diff=0.0;
-    for (size_t idx=0; idx<C.size(); idx++) {
-        assert( abs(C[idx]) > 1e-9);
-    }
-#endif // DEBUG
-
-
-    return Qinv;
-
-}
 
 
 /**
@@ -486,6 +433,9 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state, double& Qdet ) 
         assert( abs(C[idx]) > 1e-9);
     }
 #endif // DEBUG
+
+    
+
 
     return Qinv;
 
@@ -750,9 +700,7 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
-                    if ( (row_idx == col_idx) || (idx != jdx) ) {
                         A_S[row_offset + col_idx] = A[row_offset_A + jdx];
-                    }
                     col_idx++;
                 }
             }
@@ -782,9 +730,7 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
                 for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
-                    if ( (row_idx == col_idx) || (idx != jdx) ) {
                         A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
-                    }
                     col_idx++;
                 }
 
