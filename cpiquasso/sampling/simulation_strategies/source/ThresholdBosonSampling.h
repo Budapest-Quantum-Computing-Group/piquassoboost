@@ -1,6 +1,9 @@
 #ifndef THRESHOLD_BOSON_SAMPLING_H
 #define THRESHOLD_BOSON_SAMPLING_H
 
+// Limit for mode number to use pmfs (caching)
+constexpr int limit_for_using_pmfs = 20;
+
 #include "matrix.h"
 #include "PicVector.hpp"
 #include "PicState.h"
@@ -94,6 +97,10 @@ protected:
     /// Space for storing the threshold measurement specific datas for a sample which are equal in all samples.
     std::vector<ThresholdMeasurementSubstate> substates;
 
+    /// function pointer to the probability calculation method. Until a certain threshold we use the cache-using version, above the non-cache version
+    std::function<double( pic::ThresholdBosonSampling&, const double&, matrix&, PicState_int64& )>calc_probability_TBS;
+
+
 void fillSubstates( int mode_number );
 
 /**
@@ -115,16 +122,29 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 
 
 /**
+@brief Same as calc_probability_without_cache method.
+
+It stores the already calculated values.
+
+@param Qdet_sqrt_rec See at calc_probability_without_cache
+@param O See at calc_probability_without_cache 
+@param current_output See at calc_probability_without_cache
+@return See at calc_probability_without_cache
+*/
+double calc_probability_cache( const double& Qdet_sqrt_rec, matrix& O, PicState_int64& current_output );
+
+/**
 @brief Call to calculate the probability associated with observing output state given by current_output
 
 The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+The cache version has the ability to save results from calculation and find the result in it.
 
 @param Qdet_sqrt_rec 1 over the square root of determinant of matrix Q.
 @param O Hamilton matrix 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
-virtual double calc_probability( const double& Qdet_sqrt_rec, matrix& O, PicState_int64& current_output );
+double calc_probability_without_cache( const double& Qdet_sqrt_rec, matrix& O, PicState_int64& current_output );
 
 
 /**
