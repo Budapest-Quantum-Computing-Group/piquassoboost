@@ -609,7 +609,7 @@ std::cout << "receiving work from " << parent_process << std::endl;
 
 
 
-//StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
+StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
 
 }
 
@@ -699,8 +699,6 @@ IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_t
     torontonian_priv += partial_torontonian;
 
 
-
-
     // logical variable to control whether spawning new iterations or not
     bool stop_spawning_iterations = (selected_index_holes.size() == num_of_modes-1);
     // add new index hole to the iterations
@@ -730,18 +728,20 @@ IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_t
         selected_index_holes_new.push_back(this->num_of_modes-1);
         reuse_index_new = L_new.rows/2-1;
 
+{
+        tbb::spin_mutex::scoped_lock my_lock{my_mutex};
         if (!listener.CheckChildProcessActivity()) {
-            {
-                tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-                if (!already_sent_work) {
-                    SendWorkToChildProcess(selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new);
-                }
+
+            if (!already_sent_work) {
+                SendWorkToChildProcess(selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new);
+                return;
             }
 
         }
-        //else {
-            IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new);
-       // }
+
+}
+
+        IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new );
 
     });
 
