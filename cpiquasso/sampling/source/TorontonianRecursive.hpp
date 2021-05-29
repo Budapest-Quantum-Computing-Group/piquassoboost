@@ -44,16 +44,12 @@ protected:
     int current_rank;
     /// parent
     int parent_process;
-    ///
-    int is_parent_finished;
     /// child process
     int child_process;
     /// child (active or idle)
     int child_status;
     /// current activity
     int current_activity;
-    /// indicates whether the current process is finished or not
-    int is_finished;
 
 public:
 
@@ -76,16 +72,9 @@ MPIListener() {
     }
 */
     parent_process     = current_rank -1 ;
-    if ( parent_process > 0) {
-        is_parent_finished = 0;
-    }
-    else {
-        is_parent_finished = 1;
-    }
     child_process      = current_rank +1 ;
     child_status       = -1;
     current_activity   = 0;
-    is_finished        = 0;
 
 }
 
@@ -137,33 +126,9 @@ SendActivityStatus() {
 @brief
 @return
 */
-FinishActivity() {
-
-    if (is_finished) return;
-std::cout << is_parent_finished << " " << !current_activity << " " << (bool)(is_parent_finished && !current_activity) << std::endl;
-    // activity cant be finished if the parent process has not finished the work. (The current process must wait for assgined work
-    if (is_parent_finished && !current_activity) {
-        is_finished = 1;
-        std::cout << "finishing work on process " << current_rank << std::endl;
-    }
-    else {
-        is_finished = 0;
-    }
-
-    if (child_process < world_size) {
-        MPI_Send(&is_finished, 1, MPI_INT, child_process, FINISHED_TAG, MPI_COMM_WORLD);
-    }
-
-    return;
-
-}
-
-
-/**
-@brief
-@return
-*/
 ListenToActivityStatus( ) {
+
+
 
     if (child_process < world_size) {
         MPI_Recv( &child_status, 1, MPI_INT, child_process, ACTIVITY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -173,23 +138,25 @@ ListenToActivityStatus( ) {
 }
 
 
-
 /**
 @brief
 @return
 */
-ListenToFinishedActivity( ) {
+CheckForActivityStatusMessage( ) {
 
-    if (parent_process >= 0) {
-        MPI_Recv( &is_parent_finished, 1, MPI_INT, parent_process, FINISHED_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        //std::cout << current_rank << ": parent process: " << parent_process << " is finished: " << is_parent_finished << std::endl;
+    if (child_process < world_size) {
+        int flag = 0;
+        MPI_Iprobe(child_process, ACTIVITY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE );
+//std::cout << "FLAG " << flag << std::endl;
 
-        if (is_parent_finished && !current_activity) {
-            FinishActivity();
+        if (flag==1) {
+            ListenToActivityStatus( );
         }
     }
 
 }
+
+
 
 
 
@@ -228,9 +195,6 @@ getChildProcess() {
 };
 
 
-bool already_sent_work = false;
-bool already_received_work = false;
-
 
 /**
 @brief Class to calculate the hafnian of a complex matrix by a recursive power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
@@ -249,6 +213,8 @@ protected:
     matrix_type mtx;
     /// number of modes spanning the gaussian state
     int num_of_modes;
+    /// logical variable to indicate whether a work is transmitting to a child process at the moment
+    bool sending_work;
 
     tbb::combinable<RealM<long double>> priv_addend;
 
@@ -308,6 +274,8 @@ TorontonianRecursive_Tasks( matrix &mtx_in ) {
 
     // Get the rank of the process
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+    sending_work = false;
 #endif // MPI
 
 }
@@ -329,7 +297,7 @@ double calculate() {
 
     if (mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
-        return 0.0D;
+        return 1.0;
     }
 
 #if BLAS==0 // undefined BLAS
@@ -381,9 +349,10 @@ double calculate() {
         torontonian = torontonian + a.get();
     });
 
+
     PicVector<int> tmp;
     matrix_type L_tmp(0,0);
-std::cout << "sending finalizing signal" << std::endl;
+//std::cout << current_rank << ": sending finalizing signal" << std::endl;
     SendWorkToChildProcess(tmp, 0, L_tmp, 0);
 
 
@@ -404,7 +373,7 @@ std::cout << "sending finalizing signal" << std::endl;
 
     // send the calculated partial hafnian to rank 0
     long double* partial_torontonians = new long double[world_size];
-
+//std::cout << current_rank << ": gathering results" << std::endl;
     MPI_Allgather(&torontonian, 1, MPI_LONG_DOUBLE, partial_torontonians, 1, MPI_LONG_DOUBLE, MPI_COMM_WORLD);
 
     torontonian = 0.0;
@@ -485,14 +454,6 @@ StartMPIIterations( matrix_type &L ) {
     listener.ActivateCurrentProcess();
     listener.ListenToActivityStatus();
 
-    std::thread asyncThread = std::thread{
-        [this]() {
-            this->listener.ListenToActivityStatus();
-        }
-
-    };
-
-
 
     int index_min = 0;
     int index_max = num_of_modes;
@@ -526,7 +487,7 @@ StartMPIIterations( matrix_type &L ) {
 
         if (idx==index_max-1) continue;
 
-        StartProcessActivity( selected_index_holes_new, 1, L_new, reuse_index_new );
+        IterateOverSelectedModes( selected_index_holes_new, 1, L_new, reuse_index_new );
 
     }
 
@@ -534,18 +495,9 @@ StartMPIIterations( matrix_type &L ) {
     // indicate that current process has finished an activity
     listener.DisableCurrentProcess();
 
-    // indicate that current process has finished his work
-    //listener.FinishActivity();
-
-    // wait to finish for the async thread
-    asyncThread.join();
-
-
+//std::cout << current_rank << ": PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP" << std::endl;
     ListenToNewWork();
 
-
-
-//MPI_Barrier( MPI_COMM_WORLD );
 }
 //#endif
 
@@ -558,11 +510,18 @@ StartMPIIterations( matrix_type &L ) {
 */
 StartProcessActivity( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
 
+    // start activity on the current MPI process
+    listener.ActivateCurrentProcess();
 
-
-
+//std::cout << "starting received work on :" << current_rank << std::endl;
     IterateOverSelectedModes( selected_index_holes, hole_to_iterate, L, reuse_index );
+//std::cout << "ending received work on :" << current_rank << std::endl;
 
+    // indicate that current process has finished an activity
+    listener.DisableCurrentProcess();
+
+//std::cout << "?????????????????????????????????????? " << current_rank << std::endl;
+    ListenToNewWork();
 
 
 }
@@ -572,44 +531,49 @@ StartProcessActivity( const PicVector<int>& selected_index_holes, int hole_to_it
 */
 ListenToNewWork() {
 
-    if (already_received_work) return;
-
     int parent_process = listener.getParentProcess();
     if (parent_process < 0) return;
 
-std::cout << "receiving work from " << parent_process << std::endl;
+//std::cout << current_rank << ": listening to work" << std::endl;
+
     int selected_index_holes_size;
     MPI_Recv( &selected_index_holes_size, 1, MPI_INT, parent_process, SELECTED_INDEX_HOLES_SIZE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     PicVector<int> selected_index_holes(selected_index_holes_size);
-    int* selected_index_holes_data = selected_index_holes.data();
-    MPI_Recv( selected_index_holes_data, selected_index_holes_size, MPI_INT, parent_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    if (selected_index_holes_size>0) {
+        int* selected_index_holes_data = selected_index_holes.data();
+        MPI_Recv( selected_index_holes_data, selected_index_holes_size, MPI_INT, parent_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
 
     int hole_to_iterate;
     MPI_Recv( &hole_to_iterate, 1, MPI_INT, parent_process, HOLE_TO_ITERATE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     int L_size[3];
     MPI_Recv( &L_size, 3, MPI_INT, parent_process, L_SIZE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
     matrix_type L(L_size[0], L_size[1], L_size[2]);
-    complex_type* L_data = L.get_data();
-    if (sizeof(complex_type) == sizeof(Complex16)) {
-        MPI_Recv(L_data, 2*L.size(), MPI_DOUBLE, parent_process, L_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-    else {
-         MPI_Recv(L_data, 2*L.size(), MPI_LONG_DOUBLE, parent_process, L_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    if (L.size() >0 ) {
+        complex_type* L_data = L.get_data();
+        if (sizeof(complex_type) == sizeof(Complex16)) {
+            MPI_Recv(L_data, 2*L.size(), MPI_DOUBLE, parent_process, L_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+        else {
+            MPI_Recv(L_data, 2*L.size(), MPI_LONG_DOUBLE, parent_process, L_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
     }
 
     int reuse_index;
     MPI_Recv( &reuse_index, 1, MPI_INT, parent_process, REUSE_INDEX_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    already_received_work = true;
+    if (L.size() == 0) {
+        std::cout << "receiving terminating signal from " << parent_process << std::endl;
+        return;
+    }
 
-    if (L.size() == 0) return;
+//std::cout << current_rank << ": receiving work from " << parent_process << std::endl;
 
 
-
-StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
+    StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
 
 }
 
@@ -619,21 +583,26 @@ StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
 @param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
 @param hole_to_iterate The index indicating which hole index should be iterated
 */
-SendWorkToChildProcess( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
-
+SendWorkToChildProcess( const PicVector<int> selected_index_holes, int hole_to_iterate, matrix_type L, const int reuse_index ) {
 
     int child_process = listener.getChildProcess();
     if (child_process >= world_size) return;
-
-
-    std::cout << "process " << current_rank << ": sending work to child process" << std::endl;
-
+/*
+if (L.size() > 0) {
+    std::cout << "process " << current_rank << ": sending work to child process " << L.size() << "Lsize" << std::endl;
+}
+else {
+    std::cout << "process " << current_rank << ": sending finalizing signal" << std::endl;
+}
+*/
 
     int selected_index_holes_size = selected_index_holes.size();
     MPI_Send(&selected_index_holes_size, 1, MPI_INT, child_process, SELECTED_INDEX_HOLES_SIZE_TAG, MPI_COMM_WORLD);
 
-    int* selected_index_holes_data = selected_index_holes.data();
-    MPI_Send(selected_index_holes_data, selected_index_holes_size, MPI_INT, child_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD);
+    if (selected_index_holes_size>0) {
+        int* selected_index_holes_data = selected_index_holes.data();
+        MPI_Send(selected_index_holes_data, selected_index_holes_size, MPI_INT, child_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD);
+    }
 
 
     MPI_Send(&hole_to_iterate, 1, MPI_INT, child_process, HOLE_TO_ITERATE_TAG, MPI_COMM_WORLD);
@@ -644,17 +613,24 @@ SendWorkToChildProcess( const PicVector<int>& selected_index_holes, int hole_to_
     L_size[2] = L.stride;
     MPI_Send(&L_size, 3, MPI_INT, child_process, L_SIZE_TAG, MPI_COMM_WORLD);
 
-    complex_type* L_data = L.get_data();
-    if (sizeof(complex_type) == sizeof(Complex16)) {
-        MPI_Send(L_data, 2*L.size(), MPI_DOUBLE, child_process, L_TAG, MPI_COMM_WORLD);
-    }
-    else {
-        MPI_Send(L_data, 2*L.size(), MPI_LONG_DOUBLE, child_process, L_TAG, MPI_COMM_WORLD);
+    if (L.size() >0 ) {
+        complex_type* L_data = L.get_data();
+        if (sizeof(complex_type) == sizeof(Complex16)) {
+            MPI_Send(L_data, 2*L.size(), MPI_DOUBLE, child_process, L_TAG, MPI_COMM_WORLD);
+        }
+        else {
+            MPI_Send(L_data, 2*L.size(), MPI_LONG_DOUBLE, child_process, L_TAG, MPI_COMM_WORLD);
+        }
     }
 
     MPI_Send(&reuse_index, 1, MPI_INT, child_process, REUSE_INDEX_TAG, MPI_COMM_WORLD);
 
-    already_sent_work = true;
+
+    if (L.size()==0) return;
+
+    // listen that child process activates himself
+    listener.ListenToActivityStatus();
+
 
 }
 
@@ -728,22 +704,33 @@ IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_t
         selected_index_holes_new.push_back(this->num_of_modes-1);
         reuse_index_new = L_new.rows/2-1;
 
-{
-        tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+        // check for incoming message from child process
+        {
+            tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+            listener.CheckForActivityStatusMessage( );
+        }
+
         if (!listener.CheckChildProcessActivity()) {
 
-            if (!already_sent_work) {
-                SendWorkToChildProcess(selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new);
-                return;
+            {
+                tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+
+                if (!sending_work) {
+                    sending_work = true;
+                    SendWorkToChildProcess(selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new);
+                    sending_work = false;
+                    //continue;
+                    return;
+                }
             }
 
         }
 
-}
 
         IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new );
 
     });
+    //}
 
 
 
