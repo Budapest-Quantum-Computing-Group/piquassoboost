@@ -123,25 +123,21 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 
 
 /**
-@brief Same as calc_probability method.
+@brief Call to calculate the probability associated with observing output state given by current_output
 
-It stores the already calculated values.
+The calculation is the same as method calc_probability. This version uses cache to store the already calculated data.
 
-@param Qdet_sqrt_rec See at calc_probability
-@param O See at calc_probability 
-@param current_output See at calc_probability
-@return See at calc_probability
+@param current_output The current conditions for which the conditional probability is calculated
+@return Returns with the calculated probability
 */
 double calc_probability_cache( PicState_int64& current_output );
+
 
 /**
 @brief Call to calculate the probability associated with observing output state given by current_output
 
 The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
-The cache version has the ability to save results from calculation and find the result in it.
 
-@param Qdet_sqrt_rec 1 over the square root of determinant of matrix Q.
-@param O Hamilton matrix 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */

@@ -74,15 +74,15 @@ virtual ~TorontonianRecursive_Tasks() {
 }
 
 /**
-@brief Call to calculate the hafnian of a complex matrix
-@return Returns with the calculated hafnian
+@brief Call to calculate the torontonian of a complex matrix
+@return Returns with the calculated torontonian
 */
 double calculate() {
 
 
     if (mtx.rows == 0) {
-        // the hafnian of an empty matrix is 1 by definition
-        return 0.0D;
+        // the torontonian of an empty matrix is 1 by definition
+        return 1.0D;
     }
 
 #if BLAS==0 // undefined BLAS

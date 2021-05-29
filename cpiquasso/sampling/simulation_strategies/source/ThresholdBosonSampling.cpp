@@ -3,6 +3,7 @@
 #include <math.h>
 #include <tbb/tbb.h>
 
+#include "TorontonianRecursive.h"
 #include "Torontonian.h"
 
 #ifdef __MPI__
@@ -283,10 +284,8 @@ ThresholdBosonSampling::calc_HamiltonMatrix( matrix& Qinv ) {
 /**
 @brief Call to calculate the probability associated with observing output state given by current_output
 
-The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+The calculation is the same as method calc_probability. This version uses cache to store the already calculated data.
 
-@param Qdet_sqrt_rec 1 over the square root of determinant of matrix Q.
-@param O Hamilton matrix 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
@@ -313,14 +312,24 @@ ThresholdBosonSampling::calc_probability_cache( PicState_int64& current_output )
 }
 
 
+/**
+@brief Call to calculate the probability associated with observing output state given by current_output
+
+The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+
+@param current_output The current conditions for which the conditional probability is calculated
+@return Returns with the calculated probability
+*/
 double
 ThresholdBosonSampling::calc_probability( PicState_int64& current_output ) {
     int mode_idx = current_output.size();
-    const double Qdet_sqrt_rec = substates[mode_idx].Qdet_sqrt_rec;
-    matrix& O = substates[mode_idx].O;
 
     // calculate the normalization factor defined by the square root of the determinant of matrix Q
-    const double Normalization = Qdet_sqrt_rec;
+    const double Qdet_sqrt_rec = substates[mode_idx].Qdet_sqrt_rec;
+    
+    // get the őrecalculated matrix O 
+    matrix& O = substates[mode_idx].O;
+
 
 #ifdef DEBUG
     if (Qdet_sqrt_rec<0) {
@@ -333,11 +342,24 @@ ThresholdBosonSampling::calc_probability( PicState_int64& current_output ) {
     matrix&& O_S = create_O_S( O, current_output );
 
     /// Calculate the torontonian of O_S
-    Torontonian torontonian_calculator(O_S);
-    double torontonian = torontonian_calculator.calculate();
+    Torontonian torontonian_calculator1(O_S);
+        O_S.print_matrix();
+    //Torontonian torontonian_calculator(O_S);
+    double torontonian1 = torontonian_calculator1.calculate();
+
+    /// Calculate the torontonian of O_S
+    TorontonianRecursive torontonian_calculator(O_S);
+    //Torontonian torontonian_calculator(O_S);
+    const bool use_extended = true;
+    double torontonian = torontonian_calculator.calculate(use_extended);
+    std::cout << "tor1: "<< torontonian1<< std::endl;
+    std::cout << "tor2: "<< torontonian<< std::endl;
+    if (std::abs(torontonian1-torontonian) > 0.0001){
+        O_S.print_matrix();
+    }
 
     // calculate the probability associated with the current output
-    double prob = Normalization*torontonian;
+    double prob = Qdet_sqrt_rec*torontonian;
     pmfs.insert( {current_output, prob} );
 
     return prob;
