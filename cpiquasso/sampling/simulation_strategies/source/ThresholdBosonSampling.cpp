@@ -322,13 +322,13 @@ The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson 
 */
 double
 ThresholdBosonSampling::calc_probability( PicState_int64& current_output ) {
-    int mode_idx = current_output.size();
+    int mode_counter = current_output.size();
 
     // calculate the normalization factor defined by the square root of the determinant of matrix Q
-    const double Qdet_sqrt_rec = substates[mode_idx].Qdet_sqrt_rec;
+    const double Qdet_sqrt_rec = substates[mode_counter].Qdet_sqrt_rec;
     
     // get the őrecalculated matrix O 
-    matrix& O = substates[mode_idx].O;
+    matrix& O = substates[mode_counter].O;
 
 
 #ifdef DEBUG
@@ -342,13 +342,8 @@ ThresholdBosonSampling::calc_probability( PicState_int64& current_output ) {
     matrix&& O_S = create_O_S( O, current_output );
 
     /// Calculate the torontonian of O_S
-    Torontonian torontonian_calculator1(O_S);
-        O_S.print_matrix();
-    //Torontonian torontonian_calculator(O_S);
-    double torontonian1 = torontonian_calculator1.calculate();
-
-    /// Calculate the torontonian of O_S
     TorontonianRecursive torontonian_calculator(O_S);
+
     //Torontonian torontonian_calculator(O_S);
     const bool use_extended = true;
     double torontonian = torontonian_calculator.calculate(use_extended);
