@@ -352,11 +352,6 @@ ThresholdBosonSampling::calc_probability( PicState_int64& current_output ) {
     //Torontonian torontonian_calculator(O_S);
     const bool use_extended = true;
     double torontonian = torontonian_calculator.calculate(use_extended);
-    std::cout << "tor1: "<< torontonian1<< std::endl;
-    std::cout << "tor2: "<< torontonian<< std::endl;
-    if (std::abs(torontonian1-torontonian) > 0.0001){
-        O_S.print_matrix();
-    }
 
     // calculate the probability associated with the current output
     double prob = Qdet_sqrt_rec*torontonian;
