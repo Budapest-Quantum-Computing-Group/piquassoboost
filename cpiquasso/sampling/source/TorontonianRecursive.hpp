@@ -30,25 +30,27 @@ namespace pic {
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
 
+#ifdef __MPI__
+
 static tbb::spin_mutex my_mutex;
 
 /**
-@brief Listener class
+@brief Class to monitor the activity of MPI processes
 */
-class MPIListener {
+class MPIActivityComunicator {
 
 protected:
     /// The number of MPI processes
     int world_size;
-    /// The rank of the MPI process
+    /// The rank of the current MPI process
     int current_rank;
-    /// parent
+    /// The rank of the parent MPI process (from which work can be received)
     int parent_process;
-    /// child process
+    /// The rank of the child MPI process (for which work can be transmitted)
     int child_process;
-    /// child (active or idle)
+    /// 1 if the child process is occupied, 0 if the child process is idle
     int child_status;
-    /// current activity
+    /// 1 if the current process is occupied, 0 if the current process is idle
     int current_activity;
 
 public:
@@ -57,20 +59,14 @@ public:
 @brief Nullary constructor of the class.
 @return Returns with the instance of the class.
 */
-MPIListener() {
+MPIActivityComunicator() {
 
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
     // Get the rank of the process
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
-/*
-    // initialize activity vector
-    active_processes.reserve(world_size);
-    for (int idx=0; idx<world_size; idx++) {
-        active_processes.push_back(0);
-    }
-*/
+
     parent_process     = current_rank -1 ;
     child_process      = current_rank +1 ;
     child_status       = -1;
@@ -81,10 +77,9 @@ MPIListener() {
 
 
 /**
-@brief
-@return
+@brief Set the current process to active and sen a message about this to the parent MPI process
 */
-ActivateCurrentProcess() {
+void ActivateCurrentProcess() {
 
     current_activity = 1;
     SendActivityStatus();
@@ -94,10 +89,9 @@ ActivateCurrentProcess() {
 
 
 /**
-@brief
-@return
+@brief Set the current process to idle and sen a message about this to the parent MPI process
 */
-DisableCurrentProcess() {
+void DisableCurrentProcess() {
 
     current_activity = 0;
     SendActivityStatus();
@@ -107,10 +101,9 @@ DisableCurrentProcess() {
 
 
 /**
-@brief
-@return
+@brief Call to send information about the activity status of the current MPI process to the parent MPI process.
 */
-SendActivityStatus() {
+void SendActivityStatus() {
 
     if (parent_process >= 0) {
         MPI_Send(&current_activity, 1, MPI_INT, parent_process, ACTIVITY_TAG, MPI_COMM_WORLD);
@@ -123,12 +116,9 @@ SendActivityStatus() {
 
 
 /**
-@brief
-@return
+@brief Call to receive information about the activity status of the child MPI process.
 */
-ListenToActivityStatus( ) {
-
-
+void ListenToActivityStatus( ) {
 
     if (child_process < world_size) {
         MPI_Recv( &child_status, 1, MPI_INT, child_process, ACTIVITY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -139,10 +129,9 @@ ListenToActivityStatus( ) {
 
 
 /**
-@brief
-@return
+@brief Call to check whether the child MPI process has sent a message about it's activity status, or not. If message has been sent it is received.
 */
-CheckForActivityStatusMessage( ) {
+void CheckForActivityStatusMessage( ) {
 
     if (child_process < world_size) {
         int flag = 0;
@@ -161,8 +150,8 @@ CheckForActivityStatusMessage( ) {
 
 
 /**
-@brief
-@return
+@brief Call to check the cached activity status of the child process.
+@return Return with 1 if the child process is active, and with 0 otherwise.
 */
 int CheckChildProcessActivity() {
 
@@ -171,10 +160,10 @@ int CheckChildProcessActivity() {
 }
 
 /**
-@brief
-@return
+@brief Call to retrieve the rank of the parent MPI process
+@return Returns with the rank of the parent MPI process
 */
-getParentProcess() {
+int getParentProcess() {
 
     return parent_process;
 
@@ -183,10 +172,10 @@ getParentProcess() {
 
 
 /**
-@brief
-@return
+@brief Call to retrieve the rank of the child MPI process
+@return Returns with the rank of the child MPI process
 */
-getChildProcess() {
+int getChildProcess() {
 
     return child_process;
 
@@ -194,7 +183,7 @@ getChildProcess() {
 
 };
 
-
+#endif // MPI
 
 /**
 @brief Class to calculate the hafnian of a complex matrix by a recursive power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
@@ -221,10 +210,10 @@ protected:
 #ifdef __MPI__
     /// The number of MPI processes
     int world_size;
-    /// The rank of the MPI process
+    /// The rank of the current MPI process
     int current_rank;
     /// MPI activity listener
-    MPIListener listener;
+    MPIActivityComunicator listener;
 #endif // MPI
 
 public:
@@ -244,7 +233,7 @@ TorontonianRecursive_Tasks() {
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
     // initialize MPI activity listener
-    listener = MPIListener();
+    listener = MPIActivityComunicator();
 #endif // MPI
 
 }
@@ -322,6 +311,7 @@ double calculate() {
     matrix_type L = mtx.copy();
     Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L);
 
+#ifdef __MPI__
     long double torontonian;
     if (current_rank == 0) {
         torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
@@ -329,6 +319,9 @@ double calculate() {
     else{
         torontonian = 0.0;
     }
+#else
+    long double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
+#endif
 
 
 
@@ -349,12 +342,10 @@ double calculate() {
         torontonian = torontonian + a.get();
     });
 
-
-    PicVector<int> tmp;
-    matrix_type L_tmp(0,0);
-//std::cout << current_rank << ": sending finalizing signal" << std::endl;
-    SendWorkToChildProcess(tmp, 0, L_tmp, 0);
-
+#ifdef __MPI__
+    // send terminating signal to the child process (until now child might wait for new work assigned from the current process)
+    SendTerminatingSignalToChildProcess();
+#endif
 
 
 #if BLAS==0 // undefined BLAS
@@ -365,11 +356,14 @@ double calculate() {
     openblas_set_num_threads(NumThreads);
 #endif
 
+
+#ifdef __MPI__
     if (current_rank == 0) {
         // last correction comming from an empty submatrix contribution
         double factor =  (num_of_modes) % 2  ? -1.0 : 1.0;
         torontonian = torontonian + factor;
     }
+
 
     // send the calculated partial hafnian to rank 0
     long double* partial_torontonians = new long double[world_size];
@@ -384,6 +378,12 @@ double calculate() {
     // release memory on the zero rank
     delete partial_torontonians;
 
+#else
+
+    // last correction comming from an empty submatrix contribution
+    double factor =  (num_of_modes) % 2  ? -1.0 : 1.0;
+    torontonian = torontonian + factor;
+#endif
 
 
     return (double)torontonian;
@@ -403,10 +403,10 @@ void Update_mtx( matrix &mtx_in) {
     MPI_Bcast(syncronized_data, mtx_in.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 
-    int dim = mtx_in.rows;
+    size_t dim = mtx_in.rows;
 
     mtx = matrix_type(dim, dim);
-    for (int idx = 0; idx < mtx_in.size(); idx++) {
+    for (size_t idx = 0; idx < mtx_in.size(); idx++) {
         mtx[idx] = mtx_in[idx];
     }
 
@@ -414,10 +414,10 @@ void Update_mtx( matrix &mtx_in) {
     // convert the input matrix from a1, a2, ... a_N, a_1^*, a_2^* ... a_N^* format to
     // a_1^*,a_1^*,a_2,a_2^*, ... a_N,a_N^* format
 
-    int num_of_modes = dim/2;
+    size_t num_of_modes = dim/2;
     matrix_type mtx_reordered(dim, dim);
-    for (int idx=0; idx<num_of_modes; idx++) {
-        for (int jdx=0; jdx<num_of_modes; jdx++) {
+    for (size_t idx=0; idx<num_of_modes; idx++) {
+        for (size_t jdx=0; jdx<num_of_modes; jdx++) {
             mtx_reordered[2*idx*mtx_reordered.stride + 2*jdx] = mtx[idx*mtx.stride + jdx];
             mtx_reordered[2*idx*mtx_reordered.stride + 2*jdx+1] = mtx[idx*mtx.stride + jdx + num_of_modes];
             mtx_reordered[(2*idx+1)*mtx_reordered.stride + 2*jdx] = mtx[(idx+num_of_modes)*mtx.stride + jdx];
@@ -440,6 +440,7 @@ void Update_mtx( matrix &mtx_in) {
 
 protected:
 
+#ifdef __MPI__
 
 /**
 @brief Call to run iterations over the selected modes to calculate partial torontonians
@@ -447,8 +448,8 @@ protected:
 @param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
-//#ifdef __MPI__
-StartMPIIterations( matrix_type &L ) {
+
+void StartMPIIterations( matrix_type &L ) {
 
     // start activity on the current MPI process
     listener.ActivateCurrentProcess();
@@ -508,7 +509,7 @@ StartMPIIterations( matrix_type &L ) {
 @param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
-StartProcessActivity( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
+void StartProcessActivity( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
 
     // start activity on the current MPI process
     listener.ActivateCurrentProcess();
@@ -529,12 +530,18 @@ StartProcessActivity( const PicVector<int>& selected_index_holes, int hole_to_it
 /**
 @brief
 */
-ListenToNewWork() {
+void ListenToNewWork() {
 
     int parent_process = listener.getParentProcess();
     if (parent_process < 0) return;
 
 //std::cout << current_rank << ": listening to work" << std::endl;
+
+    int reuse_index;
+    MPI_Recv( &reuse_index, 1, MPI_INT, parent_process, REUSE_INDEX_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    // return if terminating signal was sent from the parent
+    if (reuse_index == -1) return;
 
     int selected_index_holes_size;
     MPI_Recv( &selected_index_holes_size, 1, MPI_INT, parent_process, SELECTED_INDEX_HOLES_SIZE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -562,17 +569,7 @@ ListenToNewWork() {
         }
     }
 
-    int reuse_index;
-    MPI_Recv( &reuse_index, 1, MPI_INT, parent_process, REUSE_INDEX_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    if (L.size() == 0) {
-        std::cout << "receiving terminating signal from " << parent_process << std::endl;
-        return;
-    }
-
-//std::cout << current_rank << ": receiving work from " << parent_process << std::endl;
-
-
+    // start working on the received task
     StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
 
 }
@@ -583,7 +580,7 @@ ListenToNewWork() {
 @param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
 @param hole_to_iterate The index indicating which hole index should be iterated
 */
-SendWorkToChildProcess( const PicVector<int> selected_index_holes, int hole_to_iterate, matrix_type L, const int reuse_index ) {
+void SendWorkToChildProcess( const PicVector<int> selected_index_holes, int hole_to_iterate, matrix_type L, const int reuse_index ) {
 
     int child_process = listener.getChildProcess();
     if (child_process >= world_size) return;
@@ -625,14 +622,32 @@ else {
 
     MPI_Send(&reuse_index, 1, MPI_INT, child_process, REUSE_INDEX_TAG, MPI_COMM_WORLD);
 
-
-    if (L.size()==0) return;
-
     // listen that child process activates himself
     listener.ListenToActivityStatus();
 
 
 }
+
+
+
+/**
+@brief Call to send terminating signal to the child process.
+*/
+void SendTerminatingSignalToChildProcess() {
+
+    int child_process = listener.getChildProcess();
+    if (child_process >= world_size) return;
+
+    // the terminating signal is indicated by reuse_index = -1
+    int reuse_index = -1;
+
+    MPI_Send(&reuse_index, 1, MPI_INT, child_process, REUSE_INDEX_TAG, MPI_COMM_WORLD);
+
+    return;
+
+
+}
+#endif
 
 
 /**
@@ -643,7 +658,7 @@ else {
 @param priv_addend Therad local storage for the partial torontonians
 @param tg Reference to a tbb::task_group
 */
-IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
+void IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
 
 
     // calculate the partial Torontonian for the selected index holes
@@ -703,8 +718,8 @@ IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_t
 
         selected_index_holes_new.push_back(this->num_of_modes-1);
         reuse_index_new = L_new.rows/2-1;
-
-        // check for incoming message from child process
+#ifdef __MPI__
+        // check for incoming activity message from the child process
         {
             tbb::spin_mutex::scoped_lock my_lock{my_mutex};
             listener.CheckForActivityStatusMessage( );
@@ -725,7 +740,7 @@ IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_t
             }
 
         }
-
+#endif
 
         IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new );
 
@@ -748,7 +763,7 @@ IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_t
 virtual long double CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, const Complex32 &determinant  ) {
 
 
-    int number_selected_modes = num_of_modes - selected_index_holes.size();
+    size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 
 
     // calculating -1^(N-|Z|)
@@ -782,23 +797,23 @@ std::cout << factor*determinant.real()  << std::endl;
 matrix_type
 CreateAZ( const PicVector<int>& selected_index_holes, matrix_type &L, const int reuse_index ) {
 
-    int number_selected_modes = num_of_modes - selected_index_holes.size();
+    size_t number_selected_modes = num_of_modes - selected_index_holes.size();
 //std::cout << "reuse index in Create AZ: " << reuse_index << std::endl;
 
 
-    PicVector<int> positions_of_ones;
+    PicVector<size_t> positions_of_ones;
     positions_of_ones.reserve(number_selected_modes);
     if ( selected_index_holes.size() == 0 ) {
 
-        for (int idx=0; idx<num_of_modes; idx++) {
+        for (size_t idx=0; idx<num_of_modes; idx++) {
             positions_of_ones.push_back(idx);
         }
 
     }
     else {
 
-        int hole_idx = 0;
-        for (int idx=0; idx<num_of_modes; idx++) {
+        size_t hole_idx = 0;
+        for (size_t idx=0; idx<num_of_modes; idx++) {
 
             if ( idx == selected_index_holes[hole_idx] && hole_idx<selected_index_holes.size()) {
                 hole_idx++;
@@ -827,13 +842,13 @@ CreateAZ( const PicVector<int>& selected_index_holes, matrix_type &L, const int 
 */
 
     // to calculate the determiannt only the diagonal elements of L are necessary
-    for (int idx = 0; idx < reuse_index; idx++) {
+    for (size_t idx = 0; idx < reuse_index; idx++) {
         AZ[2*idx*AZ.stride + 2*idx] = L[2*idx*L.stride + 2*idx];
         AZ[(2*idx+1)*AZ.stride + 2*idx+1] = L[(2*idx+1)*L.stride + 2*idx + 1];
     }
 
     // copy data from the input matrix and the reusable partial Cholesky decomposition matrix L
-    for (int idx = reuse_index; idx < number_selected_modes; idx++) {
+    for (size_t idx = (size_t)reuse_index; idx < number_selected_modes; idx++) {
 
         complex_type* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
         complex_type* L_data = L.get_data() + 2*(idx+1)*L.stride;
