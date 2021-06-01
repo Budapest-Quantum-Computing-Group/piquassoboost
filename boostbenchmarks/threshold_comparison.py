@@ -40,13 +40,24 @@ from cpiquasso import patch
 patch()
 
 
-SHOTS = 1
-ITERATIONS = 1
+SHOTS = 10
+ITERATIONS = 5
 
-NUMBER_OF_MODES = range(2, 6)  # NOTE: The range must start with 2 at least.
+#adaptively set limit for SF and PQ if the runtime exceeds these limits
+# maximal runtime in sec for 1 iteration
+TIME_LIMIT_ITERATION = 1
+# maximum time in sec for all iterations
+OVERALL_TIME_LIMIT = 1   
+
+# manually limiting the SF and PQ mode number
+LIMIT_SF = 100
+LIMIT_PQ = 100
+
+NUMBER_OF_MODES = list( range(2, 100) )  # NOTE: The range must start with 2 at least.
 MEAN_PHOTON_NUMBER = 0.5
 
 LOGARITHMIZE = True
+
 
 
 def _run_pq_simulation(params, d) -> float:
@@ -117,6 +128,12 @@ def _get_scaling(singular_values, mean_photon_number):
 
     return result.root
 
+def _json_dump(results):
+    file_prefix = f"{os.path.basename(__file__)}_{int(time.time())}"
+    json_filename = f"{file_prefix}.json"
+
+    with open(json_filename, "w") as f:
+        json.dump(results, f)
 
 def _scale_squeezing(squeezing, mean_photon_number):
     scaling = _get_scaling(
@@ -143,8 +160,13 @@ def _benchmark():
         "iterations": ITERATIONS,
         "mean_photon_number": MEAN_PHOTON_NUMBER,
         "number_of_modes": list(NUMBER_OF_MODES),
+        "limit_of_PQ": LIMIT_PQ,
+        "limit_of_SF": LIMIT_SF,
+        "time_limit": TIME_LIMIT_ITERATION,
+        "overall_time_limit": OVERALL_TIME_LIMIT,
         "pq_averages": [],
         "sf_averages": [],
+        "omp_num_threads": os.getenv('OMP_NUM_THREADS')
     }
 
     for d in NUMBER_OF_MODES:
@@ -153,14 +175,30 @@ def _benchmark():
         for _ in itertools.repeat(None, ITERATIONS):
             params = _generate_parameters(d, MEAN_PHOTON_NUMBER)
 
-            pq_times.append(_run_pq_simulation(params, d))
-            sf_times.append(_run_sf_simulation(params, d))
+            if d <= results['limit_of_PQ']:
+                pq_times.append(_run_pq_simulation(params, d))
+            if d <= results['limit_of_SF']:
+                sf_times.append(_run_sf_simulation(params, d))
 
-        pq_average = sum(pq_times) / len(pq_times)
-        sf_average = sum(sf_times) / len(sf_times)
+        if d <= results['limit_of_PQ']:
+            sum_pq_times = sum(pq_times)
+            pq_average = sum_pq_times / len(pq_times)
+            results["pq_averages"].append(pq_average)
+            if max(pq_times) > results['time_limit'] or sum_pq_times > results['overall_time_limit']:
+                results['limit_of_PQ'] = d
 
-        results["pq_averages"].append(pq_average)
-        results["sf_averages"].append(sf_average)
+        if d <= results['limit_of_SF']:
+            sum_sf_times = sum(sf_times)
+            sf_average = sum_sf_times / len(sf_times)
+            results["sf_averages"].append(sf_average)
+            if max(sf_times) > results['time_limit'] or sum_sf_times > results['overall_time_limit']:
+                results['limit_of_SF'] = d
+        
+        if d % 5 == 0 and d < max(results['limit_of_SF'], results['limit_of_PQ']):
+            _json_dump(results)
+
+        print("simulation run with ", d, " modes")
+
 
     print("\nSIMULATION RESULTS:\n")
 
@@ -171,16 +209,20 @@ def _benchmark():
 
     # PLOTTING
 
-    x_axis = list(NUMBER_OF_MODES)
+    x_axis_sf = list( filter(lambda i: i <= results['limit_of_SF'], NUMBER_OF_MODES) )
+    x_axis_pq = list( filter(lambda i: i <= results['limit_of_PQ'], NUMBER_OF_MODES) )
 
-    plt.rcParams.update({'font.size': 12})
+    x_axis = list(set(x_axis_pq) | set(x_axis_sf))
+    results['number_of_modes'] = x_axis
+
+    plt.rcParams.update({'font.size': 16})
     plt.rcParams['lines.markersize'] *= 2
 
     plt.plot(
-        x_axis,
+        x_axis_pq,
         results["pq_averages"],
         'bx',
-        x_axis,
+        x_axis_sf,
         results["sf_averages"],
         'rx',
     )
@@ -189,9 +231,9 @@ def _benchmark():
 
     plt.xlabel("Number of modes (d)")
     plt.ylabel(
-        "Logarithmic computation time (s)"
+        "Computation time [s]"
         if LOGARITHMIZE
-        else "Computation time (s)"
+        else "Computation time [s]"
     )
 
     plt.xticks(x_axis)
@@ -214,4 +256,11 @@ def _benchmark():
     subprocess.call(('xdg-open', svg_filename))
 
 if __name__ == "__main__":
-    _benchmark()
+    try:
+        _benchmark()
+    except KeyboardInterrupt:
+        file_prefix = f"{os.path.basename(__file__)}_{int(time.time())}"
+        json_filename = f"{file_prefix}.json"
+        with open(json_filename, "w") as f:
+            json.dump(results, f)
+
