@@ -201,7 +201,7 @@ protected:
     */
     matrix_type mtx;
     /// number of modes spanning the gaussian state
-    int num_of_modes;
+    size_t num_of_modes;
     /// logical variable to indicate whether a work is transmitting to a child process at the moment
     bool sending_work;
 
@@ -443,12 +443,9 @@ protected:
 #ifdef __MPI__
 
 /**
-@brief Call to run iterations over the selected modes to calculate partial torontonians
+@brief Call to start MPI distributed iterations
 @param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
-@param priv_addend Therad local storage for the partial torontonians
-@param tg Reference to a tbb::task_group
 */
-
 void StartMPIIterations( matrix_type &L ) {
 
     // start activity on the current MPI process
@@ -496,39 +493,35 @@ void StartMPIIterations( matrix_type &L ) {
     // indicate that current process has finished an activity
     listener.DisableCurrentProcess();
 
-//std::cout << current_rank << ": PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP" << std::endl;
     ListenToNewWork();
 
 }
-//#endif
 
 
 /**
-@brief Call to run iterations over the selected modes to calculate partial torontonians
-@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
-@param priv_addend Therad local storage for the partial torontonians
-@param tg Reference to a tbb::task_group
+@brief Call to start received work on the current MPI process. After work is completed, the current process starts to listen for new assigned work.
+@param selected_index_holes Selected modes which should be omitted from the input matrix to construct A^Z.
+@param L Matrix containing partial Cholesky decomposition if the initial matrix to be reused
+@param hole_to_iterate The index indicating which hole index should be iterated
+@param reuse index The index  labeling the number of rows of the matrix L that can be reused in the Cholesky decomposition
 */
 void StartProcessActivity( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
 
     // start activity on the current MPI process
     listener.ActivateCurrentProcess();
 
-//std::cout << "starting received work on :" << current_rank << std::endl;
     IterateOverSelectedModes( selected_index_holes, hole_to_iterate, L, reuse_index );
-//std::cout << "ending received work on :" << current_rank << std::endl;
 
     // indicate that current process has finished an activity
     listener.DisableCurrentProcess();
 
-//std::cout << "?????????????????????????????????????? " << current_rank << std::endl;
     ListenToNewWork();
 
 
 }
 
 /**
-@brief
+@brief Call to listen for work when the current MPI process is idle.
 */
 void ListenToNewWork() {
 
@@ -537,26 +530,14 @@ void ListenToNewWork() {
 
 //std::cout << current_rank << ": listening to work" << std::endl;
 
-    int reuse_index;
-    MPI_Recv( &reuse_index, 1, MPI_INT, parent_process, REUSE_INDEX_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    unsigned long L_size[3];
+    MPI_Recv( &L_size, 3, MPI_UNSIGNED_LONG, parent_process, L_SIZE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
 
     // return if terminating signal was sent from the parent
-    if (reuse_index == -1) return;
+    if (L_size[0] == 0) return;
 
-    int selected_index_holes_size;
-    MPI_Recv( &selected_index_holes_size, 1, MPI_INT, parent_process, SELECTED_INDEX_HOLES_SIZE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    PicVector<int> selected_index_holes(selected_index_holes_size);
-    if (selected_index_holes_size>0) {
-        int* selected_index_holes_data = selected_index_holes.data();
-        MPI_Recv( selected_index_holes_data, selected_index_holes_size, MPI_INT, parent_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-
-    int hole_to_iterate;
-    MPI_Recv( &hole_to_iterate, 1, MPI_INT, parent_process, HOLE_TO_ITERATE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    int L_size[3];
-    MPI_Recv( &L_size, 3, MPI_INT, parent_process, L_SIZE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     matrix_type L(L_size[0], L_size[1], L_size[2]);
 
     if (L.size() >0 ) {
@@ -569,46 +550,46 @@ void ListenToNewWork() {
         }
     }
 
+
+
+    unsigned long selected_index_holes_size;
+    MPI_Recv( &selected_index_holes_size, 1, MPI_UNSIGNED_LONG, parent_process, SELECTED_INDEX_HOLES_SIZE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    PicVector<int> selected_index_holes(selected_index_holes_size);
+    if (selected_index_holes_size>0) {
+        int* selected_index_holes_data = selected_index_holes.data();
+        MPI_Recv( selected_index_holes_data, selected_index_holes_size, MPI_INT, parent_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    int hole_to_iterate;
+    MPI_Recv( &hole_to_iterate, 1, MPI_INT, parent_process, HOLE_TO_ITERATE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+
+    int reuse_index;
+    MPI_Recv( &reuse_index, 1, MPI_INT, parent_process, REUSE_INDEX_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
     // start working on the received task
     StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
 
 }
 
 /**
-@brief Call to run iterations over the selected modes to calculate partial torontonians
-@param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
-@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
+@brief Call to send work to child MPI process
+@param selected_index_holes Selected modes which should be omitted from the input matrix to construct A^Z.
+@param L Matrix containing partial Cholesky decomposition if the initial matrix to be reused
 @param hole_to_iterate The index indicating which hole index should be iterated
+@param reuse index The index  labeling the number of rows of the matrix L that can be reused in the Cholesky decomposition
 */
 void SendWorkToChildProcess( const PicVector<int> selected_index_holes, int hole_to_iterate, matrix_type L, const int reuse_index ) {
 
     int child_process = listener.getChildProcess();
     if (child_process >= world_size) return;
-/*
-if (L.size() > 0) {
-    std::cout << "process " << current_rank << ": sending work to child process " << L.size() << "Lsize" << std::endl;
-}
-else {
-    std::cout << "process " << current_rank << ": sending finalizing signal" << std::endl;
-}
-*/
 
-    int selected_index_holes_size = selected_index_holes.size();
-    MPI_Send(&selected_index_holes_size, 1, MPI_INT, child_process, SELECTED_INDEX_HOLES_SIZE_TAG, MPI_COMM_WORLD);
-
-    if (selected_index_holes_size>0) {
-        int* selected_index_holes_data = selected_index_holes.data();
-        MPI_Send(selected_index_holes_data, selected_index_holes_size, MPI_INT, child_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD);
-    }
-
-
-    MPI_Send(&hole_to_iterate, 1, MPI_INT, child_process, HOLE_TO_ITERATE_TAG, MPI_COMM_WORLD);
-
-    int L_size[3];
+    unsigned long L_size[3];
     L_size[0] = L.rows;
     L_size[1] = L.cols;
     L_size[2] = L.stride;
-    MPI_Send(&L_size, 3, MPI_INT, child_process, L_SIZE_TAG, MPI_COMM_WORLD);
+    MPI_Send(&L_size, 3, MPI_UNSIGNED_LONG, child_process, L_SIZE_TAG, MPI_COMM_WORLD);
 
     if (L.size() >0 ) {
         complex_type* L_data = L.get_data();
@@ -619,6 +600,17 @@ else {
             MPI_Send(L_data, 2*L.size(), MPI_LONG_DOUBLE, child_process, L_TAG, MPI_COMM_WORLD);
         }
     }
+
+    unsigned long selected_index_holes_size = selected_index_holes.size();
+    MPI_Send(&selected_index_holes_size, 1, MPI_UNSIGNED_LONG, child_process, SELECTED_INDEX_HOLES_SIZE_TAG, MPI_COMM_WORLD);
+
+    if (selected_index_holes_size>0) {
+        const int* selected_index_holes_data = selected_index_holes.data();
+        MPI_Send(selected_index_holes_data, selected_index_holes_size, MPI_INT, child_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD);
+    }
+
+
+    MPI_Send(&hole_to_iterate, 1, MPI_INT, child_process, HOLE_TO_ITERATE_TAG, MPI_COMM_WORLD);
 
     MPI_Send(&reuse_index, 1, MPI_INT, child_process, REUSE_INDEX_TAG, MPI_COMM_WORLD);
 
@@ -638,10 +630,12 @@ void SendTerminatingSignalToChildProcess() {
     int child_process = listener.getChildProcess();
     if (child_process >= world_size) return;
 
-    // the terminating signal is indicated by reuse_index = -1
-    int reuse_index = -1;
-
-    MPI_Send(&reuse_index, 1, MPI_INT, child_process, REUSE_INDEX_TAG, MPI_COMM_WORLD);
+    // the terminating signal is indicated by L matrix of zero size
+    unsigned long L_size[3];
+    L_size[0] = 0;
+    L_size[1] = 0;
+    L_size[2] = 0;
+    MPI_Send(&L_size, 3, MPI_UNSIGNED_LONG, child_process, L_SIZE_TAG, MPI_COMM_WORLD);
 
     return;
 
@@ -655,8 +649,7 @@ void SendTerminatingSignalToChildProcess() {
 @param selected_index_holes Selected modes which should be omitted from thh input matrix to construct A^Z.
 @param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
 @param hole_to_iterate The index indicating which hole index should be iterated
-@param priv_addend Therad local storage for the partial torontonians
-@param tg Reference to a tbb::task_group
+@param reuse index The index  labeling the number of rows of the matrix L that can be reused in the Cholesky decomposition
 */
 void IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
 
@@ -797,7 +790,7 @@ std::cout << factor*determinant.real()  << std::endl;
 matrix_type
 CreateAZ( const PicVector<int>& selected_index_holes, matrix_type &L, const int reuse_index ) {
 
-    size_t number_selected_modes = num_of_modes - selected_index_holes.size();
+    int number_selected_modes = num_of_modes - selected_index_holes.size();
 //std::cout << "reuse index in Create AZ: " << reuse_index << std::endl;
 
 
@@ -815,7 +808,7 @@ CreateAZ( const PicVector<int>& selected_index_holes, matrix_type &L, const int 
         size_t hole_idx = 0;
         for (size_t idx=0; idx<num_of_modes; idx++) {
 
-            if ( idx == selected_index_holes[hole_idx] && hole_idx<selected_index_holes.size()) {
+            if ( idx == (size_t)selected_index_holes[hole_idx] && hole_idx<selected_index_holes.size()) {
                 hole_idx++;
                 continue;
             }
@@ -842,13 +835,13 @@ CreateAZ( const PicVector<int>& selected_index_holes, matrix_type &L, const int 
 */
 
     // to calculate the determiannt only the diagonal elements of L are necessary
-    for (size_t idx = 0; idx < reuse_index; idx++) {
+    for (int idx = 0; idx < reuse_index; idx++) {
         AZ[2*idx*AZ.stride + 2*idx] = L[2*idx*L.stride + 2*idx];
         AZ[(2*idx+1)*AZ.stride + 2*idx+1] = L[(2*idx+1)*L.stride + 2*idx + 1];
     }
 
     // copy data from the input matrix and the reusable partial Cholesky decomposition matrix L
-    for (size_t idx = (size_t)reuse_index; idx < number_selected_modes; idx++) {
+    for (int idx = reuse_index; idx < number_selected_modes; idx++) {
 
         complex_type* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
         complex_type* L_data = L.get_data() + 2*(idx+1)*L.stride;
