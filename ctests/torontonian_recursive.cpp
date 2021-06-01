@@ -85,6 +85,10 @@ int main(){
 
     std::cout << (t1-t0).seconds() << " " << (t3-t2).seconds() << " " << (t1-t0).seconds()/(t3-t2).seconds() << std::endl;
 
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
 
     return 0;
 
