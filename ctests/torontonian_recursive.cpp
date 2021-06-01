@@ -18,6 +18,10 @@
 #include "matrix_helper.hpp"
 #include "constants_tests.h"
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 
 template<class matrix_type, class complex_type>
 matrix_type
@@ -34,10 +38,24 @@ get_random_density_matrix(size_t dim){
 int main(){
 
 
-    constexpr size_t dim = 50;
+    constexpr size_t dim = 34;
+
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
+
 
     // create random matrix to calculate the torontonian
     pic::matrix mtx = get_random_density_matrix<pic::matrix, pic::Complex16>(dim);
+
+
+#ifdef __MPI__
+    // ensure that each MPI process gets the same input matrix from rank 0
+    void* syncronized_data = (void*)mtx.get_data();
+    MPI_Bcast(syncronized_data, mtx.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+
 
     // create class instance for torontonian calculator
     tbb::tick_count t0 = tbb::tick_count::now();
@@ -60,7 +78,7 @@ int main(){
     // create class instance for recursive torontonian calculator
     tbb::tick_count t4 = tbb::tick_count::now();
     recursive_torontonian_calculator = pic::TorontonianRecursive(mtx);
-    double result_recursive_basic = recursive_torontonian_calculator.calculate(false);
+    double result_recursive_basic = 0;//recursive_torontonian_calculator.calculate(false);
     tbb::tick_count t5 = tbb::tick_count::now();
 
     std::cout << "recursive torontonian calculator basic precision: " << result_recursive_basic<< std::endl;
