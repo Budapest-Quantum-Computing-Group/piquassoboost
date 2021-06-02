@@ -142,7 +142,7 @@ in the root directory of the Piquasso Boost library.
 (It is also possible to compile Piquasso Boost package without creating binary wheel with the command python **setup.py build_ext**)
 The created Piquasso Boost wheel can be installed on the local machine by issuing the command from the directory **path/to/piquasso_boost/library/dist**
 
-$ pip3 install cpiquasso-*.whl
+$ pip3 install piquassoboost-*.whl
 
 We notice, that the created wheel is not portable, since it contains hard coded link to external libraries (TBB and CBLAS).
 
@@ -157,7 +157,7 @@ In order to create a source distribution it is not necessary to set the environm
 In order to install the Piquasso Boost package from source tar ball, see the previous section discussing the initialization of the environment variables.
 The package can be compiled and installed by the command
 
-$ pip3 install cpiquasso-*.tar.gz
+$ pip3 install piquassoboost-*.tar.gz
 
 issued from directory **path/to/piquasso_boost/library/dist**
 (It is optional to install the ninja package which speeds up the building process by parallel compilation.)

@@ -20,7 +20,7 @@ namespace pic {
 
 
 /**
-@brief Multi-precision representation of real numbers used in the CPiquasso package.
+@brief Multi-precision representation of real numbers used in the PiquassoBoost package.
 This class can be used to sum up many real numbers of different orders. (Used in torontonian calculations)
 */
 template<class scalar>

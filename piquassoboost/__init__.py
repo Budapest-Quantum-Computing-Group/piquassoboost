@@ -15,15 +15,15 @@
 
 import piquasso as pq
 
-from cpiquasso.gaussian.state import GaussianState
-from cpiquasso.sampling.state import SamplingState
+from piquassoboost.gaussian.state import GaussianState
+from piquassoboost.sampling.state import SamplingState
 
 
 def patch():
-    class CPiquassoPlugin:
+    class BoostPlugin:
         classes = {
             "GaussianState": GaussianState,
             "SamplingState": SamplingState,
         }
 
-    pq.use(CPiquassoPlugin)
+    pq.use(BoostPlugin)

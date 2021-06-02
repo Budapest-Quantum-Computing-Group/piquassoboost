@@ -18,7 +18,7 @@ from setuptools import find_packages
 
 
 setup(
-    name="cpiquasso",
+    name="piquassoboost",
     packages=find_packages(
         exclude=(
             "tests", "tests.*",
@@ -28,7 +28,7 @@ setup(
         )
     ),
     version='0.1',
-    url="https://gitlab.inf.elte.hu/wigner-rcp-quantum-computing-and-information-group/cpiquasso",  # noqa: E501
+    url="https://gitlab.inf.elte.hu/wigner-rcp-quantum-computing-and-information-group/piquassoboost",  # noqa: E501
     maintainer="The Piquasso team",
     maintainer_email="kolarovszki@inf.elte.hu",
     include_package_data=True,

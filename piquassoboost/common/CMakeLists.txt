@@ -1,13 +1,13 @@
-set(EXT_DIR ${PROJECT_SOURCE_DIR}/cpiquasso/common)
+set(EXT_DIR ${PROJECT_SOURCE_DIR}/piquassoboost/common)
 
 add_library(dot_wrapper MODULE
     ${EXT_DIR}/dot_wrapper.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/numpy_interface.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/numpy_interface.cpp
 )
 
-ADD_DEPENDENCIES(dot_wrapper cpiquasso)
+ADD_DEPENDENCIES(dot_wrapper piquassoboost)
 
-target_link_libraries(dot_wrapper cpiquasso ${BLAS_LIBRARIES})
+target_link_libraries(dot_wrapper piquassoboost ${BLAS_LIBRARIES})
 
 python_extension_module(dot_wrapper)
 
@@ -21,9 +21,9 @@ target_compile_options(dot_wrapper PRIVATE
 
 
 target_include_directories(dot_wrapper PUBLIC
-                            ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/
-                            ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/
-                            ${PROJECT_SOURCE_DIR}/cpiquasso/common/
+                            ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/
+                            ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/
+                            ${PROJECT_SOURCE_DIR}/piquassoboost/common/
                             ${EXTRA_INCLUDES}
                             ${PYTHON_INCLUDE_DIR}
                             ${NUMPY_INC_DIR})
@@ -33,4 +33,4 @@ set_target_properties( dot_wrapper PROPERTIES
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 
-install(TARGETS dot_wrapper LIBRARY DESTINATION cpiquasso/common)
+install(TARGETS dot_wrapper LIBRARY DESTINATION piquassoboost/common)

@@ -31,77 +31,77 @@ add_executable (common_functionalities common_functionalities.cpp)
 
 
 target_include_directories(hafnian_complex_matrix PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/sampling/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
                             
 target_include_directories(torontonian PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/sampling/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(torontonian_recursive PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/sampling/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(hafnian_recursive_complex_matrix PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/sampling/source
-                            ../cpiquasso/sampling/simulation_strategies/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
+                            ../piquassoboost/sampling/simulation_strategies/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(loop_hafnian_recursive_complex_matrix PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/sampling/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(brute_force_hafnian_complex_matrix PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/sampling/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 
 target_include_directories(brute_force_loop_hafnian_complex_matrix PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/sampling/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(dot_stride PRIVATE
-                            ../cpiquasso/common/source
+                            ../piquassoboost/common/source
                             ${EXTRA_INCLUDES})
 
 target_include_directories(extract_rows PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/gaussian/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/gaussian/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 target_include_directories(extract_corner PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/gaussian/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/gaussian/source
                             ${EXTRA_INCLUDES})
                             
 target_include_directories(insert_transformed_cols PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/gaussian/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/gaussian/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
                             
 target_include_directories(insert_transformed_rows PRIVATE
-                            ../cpiquasso/common/source
-                            ../cpiquasso/gaussian/source
+                            ../piquassoboost/common/source
+                            ../piquassoboost/gaussian/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
 target_include_directories(common_functionalities PRIVATE
-                            ../cpiquasso/common/source
+                            ../piquassoboost/common/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
                             
@@ -111,7 +111,7 @@ target_include_directories(common_functionalities PRIVATE
 # public include directories we will use those link directories when building
 # decomposition_test
 target_link_libraries (hafnian_complex_matrix 
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
@@ -119,7 +119,7 @@ target_link_libraries (hafnian_complex_matrix
 
 
 target_link_libraries (torontonian 
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
@@ -127,7 +127,7 @@ target_link_libraries (torontonian
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (torontonian_recursive 
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
@@ -135,14 +135,14 @@ target_link_libraries (torontonian_recursive
 
 
 target_link_libraries (hafnian_recursive_complex_matrix 
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (loop_hafnian_recursive_complex_matrix 
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
@@ -150,28 +150,28 @@ target_link_libraries (loop_hafnian_recursive_complex_matrix
 
 
 target_link_libraries (brute_force_hafnian_complex_matrix
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (brute_force_loop_hafnian_complex_matrix
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (dot_stride
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
                            ${MPI_C_LIBRARIES})
                            
 target_link_libraries (extract_rows
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
@@ -179,7 +179,7 @@ target_link_libraries (extract_rows
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (extract_corner
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
@@ -187,7 +187,7 @@ target_link_libraries (extract_corner
                            ${MPI_C_LIBRARIES})
                            
 target_link_libraries (insert_transformed_cols
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
@@ -196,7 +196,7 @@ target_link_libraries (insert_transformed_cols
                            
                            
 target_link_libraries (insert_transformed_rows
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
@@ -205,7 +205,7 @@ target_link_libraries (insert_transformed_rows
                            
                            
 target_link_libraries (common_functionalities
-                           cpiquasso
+                           piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}

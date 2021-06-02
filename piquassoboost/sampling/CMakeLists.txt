@@ -1,19 +1,19 @@
-set(EXT_DIR ${PROJECT_SOURCE_DIR}/cpiquasso/sampling)
+set(EXT_DIR ${PROJECT_SOURCE_DIR}/piquassoboost/sampling)
 
 
 add_library( Boson_Sampling_Utilities_wrapper MODULE
     ${EXT_DIR}/Boson_Sampling_Utilities_wrapper.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/numpy_interface.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/numpy_interface.cpp
 )
 
 target_link_libraries(Boson_Sampling_Utilities_wrapper 
-                          cpiquasso 
+                          piquassoboost 
                           ${BLAS_LIBRARIES})
 
 python_extension_module(Boson_Sampling_Utilities_wrapper)
 
 
-ADD_DEPENDENCIES (Boson_Sampling_Utilities_wrapper cpiquasso)
+ADD_DEPENDENCIES (Boson_Sampling_Utilities_wrapper piquassoboost)
 
 
 
@@ -28,9 +28,9 @@ target_compile_options(Boson_Sampling_Utilities_wrapper PRIVATE
 
 
 target_include_directories(Boson_Sampling_Utilities_wrapper PUBLIC
-                            ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/
-                            ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/
-                            ${PROJECT_SOURCE_DIR}/cpiquasso/common/
+                            ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/
+                            ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/
+                            ${PROJECT_SOURCE_DIR}/piquassoboost/common/
                             ${EXTRA_INCLUDES}
                             ${PYTHON_INCLUDE_DIR}
                             ${NUMPY_INC_DIR})
@@ -44,5 +44,5 @@ set_target_properties( Boson_Sampling_Utilities_wrapper PROPERTIES
 
 
 
-install(TARGETS Boson_Sampling_Utilities_wrapper LIBRARY DESTINATION cpiquasso/sampling)
+install(TARGETS Boson_Sampling_Utilities_wrapper LIBRARY DESTINATION piquassoboost/sampling)
 

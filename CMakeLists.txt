@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10.2)
 
 
 # set the project name and version
-project(CPiquasso VERSION 0.1)
+project(PiuqassoBoost VERSION 0.1)
 
 # reuse compilation time linking for use runtime linking 
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -112,7 +112,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 
 #################################################################
-# find MPI libraries if MPI is enables by environment variable CPIQUASSO_MPI
+# find MPI libraries if MPI is enables by environment variable PIQUASSOBOOST_MPI
 
 if(DEFINED ENV{PIQUASSOBOOST_MPI})
   find_package(MPI REQUIRED)
@@ -296,85 +296,85 @@ else()
 endif()
 
 
-list(APPEND cpiquasso_files 
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dependency_graph.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix32.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/common_functionalities.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/CGaussianState.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/GaussianState_Cov.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/extract_rows.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/transform_rows.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/extract_corner.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/transform_cols.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_cols.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/TorontonianUtilities.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/Torontonian.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/TorontonianRecursive.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianUtilities.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianRecursive.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnianRecursive.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceHafnian.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/ThresholdBosonSampling.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/RepeatedColumnPairs.cpp
+list(APPEND piquassoboost_files 
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicTypes.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dependency_graph.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix32.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicState.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicStateHash.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dot.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/common_functionalities.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/CGaussianState.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/GaussianState_Cov.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/extract_rows.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/transform_rows.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/extract_corner.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/transform_cols.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_cols.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/Torontonian.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianRecursive.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceHafnianUtilities.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceHafnian.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceHafnianRecursive.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceLoopHafnian.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceLoopHafnianRecursive.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceHafnian.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceLoopHafnian.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/ThresholdBosonSampling.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/RepeatedColumnPairs.cpp
 
 )
 
 # add architecture specific kernels
 if (${HAVE_AVX512F_EXTENSIONS})
-  list(APPEND cpiquasso_files 
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_AVX512F.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX512F.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX512F.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX512F.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX512F.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_cholesky_decomposition_AVX.cpp
+  list(APPEND piquassoboost_files 
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/get_reflection_vector_AVX512F.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/calc_vH_times_A_AVX512F.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/calc_vov_times_A_AVX512F.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/apply_householder_cols_AVX512F.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/loop_correction_AVX512F.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/calc_cholesky_decomposition_AVX.cpp
   )
 elseif (${HAVE_AVX2_EXTENSIONS})
-  list(APPEND cpiquasso_files 
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_cholesky_decomposition_AVX.cpp
+  list(APPEND piquassoboost_files 
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/get_reflection_vector_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/calc_vH_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/calc_vov_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/apply_householder_cols_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/loop_correction_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/calc_cholesky_decomposition_AVX.cpp
   )
 elseif (${HAVE_AVX_EXTENSIONS})
-  list(APPEND cpiquasso_files 
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/get_reflection_vector_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vH_times_A_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_vov_times_A_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/apply_householder_cols_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/loop_correction_AVX.cpp
-    ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/kernels/calc_cholesky_decomposition_AVX.cpp
+  list(APPEND piquassoboost_files 
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/get_reflection_vector_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/calc_vH_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/calc_vov_times_A_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/apply_householder_cols_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/loop_correction_AVX.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/kernels/calc_cholesky_decomposition_AVX.cpp
   )
 endif()
 
-add_library(cpiquasso SHARED
-    ${cpiquasso_files}
+add_library(piquassoboost SHARED
+    ${piquassoboost_files}
 )
 
 # adding compile options
-target_compile_options(cpiquasso PRIVATE
+target_compile_options(piquassoboost PRIVATE
     ${CXX_FLAGS}
     "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
 )
 
 # adding linking options
-target_link_libraries(cpiquasso PRIVATE
+target_link_libraries(piquassoboost PRIVATE
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${LAPACKE_LIBRARIES}
@@ -384,57 +384,57 @@ target_link_libraries(cpiquasso PRIVATE
     ${MPI_C_LIBRARIES}    
 )
 
-target_include_directories(cpiquasso PRIVATE
+target_include_directories(piquassoboost PRIVATE
                             .
-                            ./cpiquasso/common/source
-                            ./cpiquasso/gaussian/source
-                            ./cpiquasso/sampling/source
+                            ./piquassoboost/common/source
+                            ./piquassoboost/gaussian/source
+                            ./piquassoboost/sampling/source
                             ${TBB_HEADER}
-                            ./cpiquasso/sampling/source/kernels
+                            ./piquassoboost/sampling/source/kernels
                             ${EXTRA_INCLUDES})
 
 
 
-set_target_properties(cpiquasso PROPERTIES
+set_target_properties(piquassoboost PROPERTIES
     VERSION ${PROJECT_VERSION}
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicTypes.hpp
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dependency_graph.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/matrix32.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicState.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/PicStateHash.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/dot.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/common_functionalities.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/CGaussianState.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/GaussianState_Cov.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/extract_rows.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/transform_rows.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/extract_corner.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/transform_cols.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_cols.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/CChinHuhPermanentCalculator.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/Torontonian.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/TorontonianUtilities.hpp
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianUtilities.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnian.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceHafnianRecursive.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnian.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/PowerTraceLoopHafnianRecursive.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceHafnian.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/source/BruteForceLoopHafnian.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/ThresholdBosonSampling.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategy.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/cpiquasso/sampling/simulation_strategies/source/RepeatedColumnPairs.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicTypes.hpp
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dependency_graph.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix32.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicState.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicStateHash.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dot.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/common_functionalities.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/CGaussianState.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/GaussianState_Cov.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/extract_rows.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/transform_rows.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/extract_corner.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/transform_cols.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_cols.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/Torontonian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.hpp
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceHafnianUtilities.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceHafnian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceHafnianRecursive.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceLoopHafnian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceLoopHafnianRecursive.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceHafnian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceLoopHafnian.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/ThresholdBosonSampling.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategy.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/RepeatedColumnPairs.h
 )
 
-configure_file(${PROJECT_SOURCE_DIR}/cpiquasso/common/source/Config.h.in
-               ${PROJECT_SOURCE_DIR}/cpiquasso/common/source/Config.h)
+configure_file(${PROJECT_SOURCE_DIR}/piquassoboost/common/source/Config.h.in
+               ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/Config.h)
 
-set_target_properties( cpiquasso PROPERTIES
-                        LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/cpiquasso
+set_target_properties( piquassoboost PROPERTIES
+                        LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/piquassoboost
 )
 
 
@@ -445,11 +445,11 @@ set_target_properties( cpiquasso PROPERTIES
 
 
 # adding subdirectories for python extensions
-add_subdirectory (cpiquasso)
+add_subdirectory (piquassoboost)
 
 if(DEFINED ENV{PIQUASSOBOOST_CTEST})
   # adding CMAKE files for test executables
   add_subdirectory (ctests)
 endif()
 
-install(TARGETS cpiquasso LIBRARY DESTINATION cpiquasso)
+install(TARGETS piquassoboost LIBRARY DESTINATION piquassoboost)
