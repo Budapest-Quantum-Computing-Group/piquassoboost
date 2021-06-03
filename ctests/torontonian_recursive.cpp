@@ -38,7 +38,7 @@ get_random_density_matrix(size_t dim){
 int main(){
 
 
-    constexpr size_t dim = 34;
+    constexpr size_t dim = 30;
 
 #ifdef __MPI__
     // Initialize the MPI environment
@@ -78,7 +78,7 @@ int main(){
     // create class instance for recursive torontonian calculator
     tbb::tick_count t4 = tbb::tick_count::now();
     recursive_torontonian_calculator = pic::TorontonianRecursive(mtx);
-    double result_recursive_basic = 0;//recursive_torontonian_calculator.calculate(false);
+    double result_recursive_basic = recursive_torontonian_calculator.calculate(false);
     tbb::tick_count t5 = tbb::tick_count::now();
 
     std::cout << "recursive torontonian calculator basic precision: " << result_recursive_basic<< std::endl;
