@@ -298,8 +298,16 @@ void StartMPIIterations( matrix_type &L ) {
 
 
 
-    // now do the rest of the iterations
+    int current_rank_index_max = index_min+current_rank+1;
     for( int idx = index_min+current_rank;  idx < index_max; idx=idx+world_size){
+        current_rank_index_max += world_size;
+    }
+    current_rank_index_max -= world_size;
+
+
+    // now do the rest of the iterations
+    for( int idx = current_rank_index_max-1;  idx >= 0; idx=idx-world_size){
+//    for( int idx = index_min+current_rank;  idx < index_max; idx=idx+world_size){
 
         PicVector<int> selected_index_holes_new = selected_index_holes;
         selected_index_holes_new[0] = idx;
@@ -400,6 +408,8 @@ void ListenToNewWork() {
 
     int reuse_index;
     MPI_Recv( &reuse_index, 1, MPI_INT, parent_process, REUSE_INDEX_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L, 0);
 
     // start working on the received task
     StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
@@ -545,6 +555,7 @@ void IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int h
         selected_index_holes_new.push_back(this->num_of_modes-1);
         reuse_index_new = L_new.rows/2-1;
 #ifdef __MPI__
+if ( selected_index_holes.size() < num_of_modes/4 ) {
         // check for incoming activity message from the child process
         {
             tbb::spin_mutex::scoped_lock my_lock{my_mutex};
@@ -566,6 +577,7 @@ void IterateOverSelectedModes( const PicVector<int>& selected_index_holes, int h
             }
 
         }
+}
 #endif
 
         IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new );

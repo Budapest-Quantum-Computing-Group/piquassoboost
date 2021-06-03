@@ -38,7 +38,7 @@ get_random_density_matrix(size_t dim){
 int main(){
 
 
-    constexpr size_t dim = 34;
+    constexpr size_t dim = 30;
 
 #ifdef __MPI__
     // Initialize the MPI environment
