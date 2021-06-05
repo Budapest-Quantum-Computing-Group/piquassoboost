@@ -2,7 +2,7 @@
 #define THRESHOLD_BOSON_SAMPLING_H
 
 // Limit for mode number to use pmfs (caching)
-constexpr int limit_for_using_pmfs = 100;
+constexpr int limit_for_using_pmfs = 30;
 
 #include "matrix.h"
 #include "PicVector.hpp"
@@ -98,9 +98,6 @@ protected:
     /// Space for storing the threshold measurement specific datas for a sample which are equal in all samples.
     std::vector<ThresholdMeasurementSubstate> substates;
 
-    /// function pointer to the probability calculation method. Until a certain threshold we use the cache-using version, above the non-cache version
-    std::function<double( pic::ThresholdBosonSampling&, PicState_int64& )>calc_probability_TBS;
-
 
 void fillSubstates( int mode_number );
 
@@ -123,14 +120,15 @@ matrix calc_HamiltonMatrix( matrix& Qinv );
 
 
 /**
-@brief Call to calculate the probability associated with observing output state given by current_output
+@brief Call to calculate the probability associated with observing output state given by current_output.
 
-The calculation is the same as method calc_probability. This version uses cache to store the already calculated data.
+If the size of the given current_output is smaller then limit_for_using_pmfs then we use cache for having faster probability calculation.
+Otherwise we just calculate the probability with 
 
 @param current_output The current conditions for which the conditional probability is calculated
-@return Returns with the calculated probability
+@return Returns with the calculated probability the method calc_probability.
 */
-double calc_probability_cache( PicState_int64& current_output );
+double calc_probability_from_cache( PicState_int64& current_output );
 
 
 /**

@@ -65,7 +65,6 @@ ThresholdBosonSampling::ThresholdBosonSampling( matrix &covariance_matrix )
     : GaussianSimulationStrategy(covariance_matrix, 1)
 {
     pmfs = std::unordered_map<PicState_int64, double, PicStateHash>();
-    calc_probability_TBS = &pic::ThresholdBosonSampling::calc_probability;
 }
 
 
@@ -92,11 +91,6 @@ ThresholdBosonSampling::Update_covariance_matrix( matrix &covariance_matrix ) {
 */
 std::vector<PicState_int64>
 ThresholdBosonSampling::simulate( int samples_number ) {
-    // below a specific limit we use calc_probability with cached values.
-    if (dim_over_2 <= limit_for_using_pmfs){
-        calc_probability_TBS = &pic::ThresholdBosonSampling::calc_probability_cache;
-    }
-
     // calculate the data which are equal for all samples
     fillSubstates(dim_over_2);
 
@@ -203,7 +197,7 @@ ThresholdBosonSampling::getSample() {
         current_output0[mode_idx-1] = 0;
 
         // calculate the probability associated with observing current_output
-        double prob0 = calc_probability_TBS( *this, current_output0 );
+        double prob0 = calc_probability_from_cache( current_output0 );
 
         // sometimes the probability is negative which is coming from a negative hafnian.
         prob0 = prob0 > 0 ? prob0 : 0;
@@ -222,7 +216,7 @@ ThresholdBosonSampling::getSample() {
         current_output1[mode_idx-1] = 1;
 
         // calculate the probability associated with observing current_output
-        double prob1 = calc_probability_TBS( *this, current_output1 );
+        double prob1 = calc_probability_from_cache( current_output1 );
 
         // sometimes the probability is negative which is coming from a negative hafnian.
         prob1 = prob1 > 0 ? prob1 : 0;
@@ -284,30 +278,35 @@ ThresholdBosonSampling::calc_HamiltonMatrix( matrix& Qinv ) {
 /**
 @brief Call to calculate the probability associated with observing output state given by current_output
 
-The calculation is the same as method calc_probability. This version uses cache to store the already calculated data.
+If the size of the given current_output is smaller then limit_for_using_pmfs then we use cache for having faster probability calculation.
+Otherwise we just calculate the probability.
 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
 double
-ThresholdBosonSampling::calc_probability_cache( PicState_int64& current_output ) {
+ThresholdBosonSampling::calc_probability_from_cache( PicState_int64& current_output ) {
 
-    // find whether the current probability was already calculated
-    auto current_prob_iter = pmfs.find(current_output);
+    if (current_output.size() < limit_for_using_pmfs){
+        // find whether the current probability was already calculated
+        auto current_prob_iter = pmfs.find(current_output);
 
-    // checks whether the pmfs contains the current output already
-    if (pmfs.end() != current_prob_iter){
-        // return with the stored value from pmfs
-        return current_prob_iter->second;
-    // otherwise calculate the probability
+        // checks whether the pmfs contains the current output already
+        if (pmfs.end() != current_prob_iter){
+            // return with the stored value from pmfs
+            return current_prob_iter->second;
+        // otherwise calculate the probability
+        }else{
+            // Call the normal calc_probability method which does not store the results
+            double prob = calc_probability( current_output );
+
+            // Save the current probability into the current output
+            pmfs.insert( {current_output, prob} );
+
+            return prob;
+        }
     }else{
-        // Call the normal calc_probability method which does not store the results
-        double prob = calc_probability( current_output );
-
-        // Save the current probability into the current output
-        pmfs.insert( {current_output, prob} );
-
-        return prob;
+        return calc_probability( current_output );
     }
 }
 
