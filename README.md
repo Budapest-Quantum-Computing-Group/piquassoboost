@@ -100,7 +100,7 @@ If there is no BLAS behind numpy, one can install system wide OpenBLAS by comman
 
 $ sudo apt-get install libopenblas-dev liblapack-dev liblapacke-dev
 
-If one don't have administration privileges it is possible to build OpenBLAS (include LAPACK and LAPACKE interfaces) from source (for details see [OpenBLAS](https://github.com/xianyi/OpenBLAS)) and set the environment variable
+If one don't have administration privileges it is possible to build OpenBLAS (including LAPACK and LAPACKE interfaces) from source (for details see [OpenBLAS](https://github.com/xianyi/OpenBLAS)) and set the environment variable
 
 $ export BLAS_LIB_DIR=path/to/OpenBLAS/lib(64)
 
