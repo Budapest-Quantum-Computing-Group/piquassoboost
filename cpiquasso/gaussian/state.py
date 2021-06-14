@@ -80,7 +80,7 @@ class GaussianState(GaussianState_Wrapper, pq.GaussianState):
 
         reduced_state = self.reduced(modes)
 
-        th = ThresholdBosonSampling.ThresholdBosonSampling( covariance_matrix=reduced_state.xp_cov/4.0 )
+        th = ThresholdBosonSampling.ThresholdBosonSampling( covariance_matrix=reduced_state.xp_cov/(2 * pq.api.constants.HBAR) )
         return th.simulate(shots)
 
     def _apply_particle_number_measurement(self, *, cutoff, modes, shots):

@@ -3,6 +3,7 @@
 #include <math.h>
 #include <tbb/tbb.h>
 
+#include "TorontonianRecursive.h"
 #include "Torontonian.h"
 
 #ifdef __MPI__
@@ -90,12 +91,6 @@ ThresholdBosonSampling::Update_covariance_matrix( matrix &covariance_matrix ) {
 */
 std::vector<PicState_int64>
 ThresholdBosonSampling::simulate( int samples_number ) {
-    if (dim_over_2 <= limit_for_using_pmfs){
-        calc_probability_TBS = &calc_probability_cache;
-    }else{
-        calc_probability_TBS = &calc_probability_without_cache;
-    }
-
     // calculate the data which are equal for all samples
     fillSubstates(dim_over_2);
 
@@ -129,7 +124,7 @@ void ThresholdBosonSampling::fillSubstates( int mode_number ){
     for (int mode_idx = 1; mode_idx < mode_number+1; mode_idx++){
         // modes to be extracted to get reduced gaussian state
         PicState_int64 indices_2_extract(mode_idx);
-        for (size_t idx = 0; idx < mode_idx; idx++) {
+        for (int idx = 0; idx < mode_idx; idx++) {
             indices_2_extract[idx] = idx;
         }
 
@@ -178,8 +173,6 @@ ThresholdBosonSampling::getSample() {
     // for loop to sample 1,2,3,...dim_over_2 modes
     // These samplings depends from each other by the chain rule of probabilites (see Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time))
     for (size_t mode_idx=1; mode_idx<=dim_over_2; mode_idx++) {
-        const double Qdet_sqrt_rec = substates[mode_idx].Qdet_sqrt_rec;
-        matrix& O = substates[mode_idx].O;
 
         // create a random double that is used to sample from the probabilities
         double rand_num = (double)rand()/RAND_MAX;
@@ -204,7 +197,7 @@ ThresholdBosonSampling::getSample() {
         current_output0[mode_idx-1] = 0;
 
         // calculate the probability associated with observing current_output
-        double prob0 = calc_probability_TBS( *this, Qdet_sqrt_rec, O, current_output0 );
+        double prob0 = calc_probability_from_cache( current_output0 );
 
         // sometimes the probability is negative which is coming from a negative hafnian.
         prob0 = prob0 > 0 ? prob0 : 0;
@@ -223,7 +216,7 @@ ThresholdBosonSampling::getSample() {
         current_output1[mode_idx-1] = 1;
 
         // calculate the probability associated with observing current_output
-        double prob1 = calc_probability_TBS( *this, Qdet_sqrt_rec, O, current_output1 );
+        double prob1 = calc_probability_from_cache( current_output1 );
 
         // sometimes the probability is negative which is coming from a negative hafnian.
         prob1 = prob1 > 0 ? prob1 : 0;
@@ -285,56 +278,57 @@ ThresholdBosonSampling::calc_HamiltonMatrix( matrix& Qinv ) {
 /**
 @brief Call to calculate the probability associated with observing output state given by current_output
 
-The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+If the size of the given current_output is smaller then limit_for_using_pmfs then we use cache for having faster probability calculation.
+Otherwise we just calculate the probability.
 
-@param Qdet_sqrt_rec 1 over the square root of determinant of matrix Q.
-@param O Hamilton matrix 
 @param current_output The current conditions for which the conditional probability is calculated
 @return Returns with the calculated probability
 */
 double
-ThresholdBosonSampling::calc_probability_cache( const double& Qdet_sqrt_rec, matrix& O, PicState_int64& current_output ) {
-    // calculate the normalization factor defined by the square root of the determinant of matrix Q
-    const double Normalization = Qdet_sqrt_rec;
+ThresholdBosonSampling::calc_probability_from_cache( PicState_int64& current_output ) {
 
-#ifdef DEBUG
-    if (Qdet_sqrt_rec<0) {
-        std::cout << "Determinant of matrix Q is negative" << std::endl;
-        exit(-1);
-    }
-#endif // DEBUG
+    if (current_output.size() < limit_for_using_pmfs){
+        // find whether the current probability was already calculated
+        auto current_prob_iter = pmfs.find(current_output);
 
-    auto current_prob_iter = pmfs.find(current_output);
+        // checks whether the pmfs contains the current output already
+        if (pmfs.end() != current_prob_iter){
+            // return with the stored value from pmfs
+            return current_prob_iter->second;
+        // otherwise calculate the probability
+        }else{
+            // Call the normal calc_probability method which does not store the results
+            double prob = calc_probability( current_output );
 
-    // checks whether the pmfs contains the current output already
-    if (pmfs.end() != current_prob_iter){
-        // return with the stored value from pmfs
-        return current_prob_iter->second;
-    // otherwise calculate the probability
+            // Save the current probability into the current output
+            pmfs.insert( {current_output, prob} );
+
+            return prob;
+        }
     }else{
-        // create Matrix O_S according to the main text below Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
-        matrix&& O_S = create_O_S( O, current_output );
-
-        /// Calculate the torontonian of O_S
-        Torontonian torontonian_calculator(O_S);
-        double torontonian = torontonian_calculator.calculate();
-
-        // calculate the probability associated with the current output
-        double prob = Normalization*torontonian;
-
-        // Save the current probability into the current output
-        pmfs.insert( {current_output, prob} );
-
-        return prob;
-
+        return calc_probability( current_output );
     }
 }
 
 
+/**
+@brief Call to calculate the probability associated with observing output state given by current_output
+
+The calculation is based on Eq. (14) of Ref. Exact simulation of Gaussian boson sampling in polynomial space and exponential time.
+
+@param current_output The current conditions for which the conditional probability is calculated
+@return Returns with the calculated probability
+*/
 double
-ThresholdBosonSampling::calc_probability_without_cache( const double& Qdet_sqrt_rec, matrix& O, PicState_int64& current_output ) {
+ThresholdBosonSampling::calc_probability( PicState_int64& current_output ) {
+    int mode_counter = current_output.size();
+
     // calculate the normalization factor defined by the square root of the determinant of matrix Q
-    const double Normalization = Qdet_sqrt_rec;
+    const double Qdet_sqrt_rec = substates[mode_counter].Qdet_sqrt_rec;
+    
+    // get the őrecalculated matrix O 
+    matrix& O = substates[mode_counter].O;
+
 
 #ifdef DEBUG
     if (Qdet_sqrt_rec<0) {
@@ -347,11 +341,14 @@ ThresholdBosonSampling::calc_probability_without_cache( const double& Qdet_sqrt_
     matrix&& O_S = create_O_S( O, current_output );
 
     /// Calculate the torontonian of O_S
-    Torontonian torontonian_calculator(O_S);
-    double torontonian = torontonian_calculator.calculate();
+    TorontonianRecursive torontonian_calculator(O_S);
+
+    //Torontonian torontonian_calculator(O_S);
+    const bool use_extended = true;
+    double torontonian = torontonian_calculator.calculate(use_extended);
 
     // calculate the probability associated with the current output
-    double prob = Normalization*torontonian;
+    double prob = Qdet_sqrt_rec*torontonian;
     pmfs.insert( {current_output, prob} );
 
     return prob;

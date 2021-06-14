@@ -42,9 +42,9 @@ TorontonianRecursive( matrix &mtx_in );
 virtual ~TorontonianRecursive();
 
 /**
-@brief Call to calculate the hafnian of a complex matrix
+@brief Call to calculate the torontonian of a complex matrix
 @param use_extended Logical variable to indicate whether use extended precision for cholesky decomposition (default), or not.
-@return Returns with the calculated hafnian
+@return Returns with the calculated torontonian
 */
 virtual double calculate(bool use_extended);
 

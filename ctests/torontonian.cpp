@@ -7,6 +7,7 @@
 #include "constants_tests.h"
 
 #include "Torontonian.h"
+#include "TorontonianRecursive.h"
 #include "TorontonianUtilities.h"
 
 #include "matrix32.h"
@@ -88,12 +89,30 @@ int test_calc_torontonian(){
     return 0;
 }
 
+int test_compare_torontonian_calculations(){
+    pic::matrix mtx(2, 2);
+    mtx[0] = pic::Complex16(0.136442, 0);
+    mtx[1] = pic::Complex16(0.079634, 0.0393217);
+    mtx[2] = pic::Complex16(0.079634, -0.0393217);
+    mtx[3] = pic::Complex16(0.136442, 0);
+
+    pic::TorontonianRecursive tor_recursive(mtx);
+    double rec_val = tor_recursive.calculate(false);
+    pic::Torontonian tor(mtx);
+    double tor_val = tor.calculate();
+    std::cout << "rec_val " << rec_val << std::endl;
+    std::cout << "tor_val " << tor_val << std::endl;
+
+}
+
+
 /**
 @brief Unit test to calculate torontonian of a matrix, test for Cholesky decomposition and for inverse calculation
 */
 int main(){
 
-    test_cholesky_decomposition();
-    test_calc_torontonian();
+    test_compare_torontonian_calculations();
+    //test_cholesky_decomposition();
+    //test_calc_torontonian();
 
 }

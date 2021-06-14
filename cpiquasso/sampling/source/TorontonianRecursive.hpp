@@ -116,15 +116,20 @@ virtual ~TorontonianRecursive_Tasks() {
 }
 
 /**
-@brief Call to calculate the hafnian of a complex matrix
-@return Returns with the calculated hafnian
+@brief Call to calculate the torontonian of a complex matrix
+@return Returns with the calculated torontonian
 */
 double calculate() {
 
 
     if (mtx.rows == 0) {
-        // the hafnian of an empty matrix is 1 by definition
-        return 1.0;
+        // the torontonian of an empty matrix is 1 by definition
+        return 1.0D;
+    }    
+    else if (mtx.rows == 2) {
+        complex_type determinant = mtx[0]*mtx[3] - mtx[1]*mtx[2];
+        long double partial_torontonian = 1.0/std::sqrt(determinant.real());
+        return (double)partial_torontonian - 1.0;
     }
 
 #if BLAS==0 // undefined BLAS
