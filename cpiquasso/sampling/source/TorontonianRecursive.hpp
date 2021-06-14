@@ -3,14 +3,18 @@
 #include "tbb/tbb.h"
 #endif
 
-
+#include <thread>
 #include "TorontonianUtilities.hpp"
 #include "MPIActivityCommunicator.hpp"
 #include "PicState.h"
 #include "PicVector.hpp"
+#include "common_functionalities.h"
 
 
 namespace pic {
+
+
+
 
 
 
@@ -49,6 +53,14 @@ protected:
     int current_rank;
     /// MPI activity listener
     MPIActivityComunicator listener;
+    /// initial amount of work
+    unsigned long long initial_work;
+    /// received amount of work
+    unsigned long long received_work;
+    /// sent amount of work
+    unsigned long long sent_work;
+    /// amount of addends that is expected to be done by the worker
+    unsigned long long expected_work;
 #endif // MPI
 
 public:
@@ -69,6 +81,15 @@ TorontonianRecursive_Tasks() {
 
     // initialize MPI activity listener
     listener = MPIActivityComunicator();
+
+    // initial amount of work
+    initial_work = 0;
+    // received amount of work
+    received_work = 0;
+    // sent amount of work
+    sent_work = 0;
+    // amount of addends that is expected to be done by the worker
+    expected_work = power_of_2( (unsigned long long) num_of_modes )/world_size;
 
 #endif // MPI
 
@@ -103,6 +124,15 @@ TorontonianRecursive_Tasks( matrix &mtx_in ) {
     // MPI work is currently not sending
     sending_work = false;
 
+    // initial amount of work
+    initial_work = 0;
+    // received amount of work
+    received_work = 0;
+    // sent amount of work
+    sent_work = 0;
+    // amount of addends that is expected to be done by the worker
+    expected_work = power_of_2( (unsigned long long) num_of_modes )/world_size;
+
 #endif // MPI
 
 }
@@ -116,20 +146,15 @@ virtual ~TorontonianRecursive_Tasks() {
 }
 
 /**
-@brief Call to calculate the torontonian of a complex matrix
-@return Returns with the calculated torontonian
+@brief Call to calculate the hafnian of a complex matrix
+@return Returns with the calculated hafnian
 */
 double calculate() {
 
 
     if (mtx.rows == 0) {
-        // the torontonian of an empty matrix is 1 by definition
-        return 1.0D;
-    }    
-    else if (mtx.rows == 2) {
-        complex_type determinant = mtx[0]*mtx[3] - mtx[1]*mtx[2];
-        long double partial_torontonian = 1.0/std::sqrt(determinant.real());
-        return (double)partial_torontonian - 1.0;
+        // the hafnian of an empty matrix is 1 by definition
+        return 1.0;
     }
 
 #if BLAS==0 // undefined BLAS
@@ -142,7 +167,6 @@ double calculate() {
     int NumThreads = openblas_get_num_threads();
     openblas_set_num_threads(1);
 #endif
-
 
     // thread local storage for partial hafnian
     priv_addend = tbb::combinable<RealM<long double>>{[](){return RealM<long double>(0.0);}};
@@ -174,7 +198,6 @@ double calculate() {
     // start task iterations originating from the initial selected modes
 #ifdef __MPI__
     StartMPIIterations( L );
-    //IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1, 0 );
 #else
     IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1 );
 #endif
@@ -207,10 +230,8 @@ double calculate() {
         torontonian = torontonian + factor;
     }
 
-
     // send the calculated partial hafnian to rank 0
     long double* partial_torontonians = new long double[world_size];
-//std::cout << current_rank << ": gathering results" << std::endl;
     MPI_Allgather(&torontonian, 1, MPI_LONG_DOUBLE, partial_torontonians, 1, MPI_LONG_DOUBLE, MPI_COMM_WORLD);
 
     torontonian = 0.0;
@@ -226,7 +247,10 @@ double calculate() {
     // last correction comming from an empty submatrix contribution
     double factor =  (num_of_modes) % 2  ? -1.0 : 1.0;
     torontonian = torontonian + factor;
+
+
 #endif
+
 
 
     return (double)torontonian;
@@ -287,14 +311,11 @@ protected:
 
 /**
 @brief Call to start MPI distributed iterations
-@param L Matrix conatining partial Cholesky decomposition if the initial matrix to be reused
+@param L Matrix containing partial Cholesky decomposition if the initial matrix to be reused
 */
 void StartMPIIterations( matrix_type &L ) {
 
     // start activity on the current MPI process
-    listener.ActivateCurrentProcess();
-    listener.ListenToActivityStatus();
-
 
     int index_min = 0;
     int index_max = num_of_modes;
@@ -312,6 +333,12 @@ void StartMPIIterations( matrix_type &L ) {
         current_rank_index_max += world_size;
     }
     current_rank_index_max -= world_size;
+
+    // estimate initial amount of work
+    for( int idx = current_rank_index_max-1;  idx >= 0; idx=idx-world_size){
+        initial_work += power_of_2( (unsigned long long) (num_of_modes - idx - 1) );
+    }
+
 
 
     // now do the rest of the iterations
@@ -339,9 +366,11 @@ void StartMPIIterations( matrix_type &L ) {
 
     }
 
-
     // indicate that current process has finished an activity
     listener.DisableCurrentProcess();
+
+
+
 
     ListenToNewWork();
 
@@ -357,8 +386,6 @@ void StartMPIIterations( matrix_type &L ) {
 */
 void StartProcessActivity( PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
 
-    // start activity on the current MPI process
-    listener.ActivateCurrentProcess();
 
     IterateOverSelectedModes( selected_index_holes, hole_to_iterate, L, reuse_index );
 
@@ -375,35 +402,51 @@ void StartProcessActivity( PicVector<int>& selected_index_holes, int hole_to_ite
 */
 void ListenToNewWork() {
 
-    int parent_process = listener.getParentProcess();
-    if (parent_process < 0) return;
+    std::vector<int> &&parent_processes = listener.getParentProcesses();
 
-//std::cout << current_rank << ": listening to work" << std::endl;
+    if (parent_processes.size() == 0) return;
 
 
-    unsigned long L_size[3];
-    MPI_Recv( &L_size, 3, MPI_UNSIGNED_LONG, parent_process, L_SIZE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // listening for incomming message
+    int parent_idx = 0;
+    int flag = 0;
+    while (true) {
+        MPI_Iprobe(parent_processes[parent_idx], COMPRESSED_MESSAGE_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE );
+
+        if (flag==1) break;
+
+        parent_idx = (parent_idx+1) % parent_processes.size();
+    }
+
+    // receive incomming message
+    int parent_process = parent_processes[parent_idx];
+
+    unsigned long long compressed_message;
+    MPI_Recv( &compressed_message, 1, MPI_UNSIGNED_LONG_LONG, parent_process, COMPRESSED_MESSAGE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 
     // return if terminating signal was sent from the parent
-    if (L_size[0] == 0) return;
+    if (compressed_message == 0) {
 
-    matrix_type L(L_size[0], L_size[1], L_size[2]);
+        // set the parent flag to finished
+        listener.setParentFinished( parent_idx );
 
-    if (L.size() >0 ) {
-        complex_type* L_data = L.get_data();
-        if (sizeof(complex_type) == sizeof(Complex16)) {
-            MPI_Recv(L_data, 2*L.size(), MPI_DOUBLE, parent_process, L_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        // stop listening for work if parents are terminated
+        if ( listener.checkParentFinished() ) {
+
+            return;
         }
-        else {
-            MPI_Recv(L_data, 2*L.size(), MPI_LONG_DOUBLE, parent_process, L_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        }
+
+        ListenToNewWork();
+        return;
     }
 
 
-
-    unsigned long selected_index_holes_size;
-    MPI_Recv( &selected_index_holes_size, 1, MPI_UNSIGNED_LONG, parent_process, SELECTED_INDEX_HOLES_SIZE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Status status;
+    // Probe for an incoming message from process zero
+    MPI_Probe(parent_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD, &status);
+    int selected_index_holes_size;
+    MPI_Get_count(&status, MPI_INT, &selected_index_holes_size);
 
     PicVector<int> selected_index_holes(selected_index_holes_size);
     if (selected_index_holes_size>0) {
@@ -411,15 +454,28 @@ void ListenToNewWork() {
         MPI_Recv( selected_index_holes_data, selected_index_holes_size, MPI_INT, parent_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-    int hole_to_iterate;
-    MPI_Recv( &hole_to_iterate, 1, MPI_INT, parent_process, HOLE_TO_ITERATE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    // Indicate to other processes the change in the activity status
+    listener.ActivateCurrentProcess();
 
 
-    int reuse_index;
-    MPI_Recv( &reuse_index, 1, MPI_INT, parent_process, REUSE_INDEX_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    int hole_to_iterate = selected_index_holes.size() - 1;
+
+
+    PicVector<int> selected_index_holes_old = selected_index_holes;
+    selected_index_holes_old.pop_back();
+    unsigned long L_size = 2*(num_of_modes-selected_index_holes.size());
+    matrix_type tmp(L_size, L_size);
+    matrix_type &&L = CreateAZ(selected_index_holes_old, tmp, 0);
+    Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L, 0);
+
+    int reuse_index = L.rows-1;
+
+    received_work += power_of_2( (unsigned long long) (num_of_modes - selected_index_holes[hole_to_iterate-1]) - 1 );
 
     // start working on the received task
     StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
+
 
 }
 
@@ -432,41 +488,33 @@ void ListenToNewWork() {
 */
 void SendWorkToChildProcess( const PicVector<int> selected_index_holes, int hole_to_iterate, matrix_type L, const int reuse_index ) {
 
-    int child_process = listener.getChildProcess();
-    if (child_process >= world_size) return;
-//std::cout << current_rank << ": sending work to child" << std::endl;
-    unsigned long L_size[3];
-    L_size[0] = L.rows;
-    L_size[1] = L.cols;
-    L_size[2] = L.stride;
-    MPI_Send(&L_size, 3, MPI_UNSIGNED_LONG, child_process, L_SIZE_TAG, MPI_COMM_WORLD);
+    // get the index of the first idle child process
+    int child_index = listener.getIdleProcessIndex();
 
-    if (L.size() >0 ) {
-        complex_type* L_data = L.get_data();
-        if (sizeof(complex_type) == sizeof(Complex16)) {
-            MPI_Send(L_data, 2*L.size(), MPI_DOUBLE, child_process, L_TAG, MPI_COMM_WORLD);
-        }
-        else {
-            MPI_Send(L_data, 2*L.size(), MPI_LONG_DOUBLE, child_process, L_TAG, MPI_COMM_WORLD);
-        }
+    // get the rank of the child process
+    int child_process = listener.getChildRank( child_index );
+
+    if (child_process < 0) return;
+
+    // indicate that child becomes active by receiving work
+    listener.setChildActive(child_index);
+
+    // compress data in selected_index_holes
+    unsigned long long compressed_message = 0;
+    for (size_t idx=0; idx<selected_index_holes.size(); idx++ ) {
+        //compressed_message += power_of_2( (unsigned long long) (selected_index_holes[idx]));
+        compressed_message += power_of_2( (unsigned long long) (num_of_modes - selected_index_holes[idx] - 1));
     }
+    MPI_Send(&compressed_message, 1, MPI_UNSIGNED_LONG_LONG, child_process, COMPRESSED_MESSAGE_TAG, MPI_COMM_WORLD);
 
-    unsigned long selected_index_holes_size = selected_index_holes.size();
-    MPI_Send(&selected_index_holes_size, 1, MPI_UNSIGNED_LONG, child_process, SELECTED_INDEX_HOLES_SIZE_TAG, MPI_COMM_WORLD);
-
+    int selected_index_holes_size = selected_index_holes.size();
     if (selected_index_holes_size>0) {
         const int* selected_index_holes_data = selected_index_holes.data();
         MPI_Send(selected_index_holes_data, selected_index_holes_size, MPI_INT, child_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD);
     }
 
 
-    MPI_Send(&hole_to_iterate, 1, MPI_INT, child_process, HOLE_TO_ITERATE_TAG, MPI_COMM_WORLD);
-
-    MPI_Send(&reuse_index, 1, MPI_INT, child_process, REUSE_INDEX_TAG, MPI_COMM_WORLD);
-
-    // listen that child process activates himself
-    listener.ListenToActivityStatus();
-
+    sent_work += power_of_2( (unsigned long long) (num_of_modes - selected_index_holes[hole_to_iterate-1]) - 1);
 
 }
 
@@ -477,21 +525,24 @@ void SendWorkToChildProcess( const PicVector<int> selected_index_holes, int hole
 */
 void SendTerminatingSignalToChildProcess() {
 
-    int child_process = listener.getChildProcess();
-    if (child_process >= world_size) return;
+    std::vector<int> && child_processes = listener.getChildProcesses();
+    if (child_processes.size() == 0) return;
 
-    // the terminating signal is indicated by L matrix of zero size
-    unsigned long L_size[3];
-    L_size[0] = 0;
-    L_size[1] = 0;
-    L_size[2] = 0;
-    MPI_Send(&L_size, 3, MPI_UNSIGNED_LONG, child_process, L_SIZE_TAG, MPI_COMM_WORLD);
+
+    // the terminating signal is indicated by nullary compressed message
+    unsigned long long compressed_message = 0;
+
+    for ( size_t idx=0; idx<child_processes.size(); idx++) {
+        MPI_Send(&compressed_message, 1, MPI_UNSIGNED_LONG_LONG, child_processes[idx], COMPRESSED_MESSAGE_TAG, MPI_COMM_WORLD);
+    }
 
     return;
 
 
 }
 #endif
+
+
 
 
 /**
@@ -532,8 +583,6 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
     tbb::parallel_for( tbb::blocked_range<int>(index_min+1, index_max, 1), [&](tbb::blocked_range<int> r ) {
         for ( int idx=r.begin(); idx != r.end(); idx++) {
 
-    //for( int idx = index_min+1;  idx < index_max; idx++){
-
             PicVector<int> selected_index_holes_new = selected_index_holes;
             selected_index_holes_new[hole_to_iterate] = idx-1;
 
@@ -547,6 +596,7 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
             torontonian_priv += partial_torontonian;
 
 
+
             // return if new index hole would give no nontrivial result
             // (in this case the partial torontonian is unity and should be counted only once in function calculate)
             if (stop_spawning_iterations) continue;
@@ -554,36 +604,52 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
             selected_index_holes_new.push_back(this->num_of_modes-1);
             reuse_index_new = L_new.rows/2-1;
 #ifdef __MPI__
-if ( selected_index_holes.size() < num_of_modes/4 ) {
-            // check for incoming activity message from the child process
-            if (listener.CheckChildProcessActivity()) {
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-                    listener.CheckForActivityStatusMessage( );
-                }
-            }
 
-            if (!listener.CheckChildProcessActivity() && !sending_work) {
-
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-
-                    if (!listener.CheckChildProcessActivity() && !sending_work) {
-                        sending_work = true;
-                        SendWorkToChildProcess(selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new);
-                        sending_work = false;
-                        continue;
+            if ( expected_work < initial_work + received_work - sent_work && selected_index_holes_new[hole_to_iterate] < num_of_modes/3 && selected_index_holes_new[hole_to_iterate] > num_of_modes/8 ) {
+                // check for incoming activity message from the child process
+                if (listener.CheckChildrenProcessActivity() && !sending_work) {
+                    {
+                        tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+                        listener.CheckForActivityStatusMessage( );
                     }
                 }
 
+                if (!listener.CheckChildrenProcessActivity() && !sending_work) {
+
+                    {
+                        tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+                        listener.CheckForActivityStatusMessage( );
+
+                        if (!listener.CheckChildrenProcessActivity() && !sending_work) {
+                            sending_work = true;
+                            SendWorkToChildProcess(selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new);
+                            listener.CheckForActivityStatusMessage( );
+                            sending_work = false;
+                            continue;
+                        }
+                    }
+
+                }
             }
-}
+
+            if ( listener.getCurrentActivity() != -1 && expected_work*1.4 < initial_work + received_work - sent_work ) {
+                {
+                    tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+                    listener.DeclineReceivingWork();
+                }
+            }
+            else if( listener.getCurrentActivity() == -1 && expected_work*1.4 >= initial_work + received_work - sent_work) {
+                {
+                    tbb::spin_mutex::scoped_lock my_lock{my_mutex};
+                    listener.ActivateCurrentProcess();
+                }
+            }
+
 #endif
 
             IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new );
         }
     });
-    //}
 
 
     // first do the first iteration without spawning iterations with new index hole
@@ -609,7 +675,7 @@ if ( selected_index_holes.size() < num_of_modes/4 ) {
 @param determinant The determinant of the submatrix A_Z
 @return Returns with the calculated torontonian
 */
-virtual long double CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, const Complex32 &determinant  ) {
+long double CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, const Complex32 &determinant  ) {
 
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
@@ -620,14 +686,7 @@ virtual long double CalculatePartialTorontonian( const PicVector<int>& selected_
                 (number_selected_modes + num_of_modes) % 2
                     ? -1.0
                     : 1.0;
-/*
-                    {
-      tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-if (number_selected_modes == 11) {
-std::cout << factor*determinant.real()  << std::endl;
-}
-                    }
-*/
+
     // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
     long double sqrt_determinant = std::sqrt(determinant.real());
 
