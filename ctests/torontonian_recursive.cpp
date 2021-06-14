@@ -18,6 +18,10 @@
 #include "matrix_helper.hpp"
 #include "constants_tests.h"
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 
 template<class matrix_type, class complex_type>
 matrix_type
@@ -34,10 +38,24 @@ get_random_density_matrix(size_t dim){
 int main(){
 
 
-    constexpr size_t dim = 50;
+    constexpr size_t dim = 30;
+
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
+
 
     // create random matrix to calculate the torontonian
     pic::matrix mtx = get_random_density_matrix<pic::matrix, pic::Complex16>(dim);
+
+
+#ifdef __MPI__
+    // ensure that each MPI process gets the same input matrix from rank 0
+    void* syncronized_data = (void*)mtx.get_data();
+    MPI_Bcast(syncronized_data, mtx.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+
 
     // create class instance for torontonian calculator
     tbb::tick_count t0 = tbb::tick_count::now();
@@ -67,6 +85,10 @@ int main(){
 
     std::cout << (t1-t0).seconds() << " " << (t3-t2).seconds() << " " << (t1-t0).seconds()/(t3-t2).seconds() << std::endl;
 
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
 
     return 0;
 

@@ -12,10 +12,6 @@
 #include "common_functionalities.h"
 #include <math.h>
 
-#ifdef __MPI__
-#include <mpi.h>
-#endif // MPI
-
 
 
 
