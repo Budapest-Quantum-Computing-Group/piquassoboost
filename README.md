@@ -44,7 +44,7 @@ The dependencies necessary to compile and build the Piquasso Boost library from 
 * [OpenBlas](https://www.openblas.net/) or [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/math-kernel-library.html)
 * [LAPACK](http://www.netlib.org/lapack/) 
 * [LAPACKE](https://www.netlib.org/lapack/lapacke.html)
-* [MPI] library (optional)
+* [MPI](https://www.open-mpi.org/) library (optional)
 * [Doxygen](https://www.doxygen.nl/index.html) (optional)
 
 The Python interface of the Piquasso Boost library was developed and tested with Python 3.6 and 3.7.
