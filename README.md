@@ -42,6 +42,8 @@ The dependencies necessary to compile and build the Piquasso Boost library from 
 * C++/C [GNU](https://gcc.gnu.org/) (>=v4.8.1) or [Intel](https://software.intel.com/content/www/us/en/develop/tools/compilers/c-compilers.html) (>=14.0.1) compiler
 * [TBB](https://github.com/oneapi-src/oneTBB) library
 * [OpenBlas](https://www.openblas.net/) or [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/math-kernel-library.html)
+* [LAPACK](http://www.netlib.org/lapack/) 
+* [LAPACKE](https://www.netlib.org/lapack/lapacke.html)
 * [MPI] library (optional)
 * [Doxygen](https://www.doxygen.nl/index.html) (optional)
 
@@ -56,7 +58,7 @@ The Python interface of the Piquasso Boost library needs the following packages 
 * tbb-devel
 * mpi4py
 * pytest
-* piquasso ???????????????
+* piquasso
 
 
 ### Download the source of the Piquasso Boost library
@@ -91,14 +93,14 @@ $ export TBB_INC_DIR=path/to/TBB/include
 
 environment variables. The building script will look for TBB libraries and header files on the paths given by these environment variables.
 
-CBLAS is another dependency necessary to use the Piquasso Boost library. 
-Since it is advised to have numpy linked against such a library (for example anaconda automatically brings numpy linked with Intel MKL or with OpenBLAS) the building script will automatically find out the location of this library. 
+CBLAS and LAPACK libaraies are another dependencies necessary to use the Piquasso Boost library. 
+Since it is advised to have numpy linked against such a library (for example anaconda automatically brings numpy linked against Intel MKL or OpenBLAS) the building script will automatically find out the location of this library. 
 (To check whether there is any CBLAS libarary behind numpy use commands **import numpy as np** and **np.show_config()** inside a python interpreter and check the given library locations.)
 If there is no BLAS behind numpy, one can install system wide OpenBLAS by command
 
-$ sudo apt-get install openblas-dev
+$ sudo apt-get install libopenblas-dev liblapack-dev liblapacke-dev
 
-If one don't have administration privileges it is possible to build OpenBLAS from source (for details see [OpenBLAS](https://github.com/xianyi/OpenBLAS)) and set the environment variable
+If one don't have administration privileges it is possible to build OpenBLAS (include LAPACK and LAPACKE interfaces) from source (for details see [OpenBLAS](https://github.com/xianyi/OpenBLAS)) and set the environment variable
 
 $ export BLAS_LIB_DIR=path/to/OpenBLAS/lib(64)
 

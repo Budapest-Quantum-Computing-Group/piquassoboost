@@ -135,11 +135,15 @@ endif()
 set(ENV{LD_LIBRARY_PATH} "${BLAS_DIR}:$ENV{LD_LIBRARY_PATH}")
 
 find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
 
 # make difference between MKL and OPENBLAS by checking specific functions
 set(CMAKE_REQUIRED_LIBRARIES "${BLAS_LIBRARIES}" "-lm")
 check_function_exists(MKL_Set_Num_Threads BLAS_IS_MKL)
 check_function_exists(openblas_set_num_threads BLAS_IS_OPENBLAS)
+
+# check the presence of lapacke library
+check_function_exists(LAPACKE_zgetri LAPACKE_FOUND)
 set(CMAKE_REQUIRED_LIBRARIES "")
 
 # If MKL is enabled
@@ -157,6 +161,13 @@ else()
   list(APPEND CXX_FLAGS_RELEASE "-DBLAS=0")
 endif()
 
+
+# if LAPACKE not found try another round
+if(${LAPACKE_FOUND} )
+    set(LAPACKE_LIBRARIES)
+else()
+    find_library(LAPACKE_LIBRARIES lapacke REQUIRED)    
+endif()
 
 # setting basic compile flags
 list(APPEND CXX_FLAGS_DEBUG "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-DDEBUG" "-fno-builtin-malloc" "-fno-builtin-calloc" "-fno-builtin-realloc" "-fno-builtin-free" "-fpermissive")
@@ -364,8 +375,9 @@ target_compile_options(cpiquasso PRIVATE
 
 # adding linking options
 target_link_libraries(cpiquasso PRIVATE
-    "$<$<CONFIG:Debug>:${BLAS_LIBRARIES}>"
-    "$<$<CONFIG:Release>:${BLAS_LIBRARIES}>"
+    ${BLAS_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${LAPACKE_LIBRARIES}
     ${TBBMALLOC_LIB}
     ${TBBMALLOC_PROXY_LIB}
     ${TBB_LIB}

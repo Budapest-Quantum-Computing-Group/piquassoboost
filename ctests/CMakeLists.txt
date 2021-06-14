@@ -115,7 +115,6 @@ target_link_libraries (hafnian_complex_matrix
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
-                           ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 
@@ -132,7 +131,6 @@ target_link_libraries (torontonian_recursive
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
-                           ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 
@@ -141,7 +139,6 @@ target_link_libraries (hafnian_recursive_complex_matrix
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
-                           ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (loop_hafnian_recursive_complex_matrix 
@@ -149,7 +146,6 @@ target_link_libraries (loop_hafnian_recursive_complex_matrix
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
-                           ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 
@@ -158,7 +154,6 @@ target_link_libraries (brute_force_hafnian_complex_matrix
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
-                           ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (brute_force_loop_hafnian_complex_matrix
@@ -166,7 +161,6 @@ target_link_libraries (brute_force_loop_hafnian_complex_matrix
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
-                           ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
 
 target_link_libraries (dot_stride
@@ -174,7 +168,6 @@ target_link_libraries (dot_stride
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
                            ${TBB_LIB}
-                           ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
                            
 target_link_libraries (extract_rows
