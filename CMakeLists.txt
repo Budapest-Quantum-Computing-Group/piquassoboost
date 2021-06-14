@@ -161,9 +161,12 @@ else()
   list(APPEND CXX_FLAGS_RELEASE "-DBLAS=0")
 endif()
 
+
 # if LAPACKE not found try another round
-if( NOT DEFINED ${LAPACKE_FOUND} )
-    find_library(LAPACKE_LIBRARIES lapacke REQUIRED)
+if(${LAPACKE_FOUND} )
+    set(LAPACKE_LIBRARIES)
+else()
+    find_library(LAPACKE_LIBRARIES lapacke REQUIRED)    
 endif()
 
 # setting basic compile flags
