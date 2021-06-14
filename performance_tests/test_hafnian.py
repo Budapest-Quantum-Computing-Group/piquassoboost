@@ -43,5 +43,4 @@ class TestHafnian:
         print(' ')
         print(' ')
 
-        #print( 'Relative difference between walrus and piquasso result: ' + str(abs(hafnian_walrus-hafnian_Cpp)/abs(hafnian_Cpp)) + '%')
 
