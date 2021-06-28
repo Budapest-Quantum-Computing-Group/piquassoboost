@@ -114,7 +114,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 #################################################################
 # find MPI libraries if MPI is enables by environment variable CPIQUASSO_MPI
 
-if(DEFINED ENV{CPIQUASSO_MPI})
+if(DEFINED ENV{PIQUASSOBOOST_MPI})
   find_package(MPI REQUIRED)
 
   # openmpi which has a different c++ bindings
@@ -447,7 +447,9 @@ set_target_properties( cpiquasso PROPERTIES
 # adding subdirectories for python extensions
 add_subdirectory (cpiquasso)
 
-# adding CMAKE files for test executables
-add_subdirectory (ctests)
+if(DEFINED ENV{PIQUASSOBOOST_CTEST})
+  # adding CMAKE files for test executables
+  add_subdirectory (ctests)
+endif()
 
 install(TARGETS cpiquasso LIBRARY DESTINATION cpiquasso)

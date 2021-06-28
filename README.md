@@ -111,17 +111,22 @@ The Piquasso Boost library can also deployed with MPI support to run large scale
 The python package **mpi4py** provides the necessary dependencies for the MPI support (which also checks for system wide MPI libraries)
 In order to enable the MPI support one should define the 
 
-$ export CPIQUASSO_MPI=1
+$ export PIQUASSOBOOST_MPI=1
 
 environment variable in prior the build.
 The Piquasso Boost library is supported with AVX/AVX2 and AVX512F kernels. 
 The underlying architecture is determined automatically by building scripts, however the library provides a control switch to compile against AVX512F kernels when it is possible. 
 The AVX152 kernels provide 10-15% speedup at the same CPU clock speed, however, since AVX512 mode usually locks down the CPU clock speed, in overall AVX512F kernels would perform slower than the
-AVX/AVX2 kernel, if they are not limited by CPU clock speed lock. To check AVX512 capability and compile against AVX512F kernels one need to define the
+AVX/AVX2 kernel, if they are not limited by CPU clock speed lock. To check AVX512 capability during compilation and build the code against AVX512F kernels one need to define the
 
 $ export USE_AVX512=1
 
-environment variable.
+environment variable. 
+Finally, in order to  build Piquasso Boost library including the C test files define the
+
+$ export PIQUASSOBOOST_CTEST=1
+
+environment variable before compiling the library.
 
 
 ### Binary distribution
