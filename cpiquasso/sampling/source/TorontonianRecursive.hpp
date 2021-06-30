@@ -156,6 +156,11 @@ double calculate() {
         // the hafnian of an empty matrix is 1 by definition
         return 1.0;
     }
+    else if (mtx.rows == 2) {
+        complex_type determinant = mtx[0]*mtx[3] - mtx[1]*mtx[2];
+        long double partial_torontonian = 1.0/std::sqrt(determinant.real());
+        return (double)partial_torontonian - 1.0;
+    }
 
 #if BLAS==0 // undefined BLAS
     int NumThreads = omp_get_max_threads();

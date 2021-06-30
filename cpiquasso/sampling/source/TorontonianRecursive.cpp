@@ -61,7 +61,7 @@ TorontonianRecursive::calculate(bool use_extended = true) {
 
     if (mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
-        return 0.0;
+        return 1.0;
     }
 
 
