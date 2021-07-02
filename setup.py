@@ -53,5 +53,9 @@ setup(
         "Programming Language :: C++"
     ],
     license='Apache License 2.0.',
-    scripts=["check_AVX.cmake"],
+    scripts=[
+        "cmake/check_AVX.cmake",
+        "cmake/FindBLASEXT.cmake",
+        "cmake/FindCBLAS.cmake",
+    ],
 )

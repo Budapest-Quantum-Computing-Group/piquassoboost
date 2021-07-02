@@ -60,6 +60,8 @@ The Python interface of the Piquasso Boost library needs the following packages 
 * pytest
 * piquasso
 
+**Note**: In some distributions, OpenBLAS might not come with CBLAS, it might
+be needed to install CBLAS manually.
 
 ### Download the source of the Piquasso Boost library
 
