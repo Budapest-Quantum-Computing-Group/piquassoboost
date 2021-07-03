@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 
 import time
-from cpiquasso.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator
+from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator
 
-from cpiquasso.sampling.Boson_Sampling_Utilities import Torontonian as torontonian_piquasso_boost_calculator
+from piquassoboost.sampling.Boson_Sampling_Utilities import Torontonian as torontonian_piquasso_boost_calculator
 
 from piquasso._math.torontonian import torontonian as torontonian_piquasso_calculator
 

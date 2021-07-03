@@ -15,7 +15,7 @@
 
 import piquasso as pq
 
-from cpiquasso.sampling.circuit import SamplingCircuit
+from piquassoboost.sampling.circuit import SamplingCircuit
 
 
 class SamplingState(pq.SamplingState):

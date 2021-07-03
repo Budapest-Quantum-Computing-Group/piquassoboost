@@ -21,11 +21,11 @@ from .state_wrapper import GaussianState_Wrapper
 
 from piquasso._math.linalg import block_reduce
 
-from cpiquasso.sampling.simulation_strategies.GaussianSimulationStrategy import (
+from piquassoboost.sampling.simulation_strategies.GaussianSimulationStrategy import (
     GaussianSimulationStrategyFast
 )
 
-from cpiquasso.sampling.simulation_strategies import ThresholdBosonSampling
+from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 
 class GaussianState(GaussianState_Wrapper, pq.GaussianState):
     def __init__(self, *, d):

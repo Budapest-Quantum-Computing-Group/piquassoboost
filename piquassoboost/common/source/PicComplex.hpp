@@ -12,7 +12,7 @@
 namespace pic {
 
 /**
-@brief Double precision complex number representation used in the CPiquasso package.
+@brief Double precision complex number representation used in the PiquassoBoost package.
 This enables better performance than the STL version of the complex number.
 */
 template<class scalar>

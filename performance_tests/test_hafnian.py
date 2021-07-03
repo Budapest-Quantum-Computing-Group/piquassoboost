@@ -1,5 +1,5 @@
 import numpy as np
-from cpiquasso.sampling.Boson_Sampling_Utilities import PowerTraceHafnian
+from piquassoboost.sampling.Boson_Sampling_Utilities import PowerTraceHafnian
 import time
 
 

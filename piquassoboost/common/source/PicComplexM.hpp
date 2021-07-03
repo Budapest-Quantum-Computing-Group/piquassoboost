@@ -20,7 +20,7 @@ namespace pic {
 
 
 /**
-@brief Multi-precision representation of complex numbers used in the CPiquasso package.
+@brief Multi-precision representation of complex numbers used in the PiquassoBoost package.
 This class can be used to sum up many complex numbers of different orders. (Used in hafnian calculations)
 */
 template<class scalar>

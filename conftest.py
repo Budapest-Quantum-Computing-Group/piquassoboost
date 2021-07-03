@@ -15,7 +15,7 @@
 
 import pytest
 
-from cpiquasso import patch
+from piquassoboost import patch
 
 
 @pytest.fixture(autouse=True)

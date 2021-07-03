@@ -2,7 +2,7 @@ import numpy as np
 
 import piquasso as pq
 
-from cpiquasso import patch
+from piquassoboost import patch
 
 import time
 from scipy.stats import unitary_group

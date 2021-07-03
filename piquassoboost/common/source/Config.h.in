@@ -1,0 +1,6 @@
+// the configure options and settings for PiquassoBoost
+#define PiquassoBoost_VERSION_MAJOR @PiquassoBoost_VERSION_MAJOR@
+#define PiquassoBoost_VERSION_MINOR @PiquassoBoost_VERSION_MINOR@
+
+#cmakedefine USE_OPENBLAS
+#cmakedefine USE_MKL

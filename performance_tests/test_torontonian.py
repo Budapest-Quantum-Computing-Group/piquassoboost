@@ -1,6 +1,6 @@
 import numpy as np
 
-from cpiquasso.sampling.Boson_Sampling_Utilities import Torontonian, TorontonianRecursive
+from piquassoboost.sampling.Boson_Sampling_Utilities import Torontonian, TorontonianRecursive
 import time
 
 
@@ -48,7 +48,7 @@ class TestTorontonian:
             start = time.time()   
 
             #perform calculation
-            cpiquasso_tor = Torontonian(A).calculate()
+            piquassoboost_tor = Torontonian(A).calculate()
 
             time_loc = time.time() - start
             start = time.time()   
@@ -68,7 +68,7 @@ class TestTorontonian:
             start = time.time()   
 
             #perform calculation
-            cpiquasso_tor_recursive = TorontonianRecursive(A).calculate()
+            piquassoboost_tor_recursive = TorontonianRecursive(A).calculate()
 
             time_loc = time.time() - start
             start = time.time()   
@@ -81,8 +81,8 @@ class TestTorontonian:
         
         
         print(' ')
-        print('cpiquasso torontonian value: ' + str(cpiquasso_tor) )
-        print('cpiquasso recursive torontonian value: ' + str(cpiquasso_tor_recursive) )
+        print('piquassoboost torontonian value: ' + str(piquassoboost_tor) )
+        print('piquassoboost recursive torontonian value: ' + str(piquassoboost_tor_recursive) )
 
 
         print(' ')
@@ -96,4 +96,4 @@ class TestTorontonian:
         print(' ')
         print(' ')
 
-        print( 'Relative difference between the two piquasso result: ' + str(abs(cpiquasso_tor_recursive-cpiquasso_tor)/abs(cpiquasso_tor)*100) + '%')
+        print( 'Relative difference between the two piquasso result: ' + str(abs(piquassoboost_tor_recursive-piquassoboost_tor)/abs(piquassoboost_tor)*100) + '%')

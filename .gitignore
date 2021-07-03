@@ -3,7 +3,7 @@ dist
 build
 MANIFEST
 _skbuild
-cpiquasso.egg-info
+piquassoboost.egg-info
 
 .vscode
 
