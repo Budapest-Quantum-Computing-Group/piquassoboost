@@ -31,7 +31,6 @@ int main() {
     // allocate matrix array for input
     constexpr size_t dim = 6;
     pic::matrix mtx_in = pic::matrix(dim, dim);
-    
     // fill up matrix with random elements
     for (size_t row_idx = 0; row_idx < dim; row_idx++) {
         for (size_t col_idx = 0; col_idx < dim; col_idx++) {
@@ -52,8 +51,8 @@ int main() {
     
     // fill up the expected matrix with expected numbers from the matrix sent in
     for (size_t modes_idx = 0; modes_idx < modes_in.size(); modes_idx++) {
-        for (size_t col_idx = 0; col_idx <= dim; col_idx++) {
-            rows_out_expected[modes_idx * dim + col_idx] = mtx_in[modes_in[modes_idx] * dim + col_idx];
+        for (size_t col_idx = 0; col_idx < dim; col_idx++) {
+            rows_out_expected[modes_idx * rows_out_expected.stride + col_idx] = mtx_in[modes_in[modes_idx] * mtx_in.stride + col_idx];
         }
     }
 
@@ -83,8 +82,6 @@ int main() {
     for (size_t elem_idx = 0; elem_idx < modes_in.size()*dim; elem_idx++) {
         pic::Complex16 diff = rows_out[elem_idx] - rows_out_expected[elem_idx];
         assert(std::abs(diff) < pic::epsilon);
-        
-        //assert(rows_out[elem_idx] == rows_out_expected[elem_idx]);
     }
     std::cout << "Test passed. " << std::endl;
 
