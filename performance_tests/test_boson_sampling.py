@@ -47,15 +47,15 @@ def test_two_mode_sampling(print_histogram):
 
             pq.Q(0, 1) | pq.Beamsplitter(np.pi / 3)
 
-            pq.Q() | pq.Sampling(shots=shots)
+            pq.Q() | pq.Sampling()
 
         t0 = time.time()
 
-        results = program.execute()
+        result = program.execute(shots=shots)
 
         print("C++ time elapsed:", time.time() - t0, "s")
 
-        print_histogram(results[0].samples)
+        print_histogram(result.samples)
 
 
 def test_complex_sampling(print_histogram):
@@ -79,12 +79,12 @@ def test_complex_sampling(print_histogram):
             pq.Q(2)    | pq.Fourier()
             pq.Q(2, 3) | pq.Beamsplitter(np.pi / 4)
 
-            pq.Q() | pq.Sampling(shots=shots)
+            pq.Q() | pq.Sampling()
 
         t0 = time.time()
 
-        results = program.execute()
+        result = program.execute(shots=shots)
 
         print("C++ time elapsed:", time.time() - t0, "s")
 
-        print_histogram(results[0].samples)
+        print_histogram(result.samples)

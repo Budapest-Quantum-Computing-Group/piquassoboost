@@ -26,7 +26,7 @@ from piquasso.api.result import Result
 
 
 class SamplingCircuit(pq.SamplingState.circuit_class):
-    def _sampling(self, instruction):
+    def _sampling(self, instruction, state):
         """Simulates a boson sampling using generalized Clifford&Clifford algorithm
         from [Brod, Oszmaniec 2020].
 
@@ -39,12 +39,14 @@ class SamplingCircuit(pq.SamplingState.circuit_class):
         algorithm.
         """
 
-        interferometer = self.state.interferometer
-        initial_state = np.array(self.state.initial_state)
+        interferometer = state.interferometer
+        initial_state = np.array(state.initial_state)
 
-        if self.state.is_lossy:  # Prepare inputs for lossy regime.
+        if state.is_lossy:  # Prepare inputs for lossy regime.
             # In case of losses we want specially prepared 2m x 2m interferometer matrix
-            interferometer = prepare_interferometer_matrix_in_expanded_space(self.state.interferometer)
+            interferometer = prepare_interferometer_matrix_in_expanded_space(
+                state.interferometer
+            )
 
             # In case of losses we want 2m-modes input state (initialized with 0 on new modes)
             for _ in initial_state:
@@ -55,13 +57,13 @@ class SamplingCircuit(pq.SamplingState.circuit_class):
 
         samples = sampling_simulator.get_classical_simulation_results(
             initial_state,
-            samples_number=instruction.params["shots"]
+            samples_number=self.shots
         )
 
-        if self.state.is_lossy:  # Trim lossy state to initial size.
+        if state.is_lossy:  # Trim lossy state to initial size.
             trimmed_samples = []
             for sample in samples:
-                trimmed_samples.append(sample[:len(self.state.initial_state)])
+                trimmed_samples.append(sample[:len(state.initial_state)])
             samples = trimmed_samples  # We want to return trimmed samples.
 
-        self.results.append(Result(instruction=instruction, samples=samples))
+        self.result = Result(instruction=instruction, samples=samples)

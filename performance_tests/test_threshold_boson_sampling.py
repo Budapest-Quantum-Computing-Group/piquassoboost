@@ -48,11 +48,11 @@ class TestThresholdBosonSampling:
             pq.Q() | pq.Interferometer(interferometer_param)
 
             # Measure all modes with shots shots
-            pq.Q() | pq.ThresholdMeasurement(shots=shots)
+            pq.Q() | pq.ThresholdMeasurement()
 
         # Measuring runtime
         startTime = time.time()
-        pypq_results = np.array(pq_program.execute()[0].samples)
+        pypq_results = np.array(pq_program.execute(shots=shots).samples)
         endTime = time.time()
 
         piquasso_time = endTime - startTime
@@ -74,11 +74,11 @@ class TestThresholdBosonSampling:
             pq.Q() | pq.Interferometer(interferometer_param)
 
             # Measure all modes with shots shots
-            pq.Q() | pq.ThresholdMeasurement(shots=shots)
+            pq.Q() | pq.ThresholdMeasurement()
 
         # Measuring runtime
         startTime = time.time()
-        cpq_results = np.array(pq_program.execute()[0].samples)
+        cpq_results = np.array(pq_program.execute(shots=shots).samples)
         endTime = time.time()
 
         piquasso_boost_time = endTime - startTime
