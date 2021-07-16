@@ -29,7 +29,7 @@ import numpy as np
 import networkx as nx
 
 import piquasso as pq
-from cpiquasso import patch
+from piquassoboost import patch
 
 import strawberryfields as sf
 from strawberryfields.apps import sample, subgraph
@@ -51,7 +51,9 @@ EDGE_CREATION_PROBABILITY_DENSE = 0.9
 EDGE_CREATION_PROBABILITY_SPARSE = 0.5
 
 LOGARITHMIZE = True
-COMPARING_RESULTS = True
+# Comparing the results of SF and PQ: the dense subgraph density shoud be equal. This can be done at many shots.
+COMPARING_RESULTS = True and SHOTS >= 5000
+# Postprocessing all of the possible subgraph sizes or just the relevant part of them (relevant: d/3 - 2*d/3).
 WIDE_RANGE = True
 
 
