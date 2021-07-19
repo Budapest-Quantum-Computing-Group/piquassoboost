@@ -1,0 +1,18 @@
+name: PiquassoBoost Tests
+
+on:
+  - pull_request
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'piquasso-module'
+      - run: python3 -m pip install -rrequirements.txt
+      - run: python3 -m pip install -r piquasso-module/requirements.txt
+      - run: python3 -m pip install -e .
+      - run: python3 setup.py build_ext
+      - run: python3 -m pytest tests
