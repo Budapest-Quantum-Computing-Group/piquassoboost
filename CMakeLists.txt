@@ -15,7 +15,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 include(CheckIncludeFile)
 include(CheckIncludeFileCXX)
 include(CheckFunctionExists)
-include(check_AVX.cmake)
+include(cmake/check_AVX.cmake)
+include(cmake/FindBLASEXT.cmake)
+include(cmake/FindCBLAS.cmake)
 
 # variables for compile and link options
 set(CXX_FLAGS_DEBUG)
@@ -376,6 +378,7 @@ target_compile_options(piquassoboost PRIVATE
 # adding linking options
 target_link_libraries(piquassoboost PRIVATE
     ${BLAS_LIBRARIES}
+    ${CBLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${LAPACKE_LIBRARIES}
     ${TBBMALLOC_LIB}
