@@ -472,6 +472,20 @@ void print_matrix() {
 
 
 
+/**
+@brief Call to check the array for NaN entries.
+@return Returns with true if the array has at least one NaN entry.
+*/
+bool
+isnan() {
+    for (size_t i = 0; i < rows * cols; i++) {
+        if ( std::isnan(data[i]) ){
+            return true;
+        }
+    }
+
+    return false;
+}
 
 
 
