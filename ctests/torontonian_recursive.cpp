@@ -10,7 +10,7 @@
 #include "TorontonianRecursive.h"
 
 
-#include "matrix32.h"
+#include "matrix_real.h"
 #include "matrix.h"
 
 #include "dot.h"
@@ -23,20 +23,10 @@
 #endif // MPI
 
 
-template<class matrix_type, class complex_type>
-matrix_type
-get_random_density_matrix(size_t dim){
-    matrix_type posdef = pic::getRandomMatrix<matrix_type, complex_type>(dim, pic::POSITIVE_DEFINIT);
-    matrix_type posdef_inverse = pic::calc_inverse_of_matrix<matrix_type, complex_type>(posdef);
-    return posdef_inverse;
-}
-
-
 /**
 @brief Unit test to compare torontonian calculators implemented in piqausso boost
 */
 int main(){
-
 
     constexpr size_t dim = 30;
 
@@ -47,7 +37,7 @@ int main(){
 
 
     // create random matrix to calculate the torontonian
-    pic::matrix mtx = get_random_density_matrix<pic::matrix, pic::Complex16>(dim);
+    pic::matrix_real matrix = pic::get_random_density_matrix_real<pic::matrix_real, double>(dim);
 
 
 #ifdef __MPI__
@@ -56,10 +46,20 @@ int main(){
     MPI_Bcast(syncronized_data, mtx.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 
+    // This is a hack for being able to compare the results of the
+    // classic algorithm currently implemented with the recursive algoritms
+    pic::matrix matrix_complex(dim, dim);
+    for (int row_idx = 0; row_idx < dim; row_idx++){
+        for (int col_idx = 0; col_idx < dim; col_idx++){
+            matrix_complex[row_idx * matrix_complex.stride + col_idx] = matrix[row_idx * matrix.stride + col_idx];
+        }
+    }
+
+
 
     // create class instance for torontonian calculator
     tbb::tick_count t0 = tbb::tick_count::now();
-    pic::Torontonian torontonian_calculator(mtx);
+    pic::Torontonian torontonian_calculator(matrix_complex);
     double result = torontonian_calculator.calculate();
     tbb::tick_count t1 = tbb::tick_count::now();
 
@@ -68,7 +68,7 @@ int main(){
 
     // create class instance for recursive torontonian calculator
     tbb::tick_count t2 = tbb::tick_count::now();
-    pic::TorontonianRecursive recursive_torontonian_calculator(mtx);
+    pic::TorontonianRecursive recursive_torontonian_calculator(matrix);
     double result_recursive_extended = recursive_torontonian_calculator.calculate(true);
     tbb::tick_count t3 = tbb::tick_count::now();
 
@@ -77,7 +77,7 @@ int main(){
 
     // create class instance for recursive torontonian calculator
     tbb::tick_count t4 = tbb::tick_count::now();
-    recursive_torontonian_calculator = pic::TorontonianRecursive(mtx);
+    recursive_torontonian_calculator = pic::TorontonianRecursive(matrix);
     double result_recursive_basic = recursive_torontonian_calculator.calculate(false);
     tbb::tick_count t5 = tbb::tick_count::now();
 

@@ -4,12 +4,6 @@
 #include "common_functionalities.h"
 #include <math.h>
 
-/*
-static tbb::spin_mutex my_mutex;
-
-double time_nominator = 0.0;
-double time_nevezo = 0.0;
-*/
 
 namespace pic {
 
@@ -24,10 +18,10 @@ namespace pic {
 (if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
 void
-calc_cholesky_decomposition(matrix32& mtx, const size_t reuse_index, Complex32 &determinant)
+calc_cholesky_decomposition_complex(matrix32 &mtx, const size_t reuse_index, Complex32 &determinant)
 {
 
-    calc_cholesky_decomposition<matrix32, Complex32>(mtx, reuse_index, determinant);
+    calc_cholesky_decomposition<matrix32, Complex32, Complex32>(mtx, reuse_index, determinant);
     return;
 
 }
@@ -42,7 +36,7 @@ calc_cholesky_decomposition(matrix32& mtx, const size_t reuse_index, Complex32 &
 (if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
 void
-calc_cholesky_decomposition(matrix& mtx, const size_t reuse_index, Complex32 &determinant)
+calc_cholesky_decomposition_complex(matrix &mtx, const size_t reuse_index, Complex32 &determinant)
 {
 
 #ifdef USE_AVX
@@ -52,7 +46,7 @@ calc_cholesky_decomposition(matrix& mtx, const size_t reuse_index, Complex32 &de
 
 #else
 
-    calc_cholesky_decomposition<matrix, Complex16>(mtx, reuse_index, determinant);
+    calc_cholesky_decomposition<matrix, Complex16, Complex32>(mtx, reuse_index, determinant);
     return;
 
 #endif // USE_AVX
@@ -90,5 +84,3 @@ calc_cholesky_decomposition_lapack(matrix &matrix) {
 
 
 } // PIC
-
-

@@ -106,10 +106,6 @@ std::vector<PicState_int64> simulate( int samples_number );
 
 protected:
 
-
-
-
-
 /**
 @brief Call to get one sample from the gaussian state
 @return Returns with the a sample from a gaussian state
