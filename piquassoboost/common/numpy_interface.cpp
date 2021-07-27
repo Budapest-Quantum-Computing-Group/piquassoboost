@@ -4,6 +4,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "matrix.h"
+#include "matrix_real.h"
 #include "PicState.h"
 
 
@@ -101,10 +102,11 @@ numpy2matrix(PyObject *arr) {
         return pic::matrix(0,0);
     }
 
+#ifdef DEBUG
     // test C-style contiguous memory allocation of the arrays
-    if ( !PyArray_IS_C_CONTIGUOUS(arr) ) {
-        std::cout << "array is not memory contiguous" << std::endl;
-    }
+    // in production this case has to be handled outside
+    assert( PyArray_IS_C_CONTIGUOUS(arr) && "array is not memory contiguous" );
+#endif
 
     // get the pointer to the data stored in the input matrices
     pic::Complex16* data = (pic::Complex16*)PyArray_DATA(arr);
@@ -123,14 +125,56 @@ numpy2matrix(PyObject *arr) {
         return mtx;
     }
     else {
-        std::cout << "numpy2matrix: Wrong matrix dimension was given" << std::endl;
-        return pic::matrix(0,0);
+        std::cerr << "numpy2matrix: Wrong matrix dimension was given" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
 
 
 }
 
+
+/**
+@brief Call to create a PIC matrix_real representation of a numpy array
+*/
+pic::matrix_real
+numpy2matrix_real(PyObject *arr) {
+
+
+    if ( arr == Py_None ) {
+        return pic::matrix_real(0,0);
+    }
+
+#ifdef DEBUG
+    // test C-style contiguous memory allocation of the arrays
+    // in production this case has to be handled outside
+    assert( PyArray_IS_C_CONTIGUOUS(arr) && "array is not memory contiguous" );
+#endif
+
+    // get the pointer to the data stored in the input matrices
+    double *data = (double *)PyArray_DATA(arr);
+
+    // get the dimensions of the array self->C
+    int dim_num = PyArray_NDIM( arr );
+    npy_intp* dims = PyArray_DIMS(arr);
+
+    // create PIC version of the input matrices
+    if (dim_num == 2) {
+        pic::matrix_real mtx = pic::matrix_real(data, dims[0], dims[1]);
+        return mtx;
+    }
+    else if (dim_num == 1) {
+        pic::matrix_real mtx = pic::matrix_real(data, dims[0], 1);
+        return mtx;
+    }
+    else {
+        std::cerr << "numpy2matrix_real: Wrong matrix dimension was given" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+
+
+}
 
 
 /**

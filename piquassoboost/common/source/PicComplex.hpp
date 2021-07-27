@@ -301,6 +301,29 @@ inline complex mult_a_bconj( complex &a, complex &b) {
 }
 
 
+/**
+@brief Calculates the product of two real numbers.
+This method allows to multiply real numbers in the same way as complex numbers with complex conjugated second real number parameter.
+@param a A real number
+@param b A real number
+@return Returns with the calculated product
+*/
+inline double mult_a_bconj( double &a, double &b) {
+    return a * b;
+}
+
+/**
+@brief Calculates the product of two real numbers.
+This method allows to multiply real numbers in the same way as complex numbers with complex conjugated second real number parameter.
+@param a A real number
+@param b A real number
+@return Returns with the calculated product
+*/
+inline long double mult_a_bconj( long double &a, long double &b) {
+    return a * b;
+}
+
+
 /// aliasing the representation 16 byte Complex numbers
 using Complex16 = Complex_base<double>;
 

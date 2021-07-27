@@ -15,9 +15,6 @@ namespace pic {
 
 
 
-
-
-
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
 
@@ -26,13 +23,13 @@ namespace pic {
 @brief Class to calculate the hafnian of a complex matrix by a recursive power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
 purpose hafnian calculator. This algorithm accounts for the repeated occupancy in the covariance matrix.
 */
-template<class matrix_type, class complex_type>
+template<class input_matrix_type, class matrix_type, class scalar_type, class scalar_type_long>
 class TorontonianRecursive_Tasks  {
 
 
 protected:
     /// The input matrix. Must be selfadjoint positive definite matrix with eigenvalues between 0 and 1.
-    matrix mtx_orig;
+    input_matrix_type mtx_orig;
     /** The scaled input matrix for which the calculations are performed.
     If the mean magnitude of the matrix elements is one, the treshold of quad precision can be set to higher values.
     */
@@ -100,7 +97,7 @@ TorontonianRecursive_Tasks() {
 @param mtx_in A selfadjoint matrix for which the torontonian is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.) matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @return Returns with the instance of the class.
 */
-TorontonianRecursive_Tasks( matrix &mtx_in ) {
+TorontonianRecursive_Tasks( input_matrix_type &mtx_in ) {
 
     Update_mtx( mtx_in );
 
@@ -138,6 +135,19 @@ TorontonianRecursive_Tasks( matrix &mtx_in ) {
 }
 
 
+inline long double convertToDouble(Complex16& complex){
+    return complex.real();
+}
+inline long double convertToDouble(Complex32& complex){
+    return complex.real();
+}
+inline long double convertToDouble(double& complex){
+    return complex;
+}
+inline long double convertToDouble(long double& complex){
+    return complex;
+}
+
 /**
 @brief Default destructor of the class.
 */
@@ -157,8 +167,8 @@ double calculate() {
         return 1.0;
     }
     else if (mtx.rows == 2) {
-        complex_type determinant = mtx[0]*mtx[3] - mtx[1]*mtx[2];
-        long double partial_torontonian = 1.0/std::sqrt(determinant.real());
+        scalar_type determinant = mtx[0]*mtx[3] - mtx[1]*mtx[2];
+        long double partial_torontonian = 1.0/std::sqrt(convertToDouble(determinant));
         return (double)partial_torontonian - 1.0;
     }
 
@@ -181,7 +191,8 @@ double calculate() {
 
     // calculate the Cholesky decomposition of the initial matrix to be later reused
     matrix_type L = mtx.copy();
-    Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L);
+    scalar_type_long determinant;
+    calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L, determinant);
 
 #ifdef __MPI__
     long double torontonian;
@@ -202,7 +213,7 @@ double calculate() {
 
     // start task iterations originating from the initial selected modes
 #ifdef __MPI__
-    StartMPIIterations( L );
+    StartMPIIterations<scalar_type_long>( L );
 #else
     IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1 );
 #endif
@@ -267,7 +278,7 @@ double calculate() {
 @brief Call to update the memory address of the matrix mtx and reorder the matrix elements into a_1^*,a_1^*,a_2,a_2^*, ... a_N,a_N^* order.
 @param mtx_in Input matrix defined by
 */
-void Update_mtx( matrix &mtx_in) {
+void Update_mtx( input_matrix_type &mtx_in) {
 
 #ifdef __MPI__
     // ensure that each MPI process gets the same input matrix from rank 0
@@ -298,14 +309,6 @@ void Update_mtx( matrix &mtx_in) {
     }
 
     mtx = mtx_reordered;
-
-
-
-
-    // Can scaling be used here since we have to calculate 1-A^Z?
-    // It brings a multiplying for each determinant.
-    // Should
-    //ScaleMatrix();
 }
 
 
@@ -318,6 +321,7 @@ protected:
 @brief Call to start MPI distributed iterations
 @param L Matrix containing partial Cholesky decomposition if the initial matrix to be reused
 */
+template<class scalar_type_long>
 void StartMPIIterations( matrix_type &L ) {
 
     // start activity on the current MPI process
@@ -356,7 +360,8 @@ void StartMPIIterations( matrix_type &L ) {
         int reuse_index_new = idx;
 
         matrix_type &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
-        Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
+        scalar_type_long determinant;
+        calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L_new, 2*reuse_index_new, determinant);
 
         long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
         RealM<long double> &torontonian_priv = priv_addend.local();
@@ -472,7 +477,8 @@ void ListenToNewWork() {
     unsigned long L_size = 2*(num_of_modes-selected_index_holes.size());
     matrix_type tmp(L_size, L_size);
     matrix_type &&L = CreateAZ(selected_index_holes_old, tmp, 0);
-    Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L, 0);
+    scalar_type_long determinant;
+    calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L, 0, determinant);
 
     int reuse_index = L.rows-1;
 
@@ -594,7 +600,8 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
             int reuse_index_new = idx-1-hole_to_iterate < reuse_index ? idx-1-hole_to_iterate : reuse_index;
 
             matrix_type &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
-            Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
+            scalar_type_long determinant;
+            calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L_new, 2*reuse_index_new, determinant);
 
             long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
             RealM<long double> &torontonian_priv = priv_addend.local();
@@ -662,7 +669,8 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
 
     int reuse_index_new = index_max-1-hole_to_iterate < reuse_index ? index_max-1-hole_to_iterate : reuse_index;
     matrix_type &&L_new = CreateAZ(selected_index_holes, L, reuse_index_new);
-    Complex32 determinant = calc_determinant_cholesky_decomposition<matrix_type, complex_type>(L_new, 2*reuse_index_new);
+    scalar_type_long determinant;
+    calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L_new, 2*reuse_index_new, determinant);
 
     long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes, determinant );
     RealM<long double> &torontonian_priv = priv_addend.local();
@@ -680,7 +688,7 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
 @param determinant The determinant of the submatrix A_Z
 @return Returns with the calculated torontonian
 */
-long double CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, const Complex32 &determinant  ) {
+long double CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, scalar_type_long &determinant  ) {
 
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
@@ -693,7 +701,7 @@ long double CalculatePartialTorontonian( const PicVector<int>& selected_index_ho
                     : 1.0;
 
     // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
-    long double sqrt_determinant = std::sqrt(determinant.real());
+    long double sqrt_determinant = std::sqrt(convertToDouble(determinant));
 
     return (factor / sqrt_determinant);
 
@@ -740,7 +748,7 @@ CreateAZ( const PicVector<int>& selected_index_holes, matrix_type &L, const int 
     // reuse the data in the L matrix (in place or copied to out of place
     int dimension_of_AZ = 2 * number_selected_modes;
     matrix_type AZ(dimension_of_AZ, dimension_of_AZ);
-    memset(AZ.get_data(), 0, AZ.size()*sizeof(complex_type));
+    memset(AZ.get_data(), 0, AZ.size()*sizeof(scalar_type));
 /*
     // The first 2*(reuse_index-1) rows of the matrix are not touched during the calculations they can be reused from Cholesky matrix L
     for (int idx = 0; idx < reuse_index; idx++) {
@@ -763,23 +771,23 @@ CreateAZ( const PicVector<int>& selected_index_holes, matrix_type &L, const int 
     // copy data from the input matrix and the reusable partial Cholesky decomposition matrix L
     for (int idx = reuse_index; idx < number_selected_modes; idx++) {
 
-        complex_type* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
-        complex_type* L_data = L.get_data() + 2*(idx+1)*L.stride;
-        complex_type* AZ_data   = AZ.get_data() + 2*(idx*AZ.stride);
+        scalar_type* mtx_data = mtx.get_data() + 2*(positions_of_ones[idx]*mtx.stride);
+        scalar_type* L_data = L.get_data() + 2*(idx+1)*L.stride;
+        scalar_type* AZ_data   = AZ.get_data() + 2*(idx*AZ.stride);
 
 
-        memcpy(AZ_data, L_data, 2*(idx+1)*sizeof(complex_type));
-        memcpy(AZ_data + AZ.stride, L_data + L.stride, 2*(idx+1)*sizeof(complex_type));
+        memcpy(AZ_data, L_data, 2*(idx+1)*sizeof(scalar_type));
+        memcpy(AZ_data + AZ.stride, L_data + L.stride, 2*(idx+1)*sizeof(scalar_type));
 
         for (int jdx = reuse_index; jdx <= idx; jdx++) {
-            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(complex_type) );
+            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(scalar_type) );
         }
 
         AZ_data   = AZ_data + AZ.stride;
         mtx_data = mtx_data + mtx.stride;
 
         for (int jdx = reuse_index; jdx <= idx; jdx++) {
-            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(complex_type) );
+            memcpy( AZ_data + 2*jdx, mtx_data + 2*positions_of_ones[jdx], 2*sizeof(scalar_type) );
         }
 
     }

@@ -64,19 +64,6 @@ virtual double calculate();
 */
 virtual void Update_mtx( matrix &mtx_in);
 
-
-protected:
-
-/**
-@brief Call to scale the input matrix.
-
-Currently in the Torontonian calculation this feature is not used.
-@param mtx_in Input matrix defined by
-*/
-virtual void ScaleMatrix();
-
-
-
 }; //Torontonian
 
 

@@ -404,6 +404,8 @@ set_target_properties(piquassoboost PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dependency_graph.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix32.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix_real.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix_real16.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicState.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicStateHash.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dot.h

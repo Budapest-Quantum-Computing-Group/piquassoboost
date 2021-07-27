@@ -4,6 +4,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "matrix.h"
+#include "matrix_real.h"
 #include "PicState.h"
 
 
@@ -48,6 +49,12 @@ PyObject* PicState_int64_to_numpy( pic::PicState_int64 &cstate );
 pic::matrix
 numpy2matrix(PyObject *arr);
 
+
+/**
+@brief Call to create a PIC matrix_real representation of a numpy array
+*/
+pic::matrix_real
+numpy2matrix_real(PyObject *arr);
 
 
 /**

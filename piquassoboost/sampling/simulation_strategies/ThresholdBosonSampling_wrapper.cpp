@@ -31,7 +31,7 @@ typedef struct ThresholdBosonSampling_wrapper {
 @return Return with a void pointer pointing to the new instance of ThresholdBosonSampling class.
 */
 pic::ThresholdBosonSampling*
-create_ThresholdBosonSamplingCalculator( pic::matrix &covariance_matrix_mtx ) {
+create_ThresholdBosonSamplingCalculator( pic::matrix_real& covariance_matrix_mtx ) {
 
     return new pic::ThresholdBosonSampling(covariance_matrix_mtx);
 
@@ -42,7 +42,7 @@ create_ThresholdBosonSamplingCalculator( pic::matrix &covariance_matrix_mtx ) {
 @param ptr A pointer pointing to an instance of ThresholdBosonSampling calculator class.
 */
 void
-release_ThresholdBosonSamplingCalculator( pic::ThresholdBosonSampling*  instance ) {
+release_ThresholdBosonSamplingCalculator( pic::ThresholdBosonSampling *instance ) {
     if ( instance != NULL ) {
         delete instance;
     }
@@ -120,21 +120,20 @@ ThresholdBosonSampling_wrapper_init(ThresholdBosonSampling_wrapper *self, PyObje
     // convert python object array to numpy C API array
     if ( covariance_matrix_arg == NULL ) return -1;
 
-
     // establish memory contiguous arrays for C calculations
-    if ( PyArray_IS_C_CONTIGUOUS(covariance_matrix_arg) && PyArray_TYPE(covariance_matrix_arg) == NPY_COMPLEX128) {
+    if ( PyArray_IS_C_CONTIGUOUS(covariance_matrix_arg) && PyArray_TYPE(covariance_matrix_arg) == NPY_FLOAT64 ){
         self->covariance_matrix = covariance_matrix_arg;
         Py_INCREF(self->covariance_matrix);
     }
     else {
-        self->covariance_matrix = PyArray_FROM_OTF(covariance_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->covariance_matrix = PyArray_FROM_OTF(covariance_matrix_arg, NPY_FLOAT64, NPY_ARRAY_IN_ARRAY);
     }
 
     // create PIC version of the input matrices
-    pic::matrix covariance_matrix_mtx = numpy2matrix(self->covariance_matrix);
+    pic::matrix_real covariance_matrix_pq = numpy2matrix_real(self->covariance_matrix);
     
     // create instance of class ThresholdBosonSampling_wrapperCalculator
-    self->simulation_strategy = create_ThresholdBosonSamplingCalculator( covariance_matrix_mtx );
+    self->simulation_strategy = create_ThresholdBosonSamplingCalculator( covariance_matrix_pq );
 
     return 0;
 }
@@ -159,7 +158,7 @@ ThresholdBosonSampling_wrapper_simulate(ThresholdBosonSampling_wrapper *self, Py
         return Py_BuildValue("i", -1);
 
 
-    // call the C++ variant of the sampling method
+    // call the C++ variant of the sampling method    
     std::vector<pic::PicState_int64> samples = self->simulation_strategy->simulate(sample_num);
 
 
@@ -207,14 +206,14 @@ ThresholdBosonSampling_wrapper_setcovariance_matrix(ThresholdBosonSampling_wrapp
         Py_INCREF(self->covariance_matrix);
     }
     else {
-        self->covariance_matrix = PyArray_FROM_OTF(covariance_matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+        self->covariance_matrix = PyArray_FROM_OTF(covariance_matrix_arg, NPY_FLOAT64, NPY_ARRAY_IN_ARRAY);
     }
 
     // create PIC version of the input matrices
-    pic::matrix covariance_matrix_mtx = numpy2matrix(self->covariance_matrix);
+    pic::matrix_real covariance_matrix_pq = numpy2matrix_real(self->covariance_matrix);
 
     // update data on the C++ side
-    self->simulation_strategy->Update_covariance_matrix( covariance_matrix_mtx );
+    self->simulation_strategy->Update_covariance_matrix( covariance_matrix_pq );
 
 
     return 0;

@@ -11,6 +11,8 @@
 
 #include "matrix.h"
 #include "matrix32.h"
+#include "matrix_real.h"
+#include "matrix_real16.h"
 
 
 
@@ -33,7 +35,7 @@ namespace pic {
 @param determinant The determinant of the matrix is calculated and stored in this variable.
 (if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
-void calc_cholesky_decomposition(matrix32& mtx, const size_t reuse_index, Complex32 &determinant);
+void calc_cholesky_decomposition_complex(matrix32& mtx, const size_t reuse_index, Complex32 &determinant);
 
 
 /**
@@ -43,7 +45,7 @@ void calc_cholesky_decomposition(matrix32& mtx, const size_t reuse_index, Comple
 @param determinant The determinant of the matrix is calculated and stored in this variable.
 (if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
-void calc_cholesky_decomposition(matrix& mtx, const size_t reuse_index, Complex32 &determinant);
+void calc_cholesky_decomposition_complex(matrix& mtx, const size_t reuse_index, Complex32 &determinant);
 
 
 
