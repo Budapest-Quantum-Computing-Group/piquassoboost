@@ -30,16 +30,6 @@ public:
 */
 CGaussianState();
 
-
-/**
-@brief Constructor of the class.
-@param C_in Input matrix defined by
-@param G_in Input matrix defined by
-@param m_in Input matrix defined by
-@return Returns with the instance of the class.
-*/
-CGaussianState( matrix &C_in, matrix &G_in, matrix &m_in);
-
 /**
 @brief Call to update the memory addresses of the stored matrices
 @param C_in Input matrix defined by

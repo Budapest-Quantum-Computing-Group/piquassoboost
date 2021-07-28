@@ -20,22 +20,6 @@ namespace pic {
 CGaussianState::CGaussianState() {}
 
 /**
-@brief Constructor of the class.
-@param C_in Input matrix defined by
-@param G_in Input matrix defined by
-@param m_in Input matrix defined by
-@return Returns with the instance of the class.
-*/
-CGaussianState::CGaussianState( matrix &C_in, matrix &G_in, matrix &m_in) {
-
-    Update( C_in, G_in, m_in);
-}
-
-
-
-
-
-/**
 @brief Applies the matrix T to the C and G.
 @param T The matrix of the transformation.
 @param modes The modes, on which the matrix should operate.

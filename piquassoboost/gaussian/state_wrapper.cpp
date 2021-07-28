@@ -12,6 +12,8 @@
 */
 typedef struct GaussianState_Wrapper {
     PyObject_HEAD
+    /// Number of modes.
+    int d;
     /// pointer to numpy matrix C to keep it alive
     PyObject *_C=NULL;
     /// pointer to numpy matrix G to keep it alive
@@ -25,15 +27,12 @@ typedef struct GaussianState_Wrapper {
 
 /**
 @brief Creates an instance of class CGaussianState and return with a pointer pointing to the class instance (C++ linking is needed)
-@param C
-@param G
-@param m
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
-pic::CGaussianState* 
-create_GaussianState( pic::matrix &C, pic::matrix &G, pic::matrix &m ) {
-
-    return new pic::CGaussianState(C, G, m);
+pic::CGaussianState*
+create_GaussianState()
+{
+    return new pic::CGaussianState();
 }
 
 /**
@@ -99,70 +98,16 @@ GaussianState_Wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 
 /**
-@brief Method called when a python instance of the class GaussianState_Wrapper is initialized
-@param self A pointer pointing to an instance of the class GaussianState_Wrapper.
-@param args A tuple of the input arguments: qbit_num (integer)
-qbit_num: the number of qubits spanning the operations
-@param kwds A tuple of keywords
+@brief This method should be called from the Python class which subclasses this class.
+
+In this method, the wrapped `CGaussianState` is created, which is needed to be called
+before any member of `GaussianState` is assigned, since e.g. when the member `_C` is
+set, the wrapped `CGaussianState` instance also needs to be updated.
 */
-static int
-GaussianState_Wrapper_init(GaussianState_Wrapper *self, PyObject *args, PyObject *kwds)
+static void
+GaussianState_Wrapper_create_wrapped_state(GaussianState_Wrapper *self)
 {
-    // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"C", (char*)"G", (char*)"m", NULL};
-
-    // initiate variables for input arguments
-    PyObject *C_arg = NULL;
-    PyObject *G_arg = NULL;
-    PyObject *m_arg = NULL;
-
-    // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOO", kwlist,
-                                     &C_arg, &G_arg, &m_arg))
-        return -1;
-
-    // convert python object array to numpy C API array
-    if ( C_arg == NULL ) return -1;
-    if ( G_arg == NULL ) return -1;
-    if ( m_arg == NULL ) return -1;
-
-    // establish memory contiguous arrays for C calculations
-    if ( PyArray_IS_C_CONTIGUOUS(C_arg) ) {
-        self->_C = C_arg;
-        Py_INCREF(self->_C); 
-    }
-    else {
-        self->_C = PyArray_FROM_OTF(C_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
-    }
-
-    if ( PyArray_IS_C_CONTIGUOUS(G_arg) ) {
-        self->_G = G_arg;
-        Py_INCREF(self->_G); 
-    }
-    else {
-        self->_G = PyArray_FROM_OTF(G_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
-    }
-
-
-    if ( PyArray_IS_C_CONTIGUOUS(m_arg) ) {
-        self->_m = m_arg;
-        Py_INCREF(self->_m); 
-    }
-    else {
-        self->_m = PyArray_FROM_OTF(m_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
-    }
-    
-
-    // create PIC version of the input matrices
-    pic::matrix C_mtx = numpy2matrix(self->_C); 
-    pic::matrix G_mtx = numpy2matrix(self->_G);  
-    pic::matrix m_mtx = numpy2matrix(self->_m);  
-
-    // create instance of class CGaussianState
-    self->state = create_GaussianState( C_mtx, G_mtx, m_mtx );
-
-    
-    return 0;
+    self->state = create_GaussianState();
 }
 
 
@@ -259,7 +204,8 @@ static int
 GaussianState_Wrapper_setC(GaussianState_Wrapper *self, PyObject *C_arg, void *closure)
 {
     // set the mytrix on Python side
-    Py_DECREF(self->_C); 
+    if (self->_C != NULL)
+        Py_DECREF(self->_C);
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(C_arg) ) {
@@ -302,7 +248,8 @@ static int
 GaussianState_Wrapper_setG(GaussianState_Wrapper *self, PyObject *G_arg, void *closure)
 {
     // set the array on the Python side
-    Py_DECREF(self->_G); 
+    if (self->_G != NULL)
+        Py_DECREF(self->_G);
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(G_arg) ) {
@@ -343,7 +290,8 @@ static int
 GaussianState_Wrapper_setm(GaussianState_Wrapper *self, PyObject *m_arg, void *closure)
 {
     // set the array on the Python side
-    Py_DECREF(self->_m); 
+    if (self->_m != NULL)
+        Py_DECREF(self->_m);
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(m_arg) ) {
@@ -366,7 +314,6 @@ GaussianState_Wrapper_setm(GaussianState_Wrapper *self, PyObject *m_arg, void *c
 }
 
 
-
 static PyGetSetDef GaussianState_Wrapper_getsetters[] = {
     {"_C", (getter) GaussianState_Wrapper_getC, (setter) GaussianState_Wrapper_setC,
      "C matrix", NULL},
@@ -381,6 +328,13 @@ static PyGetSetDef GaussianState_Wrapper_getsetters[] = {
 @brief Structure containing metadata about the members of class GaussianState_Wrapper.
 */
 static PyMemberDef GaussianState_Wrapper_Members[] = {
+    {
+        .name = (char*) "d",
+        .type = T_INT,
+        .offset = offsetof(GaussianState_Wrapper, d),
+        .flags = 0,
+        .doc = (char*) "Number of modes"
+    },
     {NULL}  /* Sentinel */
 };
 
@@ -388,6 +342,12 @@ static PyMemberDef GaussianState_Wrapper_Members[] = {
 static PyMethodDef GaussianState_Wrapper_Methods[] = {
     {"apply_to_C_and_G", (PyCFunction) GaussianState_Wrapper_apply_to_C_and_G, METH_VARARGS,
      "Method to transform amtrices C and G."
+    },
+    {
+        .ml_name = "create_wrapped_state",
+        .ml_meth = (PyCFunction) GaussianState_Wrapper_create_wrapped_state,
+        .ml_flags = METH_NOARGS,
+        .ml_doc = "Method to instantiate the wrapped C Gaussian State implementation."
     },
     {NULL}  /* Sentinel */
 };
@@ -442,7 +402,7 @@ static PyTypeObject GaussianState_Wrapper_Type = {
   0, /*tp_descr_get*/
   0, /*tp_descr_set*/
   0, /*tp_dictoffset*/
-  (initproc) GaussianState_Wrapper_init, /*tp_init*/
+  0, /*tp_init*/
   0, /*tp_alloc*/
   GaussianState_Wrapper_new, /*tp_new*/
   0, /*tp_free*/

@@ -29,16 +29,8 @@ from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 
 class GaussianState(GaussianState_Wrapper, pq.GaussianState):
     def __init__(self, *, d):
-        self.d = d
-
-        vector_shape = (self.d, )
-        matrix_shape = vector_shape * 2
-
-        super().__init__(
-            m=np.zeros(vector_shape, dtype=complex),
-            G=np.zeros(matrix_shape, dtype=complex),
-            C=np.zeros(matrix_shape, dtype=complex),
-        )
+        self.create_wrapped_state()
+        super().__init__(d=d)
 
     def apply_passive(self, T, modes):
         self._m[modes, ] = T @ self._m[modes, ]
@@ -91,16 +83,3 @@ class GaussianState(GaussianState_Wrapper, pq.GaussianState):
             m=reduced_state.mean / np.sqrt(pq.api.constants.HBAR),
             fock_cutoff=cutoff,
         ).simulate(shots)
-
-def calculate_threshold_detection_probability(
-    state,
-    subspace_modes,
-    occupation_numbers,
-):
-    d = len(subspace_modes)
-
-    Q = (state.complex_covariance + np.identity(2 * d)) / 2
-
-    OS = (np.identity(2 * d, dtype=complex) - np.linalg.inv(Q)).conj()
-
-    OS_reduced = block_reduce(OS, reduce_on=occupation_numbers)
