@@ -21,9 +21,10 @@ namespace pic {
 (if reuse_index index is greater than 0, than the contributions of the first reuse_index-1 elements of the Cholesky L matrix should be multiplied manually)
 */
 template<class matrix_type, class scalar_type, class scalar_type_long>
-void
+long int
 calc_cholesky_decomposition(matrix_type& mtx, const size_t &reuse_index, scalar_type_long &determinant)
 {
+    long int local_flops = 0;
 
     determinant = 1.0;
 
@@ -41,9 +42,11 @@ calc_cholesky_decomposition(matrix_type& mtx, const size_t &reuse_index, scalar_
                 // Evaluating L(i, j) using L(j, j)
                 // L_{i,j}=\frac{1}{L_{j,j}}(A_{i,j}-\sum_{k=0}^{j-1}L_{i,k}L_{j,k}^*)
                 for (size_t k = 0; k < j; k++){
+                    local_flops += 2;
                     sum += mult_a_bconj( row_i[k], row_j[k]);
                 }
 
+                local_flops += 2;
                 row_i[j] = (row_i[j] - sum) / row_j[j];
             }
         }
@@ -51,15 +54,18 @@ calc_cholesky_decomposition(matrix_type& mtx, const size_t &reuse_index, scalar_
         // summation for diagnols
         // L_{j,j}=\sqrt{A_{j,j}-\sum_{k=0}^{j-1}L_{j,k}L_{j,k}^*}
         for (size_t k = 0; k < i; k++){
+            local_flops += 2;
             sum += mult_a_bconj( row_i[k], row_i[k] );
         }
+
+        local_flops += 1;
         row_i[i] = sqrt(row_i[i] - sum);
+
+        local_flops += 1;
         determinant = determinant * row_i[i];
     }
 
-    return;
-
-
+    return local_flops;
 };
 
 
@@ -72,13 +78,15 @@ calc_cholesky_decomposition(matrix_type& mtx, const size_t &reuse_index, scalar_
 @return Returns with the calculated determiant
 */
 template<class matrix_type, class scalar_type, class scalar_type_long>
-void
+long int
 calc_determinant_cholesky_decomposition(matrix_type& mtx, const size_t reuse_index, scalar_type_long &determinant){
 
+
+        long int local_flops = 0;
         determinant = 1.0;
 
         // calculate the rest of the Cholesky decomposition and calculate the determinant
-        calc_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(mtx, reuse_index, determinant);
+        local_flops += calc_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(mtx, reuse_index, determinant);
 
 #ifdef DEBUG
         if (reuse_index > mtx.rows ) {
@@ -91,25 +99,27 @@ calc_determinant_cholesky_decomposition(matrix_type& mtx, const size_t reuse_ind
         // multiply the result with the remaining diagonal elements of the Cholesky matrix L, that has been reused
 
         for (size_t idx=0; idx < reuse_index; idx++){
+                local_flops += 1;
                 determinant *= mtx[idx * mtx.stride + idx];
         }
 
-
+        local_flops += 1;
         determinant = mult_a_bconj( determinant, determinant);
 
+        return local_flops;
 }
 
 
 /**
 @brief Call to calculate the determinant of a matrix by Cholesky decomposition.
 @param mtx A positive definite hermitian matrix with eigenvalues less then unity.  The decomposed matrix is stored in mtx.
-@return Returns with the calculated determiant
+@return Returns with flops
 */
 template<class matrix_type, class scalar_type, class scalar_type_long>
-void
+long int
 calc_determinant_cholesky_decomposition(matrix_type& mtx, scalar_type_long &determinant){
 
-    calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(mtx, 0, determinant);
+    return calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(mtx, 0, determinant);
 
 }
 

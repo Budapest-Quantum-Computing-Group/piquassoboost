@@ -455,6 +455,7 @@ add_subdirectory (piquassoboost)
 if(DEFINED ENV{PIQUASSOBOOST_CTEST})
   # adding CMAKE files for test executables
   add_subdirectory (ctests)
+  add_subdirectory (cbenchmarks)
 endif()
 
 install(TARGETS piquassoboost LIBRARY DESTINATION piquassoboost)

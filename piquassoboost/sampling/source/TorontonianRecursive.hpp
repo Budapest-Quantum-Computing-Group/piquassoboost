@@ -11,9 +11,10 @@
 #include "common_functionalities.h"
 
 
+
 namespace pic {
 
-
+extern long int flops;
 
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
@@ -40,6 +41,8 @@ protected:
     bool sending_work;
 
     tbb::combinable<RealM<long double>> priv_addend;
+
+    tbb::combinable<RealM<long int>> tbbflops;
 
 #ifdef __MPI__
     /// The number of modes when MPI work recived
@@ -102,8 +105,9 @@ TorontonianRecursive_Tasks( input_matrix_type &mtx_in ) {
     Update_mtx( mtx_in );
 
     // number of modes spanning the gaussian state
-    num_of_modes = mtx.rows/2;
+    num_of_modes = mtx.rows / 2;
 
+    flops = 0;
 
     if (mtx.rows % 2 != 0) {
         // The dimensions of the matrix should be even
@@ -167,8 +171,13 @@ double calculate() {
         return 1.0;
     }
     else if (mtx.rows == 2) {
+        flops += 3;
         scalar_type determinant = mtx[0]*mtx[3] - mtx[1]*mtx[2];
-        long double partial_torontonian = 1.0/std::sqrt(convertToDouble(determinant));
+
+        flops += 3 + 4;
+        long double partial_torontonian = 1.0 / std::sqrt(convertToDouble(determinant));
+
+        flops += 1;
         return (double)partial_torontonian - 1.0;
     }
 
@@ -186,48 +195,32 @@ double calculate() {
     // thread local storage for partial hafnian
     priv_addend = tbb::combinable<RealM<long double>>{[](){return RealM<long double>(0.0);}};
 
+    tbbflops = tbb::combinable<RealM<long int>>{[](){return RealM<long int>(0);}};
+
     // construct the initial selection of the modes
     PicVector<int> selected_index_holes;
 
     // calculate the Cholesky decomposition of the initial matrix to be later reused
     matrix_type L = mtx.copy();
     scalar_type_long determinant;
-    calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L, determinant);
+    flops += calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L, determinant);
 
-#ifdef __MPI__
-    long double torontonian;
-    if (current_rank == 0) {
-        torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
-    }
-    else{
-        torontonian = 0.0;
-    }
-#else
-    long double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant);
-#endif
-
-
+    long double torontonian = CalculatePartialTorontonian( selected_index_holes, determinant, flops);
 
     // add the first index hole in prior to the iterations
     selected_index_holes.push_back(num_of_modes-1);
 
     // start task iterations originating from the initial selected modes
-#ifdef __MPI__
-    StartMPIIterations<scalar_type_long>( L );
-#else
     IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1 );
-#endif
-
-
 
     priv_addend.combine_each([&](RealM<long double> &a) {
+        flops += 1;
         torontonian = torontonian + a.get();
     });
 
-#ifdef __MPI__
-    // send terminating signal to the child process (until now child might wait for new work assigned from the current process)
-    SendTerminatingSignalToChildProcess();
-#endif
+    tbbflops.combine_each([&](RealM<long int> &a) {
+        flops += a.get();
+    });
 
 
 #if BLAS==0 // undefined BLAS
@@ -238,36 +231,11 @@ double calculate() {
     openblas_set_num_threads(NumThreads);
 #endif
 
-
-#ifdef __MPI__
-    if (current_rank == 0) {
-        // last correction comming from an empty submatrix contribution
-        double factor =  (num_of_modes) % 2  ? -1.0 : 1.0;
-        torontonian = torontonian + factor;
-    }
-
-    // send the calculated partial hafnian to rank 0
-    long double* partial_torontonians = new long double[world_size];
-    MPI_Allgather(&torontonian, 1, MPI_LONG_DOUBLE, partial_torontonians, 1, MPI_LONG_DOUBLE, MPI_COMM_WORLD);
-
-    torontonian = 0.0;
-    for (int idx=0; idx<world_size; idx++) {
-        torontonian = torontonian + partial_torontonians[idx];
-    }
-
-    // release memory on the zero rank
-    delete partial_torontonians;
-
-#else
-
     // last correction comming from an empty submatrix contribution
     double factor =  (num_of_modes) % 2  ? -1.0 : 1.0;
+
+    flops += 1;
     torontonian = torontonian + factor;
-
-
-#endif
-
-
 
     return (double)torontonian;
 }
@@ -279,12 +247,6 @@ double calculate() {
 @param mtx_in Input matrix defined by
 */
 void Update_mtx( input_matrix_type &mtx_in) {
-
-#ifdef __MPI__
-    // ensure that each MPI process gets the same input matrix from rank 0
-    void* syncronized_data = (void*)mtx_in.get_data();
-    MPI_Bcast(syncronized_data, mtx_in.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
 
     size_t dim = mtx_in.rows;
 
@@ -314,247 +276,6 @@ void Update_mtx( input_matrix_type &mtx_in) {
 
 
 protected:
-
-#ifdef __MPI__
-
-/**
-@brief Call to start MPI distributed iterations
-@param L Matrix containing partial Cholesky decomposition if the initial matrix to be reused
-*/
-template<class scalar_type_long>
-void StartMPIIterations( matrix_type &L ) {
-
-    // start activity on the current MPI process
-
-    int index_min = 0;
-    int index_max = num_of_modes;
-
-    // ***** iterations over the selected index hole to calculate partial torontonians *****
-
-    // first do the first iteration without spawning iterations with new index hole
-    // construct the initial selection of the modes
-    PicVector<int> selected_index_holes;
-    selected_index_holes.push_back(index_max-1);
-
-
-    int current_rank_index_max = index_min+current_rank+1;
-    for( int idx = index_min+current_rank;  idx < index_max; idx=idx+world_size){
-        current_rank_index_max += world_size;
-    }
-    current_rank_index_max -= world_size;
-
-    // estimate initial amount of work
-    for( int idx = current_rank_index_max-1;  idx >= 0; idx=idx-world_size){
-        initial_work += power_of_2( (unsigned long long) (num_of_modes - idx - 1) );
-    }
-
-
-
-    // now do the rest of the iterations
-    for( int idx = current_rank_index_max-1;  idx >= 0; idx=idx-world_size){
-    //for( int idx = index_min+current_rank;  idx < index_max; idx=idx+world_size){
-
-        PicVector<int> selected_index_holes_new = selected_index_holes;
-        selected_index_holes_new[0] = idx;
-
-        int reuse_index_new = idx;
-
-        matrix_type &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
-        scalar_type_long determinant;
-        calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L_new, 2*reuse_index_new, determinant);
-
-        long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
-        RealM<long double> &torontonian_priv = priv_addend.local();
-        torontonian_priv += partial_torontonian;
-
-        selected_index_holes_new.push_back(this->num_of_modes-1);
-        reuse_index_new = L_new.rows/2-1;
-
-        if (idx==index_max-1) continue;
-
-        IterateOverSelectedModes( selected_index_holes_new, 1, L_new, reuse_index_new );
-
-    }
-
-    // indicate that current process has finished an activity
-    listener.DisableCurrentProcess();
-
-
-
-
-    ListenToNewWork();
-
-}
-
-
-/**
-@brief Call to start received work on the current MPI process. After work is completed, the current process starts to listen for new assigned work.
-@param selected_index_holes Selected modes which should be omitted from the input matrix to construct A^Z.
-@param L Matrix containing partial Cholesky decomposition if the initial matrix to be reused
-@param hole_to_iterate The index indicating which hole index should be iterated
-@param reuse index The index  labeling the number of rows of the matrix L that can be reused in the Cholesky decomposition
-*/
-void StartProcessActivity( PicVector<int>& selected_index_holes, int hole_to_iterate, matrix_type &L, const int reuse_index ) {
-
-
-    IterateOverSelectedModes( selected_index_holes, hole_to_iterate, L, reuse_index );
-
-    // indicate that current process has finished an activity
-    listener.DisableCurrentProcess();
-
-    ListenToNewWork();
-
-
-}
-
-/**
-@brief Call to listen for work when the current MPI process is idle.
-*/
-void ListenToNewWork() {
-
-    std::vector<int> &&parent_processes = listener.getParentProcesses();
-
-    if (parent_processes.size() == 0) return;
-
-
-    // listening for incomming message
-    int parent_idx = 0;
-    int flag = 0;
-    while (true) {
-        MPI_Iprobe(parent_processes[parent_idx], COMPRESSED_MESSAGE_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE );
-
-        if (flag==1) break;
-
-        parent_idx = (parent_idx+1) % parent_processes.size();
-    }
-
-    // receive incomming message
-    int parent_process = parent_processes[parent_idx];
-
-    unsigned long long compressed_message;
-    MPI_Recv( &compressed_message, 1, MPI_UNSIGNED_LONG_LONG, parent_process, COMPRESSED_MESSAGE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-
-    // return if terminating signal was sent from the parent
-    if (compressed_message == 0) {
-
-        // set the parent flag to finished
-        listener.setParentFinished( parent_idx );
-
-        // stop listening for work if parents are terminated
-        if ( listener.checkParentFinished() ) {
-
-            return;
-        }
-
-        ListenToNewWork();
-        return;
-    }
-
-
-    MPI_Status status;
-    // Probe for an incoming message from process zero
-    MPI_Probe(parent_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD, &status);
-    int selected_index_holes_size;
-    MPI_Get_count(&status, MPI_INT, &selected_index_holes_size);
-
-    PicVector<int> selected_index_holes(selected_index_holes_size);
-    if (selected_index_holes_size>0) {
-        int* selected_index_holes_data = selected_index_holes.data();
-        MPI_Recv( selected_index_holes_data, selected_index_holes_size, MPI_INT, parent_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-
-
-    // Indicate to other processes the change in the activity status
-    listener.ActivateCurrentProcess();
-
-
-    int hole_to_iterate = selected_index_holes.size() - 1;
-
-
-    PicVector<int> selected_index_holes_old = selected_index_holes;
-    selected_index_holes_old.pop_back();
-    unsigned long L_size = 2*(num_of_modes-selected_index_holes.size());
-    matrix_type tmp(L_size, L_size);
-    matrix_type &&L = CreateAZ(selected_index_holes_old, tmp, 0);
-    scalar_type_long determinant;
-    calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L, 0, determinant);
-
-    int reuse_index = L.rows-1;
-
-    received_work += power_of_2( (unsigned long long) (num_of_modes - selected_index_holes[hole_to_iterate-1]) - 1 );
-
-    // start working on the received task
-    StartProcessActivity(selected_index_holes, hole_to_iterate, L, reuse_index );
-
-
-}
-
-/**
-@brief Call to send work to child MPI process
-@param selected_index_holes Selected modes which should be omitted from the input matrix to construct A^Z.
-@param L Matrix containing partial Cholesky decomposition if the initial matrix to be reused
-@param hole_to_iterate The index indicating which hole index should be iterated
-@param reuse index The index  labeling the number of rows of the matrix L that can be reused in the Cholesky decomposition
-*/
-void SendWorkToChildProcess( const PicVector<int> selected_index_holes, int hole_to_iterate, matrix_type L, const int reuse_index ) {
-
-    // get the index of the first idle child process
-    int child_index = listener.getIdleProcessIndex();
-
-    // get the rank of the child process
-    int child_process = listener.getChildRank( child_index );
-
-    if (child_process < 0) return;
-
-    // indicate that child becomes active by receiving work
-    listener.setChildActive(child_index);
-
-    // compress data in selected_index_holes
-    unsigned long long compressed_message = 0;
-    for (size_t idx=0; idx<selected_index_holes.size(); idx++ ) {
-        //compressed_message += power_of_2( (unsigned long long) (selected_index_holes[idx]));
-        compressed_message += power_of_2( (unsigned long long) (num_of_modes - selected_index_holes[idx] - 1));
-    }
-    MPI_Send(&compressed_message, 1, MPI_UNSIGNED_LONG_LONG, child_process, COMPRESSED_MESSAGE_TAG, MPI_COMM_WORLD);
-
-    int selected_index_holes_size = selected_index_holes.size();
-    if (selected_index_holes_size>0) {
-        const int* selected_index_holes_data = selected_index_holes.data();
-        MPI_Send(selected_index_holes_data, selected_index_holes_size, MPI_INT, child_process, SELECTED_INDEX_HOLES_TAG, MPI_COMM_WORLD);
-    }
-
-
-    sent_work += power_of_2( (unsigned long long) (num_of_modes - selected_index_holes[hole_to_iterate-1]) - 1);
-
-}
-
-
-
-/**
-@brief Call to send terminating signal to the child process.
-*/
-void SendTerminatingSignalToChildProcess() {
-
-    std::vector<int> && child_processes = listener.getChildProcesses();
-    if (child_processes.size() == 0) return;
-
-
-    // the terminating signal is indicated by nullary compressed message
-    unsigned long long compressed_message = 0;
-
-    for ( size_t idx=0; idx<child_processes.size(); idx++) {
-        MPI_Send(&compressed_message, 1, MPI_UNSIGNED_LONG_LONG, child_processes[idx], COMPRESSED_MESSAGE_TAG, MPI_COMM_WORLD);
-    }
-
-    return;
-
-
-}
-#endif
-
-
-
 
 /**
 @brief Call to run iterations over the selected modes to calculate partial torontonians
@@ -601,10 +322,18 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
 
             matrix_type &&L_new = CreateAZ(selected_index_holes_new, L, reuse_index_new);
             scalar_type_long determinant;
-            calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L_new, 2*reuse_index_new, determinant);
+            RealM<long int> &tbbflops_local = tbbflops.local();
 
-            long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes_new, determinant );
+            tbbflops_local += calc_determinant_cholesky_decomposition<
+                matrix_type, scalar_type, scalar_type_long
+            >(L_new, 2*reuse_index_new, determinant);
+
+            long double partial_torontonian = CalculatePartialTorontonian(
+                selected_index_holes_new, determinant, tbbflops_local
+            );
             RealM<long double> &torontonian_priv = priv_addend.local();
+
+            tbbflops_local += 1;
             torontonian_priv += partial_torontonian;
 
 
@@ -615,51 +344,13 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
 
             selected_index_holes_new.push_back(this->num_of_modes-1);
             reuse_index_new = L_new.rows/2-1;
-#ifdef __MPI__
 
-            if ( expected_work < initial_work + received_work - sent_work && selected_index_holes_new[hole_to_iterate] < num_of_modes/3 && selected_index_holes_new[hole_to_iterate] > num_of_modes/8 ) {
-                // check for incoming activity message from the child process
-                if (listener.CheckChildrenProcessActivity() && !sending_work) {
-                    {
-                        tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-                        listener.CheckForActivityStatusMessage( );
-                    }
-                }
-
-                if (!listener.CheckChildrenProcessActivity() && !sending_work) {
-
-                    {
-                        tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-                        listener.CheckForActivityStatusMessage( );
-
-                        if (!listener.CheckChildrenProcessActivity() && !sending_work) {
-                            sending_work = true;
-                            SendWorkToChildProcess(selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new);
-                            listener.CheckForActivityStatusMessage( );
-                            sending_work = false;
-                            continue;
-                        }
-                    }
-
-                }
-            }
-
-            if ( listener.getCurrentActivity() != -1 && expected_work*1.4 < initial_work + received_work - sent_work ) {
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-                    listener.DeclineReceivingWork();
-                }
-            }
-            else if( listener.getCurrentActivity() == -1 && expected_work*1.4 >= initial_work + received_work - sent_work) {
-                {
-                    tbb::spin_mutex::scoped_lock my_lock{my_mutex};
-                    listener.ActivateCurrentProcess();
-                }
-            }
-
-#endif
-
-            IterateOverSelectedModes( selected_index_holes_new, new_hole_to_iterate, L_new, reuse_index_new );
+            IterateOverSelectedModes(
+                selected_index_holes_new,
+                new_hole_to_iterate,
+                L_new,
+                reuse_index_new
+            );
         }
     });
 
@@ -672,13 +363,11 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
     scalar_type_long determinant;
     calc_determinant_cholesky_decomposition<matrix_type, scalar_type, scalar_type_long>(L_new, 2*reuse_index_new, determinant);
 
-    long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes, determinant );
+    RealM<long int> &tbbflops_local = tbbflops.local();
+    long double partial_torontonian = CalculatePartialTorontonian( selected_index_holes, determinant, tbbflops_local);
     RealM<long double> &torontonian_priv = priv_addend.local();
+    tbbflops_local += 1;
     torontonian_priv += partial_torontonian;
-
-
-
-
 }
 
 
@@ -688,7 +377,7 @@ void IterateOverSelectedModes( PicVector<int>& selected_index_holes, int hole_to
 @param determinant The determinant of the submatrix A_Z
 @return Returns with the calculated torontonian
 */
-long double CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, scalar_type_long &determinant  ) {
+long double CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, scalar_type_long &determinant, long int &local_flops) {
 
 
     size_t number_selected_modes = num_of_modes - selected_index_holes.size();
@@ -701,11 +390,31 @@ long double CalculatePartialTorontonian( const PicVector<int>& selected_index_ho
                     : 1.0;
 
     // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
+    local_flops += 4;
     long double sqrt_determinant = std::sqrt(convertToDouble(determinant));
 
+    local_flops += 3;
     return (factor / sqrt_determinant);
+}
+
+long double CalculatePartialTorontonian( const PicVector<int>& selected_index_holes, scalar_type_long &determinant, RealM<long int> &local_flops) {
 
 
+    size_t number_selected_modes = num_of_modes - selected_index_holes.size();
+
+
+    // calculating -1^(N-|Z|)
+    long double factor =
+                (number_selected_modes + num_of_modes) % 2
+                    ? -1.0
+                    : 1.0;
+
+    // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
+    local_flops += 4;
+    long double sqrt_determinant = std::sqrt(convertToDouble(determinant));
+
+    local_flops += 3;
+    return (factor / sqrt_determinant);
 }
 
 /**

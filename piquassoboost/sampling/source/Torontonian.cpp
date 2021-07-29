@@ -8,12 +8,14 @@
 
 namespace pic {
 
+long int flops;
+
 /**
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
 Torontonian::Torontonian(){
-
+    flops = 0;
 }
 
 /**
@@ -77,11 +79,13 @@ Torontonian::calculate(){
 
     tbb::combinable<RealM<long double>> summands{[](){return RealM<long double>(0.0);}};
 
+    tbb::combinable<RealM<long int>> tbbflops{[](){return RealM<long int>(0);}};
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
     tbb::parallel_for( tbb::blocked_range<unsigned long long>(0, permutation_idx_max, 1), [&](tbb::blocked_range<unsigned long long> r ) {
 
         RealM<long double> &summand = summands.local();
+        RealM<long int> &tbbflop = tbbflops.local();
 
         for ( unsigned long long permutation_idx=r.begin(); permutation_idx != r.end(); permutation_idx++) {
 
@@ -128,7 +132,7 @@ Torontonian::calculate(){
             // calculating the determinant of B
             Complex32 determinant;
             if (number_of_ones != 0) {
-                calc_determinant_cholesky_decomposition<matrix32, Complex32, Complex32>(B, determinant);
+                tbbflop += calc_determinant_cholesky_decomposition<matrix32, Complex32, Complex32>(B, determinant);
             }
             else{
                 determinant = 1.0;
@@ -136,9 +140,13 @@ Torontonian::calculate(){
 
 
             // calculating -1^(number of ones) / sqrt(det(1-A^(Z)))
+            tbbflop += 4;
             long double sqrt_determinant = std::sqrt(determinant.real());
+
+            tbbflop += 3;
             long double value = factor / sqrt_determinant;
 
+            tbbflop += 1;
             summand += value;
 
         }
@@ -147,7 +155,12 @@ Torontonian::calculate(){
 
     long double res = 0.0;
     summands.combine_each([&res](RealM<long double>& a) {
+        flops += 1;
         res = res + a.get();
+    });
+
+    tbbflops.combine_each([&res](RealM<long int>& a) {
+        flops += a.get();
     });
 
 #if BLAS==0 // undefined BLAS

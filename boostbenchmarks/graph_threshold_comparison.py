@@ -29,6 +29,8 @@ import numpy as np
 import networkx as nx
 
 import piquasso as pq
+
+sys.path.append(".")
 from piquassoboost import patch
 
 import strawberryfields as sf
@@ -118,11 +120,11 @@ def pq_graph_simulation(adj, mean_photon_number=MEAN_PHOTON_NUMBER, shots=SHOTS 
             adj,
             mean_photon_number=mean_photon_number,
         )
-        pq.Q(all) | pq.ThresholdMeasurement(shots=shots)
+        pq.Q(all) | pq.ThresholdMeasurement()
 
 
     start_time = time.time()
-    results= pq_program.execute()
+    results= pq_program.execute(shots=shots)
     end_time = time.time()
 
     duration = end_time - start_time
@@ -141,7 +143,7 @@ def pq_subgraph(d = 10, shots = 1, adj = None):
 
     minimal_subgraph_size, maximal_subgraph_size = range_for_postprocessing(d)
 
-    pq_samples = results[0].samples
+    pq_samples = results.samples
     dense = postprocess(pq_samples, adj, minimal_subgraph_size, maximal_subgraph_size)
 
     return dense, duration
