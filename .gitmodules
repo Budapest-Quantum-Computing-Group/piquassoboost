@@ -1,3 +1,6 @@
 [submodule "piquasso"]
 	path = piquasso-module
 	url = git@github.com:Budapest-Quantum-Computing-Group/piquasso.git
+[submodule "gbs"]
+	path = gbs
+	url = git@github.com:jakeffbulmer/gbs.git
