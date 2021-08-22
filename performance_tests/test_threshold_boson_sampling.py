@@ -38,8 +38,6 @@ class TestThresholdBosonSampling:
 
         # Piquasso python program
         with pq.Program() as pq_program:
-            pq.Q() | pq.GaussianState(d=d)
-
             # Apply random squeezings
             for idx in range(d):
                 pq.Q(idx) | pq.Squeezing(r=squeezing_params_r[idx], phi=squeezing_params_phi[idx])
@@ -50,9 +48,12 @@ class TestThresholdBosonSampling:
             # Measure all modes with shots shots
             pq.Q() | pq.ThresholdMeasurement()
 
+        state = pq.GaussianState(d=d)
+
         # Measuring runtime
         startTime = time.time()
-        pypq_results = np.array(pq_program.execute(shots=shots).samples)
+        result = state.apply(program=pq_program, shots=shots)
+        pypq_results = np.array(result.samples)
         endTime = time.time()
 
         piquasso_time = endTime - startTime
@@ -76,9 +77,12 @@ class TestThresholdBosonSampling:
             # Measure all modes with shots shots
             pq.Q() | pq.ThresholdMeasurement()
 
+        state = pq.GaussianState(d=d)
+
         # Measuring runtime
         startTime = time.time()
-        cpq_results = np.array(pq_program.execute(shots=shots).samples)
+        result = state.apply(program=pq_program, shots=shots)
+        cpq_results = np.array(result.samples)
         endTime = time.time()
 
         piquasso_boost_time = endTime - startTime

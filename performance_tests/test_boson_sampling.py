@@ -43,15 +43,15 @@ def test_two_mode_sampling(print_histogram):
         pq.constants.seed()
 
         with pq.Program() as program:
-            pq.Q() | pq.SamplingState(1, 1)
-
             pq.Q(0, 1) | pq.Beamsplitter(np.pi / 3)
 
             pq.Q() | pq.Sampling()
 
+        state = pq.SamplingState(1, 1)
+
         t0 = time.time()
 
-        result = program.execute(shots=shots)
+        result = state.apply(program)
 
         print("C++ time elapsed:", time.time() - t0, "s")
 
@@ -73,17 +73,17 @@ def test_complex_sampling(print_histogram):
         shots = 10000
 
         with pq.Program() as program:
-            pq.Q() | pq.SamplingState(1, 1, 1, 0, 1)
-
             pq.Q(0, 1) | pq.Beamsplitter(np.pi / 3)
             pq.Q(2)    | pq.Fourier()
             pq.Q(2, 3) | pq.Beamsplitter(np.pi / 4)
 
             pq.Q() | pq.Sampling()
 
+        state = pq.SamplingState(1, 1, 1, 0, 1)
+
         t0 = time.time()
 
-        result = program.execute(shots=shots)
+        result = state.apply(program)
 
         print("C++ time elapsed:", time.time() - t0, "s")
 

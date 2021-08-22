@@ -62,8 +62,6 @@ LOGARITHMIZE = True
 
 def _run_pq_simulation(params, d) -> float:
     with pq.Program() as pq_program:
-        pq.Q() | pq.GaussianState(d=d)
-
         pq.Q(all) | pq.Squeezing(r=params["squeezing"])
 
         pq.Q(all) | pq.Interferometer(params["interferometer"])
@@ -71,8 +69,10 @@ def _run_pq_simulation(params, d) -> float:
         # NOTE: In SF the cutoff is 5, and couldn't be changed
         pq.Q(all) | pq.ThresholdMeasurement(shots=SHOTS)
 
+    state = pq.GaussianState(d=d)
+
     start_time = time.time()
-    pq_program.execute()
+    state.apply(program=pq_program)
     return time.time() - start_time
 
 def _run_sf_simulation(params, d) -> float:
