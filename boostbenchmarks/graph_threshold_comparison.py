@@ -112,17 +112,16 @@ def postprocess(samples, adj, minimal_subgraph_size, maximal_subgraph_size):
 
 def pq_graph_simulation(adj, mean_photon_number=MEAN_PHOTON_NUMBER, shots=SHOTS ):
     with pq.Program() as pq_program:
-        pq.Q() | pq.GaussianState(d=len(adj))
-
         pq.Q() | pq.Graph(
             adj,
             mean_photon_number=mean_photon_number,
         )
         pq.Q(all) | pq.ThresholdMeasurement(shots=shots)
 
+    state = pq.GaussianState(d=len(adj))
 
     start_time = time.time()
-    results= pq_program.execute()
+    results = state.apply(program=pq_program)
     end_time = time.time()
 
     duration = end_time - start_time
