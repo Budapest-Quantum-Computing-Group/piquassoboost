@@ -20,6 +20,7 @@ from typing import List, Optional
 import numpy as np
 
 from .Boson_Sampling_Utilities_wrapper import ChinHuhPermanentCalculator_wrapper
+from .Boson_Sampling_Utilities_wrapper import GlynnPermanentCalculator_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceHafnian_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceHafnianRecursive_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnian_wrapper
@@ -77,6 +78,38 @@ class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
         return self.matrix.shape[0] == self.matrix.shape[1] \
                and len(self.output_state) == len(self.input_state) \
                and len(self.output_state) == self.matrix.shape[0]
+
+
+
+
+
+
+class GlynnPermanent(GlynnPermanentCalculator_wrapper):
+    """
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        super(GlynnPermanent, self).__init__(matrix=matrix)
+        pass
+
+       
+    def calculate(self):
+        """
+            ?????????????????.
+            :return: The permanent of the matrix.
+        """
+
+
+
+        # call the permanent calculator of the parent class
+        return super(GlynnPermanent, self).calculate()
+
+
+
 
 
 class PowerTraceHafnian(PowerTraceHafnian_wrapper):

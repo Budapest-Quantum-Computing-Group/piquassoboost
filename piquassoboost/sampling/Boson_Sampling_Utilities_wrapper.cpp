@@ -54,6 +54,9 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     if (PyType_Ready(&ChinHuhPermanentCalculator_wrapper_Type) < 0)
         return NULL;
 
+    if (PyType_Ready(&GlynnPermanentCalculator_wrapper_Type) < 0)
+        return NULL;
+
     if (PyType_Ready(&PowerTraceHafnian_wrapper_Type) < 0)
         return NULL;
 
@@ -74,6 +77,14 @@ PyInit_Boson_Sampling_Utilities_wrapper(void)
     Py_INCREF(&ChinHuhPermanentCalculator_wrapper_Type);
     if (PyModule_AddObject(m, "ChinHuhPermanentCalculator_wrapper", (PyObject *) &ChinHuhPermanentCalculator_wrapper_Type) < 0) {
         Py_DECREF(&ChinHuhPermanentCalculator_wrapper_Type);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+
+    Py_INCREF(&GlynnPermanentCalculator_wrapper_Type);
+    if (PyModule_AddObject(m, "GlynnPermanentCalculator_wrapper", (PyObject *) &GlynnPermanentCalculator_wrapper_Type) < 0) {
+        Py_DECREF(&GlynnPermanentCalculator_wrapper_Type);
         Py_DECREF(m);
         return NULL;
     }
