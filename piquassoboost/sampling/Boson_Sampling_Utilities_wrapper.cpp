@@ -19,6 +19,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "ChinHuhPermanentCalculator_Wrapper.hpp"
+#include "GlynnPermanentCalculator_Wrapper.hpp"
 #include "PowerTraceHafnian_Wrapper.hpp"
 #include "PowerTraceHafnianRecursive_Wrapper.hpp"
 #include "PowerTraceLoopHafnian_Wrapper.hpp"

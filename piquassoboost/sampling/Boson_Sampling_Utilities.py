@@ -1,17 +1,17 @@
 #
-#  Copyright 2021 Budapest Quantum Computing Group
+# Copyright 2021 Budapest Quantum Computing Group
 #
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 __author__ = 'Tomasz Rybotycki', 'Peter Rakyta'
 
@@ -36,6 +36,16 @@ class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
 
     def __init__(self, matrix, input_state, output_state):
 
+        if not (type(input_state) is np.ndarray):
+            input_state = np.array(input_state)
+
+        if not (type(output_state) is np.ndarray):
+            output_state = np.array(output_state)
+
+        # input/output states should be  of type int64
+        input_state = input_state.astype(np.int64)
+        output_state = output_state.astype(np.int64)
+
         # call the constructor of the wrapper class
         super(ChinHuhPermanentCalculator, self).__init__(matrix=matrix, input_state=input_state, output_state=output_state)
         pass
@@ -50,8 +60,8 @@ class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
             :return: Permanent of effective scattering matrix.
         """
 
-        if not self.__can_calculation_be_performed():
-            raise AttributeError
+#        if not self.__can_calculation_be_performed():
+#            raise AttributeError
 
 
         # call the permanent calculator of the parent class
@@ -172,4 +182,3 @@ class PowerTraceLoopHafnianRecursive(PowerTraceLoopHafnianRecursive_wrapper):
 
         # call the permanent calculator of the parent class
         return super(PowerTraceLoopHafnianRecursive, self).calculate()
-
