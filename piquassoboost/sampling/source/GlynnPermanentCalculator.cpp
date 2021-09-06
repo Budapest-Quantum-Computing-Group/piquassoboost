@@ -36,8 +36,8 @@ std::vector<int> compute_grey_code_update_positions(const int &n){
         return {0};
     }
 
-    vector<int> subproblem_positions = compute_grey_code_update_positions(n - 1);
-    vector<int> positions(subproblem_positions) ;
+    std::vector<int> subproblem_positions = compute_grey_code_update_positions(n - 1);
+    std::vector<int> positions(subproblem_positions) ;
     positions.push_back(n - 1);
     std::reverse(subproblem_positions.begin(), subproblem_positions.end());
     positions.insert(positions.begin(), subproblem_positions.begin(), subproblem_positions.end());
@@ -50,43 +50,41 @@ GlynnPermanentCalculator::calculate(matrix &mtx) {
 
     auto n = mtx.rows;
 
-    auto multiplier = n % 2 == 0 ? 1 : -1;
+    double multiplier = n % 2 == 0 ? 1 : -1;
 
-    vector<Complex16> sums = {};
+    std::vector<Complex16> sums = {};
 
     // Initialize the sums
-    for(auto i = 0; i < n; ++i){
+    for(size_t i = 0; i < n; ++i){
         Complex16 ith_sum(0.0, 0.0);
-        for(auto j = 0; j < n; ++j){
-            ith_sum -= mtx[i][j];
+        for(size_t j = 0; j < n; ++j){
+            ith_sum -= mtx[i * mtx.cols + j];
         }
-        sums.append(ith_sum);
+        sums.push_back(ith_sum);
     }
 
-    // Initialize the permanent
-    Complex16 perm = std::accumulate(sums.begin(),
-                                     sums.end(),
-                                     Complex16(multiplier, 0.0),
-                                     std::multiplies<Complex16>{});
+    Complex16 sums_prod(1.0, 0.0);
+    for(auto ith_sum : sums){ sums_prod *= ith_sum; }
+
+    Complex16 perm = sums_prod * multiplier;
 
     // Now update the sums in Gray ordering.
     auto update_positions = compute_grey_code_update_positions(n);
-    vector<int> current_code = {};
+    std::vector<int> current_code = {};
     while(current_code.size() < n){ current_code.push_back(-1); }
 
     for(auto i : update_positions){
         // Update the code and it's product
         current_code[i] = -current_code[i];
         multiplier = -multiplier;
-        // Update the sums
-        for(auto j = 0; j < n; ++j) {
-            sums[i] += 2 * current_code[i] * mtx[i][j];
+        // Update the sum and sums prod
+        sums_prod /= sums[i];
+        for(size_t j = 0; j < n; ++j) {
+            sums[i] += 2 * current_code[i] * mtx[i * mtx.cols + j];
         }
+        sums_prod *= sums[i];
 
-        perm += std::accumulate(sums.begin(),
-                               sums.end(),
-                               Complex16(multiplier, 0.0),
-                               std::multiplies<Complex16>{});
+        perm += sums_prod;
 
     }
 
