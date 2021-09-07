@@ -29,7 +29,7 @@ from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 
 class GaussianState(GaussianState_Wrapper, pq.GaussianState):
     def __init__(self, *, d):
-        self.d = d
+        self._d = d
 
         vector_shape = (self.d, )
         matrix_shape = vector_shape * 2
@@ -72,23 +72,25 @@ class GaussianState(GaussianState_Wrapper, pq.GaussianState):
         probability of clicks (i.e. 1 as sample), and argue that the probability of a
         click is equal to one minus the probability of no click.
         """
-        if not np.allclose(self.mean, np.zeros_like(self.mean)):
+        if not np.allclose(self.xpxp_mean_vector, np.zeros_like(self.xpxp_mean_vector)):
             raise NotImplementedError(
                 "Threshold measurement for displaced states are not supported: "
-                f"mean={self.mean}"
+                f"xpxp_mean_vector={self.xpxp_mean_vector}"
             )
 
         reduced_state = self.reduced(modes)
 
-        th = ThresholdBosonSampling.ThresholdBosonSampling( covariance_matrix=reduced_state.xp_cov/(2 * pq.api.constants.HBAR) )
+        th = ThresholdBosonSampling.ThresholdBosonSampling(
+            covariance_matrix=reduced_state.xxpp_covariance_matrix/(2 * pq.api.constants.HBAR)
+        )
         return th.simulate(shots)
 
     def _apply_particle_number_measurement(self, *, cutoff, modes, shots):
         reduced_state = self.reduced(modes)
 
         return GaussianSimulationStrategyFast(
-            covariance_matrix=reduced_state.cov / (2 * pq.api.constants.HBAR),
-            m=reduced_state.mean / np.sqrt(pq.api.constants.HBAR),
+            covariance_matrix=reduced_state.xpxp_covariance_matrix / (2 * pq.api.constants.HBAR),
+            m=reduced_state.xpxp_mean_vector / np.sqrt(pq.api.constants.HBAR),
             fock_cutoff=cutoff,
         ).simulate(shots)
 

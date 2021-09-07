@@ -65,8 +65,6 @@ class TestThresholdBosonSampling:
 
         # Piquasso boost program
         with pq.Program() as pq_program:
-            pq.Q() | pq.GaussianState(d=d)
-
             # Apply random squeezings
             for idx in range(d):
                 pq.Q(idx) | pq.Squeezing(r=squeezing_params_r[idx], phi=squeezing_params_phi[idx])
