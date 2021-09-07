@@ -80,14 +80,13 @@ GlynnPermanentCalculator::calculate(matrix &mtx) {
         // Update the code and it's product
         current_code[i] = -current_code[i];
         multiplier = -multiplier;
-        
-        // Update the sums
-        for(size_t j = 0; j < n; ++j){
-            sums[j] += current_code[i] * 2 * mtx[i * mtx.stride + j];
-        }
 
-        sums_prod = Complex16(1.0, 0.0);
-        for(auto jth_sum : sums){ sums_prod *= jth_sum; }
+        // Update the sums and sums prod
+        for(size_t j = 0; j < n; ++j){
+            sums_prod /= sums[j];
+            sums[j] += current_code[i] * 2 * mtx[i * mtx.stride + j];
+            sums_prod *= sums[j];
+        }
 
         perm += multiplier * sums_prod;
     }
