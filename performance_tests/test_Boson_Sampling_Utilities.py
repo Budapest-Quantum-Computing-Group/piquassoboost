@@ -13,19 +13,20 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import numpy as np
-
 import time
-from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator
-
 from typing import List, Optional
 
+import numpy as np
+import thewalrus
 from numpy import complex128, ndarray
 from numpy.linalg import svd
 from scipy.special import binom
 
+from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator
+from piquassoboost.sampling.Boson_Sampling_Utilities import GlynnPermanent
 
-def generate_random_matrix( dim ):
+
+def generate_random_matrix(dim):
     """ creading positive definite selfadjoint matrix A of dimension dim and with eigenvalues between 0 and 1 """
 
     A = np.complex128(np.random.random([dim, dim]))
@@ -35,7 +36,7 @@ def generate_random_matrix( dim ):
     P += np.identity(len(P))
 
     P_inverse = np.linalg.inv(P)
-    
+
     return P_inverse
 
 
@@ -46,7 +47,6 @@ class ChinHuhPermanentCalculator_python:
         Note, that it can be used to calculate permanent of given matrix. All that is required that input and output
         states are set to [1, 1, ..., 1] with proper dimensions.
     """
-    
 
     def __init__(self, matrix: ndarray, input_state: Optional[List[int]] = None,
                  output_state: Optional[List[int]] = None):
@@ -95,9 +95,7 @@ class ChinHuhPermanentCalculator_python:
         if not self.__can_calculation_be_performed():
             raise AttributeError
 
-
         v_vectors = self.__calculate_v_vectors()
-
 
         permanent = 0
         for v_vector in v_vectors:
@@ -121,7 +119,7 @@ class ChinHuhPermanentCalculator_python:
             addend *= product
             permanent += addend
 
-        permanent /= pow(2, sum(self.__input_state))       
+        permanent /= pow(2, sum(self.__input_state))
 
         return permanent
 
@@ -153,10 +151,59 @@ class ChinHuhPermanentCalculator_python:
 
 class TestBoson_Sampling_Utilities:
 
+    def test_GlynnPermanentCalculator(self):
+
+        permutation_matrix = np.array([
+            [0, 0, 1, 0, 0],
+            [0, 0, 0, 1, 0],
+            [0, complex(0.5, 0.7), 0, 0, 1],
+            [1, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+        ], dtype=complex)
+
+        # create an instance of python implementation to calculate the permanent
+        permanent_calculator_piquasso = GlynnPermanent(permutation_matrix)
+
+        # do iterations to calculate the permanent and choose the fastest one
+        iter_loops = 100
+        time_piquasso = 10
+        for idx in range(iter_loops):
+            start = time.time()
+            permanent_piquasso = permanent_calculator_piquasso.calculate()
+            time_loc = time.time() - start
+            start = time.time()
+
+            if time_piquasso > time_loc:
+                time_piquasso = time_loc
+
+        # create an instance of C++ implementation to calculate the permanent
+        permanent_calculator_walrus = thewalrus.perm(permutation_matrix)
+
+        # do iterations to calculate the permanent and choose the fastest one
+        time_walrus = 10
+        for idx in range(iter_loops):
+            start = time.time()
+            permanent_walrus = thewalrus.perm(permutation_matrix)
+
+            time_loc = time.time() - start
+            start = time.time()
+
+            if time_walrus > time_loc:
+                time_walrus = time_loc
+
+        print(' ')
+        print('*******************************************')
+        print('Time elapsed with piquasso: ' + str(time_piquasso))
+        print('Time elapsed with walrus: ' + str(time_walrus))
+        print("speedup: " + str(time_piquasso / time_walrus))
+        print(' ')
+        print(' ')
+
+        print('Difference between python and C++ result: ' + str(abs(permanent_walrus - permanent_piquasso)))
+
+        assert abs(permanent_walrus - permanent_piquasso) < 1e-13
 
     def test_ChinHuhPermanentCalculator(self):
-
-
         # create inputs for the permanent calculations
         initial_state = [1, 2, 1, 0, 0]
         output_state = [1, 0, 1, 1, 1]
@@ -164,23 +211,23 @@ class TestBoson_Sampling_Utilities:
         permutation_matrix = np.array([
             [0, 0, 1, 0, 0],
             [0, 0, 0, 1, 0],
-            [0, complex(0.5,0.7), 0, 0, 1],
+            [0, complex(0.5, 0.7), 0, 0, 1],
             [1, 0, 0, 0, 0],
             [0, 1, 0, 0, 0],
         ], dtype=complex)
 
-        #create an instance of python implementation to calculate the permanent
-        permanent_calculator_python = ChinHuhPermanentCalculator_python( permutation_matrix, initial_state, output_state)
+        # create an instance of python implementation to calculate the permanent
+        permanent_calculator_python = ChinHuhPermanentCalculator_python(permutation_matrix, initial_state, output_state)
 
         # do iterations to calculate the permanent and choose the fastest one
         iter_loops = 100
         time_python = 10
         for idx in range(iter_loops):
-            start = time.time()   
+            start = time.time()
             permanent_python = permanent_calculator_python.calculate()
             time_loc = time.time() - start
-            start = time.time()   
-       
+            start = time.time()
+
             if time_python > time_loc:
                 time_python = time_loc
 
@@ -188,19 +235,18 @@ class TestBoson_Sampling_Utilities:
         initial_state = np.array(initial_state, dtype=np.int64)
         output_state = np.array(output_state, dtype=np.int64)
 
-
-        #create an instance of C++ implementation to calculate the permanent
-        permanent_calculator_Cpp = ChinHuhPermanentCalculator( permutation_matrix, initial_state, output_state)
+        # create an instance of C++ implementation to calculate the permanent
+        permanent_calculator_Cpp = ChinHuhPermanentCalculator(permutation_matrix, initial_state, output_state)
 
         # do iterations to calculate the permanent and choose the fastest one
         time_Cpp = 10
         for idx in range(iter_loops):
-            start = time.time()   
+            start = time.time()
             permanent_Cpp = permanent_calculator_Cpp.calculate()
 
             time_loc = time.time() - start
-            start = time.time()   
-       
+            start = time.time()
+
             if time_Cpp > time_loc:
                 time_Cpp = time_loc
 
@@ -208,10 +254,10 @@ class TestBoson_Sampling_Utilities:
         print('*******************************************')
         print('Time elapsed with python: ' + str(time_python))
         print('Time elapsed with C++: ' + str(time_Cpp))
-        print( "speedup: " + str(time_python/time_Cpp) )
+        print("speedup: " + str(time_python / time_Cpp))
         print(' ')
         print(' ')
 
-        print( 'Difference between python and C++ result: ' + str(abs(permanent_Cpp-permanent_python)))
+        print('Difference between python and C++ result: ' + str(abs(permanent_Cpp - permanent_python)))
 
-        assert abs(permanent_Cpp-permanent_python) < 1e-13
+        assert abs(permanent_Cpp - permanent_python) < 1e-13
