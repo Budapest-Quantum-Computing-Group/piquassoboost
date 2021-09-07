@@ -382,7 +382,7 @@ endif()
 
 add_library(piquassoboost SHARED
     ${piquassoboost_files}
-)
+        ctests/permanents_accuracy.cpp)
 
 # adding compile options
 target_compile_options(piquassoboost PRIVATE
