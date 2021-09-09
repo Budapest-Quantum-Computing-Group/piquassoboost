@@ -20,6 +20,7 @@ import piquasso as pq
 from .state_wrapper import GaussianState_Wrapper
 
 from piquasso._math.linalg import block_reduce
+from piquasso.api.result import Result
 
 from piquassoboost.sampling.simulation_strategies.GaussianSimulationStrategy import (
     GaussianSimulationStrategyFast
@@ -27,9 +28,13 @@ from piquassoboost.sampling.simulation_strategies.GaussianSimulationStrategy imp
 
 from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 
+
 class GaussianState(GaussianState_Wrapper, pq.GaussianState):
     def __init__(self, *, d):
         self._d = d
+
+        self.result = None
+        self.shots = None
 
         vector_shape = (self.d, )
         matrix_shape = vector_shape * 2
@@ -57,12 +62,7 @@ class GaussianState(GaussianState_Wrapper, pq.GaussianState):
 
         return obj
 
-    def _apply_threshold_measurement(
-        self,
-        *,
-        shots,
-        modes,
-    ):
+    def _apply_threshold_measurement(self, *, instruction):
         """
         NOTE: The same logic is used here, as for the particle number measurement.
         However, at threshold measurement there is no sense of cutoff, therefore it is
@@ -78,21 +78,34 @@ class GaussianState(GaussianState_Wrapper, pq.GaussianState):
                 f"xpxp_mean_vector={self.xpxp_mean_vector}"
             )
 
-        reduced_state = self.reduced(modes)
+        reduced_state = self.reduced(instruction.modes)
 
         th = ThresholdBosonSampling.ThresholdBosonSampling(
-            covariance_matrix=reduced_state.xxpp_covariance_matrix/(2 * pq.api.constants.HBAR)
+            covariance_matrix=(
+                reduced_state.xxpp_covariance_matrix
+                / (2 * pq.api.constants.HBAR)
+            )
         )
-        return th.simulate(shots)
+        samples = th.simulate(self.shots)
 
-    def _apply_particle_number_measurement(self, *, cutoff, modes, shots):
-        reduced_state = self.reduced(modes)
+        self.result = Result(instruction=instruction, samples=samples)
 
-        return GaussianSimulationStrategyFast(
-            covariance_matrix=reduced_state.xpxp_covariance_matrix / (2 * pq.api.constants.HBAR),
+
+    def _apply_particle_number_measurement(self, *, instruction):
+
+        cutoff: int = instruction._all_params["cutoff"]
+
+        reduced_state = self.reduced(instruction.modes)
+
+        samples = GaussianSimulationStrategyFast(
+            covariance_matrix=(
+                reduced_state.xpxp_covariance_matrix / (2 * pq.api.constants.HBAR)
+            ),
             m=reduced_state.xpxp_mean_vector / np.sqrt(pq.api.constants.HBAR),
             fock_cutoff=cutoff,
-        ).simulate(shots)
+        ).simulate(self.shots)
+
+        self.result = Result(instruction=instruction, samples=samples)
 
 def calculate_threshold_detection_probability(
     state,

@@ -13,10 +13,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import piquasso as pq
+import numpy as np
 
-from piquassoboost.sampling.circuit import SamplingCircuit
+from BoSS.boson_sampling_utilities.boson_sampling_utilities import (
+    prepare_interferometer_matrix_in_expanded_space
+)
+from .BosonSamplingSimulator import BosonSamplingSimulator
+from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
+    GeneralizedCliffordsSimulationStrategy,
+)
+
+import piquasso as pq
+from piquasso.api.result import Result
 
 
 class SamplingState(pq.SamplingState):
-    circuit_class = SamplingCircuit
+    def _sampling(self, instruction):
+        """Simulates a boson sampling using generalized Clifford&Clifford algorithm
+        from [Brod, Oszmaniec 2020].
+
+        This method assumes that initial_state is given in the second quantization
+        description (mode occupation). BoSS requires input states as numpy arrays,
+        therefore the state is prepared as such structure.
+
+        Generalized Cliffords simulation strategy form [Brod, Oszmaniec 2020] was used
+        as it allows effective simulation of broader range of input states than original
+        algorithm.
+        """
+
+        interferometer = self.interferometer
+        initial_state = np.array(self.initial_state)
+
+        if self.is_lossy:  # Prepare inputs for lossy regime.
+            # In case of losses we want specially prepared 2m x 2m interferometer matrix
+            interferometer = prepare_interferometer_matrix_in_expanded_space(
+                self.interferometer
+            )
+
+            # In case of losses we want 2m-modes input state
+            # (initialized with 0 on new modes)
+            for _ in initial_state:
+                initial_state = np.append(initial_state, 0)
+
+        simulation_strategy = GeneralizedCliffordsSimulationStrategy(interferometer)
+        sampling_simulator = BosonSamplingSimulator(simulation_strategy)
+
+        samples = sampling_simulator.get_classical_simulation_results(
+            initial_state,
+            samples_number=self.shots
+        )
+
+        if self.is_lossy:  # Trim lossy state to initial size.
+            trimmed_samples = []
+            for sample in samples:
+                trimmed_samples.append(sample[:len(self.initial_state)])
+            samples = trimmed_samples  # We want to return trimmed samples.
+
+        self.result = Result(instruction=instruction, samples=samples)
