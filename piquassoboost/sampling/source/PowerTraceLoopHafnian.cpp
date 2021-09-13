@@ -53,9 +53,30 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian() : PowerTraceHafnian() {
 @return Returns with the instance of the class.
 */
 PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
+#ifdef DEBUG
     assert(isSymmetric(mtx_in));
+#endif
+   
+    
+    if (mtx_in.rows % 2 == 1){
+        matrix extended_matrix(mtx_in.rows + 1, mtx_in.cols + 1);
+        for (int row_idx = 0; row_idx < mtx_in.rows; row_idx++){
+            std::memcpy(
+                extended_matrix.get_data() + row_idx * extended_matrix.stride,
+                mtx_in.get_data() + row_idx * mtx_in.stride,
+                sizeof(Complex16) * mtx_in.cols
+            );
+            extended_matrix[row_idx * extended_matrix.stride + mtx_in.cols] = 
+                Complex16(0.0, 0.0);
+        }
+        Complex16 *row_last = extended_matrix.get_data() + mtx_in.rows * extended_matrix.stride;
+        std::fill(row_last, row_last + mtx_in.cols, Complex16(0.0, 0.0));
+        row_last[mtx_in.cols] = Complex16(1.0, 0.0);
 
-    Update_mtx( mtx_in );
+        Update_mtx( extended_matrix );
+    }else{
+        Update_mtx( mtx_in );
+    }
 
 }
 
@@ -341,7 +362,6 @@ PowerTraceLoopHafnian::Update_mtx( matrix &mtx_in) {
 
     // scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
     ScaleMatrix();
-
 
 
 }
