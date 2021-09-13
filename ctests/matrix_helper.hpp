@@ -18,6 +18,7 @@
 #define MATRIX_HELPER_INCLUDED
 
 #include "constants_tests.h"
+#include <random>
 
 namespace pic{
 
