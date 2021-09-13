@@ -36,7 +36,7 @@ setup(
         "numpy>=1.19.4",
         (
             "piquasso@git+ssh://git@github.com/Budapest-Quantum-Computing-Group/"
-            "piquasso.git@0.2.0#egg=piquasso"
+            "piquasso.git@0.2.1#egg=piquasso"
         ),  # TODO: install a package instead!
     ],
     tests_require=["pytest"],
