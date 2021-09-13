@@ -65,7 +65,7 @@ be needed to install CBLAS manually.
 
 ### Download the source of the Piquasso Boost library
 
-The developer version of the Piquasso Boost library can be cloned from GitHub repository [?????????](???????????????????).
+The developer version of the Piquasso Boost library can be cloned from [GitHub repository](https://github.com/Budapest-Quantum-Computing-Group/piquassoboost).
 After the Piquasso Boost repository is extracted into the directory **path/to/piquasso_boost/library** (which would be the path to the source code of the Piquasso Boost library), one can proceed to the compilation steps described in the next section.
 
 
