@@ -4,9 +4,6 @@
 #include "tbb/tbb.h"
 #include "common_functionalities.h"
 #include <math.h>
-#include <algorithm>
-#include <numeric>
-#include <functional>
 
 namespace pic {
 
@@ -20,81 +17,173 @@ namespace pic {
 GlynnPermanentCalculator::GlynnPermanentCalculator() {}
 
 
-
-
 /**
-@brief Call to calculate the permanent of a given matrix.
-
-@param mtx_in A square matrix.
-
+@brief Wrapper method to calculate the permanent via Glynn formula. scales with n*2^n
+@param mtx Unitary describing a quantum circuit
 @return Returns with the calculated permanent
 */
-
-std::vector<int> compute_grey_code_update_positions(const int &n){
-
-    if(n == 1){
-        return {0};
-    }
-
-    std::vector<int> subproblem_positions = compute_grey_code_update_positions(n - 1);
-    std::vector<int> positions(subproblem_positions) ;
-    positions.push_back(n - 1);
-    std::reverse(subproblem_positions.begin(), subproblem_positions.end());
-    positions.insert(positions.end(), subproblem_positions.begin(), subproblem_positions.end());
-
-    return positions;
-}
-
 Complex16
 GlynnPermanentCalculator::calculate(matrix &mtx) {
 
-    auto n = mtx.rows;
 
-    double multiplier = n % 2 == 0 ? -1 : 1;
-
-    std::vector<Complex16> sums = {};
-
-    // Initialize current code
-    std::vector<int> current_code = {};
-    while(current_code.size() < n){ current_code.push_back(-1); }
-    current_code[n - 1] = 1;
-
-    // Initialize the sums
-    for(size_t j = 0; j < n; ++j){
-        Complex16 jth_sum(0.0, 0.0);
-        for(size_t i = 0; i < n; ++i){
-            jth_sum += current_code[i] * mtx[i * mtx.stride + j];
-        }
-        sums.push_back(jth_sum);
-    }
-
-    Complex16 sums_prod(1.0, 0.0);
-    for(auto jth_sum : sums){ sums_prod *= jth_sum; }
-
-    Complex16 perm = sums_prod * multiplier;
-
-    // Now update the sums in Gray ordering.
-    auto update_positions = compute_grey_code_update_positions(n - 1);
-
-    for(auto i : update_positions){
-        // Update the code and it's product
-        current_code[i] = -current_code[i];
-        multiplier = -multiplier;
-
-        // Update the sums and sums prod
-        for(size_t j = 0; j < n; ++j){
-            sums_prod /= sums[j];
-            sums[j] += current_code[i] * 2 * mtx[i * mtx.stride + j];
-            sums_prod *= sums[j];
-        }
-
-        perm += multiplier * sums_prod;
-    }
-
-    perm /= 1 << (n - 1);
-
-    return perm;
+    GlynnPermanentCalculatorTask calculator;
+    return calculator.calculate( mtx );
 }
+
+
+
+
+/**
+@brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
+GlynnPermanentCalculatorTask::GlynnPermanentCalculatorTask() {}
+
+/**
+@brief Call to calculate the permanent via Glynn formula. scales with n*2^n
+@param mtx Unitary describing a quantum circuit
+@return Returns with the calculated permanent
+*/
+Complex16
+GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
+
+    Complex16* mtx_data = mtx.get_data();
+    
+    // calculate and store 2*mtx being used later in the recursive calls
+    mtx2 = matrix32( mtx.rows, mtx.cols);
+    Complex32* mtx2_data = mtx2.get_data();
+
+    tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.rows), [&](tbb::blocked_range<size_t> r) {
+        for (size_t row_idx=r.begin(); row_idx<r.end(); ++row_idx){
+
+            size_t row_offset   = row_idx*mtx.stride;
+            size_t row_offset_2 = row_idx*mtx2.stride;
+            for (size_t col_idx=0; col_idx<mtx.rows; ++col_idx) {
+                mtx2_data[row_offset_2+col_idx] = 2*mtx_data[ row_offset + col_idx ];
+            }
+
+        }
+    });   
+
+
+    // calulate the initial sum of the columns
+    matrix32 colSum( mtx.rows, 1);
+    Complex32* colSum_data = colSum.get_data();
+    memset( colSum_data, 0.0, colSum.size()*sizeof(Complex32));
+
+
+
+    tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.rows), [&](tbb::blocked_range<size_t> r) {
+        for (size_t col_idx=r.begin(); col_idx<r.end(); ++col_idx){
+
+            size_t row_offset = 0;
+            for (size_t row_idx=0; row_idx<mtx.rows; ++row_idx) {
+                colSum_data[col_idx] += mtx_data[ row_offset + col_idx ];
+                row_offset += mtx.stride;
+            }
+
+        }
+    });
+
+    // thread local storage for partial permanent
+    priv_addend = tbb::combinable<ComplexM<long double>> {[](){return ComplexM<long double>();}};
+
+
+    // start the iterations over vectors of deltas
+    IterateOverDeltas( colSum, 1, 1 );
+
+
+    // sum up parttial permanents
+    Complex32 permanent( 0.0, 0.0 );
+
+    priv_addend.combine_each([&](ComplexM<long double> &a) {
+        permanent = permanent + a.get();
+    });
+
+    permanent = permanent / (long double)power_of_2( (unsigned long long) (mtx.rows-1) );
+
+  
+
+
+    return Complex16(permanent.real(), permanent.imag());
+
+
+}
+
+
+
+/**
+@brief Method to span parallel tasks via iterative function calls. (new task is spanned by altering one element in the vector of deltas)
+@param colSum The sum of \f$ \delta_j a_{ij} \f$ in Eq. (S2) of arXiv:1606.05836
+@param index_min \f$ \delta_j a_{ij} $\f with \f$ 0<i<index_min $\f are kept contstant, while the signs of \f$ \delta_i \f$  with \f$ i>=idx_min $\f are changed.
+@param sign The current product \f$ \prod\delta_i $\f
+*/
+void 
+GlynnPermanentCalculatorTask::IterateOverDeltas( matrix32& colSum, int sign, int index_min ) {
+
+    Complex32* colSum_data = colSum.get_data();
+
+    // Calculate the partial permanent
+    Complex32 colSumProd(1.0,0.0);
+    for (int idx=0; idx<colSum.rows; idx++) {
+        colSumProd = colSumProd * colSum_data[idx];
+    }
+
+    // add partial permanent to the local value
+    ComplexM<long double> &permanent_priv = priv_addend.local();
+    permanent_priv += sign*colSumProd;
+
+
+    tbb::parallel_for( tbb::blocked_range<int>(index_min,colSum.rows), [&](tbb::blocked_range<int> r) {
+        for (int idx=r.begin(); idx<r.end(); ++idx){
+
+            // create an altered vector from the current delta
+            matrix32 colSum_new = colSum.copy();
+
+            Complex32* mtx2_data = mtx2.get_data();
+            Complex32* colSum_new_data = colSum_new.get_data();
+
+            size_t row_offset = idx*mtx2.stride;
+
+            for (int jdx=0; jdx<mtx2.cols; jdx++) {
+                colSum_new_data[jdx] = colSum_new_data[jdx] - mtx2_data[row_offset+jdx];
+            }
+
+            // spawn new iteration            
+            IterateOverDeltas( colSum_new, -sign, idx+1 );
+        }
+    });
+
+
+/*
+    for (int idx=index_min; idx<colSum.size(); ++idx){
+
+        // create an altered vector from the current delta
+        matrix32 colSum_new = colSum.copy();
+
+        Complex32* mtx2_data = mtx2.get_data();
+        Complex32* colSum_new_data = colSum_new.get_data();
+
+        size_t row_offset = idx*mtx2.stride;
+
+        for (int jdx=0; jdx<mtx2.cols; jdx++) {
+            colSum_new_data[jdx] = colSum_new_data[jdx] - mtx2_data[row_offset+jdx];
+        }
+
+        // spawn new iteration            
+        IterateOverDeltas( colSum_new, -sign, idx+1 );
+    }
+  */
+
+
+    return;
+}
+
+
+
+
+
+
 
 
 
