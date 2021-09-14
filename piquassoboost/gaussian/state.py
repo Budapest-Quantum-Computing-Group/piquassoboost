@@ -13,24 +13,23 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from typing import Tuple
+
 import numpy as np
 
 import piquasso as pq
 
 from .state_wrapper import GaussianState_Wrapper
 
-from piquasso._math.linalg import block_reduce
 from piquasso.api.result import Result
 
-from piquassoboost.sampling.simulation_strategies.GaussianSimulationStrategy import (
-    GaussianSimulationStrategyFast
-)
+from piquassoboost.sampling.Boson_Sampling_Utilities import PowerTraceLoopHafnian
 
 from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 
 
 class GaussianState(GaussianState_Wrapper, pq.GaussianState):
-    def __init__(self, *, d):
+    def __init__(self, d):
         self._d = d
 
         self.result = None
@@ -90,32 +89,16 @@ class GaussianState(GaussianState_Wrapper, pq.GaussianState):
 
         self.result = Result(instruction=instruction, samples=samples)
 
+    def _get_particle_number_choice(
+        self,
+        previous_sample: Tuple[int, ...],
+        cutoff: int,
+    ) -> int:
+        def cpp_loop_hafnian(matrix: np.ndarray):
+            return PowerTraceLoopHafnian(matrix).calculate()
 
-    def _apply_particle_number_measurement(self, *, instruction):
-
-        cutoff: int = instruction._all_params["cutoff"]
-
-        reduced_state = self.reduced(instruction.modes)
-
-        samples = GaussianSimulationStrategyFast(
-            covariance_matrix=(
-                reduced_state.xpxp_covariance_matrix / (2 * pq.api.constants.HBAR)
-            ),
-            m=reduced_state.xpxp_mean_vector / np.sqrt(pq.api.constants.HBAR),
-            fock_cutoff=cutoff,
-        ).simulate(self.shots)
-
-        self.result = Result(instruction=instruction, samples=samples)
-
-def calculate_threshold_detection_probability(
-    state,
-    subspace_modes,
-    occupation_numbers,
-):
-    d = len(subspace_modes)
-
-    Q = (state.complex_covariance + np.identity(2 * d)) / 2
-
-    OS = (np.identity(2 * d, dtype=complex) - np.linalg.inv(Q)).conj()
-
-    OS_reduced = block_reduce(OS, reduce_on=occupation_numbers)
+        return super()._get_particle_number_choice(
+            previous_sample=previous_sample,
+            cutoff=cutoff,
+            loop_hafnian_func=cpp_loop_hafnian,
+        )
