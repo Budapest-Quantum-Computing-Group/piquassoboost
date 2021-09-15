@@ -49,6 +49,10 @@ GlynnPermanentCalculator();
 */
 Complex16 calculate(matrix &mtx);
 
+Complex16
+calculateFromStates(matrix &mtx_orig, PicState_int64 &input_state, PicState_int64 &output_state);
+
+
 
 
 
@@ -100,8 +104,8 @@ Complex16 calculate(matrix &mtx);
 /**
 @brief Method to span parallel tasks via iterative function calls. (new task is spanned by altering one element in the vector of deltas)
 @param colSum The sum of \f$ \delta_j a_{ij} \f$ in Eq. (S2) of arXiv:1606.05836
-@param index_min \f$ \delta_j a_{ij} $\f with \f$ 0<i<index_min $\f are kept contstant, while the signs of \f$ \delta_i \f$  with \f$ i>=idx_min $\f are changed.
 @param sign The current product \f$ \prod\delta_i $\f
+@param index_min \f$ \delta_j a_{ij} $\f with \f$ 0<i<index_min $\f are kept contstant, while the signs of \f$ \delta_i \f$  with \f$ i>=idx_min $\f are changed.
 */
 void IterateOverDeltas( matrix32& colSum, int sign, int index_min );
 

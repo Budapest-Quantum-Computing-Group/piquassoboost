@@ -17,6 +17,7 @@
 #include <iostream>
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
+#include "GlynnPermanentCalculator.h"
 #include "common_functionalities.h"
 #include <math.h>
 #include <tbb/tbb.h>
@@ -458,11 +459,20 @@ generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, P
 @param input_state The input state.
 @param output_state The output state.
 */
-double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state) {
+double calculate_outputs_probability(
+    matrix &interferometer_mtx,
+    PicState_int64 &input_state,
+    PicState_int64 &output_state
+) {
 
-    CChinHuhPermanentCalculator permanent_calculator;
-    Complex16 permanent = permanent_calculator.calculate( interferometer_mtx, input_state, output_state);
+    GlynnPermanentCalculator permanentCalculator;
 
+    Complex16 permanent = permanentCalculator.calculateFromStates(
+        interferometer_mtx,
+        input_state,
+        output_state
+    );
+    
     double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag(); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
 
     int64_t photon_num = 0;
