@@ -31,53 +31,6 @@ GlynnPermanentCalculator::calculate(matrix &mtx) {
 }
 
 
-/**
-@brief Wrapper method to calculate the permanent via Glynn formula. scales with n*2^n
-
-Creates a matrix from the `mtx_orig` corresponding to the parameters `input_state` and `output_state`.
-Then calls the calculate method on the created matrix.
-@param mtx_orig Unitary describing a quantum circuit
-@param input_state_in The input state
-@param output_state_in The output state
-@return Returns with the calculated permanent
-*/
-Complex16
-GlynnPermanentCalculator::calculateFromStates(matrix &mtx_orig, PicState_int64 &input_state, PicState_int64 &output_state) {
-    // outputs: columns
-    // inputs : rows
-
-
-    // creating matrix for the calculation based on the input_state and output_state
-    int n = mtx_orig.rows;
-
-    int64_t sum = 0;
-    for (size_t i = 0; i < input_state.size(); i++){
-        sum += input_state[i];
-    }
-    matrix mtx(sum, sum);
-
-
-    int row_idx = 0;
-    for (int i = 0; i < n; i++){
-        for (int db_row = 0; db_row < output_state[i]; db_row++){
-            int col_idx = 0;
-            for (int j = 0; j < n; j++){
-                for (int db_col = 0; db_col < input_state[j]; db_col++){
-                    mtx[row_idx * mtx.stride + col_idx] =
-                        mtx_orig[i * mtx_orig.stride + j];
-
-                    col_idx++;
-                }
-            }
-
-            row_idx++;
-        }
-    }
-
-    return calculate( mtx );
-}
-
-
 
 /**
 @brief Default constructor of the class.

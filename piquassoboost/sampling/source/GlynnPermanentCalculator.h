@@ -49,16 +49,6 @@ GlynnPermanentCalculator();
 */
 Complex16 calculate(matrix &mtx);
 
-Complex16
-calculateFromStates(matrix &mtx_orig, PicState_int64 &input_state, PicState_int64 &output_state);
-
-
-
-
-
-
-
-
 
 }; //GlynnPermanentCalculator
 

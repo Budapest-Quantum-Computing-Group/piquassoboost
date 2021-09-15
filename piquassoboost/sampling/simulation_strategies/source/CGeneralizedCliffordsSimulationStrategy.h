@@ -170,6 +170,20 @@ void generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& samp
 double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state);
 
 
+/** @brief Creates a matrix from the `interferometerMatrix` corresponding to the parameters `input_state` and `output_state`.
+    @param interferometerMatrix Unitary matrix describing a quantum circuit
+    @param input_state_in The input state
+    @param output_state_in The output state
+    @return Returns with the created matrix
+*/
+matrix
+adaptInterferometer(
+    matrix& interferometerMatrix,
+    PicState_int64 &input_state,
+    PicState_int64 &output_state
+);
+
+
 
 } // PIC
 
