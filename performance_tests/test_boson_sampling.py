@@ -94,7 +94,7 @@ def test_complex_sampling(print_histogram):
 
         t0 = time.time()
 
-        result = state.apply(program)
+        result = state.apply(program, shots=shots)
 
         print("C++ time elapsed:", time.time() - t0, "s")
 

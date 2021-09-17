@@ -29,6 +29,7 @@ add_test(extract_corner extract_corner ...)
 add_test(insert_transformed_cols insert_transformed_cols ...)
 add_test(insert_transformed_rows insert_transformed_rows ...)
 add_test(common_functionalities common_functionalities ...)
+add_test(permanents_accuracy permanents_accuracy ...)
 
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
 add_executable (torontonian torontonian.cpp)
@@ -43,6 +44,13 @@ add_executable (extract_corner extract_corner.cpp)
 add_executable (insert_transformed_cols insert_transformed_cols.cpp)
 add_executable (insert_transformed_rows insert_transformed_rows.cpp)
 add_executable (common_functionalities common_functionalities.cpp)
+add_executable (permanents_accuracy permanents_accuracy.cpp)
+
+target_include_directories(permanents_accuracy PRIVATE
+                            ../piquassoboost/sampling/source
+                            ../piquassoboost/common/source
+                            ${TBB_HEADER}
+                            ${EXTRA_INCLUDES})
 
 
 target_include_directories(hafnian_complex_matrix PRIVATE
@@ -125,6 +133,14 @@ target_include_directories(common_functionalities PRIVATE
 # Link the executable to the qgd library. Since the qgd library has
 # public include directories we will use those link directories when building
 # decomposition_test
+target_link_libraries(permanents_accuracy
+        piquassoboost
+        ${TBBMALLOC_LIB}
+        ${TBBMALLOC_PROXY_LIB}
+        ${TBB_LIB}
+        ${MPI_C_LIBRARIES}
+)
+
 target_link_libraries (hafnian_complex_matrix 
                            piquassoboost
                            ${TBBMALLOC_LIB}

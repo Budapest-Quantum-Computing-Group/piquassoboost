@@ -17,6 +17,7 @@
 #include <iostream>
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
+#include "GlynnPermanentCalculator.h"
 #include "common_functionalities.h"
 #include <math.h>
 #include <tbb/tbb.h>
@@ -458,11 +459,23 @@ generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, P
 @param input_state The input state.
 @param output_state The output state.
 */
-double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state) {
+double
+calculate_outputs_probability(
+    matrix &interferometer_mtx,
+    PicState_int64 &input_state,
+    PicState_int64 &output_state
+) {
 
-    CChinHuhPermanentCalculator permanent_calculator;
-    Complex16 permanent = permanent_calculator.calculate( interferometer_mtx, input_state, output_state);
+    matrix modifiedInterferometerMatrix = adaptInterferometer(
+        interferometer_mtx,
+        input_state,
+        output_state
+    );
 
+    GlynnPermanentCalculator permanentCalculator;
+
+    Complex16 permanent = permanentCalculator.calculate(modifiedInterferometerMatrix);
+    
     double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag(); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
 
     int64_t photon_num = 0;
@@ -477,10 +490,49 @@ double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 
     }
 
     return probability;
-
 }
 
 
+/** @brief Creates a matrix from the `interferometerMatrix` corresponding to the parameters `input_state` and `output_state`.
+    @param interferometerMatrix Unitary matrix describing a quantum circuit
+    @param input_state_in The input state
+    @param output_state_in The output state
+    @return Returns with the created matrix
+*/
+matrix
+adaptInterferometer(
+    matrix& interferometerMatrix,
+    PicState_int64 &input_state,
+    PicState_int64 &output_state
+) {
+    int n = interferometerMatrix.rows;
+
+    int64_t sum = 0;
+    for (size_t i = 0; i < input_state.size(); i++){
+        sum += input_state[i];
+    }
+    matrix mtx(sum, sum);
+
+    int row_idx = 0;
+    for (int i = 0; i < n; i++){
+        for (int db_row = 0; db_row < output_state[i]; db_row++){
+            int col_idx = 0;
+            for (int j = 0; j < n; j++){
+                for (int db_col = 0; db_col < input_state[j]; db_col++){
+                    mtx[row_idx * mtx.stride + col_idx] =
+                        interferometerMatrix[i * interferometerMatrix.stride + j];
+
+                    col_idx++;
+                }
+            }
+
+            row_idx++;
+        }
+    }
+
+    return mtx;
+
+}
 
 
 
