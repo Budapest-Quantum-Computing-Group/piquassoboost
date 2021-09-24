@@ -18,6 +18,7 @@
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculatorRecursive.h"
 #include "common_functionalities.h"
 #include <math.h>
 #include <tbb/tbb.h>
@@ -472,11 +473,24 @@ calculate_outputs_probability(
         output_state
     );
 
-    GlynnPermanentCalculator permanentCalculator;
+    std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
+        return elem > 0;
+    };
 
-    Complex16 permanent = permanentCalculator.calculate(modifiedInterferometerMatrix);
-    
-    double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag(); // squared magnitude norm(a+ib) = a^2 + b^2 !!!
+    PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
+    PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
+
+    GlynnPermanentCalculatorRecursive permanentCalculatorRecursive;
+
+    Complex16 permanent = permanentCalculatorRecursive.calculate(
+        modifiedInterferometerMatrix,
+        adapted_input_state,
+        adapted_output_state
+    );
+
+    double probability =
+        permanent.real()*permanent.real() + permanent.imag()*permanent.imag();
+        // squared magnitude norm(a+ib) = a^2 + b^2 !!!
 
     int64_t photon_num = 0;
     for (size_t idx=0; idx<input_state.size(); idx++) {
@@ -494,13 +508,14 @@ calculate_outputs_probability(
 
 
 /** @brief Creates a matrix from the `interferometerMatrix` corresponding to the parameters `input_state` and `output_state`.
-    @param interferometerMatrix Unitary matrix describing a quantum circuit
-    @param input_state_in The input state
-    @param output_state_in The output state
-    @return Returns with the created matrix
-*/
+ *         Corresponding rows and columns are multipled based on output and input states.
+ *  @param interferometerMatrix Unitary matrix describing a quantum circuit
+ *  @param input_state_in The input state
+ *  @param output_state_in The output state
+ *  @return Returns with the created matrix
+ */
 matrix
-adaptInterferometer(
+adaptInterferometerGlynnMultiplied(
     matrix& interferometerMatrix,
     PicState_int64 &input_state,
     PicState_int64 &output_state
@@ -531,6 +546,61 @@ adaptInterferometer(
     }
 
     return mtx;
+
+}
+
+
+/** @brief Creates a matrix from the `interferometerMatrix` corresponding to 
+ *         the parameters `input_state` and `output_state`.
+ *         Does not adapt input and ouput states. They have to be adapted explicitly.
+ *         Those matrix rows and columns remain in the adapted matrix where the multiplicity
+ *         given by the input and ouput states is nonzero.
+ *  @param interferometerMatrix Unitary matrix describing a quantum circuit
+ *  @param input_state_in The input state
+ *  @param output_state_in The output state
+ *  @return Returns with the created matrix
+ */
+matrix
+adaptInterferometer(
+    matrix& interferometerMatrix,
+    PicState_int64 &input_state,
+    PicState_int64 &output_state
+) {
+    int sumInput = 0;
+    for (int i = 0; i < input_state.size(); i++){
+        if (input_state[i] > 0){
+            sumInput++;
+        }
+    }
+    int sumOutput = 0;
+    for (int i = 0; i < output_state.size(); i++){
+        if (output_state[i] > 0){
+            sumOutput++;
+        }
+    }
+
+    matrix new_mtx(sumOutput, sumInput);    
+
+    int n = interferometerMatrix.rows;
+
+    int row_idx = 0;
+    for (int i = 0; i < n; i++){
+        if (output_state[i] > 0){
+            int col_idx = 0;
+            for (int j = 0; j < n; j++){
+                if (input_state[j] > 0){
+                    new_mtx[row_idx * new_mtx.stride + col_idx] =
+                        interferometerMatrix[i * interferometerMatrix.stride + j];
+                    col_idx++;
+                }
+            }
+
+            row_idx++;
+        }
+    }
+    
+
+    return new_mtx;
 
 }
 

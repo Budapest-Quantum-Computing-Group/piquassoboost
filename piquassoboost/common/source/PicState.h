@@ -17,10 +17,12 @@
 #ifndef PICSTATE_H
 #define PICSTATE_H
 
+#include <functional>
 #include <matrix_base.hpp>
 #include <tbb/cache_aligned_allocator.h>
 #include <tbb/concurrent_vector.h>
 #include <vector>
+
 
 
 namespace pic {
@@ -109,6 +111,15 @@ void operator= (const PicState_int64 &state );
 @return Returns with the instance of the class.
 */
 PicState_int64 copy();
+
+
+/**
+@brief Call to create a filtered copy of the state based on the param func.
+@param func The filtering function
+@return Returns with the instance of the class.
+*/
+PicState_int64 filter(std::function<bool(int64_t)> func);
+
 
 
 };
