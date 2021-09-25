@@ -18,7 +18,7 @@
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculator.h"
-#include "GlynnPermanentCalculatorRecursive.h"
+#include "GlynnPermanentCalculatorRepeated.h"
 #include "common_functionalities.h"
 #include <math.h>
 #include <tbb/tbb.h>
@@ -480,7 +480,7 @@ calculate_outputs_probability(
     PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
     PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
 
-    GlynnPermanentCalculatorRecursive permanentCalculatorRecursive;
+    GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
 
     Complex16 permanent = permanentCalculatorRecursive.calculate(
         modifiedInterferometerMatrix,

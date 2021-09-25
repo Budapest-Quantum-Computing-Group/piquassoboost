@@ -104,7 +104,7 @@ std::vector<PicState_int64> simulate( int samples_number );
 
 protected:
     /// The individual probability layers of the possible occupation numbers 
-    std::unordered_map<PicState_int64, double, PicStateHash> pmfs;
+    std::unordered_map<PicState_int64, double, PicStateHash_int64> pmfs;
     /// The number of the input modes stored by the covariance matrix
     size_t number_of_modes;
     /// Space for storing the threshold measurement specific datas for a sample which are equal in all samples.

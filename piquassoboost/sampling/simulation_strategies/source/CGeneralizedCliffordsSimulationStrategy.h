@@ -40,9 +40,9 @@ protected:
     /// The number of photons
     int64_t number_of_input_photons;
     /// The individual probability layers of the possible output states
-    std::unordered_map<PicState_int64, matrix_base<double>, PicStateHash> pmfs;
+    std::unordered_map<PicState_int64, matrix_base<double>, PicStateHash_int64> pmfs;
     /// The possible output sates organized by keys of the inducing input states
-    std::unordered_map<PicState_int64, PicStates, PicStateHash> possible_output_states;
+    std::unordered_map<PicState_int64, PicStates, PicStateHash_int64> possible_output_states;
     /// The matrix describing the interferometer
     matrix interferometer_matrix;
     /// The input state entering the interferometer

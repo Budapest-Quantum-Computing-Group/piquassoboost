@@ -1,5 +1,5 @@
 #include <iostream>
-#include "GlynnPermanentCalculatorRecursive.h"
+#include "GlynnPermanentCalculatorRepeated.h"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
 #include "common_functionalities.h"
@@ -10,37 +10,33 @@ namespace pic {
 
 
 
-GlynnPermanentCalculatorRecursive::GlynnPermanentCalculatorRecursive() {}
+GlynnPermanentCalculatorRepeated::GlynnPermanentCalculatorRepeated() {}
 
 
-Complex16 GlynnPermanentCalculatorRecursive::calculate(
+Complex16 GlynnPermanentCalculatorRepeated::calculate(
     matrix &mtx,
     PicState_int64& input_state,
     PicState_int64& output_state
 ) {
 
     // column multiplicities are determined by the input state
-    array_int col_multiplicities(input_state.size());
-    for (unsigned int i = 0; i < input_state.size(); i++){
-        col_multiplicities[i] = input_state[i];
-    }
+    PicState_int col_multiplicities =
+        convert_PicState_int64_to_PicState_int(input_state);
+    PicState_int row_multiplicities =
     // row multiplicities are determined by the output state
-    array_int row_multiplicities(output_state.size());
-    for (unsigned int i = 0; i < output_state.size(); i++){
-        row_multiplicities[i] = output_state[i];
-    }
+        convert_PicState_int64_to_PicState_int(output_state);
 
-    GlynnPermanentCalculatorRecursiveTask calculator(mtx, row_multiplicities, col_multiplicities);
+    GlynnPermanentCalculatorRepeatedTask calculator(mtx, row_multiplicities, col_multiplicities);
     return calculator.calculate( );
     
 }
 
 
 
-GlynnPermanentCalculatorRecursiveTask::GlynnPermanentCalculatorRecursiveTask(
+GlynnPermanentCalculatorRepeatedTask::GlynnPermanentCalculatorRepeatedTask(
     matrix &mtx,
-    array_int& row_multiplicities,
-    array_int& col_multiplicities
+    PicState_int& row_multiplicities,
+    PicState_int& col_multiplicities
 )
     : mtx(mtx)
     , row_multiplicities(row_multiplicities)
@@ -70,8 +66,8 @@ GlynnPermanentCalculatorRecursiveTask::GlynnPermanentCalculatorRecursiveTask(
     // deltaLimits stores the index range of the deltas:
     // first not zero has to be one smaller than the multiplicity
     // others have to be the multiplicity
-    deltaLimits = array_int(row_multiplicities.size());
-    for (unsigned int i = 0; i < row_multiplicities.size(); i++){
+    deltaLimits = PicState_int(row_multiplicities.size());
+    for (size_t i = 0; i < row_multiplicities.size(); i++){
         if (row_multiplicities[i]>0){
             if (minimalIndex > i){
                 deltaLimits[i] = row_multiplicities[i]-1;
@@ -87,7 +83,7 @@ GlynnPermanentCalculatorRecursiveTask::GlynnPermanentCalculatorRecursiveTask(
 
 
 Complex16
-GlynnPermanentCalculatorRecursiveTask::calculate() {
+GlynnPermanentCalculatorRepeatedTask::calculate() {
 
     // if all the elements in row multiplicities are zero, returning default value
     if (minimalIndex == row_multiplicities.size()){
@@ -145,10 +141,10 @@ GlynnPermanentCalculatorRecursiveTask::calculate() {
 
 
 void 
-GlynnPermanentCalculatorRecursiveTask::IterateOverDeltas(
+GlynnPermanentCalculatorRepeatedTask::IterateOverDeltas(
     matrix32& colSum,
     int sign,
-    int index_min,
+    size_t index_min,
     int currentMultiplicity
 ) {
     Complex32* colSum_data = colSum.get_data();

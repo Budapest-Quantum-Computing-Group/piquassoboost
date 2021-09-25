@@ -431,6 +431,23 @@ scalar& operator[](size_t idx) {
     return data[idx];
 }
 
+/**
+@brief Operator [] to access elements in array style (checks the boundaries of the stored array in DEBUG target)
+@param idx the index of the element
+@return Returns with a reference to the idx-th element.
+*/
+const scalar& operator[](size_t idx) const {
+
+#ifdef DEBUG
+    if ( idx >= rows*stride || idx < 0) {
+        std::cout << "Accessing element out of bonds. Exiting" << std::endl;
+        exit(-1);
+    }
+#endif
+
+    return data[idx];
+}
+
 
 
 
@@ -440,7 +457,7 @@ scalar& operator[](size_t idx) {
 @brief Call to create a copy of the matrix
 @return Returns with the instance of the class.
 */
-matrix_base<scalar> copy() {
+matrix_base<scalar> copy() const {
 
   matrix_base<scalar> ret = matrix_base<scalar>(rows, cols, stride);
 

@@ -2,7 +2,7 @@
 
 
 #include "GlynnPermanentCalculator.h"
-#include "GlynnPermanentCalculatorRecursive.h"
+#include "GlynnPermanentCalculatorRepeated.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "matrix_helper.hpp"
@@ -118,7 +118,7 @@ void testCase(std::vector<int> input, std::vector<int> output, int iterationNumb
         pic::matrix adaptedMatrix = adaptedMatricesForRecursiveGlynn[i];
         pic::PicState_int64 inState = inputState;
         pic::PicState_int64 outState = outputState;
-        pic::GlynnPermanentCalculatorRecursive bbfgrec_calculator;
+        pic::GlynnPermanentCalculatorRepeated bbfgrec_calculator;
 
         tbb::tick_count t0 = tbb::tick_count::now();
         auto bbfgrec_permanent = bbfgrec_calculator.calculate(adaptedMatrix, adaptedInputState, adaptedOutputState);
@@ -175,7 +175,6 @@ void testCaseInitializerList(std::initializer_list<int> input, std::initializer_
 
 
 int main() {
-    bool useChHu = false;
 
     printf("\n\n********************************************************\n");
     printf("Test of permanents calculators speed\n");
@@ -207,8 +206,6 @@ int main() {
     testCaseInitializerList({1,1,1,0,0,0,0,0,0},100);
     testCaseInitializerList({1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,2},{0,0,0,0,0,0,0,0,0,1,1,4,1,1,1,0,0,0,0,2},100);
     
-
-    tbb::tick_count timeZero = tbb::tick_count::now();
 
     constexpr int iterationNumber = 100;
 

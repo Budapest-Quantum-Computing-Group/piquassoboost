@@ -2,7 +2,7 @@
 
 
 #include "GlynnPermanentCalculator.h"
-#include "GlynnPermanentCalculatorRecursive.h"
+#include "GlynnPermanentCalculatorRepeated.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "matrix_helper.hpp"
 #include "matrix32.h"
@@ -49,7 +49,7 @@ void testOfSameValuesForRandomMatrix(int matrix_dimension, int mul){
         rowMultiplicities[i] = mul;
         colMultiplicities[i] = mul;
     }
-    pic::GlynnPermanentCalculatorRecursive bbfgrec_calculator;
+    pic::GlynnPermanentCalculatorRepeated bbfgrec_calculator;
     auto bbfgrec_permanent = bbfgrec_calculator.calculate(matrix, rowMultiplicities, colMultiplicities);
     
     if (AreClose(bbfgrec_permanent, bbfg_permanent) && AreClose(bbfgrec_permanent, ch_permanent)){
@@ -115,7 +115,7 @@ int main() {
         rowMultiplicities[i] = mul;
         colMultiplicities[i] = mul;
     }
-    pic::GlynnPermanentCalculatorRecursive bbfgrec_calculator;
+    pic::GlynnPermanentCalculatorRepeated bbfgrec_calculator;
 
     tbb::tick_count t4 = tbb::tick_count::now();
     auto bbfgrec_permanent = bbfgrec_calculator.calculate(matrix, rowMultiplicities, colMultiplicities);

@@ -1,10 +1,9 @@
-#ifndef GlynnPermanentCalculatorRecursive_H
-#define GlynnPermanentCalculatorRecursive_H
+#ifndef GlynnPermanentCalculatorRepeated_H
+#define GlynnPermanentCalculatorRepeated_H
 
 #include "matrix.h"
 #include "matrix32.h"
 #include "matrix_real.h"
-#include "array_int.h"
 #include "PicState.h"
 #include <vector>
 #include "PicVector.hpp"
@@ -28,7 +27,7 @@ void print_state( Container state );
 /**
 @brief Interface class representing a Glynn permanent calculator
 */
-class GlynnPermanentCalculatorRecursive {
+class GlynnPermanentCalculatorRepeated {
 
 protected:
     /// Unitary describing a quantum circuit
@@ -40,7 +39,7 @@ public:
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-GlynnPermanentCalculatorRecursive();
+GlynnPermanentCalculatorRepeated();
 
 
 
@@ -58,7 +57,7 @@ Complex16 calculate(
 );
 
 
-}; //GlynnPermanentCalculatorRecursive
+}; //GlynnPermanentCalculatorRepeated
 
 
 
@@ -72,7 +71,7 @@ Complex16 calculate(
 @brief Class to calculate a partial permanent via Glynn's formula scaling with n*2^n.
 (Does not use gray coding, but does the calculation is similar but scalable fashion) 
 */
-class GlynnPermanentCalculatorRecursiveTask {
+class GlynnPermanentCalculatorRepeatedTask {
 
 public:
 
@@ -85,15 +84,15 @@ public:
     tbb::combinable<ComplexM<long double>> priv_addend;
 
     /// numbers describing the row multiplicity
-    array_int& row_multiplicities;
+    PicState_int& row_multiplicities;
     /// numbers describing the column multiplicity
-    array_int& col_multiplicities;
+    PicState_int& col_multiplicities;
 
     /// limit of the delta values, all same as the row multiplicity except
     /// the first nonzero one which is one smaller
-    array_int deltaLimits;
+    PicState_int deltaLimits;
     /// minimal nonzero index of the row_multiplicity
-    int minimalIndex;
+    size_t minimalIndex;
 public:
 
 /**
@@ -103,10 +102,10 @@ public:
 @param col_multiplicities vector describing the column multiplicity
 @return Returns with the instance of the class.
 */
-GlynnPermanentCalculatorRecursiveTask(
+GlynnPermanentCalculatorRepeatedTask(
     matrix &mtx,
-    array_int& row_multiplicities,
-    array_int& col_multiplicities
+    PicState_int& row_multiplicities,
+    PicState_int& col_multiplicities
 );
 
 
@@ -128,7 +127,7 @@ Complex16 calculate();
 void IterateOverDeltas(
     matrix32& colSum,
     int sign,
-    int index_min,
+    size_t index_min,
     int currentMultiplicity
 );
 
@@ -143,4 +142,4 @@ void IterateOverDeltas(
 
 } // PIC
 
-#endif // GlynnPermanentCalculatorRecursive_H
+#endif // GlynnPermanentCalculatorRepeated_H
