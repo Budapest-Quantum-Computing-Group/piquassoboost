@@ -92,7 +92,7 @@ ThresholdBosonSampling::ThresholdBosonSampling( matrix_real& covariance_matrix_i
     // The number of the input modes stored by the covariance matrix
     number_of_modes = covariance_matrix.rows / 2;
     // Space for storing the threshold measurement specific datas for a sample which are equal in all samples.
-    pmfs = std::unordered_map<PicState_int64, double, PicStateHash>();
+    pmfs = std::unordered_map<PicState_int64, double, PicStateHash_int64>();
 }
 
 

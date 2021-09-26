@@ -30,6 +30,7 @@ add_test(insert_transformed_cols insert_transformed_cols ...)
 add_test(insert_transformed_rows insert_transformed_rows ...)
 add_test(common_functionalities common_functionalities ...)
 add_test(permanents_accuracy permanents_accuracy ...)
+add_test(permanents_speed permanents_speed ...)
 
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
 add_executable (torontonian torontonian.cpp)
@@ -45,12 +46,8 @@ add_executable (insert_transformed_cols insert_transformed_cols.cpp)
 add_executable (insert_transformed_rows insert_transformed_rows.cpp)
 add_executable (common_functionalities common_functionalities.cpp)
 add_executable (permanents_accuracy permanents_accuracy.cpp)
+add_executable (permanents_speed permanents_speed.cpp)
 
-target_include_directories(permanents_accuracy PRIVATE
-                            ../piquassoboost/sampling/source
-                            ../piquassoboost/common/source
-                            ${TBB_HEADER}
-                            ${EXTRA_INCLUDES})
 
 
 target_include_directories(hafnian_complex_matrix PRIVATE
@@ -126,10 +123,24 @@ target_include_directories(insert_transformed_rows PRIVATE
 target_include_directories(common_functionalities PRIVATE
                             ../piquassoboost/common/source
                             ${TBB_HEADER}
+                            ${EXTRA_INCLUDES})                            
+
+target_include_directories(permanents_accuracy PRIVATE
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
+                            ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
                             
+target_include_directories(permanents_speed PRIVATE
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
+                            ../piquassoboost/sampling/simulation_strategies/source
+                            ${TBB_HEADER}
+                            ${EXTRA_INCLUDES})    
 
 
+
+                            
 # Link the executable to the qgd library. Since the qgd library has
 # public include directories we will use those link directories when building
 # decomposition_test
@@ -140,6 +151,16 @@ target_link_libraries(permanents_accuracy
         ${TBB_LIB}
         ${MPI_C_LIBRARIES}
 )
+
+target_link_libraries(permanents_speed
+        piquassoboost
+        ${TBBMALLOC_LIB}
+        ${TBBMALLOC_PROXY_LIB}
+        ${TBB_LIB}
+        ${MPI_C_LIBRARIES}
+)
+
+
 
 target_link_libraries (hafnian_complex_matrix 
                            piquassoboost
@@ -330,6 +351,13 @@ target_compile_options(insert_transformed_cols PRIVATE
 
 # adding compile options
 target_compile_options(insert_transformed_rows PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+# adding compile options
+target_compile_options(permanents_speed PRIVATE
     ${CXX_FLAGS}
     "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"

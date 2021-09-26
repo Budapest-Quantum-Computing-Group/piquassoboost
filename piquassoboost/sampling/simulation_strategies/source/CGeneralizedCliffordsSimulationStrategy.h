@@ -40,9 +40,9 @@ protected:
     /// The number of photons
     int64_t number_of_input_photons;
     /// The individual probability layers of the possible output states
-    std::unordered_map<PicState_int64, matrix_base<double>, PicStateHash> pmfs;
+    std::unordered_map<PicState_int64, matrix_base<double>, PicStateHash_int64> pmfs;
     /// The possible output sates organized by keys of the inducing input states
-    std::unordered_map<PicState_int64, PicStates, PicStateHash> possible_output_states;
+    std::unordered_map<PicState_int64, PicStates, PicStateHash_int64> possible_output_states;
     /// The matrix describing the interferometer
     matrix interferometer_matrix;
     /// The input state entering the interferometer
@@ -162,27 +162,45 @@ void generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& samp
 
 
 /**
-@brief Call to determine the output probability of associated with the input and output states
-@param interferometer_mtx The matrix of the interferometer.
-@param input_state The input state.
-@param output_state The output state.
-*/
+ *  @brief Call to determine the output probability of associated with the input and output states
+ *  @param interferometer_mtx The matrix of the interferometer.
+ *  @param input_state The input state.
+ *  @param output_state The output state.
+ */
 double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state);
 
 
 /** @brief Creates a matrix from the `interferometerMatrix` corresponding to the parameters `input_state` and `output_state`.
-    @param interferometerMatrix Unitary matrix describing a quantum circuit
-    @param input_state_in The input state
-    @param output_state_in The output state
-    @return Returns with the created matrix
-*/
+ *         Corresponding rows and columns are multipled based on output and input states.
+ *  @param interferometerMatrix Unitary matrix describing a quantum circuit
+ *  @param input_state_in The input state
+ *  @param output_state_in The output state
+ *  @return Returns with the created matrix
+ */
+matrix
+adaptInterferometerGlynnMultiplied(
+    matrix& interferometerMatrix,
+    PicState_int64 &input_state,
+    PicState_int64 &output_state
+);
+
+
+/** @brief Creates a matrix from the `interferometerMatrix` corresponding to 
+ *         the parameters `input_state` and `output_state`.
+ *         Does not adapt input and ouput states. They have to be adapted explicitly.
+ *         Those matrix rows and columns remain in the adapted matrix where the multiplicity
+ *         given by the input and ouput states is nonzero.
+ *  @param interferometerMatrix Unitary matrix describing a quantum circuit
+ *  @param input_state_in The input state
+ *  @param output_state_in The output state
+ *  @return Returns with the created matrix
+ */
 matrix
 adaptInterferometer(
     matrix& interferometerMatrix,
     PicState_int64 &input_state,
     PicState_int64 &output_state
 );
-
 
 
 } // PIC

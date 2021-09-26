@@ -319,7 +319,6 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix32.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicState.cpp
-    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicStateHash.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dot.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/common_functionalities.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/CGaussianState.cpp
@@ -332,6 +331,7 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculator.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeated.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/Torontonian.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianRecursive.cpp
@@ -408,6 +408,7 @@ target_include_directories(piquassoboost PRIVATE
                             ./piquassoboost/common/source
                             ./piquassoboost/gaussian/source
                             ./piquassoboost/sampling/source
+                            ./piquassoboost/sampling/simulation_strategies/source
                             ${TBB_HEADER}
                             ./piquassoboost/sampling/source/kernels
                             ${EXTRA_INCLUDES})
@@ -436,6 +437,7 @@ set_target_properties(piquassoboost PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculator.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeated.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/Torontonian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.hpp
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceHafnianUtilities.h

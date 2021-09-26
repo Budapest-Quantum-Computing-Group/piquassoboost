@@ -14,28 +14,41 @@
  * limitations under the License.
  */
 
-#include "PicStateHash.h"
+#ifndef PICSTATEHASH_BASE_HPP
+#define PICSTATEHASH_BASE_HPP
+
+#include "PicState_base.hpp"
 
 namespace pic {
 
 
 /**
+@brief Class to hash function operator for PicState keys in unordered maps
+*/
+template <typename intType>
+class PicStateHash_base {
+
+protected:
+
+public:
+
+/**
 @brief Constructor of the class.
 @return Returns with the instance of the class.
 */
-PicStateHash::PicStateHash() {
+PicStateHash_base() {
 
 }
 
 /**
-@brief Operator to generate hash key for class instance PicState
+@brief Operator to generate hash key for class instance PicState_base<intType>
 @param key An instance of class PicState
 @return Returns with the calculated hash value.
 */
 size_t
-PicStateHash::operator()(const PicState_int64 &key) const {
+operator()(const PicState_base<intType> &key) const {
 
-    PicState_int64 &key_loc = const_cast<PicState_int64 &>(key);
+    PicState_base<intType> &key_loc = const_cast<PicState_base<intType> &>(key);
     int64_t *data = key_loc.get_data();
     size_t hash_val = 0;
     size_t pow2 = 1;
@@ -44,21 +57,16 @@ PicStateHash::operator()(const PicState_int64 &key) const {
         hash_val = hash_val + data[idx]*pow2;
         pow2 = pow2*2;
     }
-/*
-std::cout<< "hash: " << hash_val << std::endl;
-std::cout<<"key: ";
-key_loc.print_matrix();
-*/
 
     return hash_val;
-
-
 }
 
 
-
-
+}; //PicStateHash_base
 
 
 } // PIC
 
+
+
+#endif // PICSTATEHASH_BASE_HPP
