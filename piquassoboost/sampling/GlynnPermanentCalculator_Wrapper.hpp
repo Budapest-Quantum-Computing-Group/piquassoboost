@@ -338,10 +338,10 @@ GlynnPermanentCalculator_Wrapper_calculateDFEDualCard(GlynnPermanentCalculator_w
 
     size_t rows = matrix_mtx.rows;
     size_t cols_half1[4];
-    cols_half1[0] = cols_half1_tot/4;
-    cols_half1[1] = cols_half1_tot/4;
-    cols_half1[2] = cols_half1_tot/4;
-    cols_half1[3] = cols_half1_tot - cols_half1[0] - cols_half1[1] - cols_half1[2];
+    cols_half1[0] = max_fpga_cols < cols_half1_tot ? max_fpga_cols : cols_half1_tot;
+    cols_half1[1] = max_fpga_cols < (cols_half1_tot -cols_half1[0]) ? max_fpga_cols : (cols_half1_tot-cols_half1[0]);
+    cols_half1[2] = max_fpga_cols < (cols_half1_tot - cols_half1[0] - cols_half1[1]) ? max_fpga_cols : (cols_half1_tot - cols_half1[0] - cols_half1[1]);
+    cols_half1[3] = max_fpga_cols < (cols_half1_tot - cols_half1[0] - cols_half1[1] - cols_half1[2]) ? max_fpga_cols : (cols_half1_tot - cols_half1[0] - cols_half1[1] - cols_half1[2]);
 
 
     size_t col_offset = 0;
@@ -371,11 +371,10 @@ GlynnPermanentCalculator_Wrapper_calculateDFEDualCard(GlynnPermanentCalculator_w
 
     // SLR splitted data for the second DFE card
     size_t cols_half2[4];
-    cols_half2[0] = cols_half2_tot/4;
-    cols_half2[1] = cols_half2_tot/4;
-    cols_half2[2] = cols_half2_tot/4;
-    cols_half2[3] = cols_half2_tot - cols_half2[0] - cols_half2[1] - cols_half2[2];
-
+    cols_half2[0] = max_fpga_cols < cols_half2_tot ? max_fpga_cols : cols_half2_tot;
+    cols_half2[1] = max_fpga_cols < (cols_half2_tot - cols_half2[0]) ? max_fpga_cols : (cols_half2_tot - cols_half2[0]);
+    cols_half2[2] = max_fpga_cols < (cols_half2_tot - cols_half2[0] - cols_half2[1]) ? max_fpga_cols : (cols_half2_tot - cols_half2[0] - cols_half2[1]);
+    cols_half2[3] = max_fpga_cols < (cols_half2_tot - cols_half2[0] - cols_half2[1] - cols_half2[2]) ? max_fpga_cols : (cols_half2_tot - cols_half2[0] - cols_half2[1] - cols_half2[2]);
 
     for (int kdx=0; kdx<4; kdx++) {
 
