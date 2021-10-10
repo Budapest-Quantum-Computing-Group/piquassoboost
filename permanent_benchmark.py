@@ -44,7 +44,7 @@ class TestHafnian:
 
 
         # generate the random matrix
-        dim = 28
+        dim = 15
         A = unitary_group.rvs(dim)#generate_random_unitary(dim)
         Arep = A
 
@@ -123,8 +123,8 @@ class TestHafnian:
         for idx in range(iter_loops):
             start = time.time()   
 
-            #permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFE()
-            permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFEDualCard()
+            permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFE()
+            #permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFEDualCard()
 
             time_loc = time.time() - start
             start = time.time()   

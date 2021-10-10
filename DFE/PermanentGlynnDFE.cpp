@@ -22,9 +22,8 @@ extern "C"
 {
 #endif
 
-int calcPermanentGlynnDFE(const pic::Complex16* mtxHalf_data, const pic::Complex16* mtxHalf2_data, const double* renormalize_data, const uint64_t N, pic::Complex16& perm);
-int calcPermanentGlynnSingleDFE(const pic::Complex16* mtx_data, const double* renormalize_data, const uint64_t N, const pic::Complex16 perm);
-void calcPermanentGlynnMultiSRLDFE(const pic::Complex16* mtx_data0, const pic::Complex16* mtx_data1, const pic::Complex16* mtx_data2, const pic::Complex16* mtx_data3, const double* renormalize_data, const uint64_t N, const pic::Complex16 permCPU);
+void calcPermanentGlynn_singleDFE(const pic::Complex16* mtx_data[4], const double* renormalize_data, const uint64_t N, pic::Complex16& perm);
+void calcPermanentGlynnDFEDualCard(const pic::Complex16* mtx_data[8], const double* renormalize_data, const uint64_t N, pic::Complex16& perm);
 
 #ifdef __cplusplus
 }
@@ -191,7 +190,7 @@ mtxHalf2.print_matrix();
     pic::Complex16 permDFE;
 
 tbb::tick_count t0 = tbb::tick_count::now();
-    calcPermanentGlynnDFE( mtxHalf.get_data(), mtxHalf2.get_data(), renormalize_data.get_data(), mtx.rows, permDFE);
+    //calcPermanentGlynnDFE( mtxHalf.get_data(), mtxHalf2.get_data(), renormalize_data.get_data(), mtx.rows, permDFE);
     //calcPermanentGlynnSingleDFE( mtx.get_data(), renormalize_data.get_data(), mtx.rows, perm);
     //calcPermanentGlynnMultiSRLDFE( mtx0.get_data(), mtx1.get_data(), mtx2.get_data(), mtx3.get_data(), renormalize_data.get_data(), mtx.rows, perm);
 tbb::tick_count t1 = tbb::tick_count::now();
