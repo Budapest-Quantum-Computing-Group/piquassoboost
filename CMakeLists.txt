@@ -1,18 +1,3 @@
-#
-#  Copyright 2021 Budapest Quantum Computing Group
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-
 cmake_minimum_required(VERSION 3.10.2)
 
 
@@ -382,7 +367,7 @@ endif()
 
 add_library(piquassoboost SHARED
     ${piquassoboost_files}
-        ctests/permanents_accuracy.cpp)
+)
 
 # adding compile options
 target_compile_options(piquassoboost PRIVATE
@@ -408,7 +393,6 @@ target_include_directories(piquassoboost PRIVATE
                             ./piquassoboost/common/source
                             ./piquassoboost/gaussian/source
                             ./piquassoboost/sampling/source
-                            ./piquassoboost/sampling/simulation_strategies/source
                             ${TBB_HEADER}
                             ./piquassoboost/sampling/source/kernels
                             ${EXTRA_INCLUDES})
@@ -437,7 +421,6 @@ set_target_properties(piquassoboost PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculator.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeated.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/Torontonian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.hpp
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/PowerTraceHafnianUtilities.h
@@ -470,6 +453,7 @@ set_target_properties( piquassoboost PROPERTIES
 
 # adding subdirectories for python extensions
 add_subdirectory (piquassoboost)
+add_subdirectory (DFE)
 
 if(DEFINED ENV{PIQUASSOBOOST_CTEST})
   # adding CMAKE files for test executables
