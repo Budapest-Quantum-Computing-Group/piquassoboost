@@ -8,7 +8,7 @@ project(PiuqassoBoost VERSION 0.1)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # specify the C++ standard
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # include CMAKE modules
@@ -453,7 +453,6 @@ set_target_properties( piquassoboost PROPERTIES
 
 # adding subdirectories for python extensions
 add_subdirectory (piquassoboost)
-add_subdirectory (DFE)
 
 if(DEFINED ENV{PIQUASSOBOOST_CTEST})
   # adding CMAKE files for test executables

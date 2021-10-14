@@ -11,7 +11,6 @@ target_link_libraries(Boson_Sampling_Utilities_wrapper
                           ${BLAS_LIBRARIES}
 			   "-L/opt/maxcompiler-2021.1/lib"
                            "-L/opt/maxeler/maxeleros/lib"
-                           "-lslic" "-lmaxeleros" "-lcurl"
                            "/home/rakytap/workspace/PermanentGlynnCPU/dist/release/lib/libPermanentGlynnDFE.so")
 
 python_extension_module(Boson_Sampling_Utilities_wrapper)
@@ -37,7 +36,8 @@ target_include_directories(Boson_Sampling_Utilities_wrapper PUBLIC
                             ${PROJECT_SOURCE_DIR}/piquassoboost/common/
                             ${EXTRA_INCLUDES}
                             ${PYTHON_INCLUDE_DIR}
-                            ${NUMPY_INC_DIR})
+                            ${NUMPY_INC_DIR}
+"/opt/maxcompiler-2021.1/lib/simulator/include/")
 
 
 

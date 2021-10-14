@@ -54,8 +54,8 @@ extern "C"
 {
 
 
-void calcPermanentGlynn_singleDFE(const pic::Complex16* mtx_data[4], const double* renormalize_data, const uint64_t N, pic::Complex16& perm);
-void calcPermanentGlynnDFEDualCard(const pic::Complex16* mtx_data[8], const double* renormalize_data, const uint64_t N, pic::Complex16& perm);
+void calcPermanentGlynn_singleDFE(const pic::Complex16* mtx_data[4], const double* renormalize_data, const uint64_t N, pic::Complex16* perm);
+void calcPermanentGlynnDFEDualCard(const pic::Complex16* mtx_data[8], const double* renormalize_data, const uint64_t N, pic::Complex16* perm);
 
 
 /**
@@ -257,10 +257,7 @@ for (int idx=0; idx<4; idx++) {
 }
 */
     pic::Complex16 perm;
-    calcPermanentGlynn_singleDFE( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, perm);
-
-
-
+    calcPermanentGlynn_singleDFE( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, &perm);
 
 
     return Py_BuildValue("D", &perm);
@@ -408,7 +405,7 @@ for (int idx=0; idx<8; idx++) {
 */
 
     pic::Complex16 perm;
-    calcPermanentGlynnDFEDualCard( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, perm);
+    calcPermanentGlynnDFEDualCard( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, &perm);
 
 
 

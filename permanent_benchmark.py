@@ -38,7 +38,7 @@ def generate_random_unitary( dim ):
 
 
 # generate the random matrix
-dim = 27
+dim = 10
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
 Arep = A
 
@@ -117,8 +117,10 @@ time_Glynn_DFE = 1000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFE()
-    #permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFEDualCard()
+    if (dim <= 28 ):
+        permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFE()
+    else:
+        permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFEDualCard()
 
     time_loc = time.time() - start
     start = time.time()   
