@@ -54,8 +54,8 @@ extern "C"
 {
 
 
-void calcPermanentGlynn_singleDFE(const pic::Complex16* mtx_data[4], const double* renormalize_data, const uint64_t N, pic::Complex16* perm);
-void calcPermanentGlynnDFEDualCard(const pic::Complex16* mtx_data[8], const double* renormalize_data, const uint64_t N, pic::Complex16* perm);
+void calcPermanentGlynn_singleDFE(const pic::Complex16* mtx_data[4], const double* renormalize_data, const uint64_t rows, const uint64_t cols, pic::Complex16* perm);
+void calcPermanentGlynnDFEDualCard(const pic::Complex16* mtx_data[8], const double* renormalize_data, const uint64_t rows, const uint64_t cols, pic::Complex16* perm);
 
 
 /**
@@ -220,11 +220,11 @@ GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *
     // SLR splitted data for the DFE card
 
     size_t rows = matrix_mtx.rows;
-    size_t cols_half[4];
-    cols_half[0] = max_fpga_cols < matrix_mtx.cols ? max_fpga_cols : matrix_mtx.cols;
-    cols_half[1] = max_fpga_cols < (matrix_mtx.cols-cols_half[0]) ? max_fpga_cols : (matrix_mtx.cols-cols_half[0]);
-    cols_half[2] = max_fpga_cols < (matrix_mtx.cols - cols_half[0] - cols_half[1]) ? max_fpga_cols : (matrix_mtx.cols - cols_half[0] - cols_half[1]);
-    cols_half[3] = max_fpga_cols < (matrix_mtx.cols - cols_half[0] - cols_half[1] - cols_half[2]) ? max_fpga_cols : (matrix_mtx.cols - cols_half[0] - cols_half[1] - cols_half[2]);
+    size_t cols_split[4];
+    cols_split[0] = max_fpga_cols < matrix_mtx.cols ? max_fpga_cols : matrix_mtx.cols;
+    cols_split[1] = max_fpga_cols < (matrix_mtx.cols-cols_split[0]) ? max_fpga_cols : (matrix_mtx.cols-cols_split[0]);
+    cols_split[2] = max_fpga_cols < (matrix_mtx.cols - cols_split[0] - cols_split[1]) ? max_fpga_cols : (matrix_mtx.cols - cols_split[0] - cols_split[1]);
+    cols_split[3] = max_fpga_cols < (matrix_mtx.cols - cols_split[0] - cols_split[1] - cols_split[2]) ? max_fpga_cols : (matrix_mtx.cols - cols_split[0] - cols_split[1] - cols_split[2]);
 
 
     size_t col_offset = 0;
@@ -237,16 +237,16 @@ GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *
         for (size_t idx=0; idx<rows; idx++) {
             size_t offset = idx*matrix_mtx.stride+col_offset;
             size_t offset_small = idx*mtx_split[kdx].stride;
-            for (size_t jdx=0; jdx<cols_half[kdx]; jdx++) {
+            for (size_t jdx=0; jdx<cols_split[kdx]; jdx++) {
                 mtx_data_split[kdx][offset_small+jdx] = matrix_mtx[offset+jdx];
             }
 
-            for (size_t jdx=cols_half[kdx]; jdx<max_fpga_cols; jdx++) {
+            for (size_t jdx=cols_split[kdx]; jdx<max_fpga_cols; jdx++) {
                 mtx_data_split[kdx][offset_small+jdx] = padding_element;
             }
             padding_element.real(0.0);
         }
-        col_offset = col_offset + cols_half[kdx];
+        col_offset = col_offset + cols_split[kdx];
 
         memset( mtx_data_split[kdx] + rows*mtx_split[kdx].stride, 0.0, (max_fpga_rows-rows)*max_fpga_cols*sizeof(pic::Complex16));
     }
@@ -257,7 +257,7 @@ for (int idx=0; idx<4; idx++) {
 }
 */
     pic::Complex16 perm;
-    calcPermanentGlynn_singleDFE( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, &perm);
+    calcPermanentGlynn_singleDFE( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, &perm);
 
 
     return Py_BuildValue("D", &perm);
@@ -405,7 +405,7 @@ for (int idx=0; idx<8; idx++) {
 */
 
     pic::Complex16 perm;
-    calcPermanentGlynnDFEDualCard( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, &perm);
+    calcPermanentGlynnDFEDualCard( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, &perm);
 
 
 
