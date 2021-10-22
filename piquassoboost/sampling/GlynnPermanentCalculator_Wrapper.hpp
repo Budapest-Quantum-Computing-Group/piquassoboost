@@ -249,6 +249,36 @@ for (int idx=0; idx<4; idx++) {
 
     return perm;
 }
+
+pic::matrix createDoubledFirstRow(pic::matrix &mtx){
+    pic::matrix mtxDoubledFirstRow(mtx.rows + 1, mtx.cols);
+    for (int j = 0; j < mtx.cols; j++){
+        mtxDoubledFirstRow[0 * mtxDoubledFirstRow.stride + j] =
+            mtx[0 * mtx.stride + j];
+    }
+    for (int i = 0; i < mtx.rows; i++){
+        for (int j = 0; j < mtx.cols; j++){
+            mtxDoubledFirstRow[(i+1) * mtxDoubledFirstRow.stride + j] =
+                mtx[i * mtx.stride + j];
+        }
+    }
+    return mtxDoubledFirstRow;
+}
+pic::matrix createDoubledValuedFirstRow(pic::matrix &mtx){
+    pic::matrix matrixDoubledValuedFirstRow(mtx.rows, mtx.cols);
+    for (int i = 0; i < mtx.rows; i++){
+        for (int j = 0; j < mtx.cols; j++){
+            matrixDoubledValuedFirstRow[i * matrixDoubledValuedFirstRow.stride + j] =
+                mtx[i * mtx.stride + j];
+        }
+    }
+    // add first row again
+    for (int j = 0; j < mtx.cols; j++){
+        matrixDoubledValuedFirstRow[0 matrixDoubledValuedFirstRow.stride + j] +=
+            mtx[0 * mtx.stride + j];
+    }
+    return matrixDoubledValuedFirstRow;
+}
 /**
 @brief Wrapper function to call the calculate the Permanent on a DFE
 @param self A pointer pointing to an instance of the class GlynnPermanentCalculator_Wrapper.
@@ -261,6 +291,9 @@ GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *
 
     // create PIC version of the input matrices
     pic::matrix matrix_mtx = numpy2matrix(self->matrix);
+
+    pic::matrix matrixDoubledFirstRow = createDoubledFirstRow(matrix_mtx);
+    pic::matrix matrixDoubledValuedFirstRow = createDoubledValuedFirstRow(matrix_mtx);
 
     pic::Complex16 permanenent = calcPermanenent_DFE(matrix_mtx);
 
