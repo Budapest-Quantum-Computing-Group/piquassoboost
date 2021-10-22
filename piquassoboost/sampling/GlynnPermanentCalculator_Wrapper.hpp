@@ -157,19 +157,7 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
 
 
 
-/**
-@brief Wrapper function to call the calculate the Permanent on a DFE
-@param self A pointer pointing to an instance of the class GlynnPermanentCalculator_Wrapper.
-@param args A tuple of the input arguments: ??????????????
-@param kwds A tuple of keywords
-*/
-static PyObject *
-GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *self)
-{
-
-    // create PIC version of the input matrices
-    pic::matrix matrix_mtx = numpy2matrix(self->matrix);
-
+pic::Complex16 calcPermanenent_DFE(pic::matrix &matrix_mtx){
 
     pic::Complex16* mtx_data = matrix_mtx.get_data();
     
@@ -259,8 +247,25 @@ for (int idx=0; idx<4; idx++) {
     pic::Complex16 perm;
     calcPermanentGlynn_singleDFE( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, &perm);
 
+    return perm;
+}
+/**
+@brief Wrapper function to call the calculate the Permanent on a DFE
+@param self A pointer pointing to an instance of the class GlynnPermanentCalculator_Wrapper.
+@param args A tuple of the input arguments: ??????????????
+@param kwds A tuple of keywords
+*/
+static PyObject *
+GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *self)
+{
 
-    return Py_BuildValue("D", &perm);
+    // create PIC version of the input matrices
+    pic::matrix matrix_mtx = numpy2matrix(self->matrix);
+
+    pic::Complex16 permanenent = calcPermanenent_DFE(matrix_mtx);
+
+
+    return Py_BuildValue("D", &permanenent);
 }
 
 
