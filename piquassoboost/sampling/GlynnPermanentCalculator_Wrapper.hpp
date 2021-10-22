@@ -274,7 +274,7 @@ pic::matrix createDoubledValuedFirstRow(pic::matrix &mtx){
     }
     // add first row again
     for (int j = 0; j < mtx.cols; j++){
-        matrixDoubledValuedFirstRow[0 matrixDoubledValuedFirstRow.stride + j] +=
+        matrixDoubledValuedFirstRow[0 * matrixDoubledValuedFirstRow.stride + j] +=
             mtx[0 * mtx.stride + j];
     }
     return matrixDoubledValuedFirstRow;
@@ -295,10 +295,28 @@ GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *
     pic::matrix matrixDoubledFirstRow = createDoubledFirstRow(matrix_mtx);
     pic::matrix matrixDoubledValuedFirstRow = createDoubledValuedFirstRow(matrix_mtx);
 
-    pic::Complex16 permanenent = calcPermanenent_DFE(matrix_mtx);
+    std::cout << "Matrix original";
+    matrix_mtx.print_matrix();
+    std::cout << "matrix with doubled first row";
+    matrixDoubledFirstRow.print_matrix();
+    std::cout << "matrix with first row doubled values" ;
+    matrixDoubledValuedFirstRow.print_matrix();
 
+    pic::Complex16 permanentOriginal = calcPermanenent_DFE(matrix_mtx);
+    pic::Complex16 permanentDoubledFirstRow = calcPermanenent_DFE(matrixDoubledFirstRow);
+    pic::Complex16 permanentDoubledValuedFR = calcPermanenent_DFE(matrixDoubledValuedFirstRow);
 
-    return Py_BuildValue("D", &permanenent);
+    pic::Complex16 two(2.0, 0.0);
+    pic::Complex16 perm2 = two * permanentOriginal - permanentDoubledValuedFR;
+    std::cout << "perm1: " << permanentDoubledFirstRow << std::endl;
+    std::cout << "perm2: " << perm2 << std::endl;
+    std::cout << "permOrig : " << permanentOriginal << std::endl;
+    std::cout << "permDRow : " << permanentDoubledFirstRow << std::endl;
+    std::cout << "permDVFR : " << permanentDoubledValuedFR << std::endl;
+
+    pic::Complex16 permanent = permanentDoubledFirstRow;
+
+    return Py_BuildValue("D", &permanent);
 }
 
 
