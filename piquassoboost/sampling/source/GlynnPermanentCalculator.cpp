@@ -48,9 +48,6 @@ GlynnPermanentCalculatorTask::GlynnPermanentCalculatorTask() {}
 Complex16
 GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
 
-    std::cout << "-----------------------------------------------\n";
-    std::cout << "calculation started with "<< mtx.rows << "x"<< mtx.cols << " matrix\n";
-    mtx.print_matrix();
 
     Complex16* mtx_data = mtx.get_data();
 
@@ -125,12 +122,11 @@ GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
 void 
 GlynnPermanentCalculatorTask::IterateOverDeltas( matrix32& colSum, int sign, int index_min ) {
 
-    std::cout << "colSum: ";
-    colSum.print_matrix();
     Complex32* colSum_data = colSum.get_data();
 
     // Calculate the partial permanent
     Complex32 colSumProd(1.0,0.0);
+    // note: colSum.rows == originalMatrix.cols
     for (int idx=0; idx<colSum.rows; idx++) {
         colSumProd = colSumProd * colSum_data[idx];
     }
@@ -140,7 +136,7 @@ GlynnPermanentCalculatorTask::IterateOverDeltas( matrix32& colSum, int sign, int
     permanent_priv += sign*colSumProd;
 
 
-    tbb::parallel_for( tbb::blocked_range<int>(index_min,colSum.rows), [&](tbb::blocked_range<int> r) {
+    tbb::parallel_for( tbb::blocked_range<int>(index_min,mtx2.rows), [&](tbb::blocked_range<int> r) {
         for (int idx=r.begin(); idx<r.end(); ++idx){
 
             // create an altered vector from the current delta

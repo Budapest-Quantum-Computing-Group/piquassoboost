@@ -160,10 +160,12 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
 pic::Complex16 calcPermanenent_DFE(pic::matrix &matrix_mtx){
 
     // testing purpose!!!
+    /*
     if (0 && matrix_mtx.rows != matrix_mtx.cols){
         std::cout << "given matrix:\n";
 	matrix_mtx.print_matrix();
     }
+    */
 
     pic::Complex16* mtx_data = matrix_mtx.get_data();
 
@@ -251,6 +253,7 @@ for (int idx=0; idx<4; idx++) {
 }
 */
     // testing purpose!!!
+    /*
     if (0 && matrix_mtx.rows != matrix_mtx.cols){
         std::cout << "created matrices:\n";
 	
@@ -259,6 +262,7 @@ for (int idx=0; idx<4; idx++) {
         }
 
     }
+    */
    pic::Complex16 perm;
     calcPermanentGlynn_singleDFE( mtx_data_split, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, &perm);
 
@@ -422,7 +426,7 @@ GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *
     std::cout << "perm2    : " << perm2 << std::endl;
     std::cout << "perm3    : " << perm3 << std::endl;
 
-    std::cout << "calc per.: " << perm1 + perm2 - 2 * perm3 << std::endl;
+    std::cout << "calc per.: " << 1.0/4.0 * (perm1 + perm2 - 2 * perm3) << std::endl;
 
     {
       auto &calc = self->calculator;
@@ -442,7 +446,7 @@ GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *
       std::cout << "perm2    : " << perm2 << std::endl;
       std::cout << "perm3    : " << perm3 << std::endl;
 
-      std::cout << "calc per.: " << perm1 + perm2 - 2 * perm3 << std::endl;
+      std::cout << "calc per.: " << 1.0/4.0 * (perm1 + perm2 - 2 * perm3) << std::endl;
     }
 
 
