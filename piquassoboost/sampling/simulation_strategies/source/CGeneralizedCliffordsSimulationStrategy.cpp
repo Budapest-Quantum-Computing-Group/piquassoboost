@@ -18,11 +18,13 @@
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculatorDFE.h"
 #include "GlynnPermanentCalculatorRepeated.h"
 #include "common_functionalities.h"
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
+
 
 
 namespace pic {
@@ -60,7 +62,9 @@ sum( PicState_int64 &vec) {
 */
 CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy() {
    // seed the random generator
-    seed(time(NULL));
+   seed(time(NULL));
+  
+
 }
 
 
@@ -75,6 +79,7 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 
     // seed the random generator
     seed(time(NULL));
+
 }
 
 
@@ -82,6 +87,10 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 @brief Destructor of the class
 */
 CGeneralizedCliffordsSimulationStrategy::~CGeneralizedCliffordsSimulationStrategy() {
+
+    // unload DFE
+    releive_DFE();
+
 }
 
 /**
@@ -467,26 +476,42 @@ calculate_outputs_probability(
     PicState_int64 &output_state
 ) {
 
-    matrix modifiedInterferometerMatrix = adaptInterferometer(
-        interferometer_mtx,
-        input_state,
-        output_state
-    );
 
-    std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
-        return elem > 0;
-    };
+    Complex16 permanent;
 
-    PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
-    PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
+ 
+    if ( interferometer_mtx.rows >= 22 ) {
 
-    GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
+       // initialize DFE array
+       initialize_DFE();
 
-    Complex16 permanent = permanentCalculatorRecursive.calculate(
-        modifiedInterferometerMatrix,
-        adapted_input_state,
-        adapted_output_state
-    );
+       GlynnPermanentCalculator_DFEDualCard(interferometer_mtx, permanent);
+
+    }
+    else {
+
+        matrix modifiedInterferometerMatrix = adaptInterferometer(
+            interferometer_mtx,
+            input_state,
+            output_state
+        );
+
+        std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
+            return elem > 0;
+        };
+
+        PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
+        PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
+    
+        
+        GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
+        permanent = permanentCalculatorRecursive.calculate(
+            modifiedInterferometerMatrix,
+            adapted_input_state,
+            adapted_output_state
+        );
+
+    }
 
     double probability =
         permanent.real()*permanent.real() + permanent.imag()*permanent.imag();

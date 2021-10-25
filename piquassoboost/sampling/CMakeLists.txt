@@ -8,10 +8,7 @@ add_library( Boson_Sampling_Utilities_wrapper MODULE
 
 target_link_libraries(Boson_Sampling_Utilities_wrapper 
                           piquassoboost 
-                          ${BLAS_LIBRARIES}
-			   "-L/opt/maxcompiler-2021.1/lib"
-                           "-L/opt/maxeler/maxeleros/lib"
-                           "/home/rakytap/workspace/PermanentGlynnCPU/dist/release/lib/libPermanentGlynnDFE.so")
+                          ${BLAS_LIBRARIES})
 
 python_extension_module(Boson_Sampling_Utilities_wrapper)
 

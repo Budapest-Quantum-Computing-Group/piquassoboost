@@ -38,7 +38,7 @@ def generate_random_unitary( dim ):
 
 
 # generate the random matrix
-dim = 10
+dim = 29
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
 Arep = A
 
@@ -52,7 +52,7 @@ Arep = A
         
 # calculate the permanent using walrus library
 iter_loops = 1
-time_walrus = 1000000        
+time_walrus = 1000000000        
 for idx in range(iter_loops):
     start = time.time()   
     permanent_walrus_quad_Ryser = perm_complex(Arep, quad=True)
@@ -98,7 +98,7 @@ for idx in range(iter_loops):
 
 
 permanent_Glynn_calculator = GlynnPermanent( Arep )
-time_Glynn_Cpp = 1000000
+time_Glynn_Cpp = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
@@ -113,7 +113,7 @@ for idx in range(iter_loops):
 
 
 permanent_Glynn_calculator = GlynnPermanent( Arep )
-time_Glynn_DFE = 1000000
+time_Glynn_DFE = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
