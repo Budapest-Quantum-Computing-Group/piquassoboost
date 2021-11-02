@@ -16,6 +16,7 @@
 # CMAKE to create standalone executables
 
 
+
 # add tests to the build
 add_test(hafnian_complex_matrix hafnian_complex_matrix ...)
 add_test(torontonian torontonian ...)
@@ -150,6 +151,10 @@ target_link_libraries(permanents_accuracy
         ${TBBMALLOC_PROXY_LIB}
         ${TBB_LIB}
         ${MPI_C_LIBRARIES}
+	${BLAS_LIBRARIES}
+	"-L/opt/maxcompiler-2021.1/lib"
+	"-L/opt/maxeler/maxeleros/lib"
+	"/home/ston/workspace/PermanentGlynnCPU/dist/release/lib/libPermanentGlynnDFE.so"
 )
 
 target_link_libraries(permanents_speed
@@ -358,6 +363,13 @@ target_compile_options(insert_transformed_rows PRIVATE
 
 # adding compile options
 target_compile_options(permanents_speed PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+# adding compile options
+target_compile_options(common_functionalities PRIVATE
     ${CXX_FLAGS}
     "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
