@@ -21,9 +21,9 @@ from .GeneralizedCliffordsSimulationStrategy_wrapper import (
 class GeneralizedCliffordsSimulationStrategy(
     GeneralizedCliffordsSimulationStrategy_wrapper
 ):
-    def __init__(self, interferometer_matrix):
+    def __init__(self, interferometer_matrix, seed):
 
-        super().__init__(interferometer_matrix)
+        super().__init__(interferometer_matrix, seed)
 
 
     def simulate(self, input_state, samples_number: int = 1):

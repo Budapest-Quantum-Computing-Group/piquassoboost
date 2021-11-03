@@ -17,7 +17,7 @@ import numpy as np
 
 import piquasso as pq
 
-from piquassoboost import patch
+import piquassoboost as pqb
 
 import time
 from scipy.stats import unitary_group
@@ -32,9 +32,6 @@ class TestThresholdBosonSampling:
 
     def test_value(self):
         """Check threshold boson sampling calculated by piquasso python and piquasso boost"""
-
-        # Use piquasso python code
-        pq.use(pq._DefaultPlugin)
 
         # Number of modes
         d = 10
@@ -63,20 +60,17 @@ class TestThresholdBosonSampling:
             # Measure all modes with shots shots
             pq.Q() | pq.ThresholdMeasurement()
 
-        state = pq.GaussianState(d=d)
+        simulator = pq.GaussianSimulator(d=d)
 
         # Measuring runtime
         startTime = time.time()
-        result = state.apply(program=pq_program, shots=shots)
+        result = simulator.execute(program=pq_program, shots=shots)
         pypq_results = np.array(result.samples)
         endTime = time.time()
 
         piquasso_time = endTime - startTime
 
         ###################################
-
-        # Use piquasso boost library
-        patch()
 
         # Piquasso boost program
         with pq.Program() as pq_program:
@@ -90,11 +84,11 @@ class TestThresholdBosonSampling:
             # Measure all modes with shots shots
             pq.Q() | pq.ThresholdMeasurement()
 
-        state = pq.GaussianState(d=d)
+        simulator = pqb.BoostedGaussianSimulator(d=d)
 
         # Measuring runtime
         startTime = time.time()
-        result = state.apply(program=pq_program, shots=shots)
+        result = simulator.execute(program=pq_program, shots=shots)
         cpq_results = np.array(result.samples)
         endTime = time.time()
 

@@ -118,14 +118,20 @@ static int
 GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"interferometer_matrix", NULL};
+    static char *kwlist[] = {(char*)"interferometer_matrix", (char*)"shots", NULL};
 
     // initiate variables for input arguments
     PyObject *interferometer_matrix_arg = NULL;
+    PyObject *seed = NULL;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,
-                                     &interferometer_matrix_arg))
+    if (
+        !PyArg_ParseTupleAndKeywords(
+            args, kwds, "|OO", kwlist,
+            &interferometer_matrix_arg,
+            &seed
+        )
+    )
         return -1;
 
     // convert python object array to numpy C API array
@@ -151,10 +157,7 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
         interferometer_matrix_mtx
     );
 
-    PyObject* constants = PyImport_ImportModule("piquasso.api.constants");
-    PyObject* result = PyObject_CallMethod(constants, "get_seed", "");
-
-    self->simulation_strategy->seed(PyLong_AsUnsignedLongLong(result));
+    self->simulation_strategy->seed(PyLong_AsUnsignedLongLong(seed));
 
     return 0;
 }

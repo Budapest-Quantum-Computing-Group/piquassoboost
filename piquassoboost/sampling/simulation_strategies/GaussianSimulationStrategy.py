@@ -20,9 +20,13 @@ from .GaussianSimulationStrategyFast_wrapper import GaussianSimulationStrategyFa
 class GaussianSimulationStrategy(
     GaussianSimulationStrategy_wrapper
 ):
-    def __init__(self, covariance_matrix, m=None, fock_cutoff=5):
-
-        super().__init__(covariance_matrix=covariance_matrix, m=m, fock_cutoff=fock_cutoff)
+    def __init__(self, covariance_matrix, seed, m=None, fock_cutoff=5):
+        super().__init__(
+            covariance_matrix=covariance_matrix,
+            m=m,
+            fock_cutoff=fock_cutoff,
+            seed=seed
+        )
 
 
     def simulate(self, samples_number: int = 1):
@@ -39,10 +43,13 @@ class GaussianSimulationStrategy(
 class GaussianSimulationStrategyFast(
     GaussianSimulationStrategyFast_wrapper
 ):
-    def __init__(self, covariance_matrix, m=None, fock_cutoff=5):
-
-        super().__init__(covariance_matrix=covariance_matrix, m=m, fock_cutoff=fock_cutoff)
-
+    def __init__(self, covariance_matrix, seed, m=None, fock_cutoff=5):
+        super().__init__(
+            covariance_matrix=covariance_matrix,
+            m=m,
+            fock_cutoff=fock_cutoff,
+            seed=seed
+        )
 
     def simulate(self, samples_number: int = 1):
         """
