@@ -130,7 +130,7 @@ Complex16 PermanentCalculator::calculatePermanent(
     // create vector of values which determine whether the specific row has to be added or not
     // 0 means not
     // 1 means it has to be added to the first row with multiplicity rowMultiplicity[i]
-    finalRowNumber = 0;
+    finalRowNumber = 1; // first row always has to be there! (it is not calculated explicitly just here)
     rowSummation = PicState_int(outputState.size());
     
     //std::cout << "rowMultiplicities: "<<std::endl;
@@ -161,6 +161,9 @@ Complex16 PermanentCalculator::calculatePermanent(
 
     if (rowMultiplicities[0] > 0){
         int currentMultiplicity = rowMultiplicities[0];
+
+        normalizationFactor *= 1.0 / power_of_2(currentMultiplicity-1);
+
         int sign = 1;
         int numberOfMinuses = 0;
         for (int multiplicity = currentMultiplicity; multiplicity > -currentMultiplicity; multiplicity -= 2){
