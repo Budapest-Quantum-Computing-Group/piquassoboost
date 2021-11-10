@@ -158,7 +158,24 @@ Complex16 PermanentCalculator::calculatePermanent(
         finalColNumber += colMultiplicities[i];
     }
 
-    calculatePermanentWithStartIndex(rowMultiplicities, 0, 1);
+    if (rowMultiplicities[0] > 0){
+        int currentMultiplicity = rowMultiplicities[0];
+        int sign = 1;
+        int numberOfMinuses = 0;
+        for (int multiplicity = currentMultiplicity; multiplicity > -currentMultiplicity; multiplicity -= 2){
+            int coefficient = sign * binomialCoeff(currentMultiplicity-1, numberOfMinuses);
+            PicState_int newRowMultiplicities = rowMultiplicities.copy();
+            newRowMultiplicities[0] = multiplicity;
+            
+            calculatePermanentWithStartIndex(newRowMultiplicities, 1, coefficient);
+            
+            sign *= -1;
+            numberOfMinuses++;
+        }
+    }else{
+        calculatePermanentWithStartIndex(rowMultiplicities, 1, 1);
+    }
+
 
     mtx.print_matrix();
 
