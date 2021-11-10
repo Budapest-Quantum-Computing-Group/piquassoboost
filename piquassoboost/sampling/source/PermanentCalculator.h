@@ -28,6 +28,7 @@
 namespace pic {
 
 class PermanentCalculator{
+public:
     matrix& mtx;
     //PicState_int rowMultiplicities;
     PicState_int colMultiplicities;

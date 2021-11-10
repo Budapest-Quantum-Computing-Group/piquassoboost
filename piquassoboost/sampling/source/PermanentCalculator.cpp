@@ -70,9 +70,9 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
             // create new copy of rowMultiplicities.
             // rowMultiplicities has to be each values corresponding to rowMultiplicities[i]
 
-            for (int multiplicity = -rowMultiplicity; multiplicity < rowMultiplicity; multiplicity += 2){
+            for (int multiplicity = -rowMultiplicity; multiplicity <= rowMultiplicity; multiplicity += 2){
                 PicState_int newRowMultiplicities = rowMultiplicities.copy();
-                rowMultiplicities[startIndex] = multiplicity;
+                newRowMultiplicities[startIndex] = multiplicity;
         
                 calculatePermanentWithStartIndex(
                     newRowMultiplicities,
@@ -87,7 +87,7 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
             // sum up the calculated values with coefficients
             for (int multiplicity = 1; multiplicity <= rowMultiplicity; multiplicity += 2){
                 PicState_int newRowMultiplicities = rowMultiplicities.copy();
-                rowMultiplicities[startIndex] = multiplicity;
+                newRowMultiplicities[startIndex] = multiplicity;
         
                 calculatePermanentWithStartIndex(
                     newRowMultiplicities,
@@ -118,7 +118,7 @@ Complex16 PermanentCalculator::calculatePermanentFromExplicitMatrix(
         std::cout << rowMultiplicities[i] << " ";
     }
     std::cout << std::endl;
-    mtx.print_matrix();
+    //mtx.print_matrix();
     
     return 0;
 }
