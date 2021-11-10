@@ -36,7 +36,7 @@ Complex16 PermanentCalculator::calculatePermanent(
                 0;
     }
 
-    calculatePermanentWithStartIndex(rowMultiplicities, 0);
+    calculatePermanentWithStartIndex(rowMultiplicities, 0, 1);
 
 
 }
@@ -72,12 +72,14 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
             // create new copy of rowMultiplicities.
             // rowMultiplicities has to be each values corresponding to rowMultiplicities[i]
             int sign = 1;
+            int countOfMinuses = 0;
             for (int multiplicity = -rowMultiplicity; multiplicity <= rowMultiplicity; multiplicity += 2){
                 PicState_int newRowMultiplicities = rowMultiplicities.copy();
                 newRowMultiplicities[startIndex] = multiplicity;
                 // coefficient is multiplied by the binomial coefficient multiplicity over rowMultiplicity and
                 // the sign determined by multiplicity modulo 4
-                int newCoefficient = coefficient * sign * binomialCoeff(multiplicity, rowMultiplicity);
+                //std::cout << "binom: ("<<rowMultiplicity <<","<<multiplicity<<")"<<std::endl;
+                int newCoefficient = coefficient * sign * binomialCoeff(rowMultiplicity, countOfMinuses);
 
                 calculatePermanentWithStartIndex(
                     newRowMultiplicities,
@@ -85,6 +87,7 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
                     newCoefficient
                 );
                 sign *= -1;
+                countOfMinuses++;
             }
         }
         // odd case
@@ -96,7 +99,8 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
             for (int multiplicity = rowMultiplicity; multiplicity > 0; multiplicity -= 2){
                 PicState_int newRowMultiplicities = rowMultiplicities.copy();
                 newRowMultiplicities[startIndex] = multiplicity;
-                int newCoefficient = coefficient * sign * binomialCoeff(multiplicity, rowMultiplicity);
+                //std::cout << "binom: ("<<rowMultiplicity <<","<<multiplicity<<")"<<std::endl;
+                int newCoefficient = coefficient * sign * binomialCoeff(rowMultiplicity, multiplicity);
         
                 calculatePermanentWithStartIndex(
                     newRowMultiplicities,
