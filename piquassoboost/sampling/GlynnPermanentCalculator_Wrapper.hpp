@@ -272,7 +272,7 @@ for (int idx=0; idx<4; idx++) {
 
 pic::matrix createMatrixMultipled(pic::matrix &mtx){
     constexpr int multipleIndex = 1;
-    constexpr int multipleNumber = 2;
+    constexpr int multipleNumber = 3;
     pic::matrix mtxMultipled(mtx.rows + (multipleNumber - 1), mtx.cols);
 
     for (int i = 0; i < multipleIndex; i++){
@@ -317,60 +317,41 @@ pic::matrix createMatrixFromIndices(pic::matrix &mtx, int index, int multiplicit
 
     return newMatrix;
 }
-void permTest(GlynnPermanentCalculator_wrapper *self){
-    pic::matrix m(3, 5);
+pic::matrix adaptedMatrix(pic::matrix &mtx, int rowIndex, int multiplicity){
+    if ( 0 < multiplicity ){
 
-    m[0 * m.stride + 0] = 0.1;
-    m[0 * m.stride + 1] = 0.1;
-    m[0 * m.stride + 2] = 0.0;
-    m[0 * m.stride + 3] = 0.1;
-    m[0 * m.stride + 4] = 0.1;
+        // Returning a new matrix with modified specific row.
+        pic::matrix newMatrix = mtx.copy();
 
-    m[1 * m.stride + 0] = 0.0;
-    m[1 * m.stride + 1] = 0.2;
-    m[1 * m.stride + 2] = 0.1;
-    m[1 * m.stride + 3] = 0.0;
-    m[1 * m.stride + 4] = 0.0;
+        pic::Complex16 *row = newMatrix.get_data() + rowIndex * newMatrix.stride;
+        for (int i = 0; i < mtx.cols; i++){
+            row[i] *= multiplicity;
+        }
+        return newMatrix;
+    }else if ( 0 == multiplicity ){
+ 
+        // Returning a new matrix with deleted specific row.
+        pic::matrix newMatrix = pic::matrix(mtx.rows-1, mtx.cols);
 
-    m[2 * m.stride + 0] = 0.2;
-    m[2 * m.stride + 1] = 0.0;
-    m[2 * m.stride + 2] = 0.0;
-    m[2 * m.stride + 3] = 0.2;
-    m[2 * m.stride + 4] = 0.2;
-    
-    /*
-    m[3 * m.stride + 0] = 0.1;
-    m[3 * m.stride + 1] = 0.0;
-    m[3 * m.stride + 2] = 0.0;
-    m[3 * m.stride + 3] = 0.0;
-    m[3 * m.stride + 4] = 0.0;
-    */
-    /*
-    m[4 * m.stride + 0] = 0.0;
-    m[4 * m.stride + 1] = 0.1;
-    m[4 * m.stride + 2] = 0.0;
-    m[4 * m.stride + 3] = 0.0;
-    m[4 * m.stride + 4] = 0.0;
-    */
+        for (int i = 0; i < rowIndex; i++){
+            memcpy(
+                newMatrix.get_data() + i * newMatrix.stride,
+                mtx.get_data() + i * mtx.stride,
+                mtx.cols * sizeof(pic::Complex16)
+            );
+        }
+        for (int i = rowIndex + 1; i < mtx.rows; i++){
+            memcpy(
+                newMatrix.get_data() + (i-1) * newMatrix.stride,
+                mtx.get_data() + i * mtx.stride,
+                mtx.cols * sizeof(pic::Complex16)
+            );
+        }
 
-    for (int i = 0; i < m.size(); i++){
-        m[i] *= 10;
+        return newMatrix;
+    }else{
+        return pic::matrix(0,0);
     }
-
-    std::cout << "m matrix:";
-    m.print_matrix();
-
-    auto copy_m = m.copy();
-
-    pic::Complex16 permDFE = calcPermanenent_DFE(m);
-   
-    auto &calc = self->calculator;
-    pic::Complex16 permCla = calc->calculate(copy_m);
-
-    std::cout << "permDFE : " << permDFE << std::endl;
-    std::cout << "permCla : " << permCla << std::endl;
-
-
 
 }
 
@@ -383,12 +364,139 @@ void permTest(GlynnPermanentCalculator_wrapper *self){
 static PyObject *
 GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *self)
 {
-    // Testing purpose
-    permTest(self);
-
 
     // create PIC version of the input matrices
     pic::matrix matrix_mtx = numpy2matrix(self->matrix);
+    matrix_mtx = pic::matrix(4,7);
+    matrix_mtx[0 * matrix_mtx.stride + 0] = 2;
+    matrix_mtx[0 * matrix_mtx.stride + 1] = 1;
+    matrix_mtx[0 * matrix_mtx.stride + 2] = 3;
+    matrix_mtx[0 * matrix_mtx.stride + 3] = 7;
+    matrix_mtx[0 * matrix_mtx.stride + 4] = 9;
+    matrix_mtx[0 * matrix_mtx.stride + 5] = 8;
+    matrix_mtx[0 * matrix_mtx.stride + 6] = 6;
+    
+    matrix_mtx[1 * matrix_mtx.stride + 0] = 12;
+    matrix_mtx[1 * matrix_mtx.stride + 1] = 11;
+    matrix_mtx[1 * matrix_mtx.stride + 2] = 13;
+    matrix_mtx[1 * matrix_mtx.stride + 3] = 17;
+    matrix_mtx[1 * matrix_mtx.stride + 4] = 19;
+    matrix_mtx[1 * matrix_mtx.stride + 5] = 18;
+    matrix_mtx[1 * matrix_mtx.stride + 6] = 16;
+    
+    matrix_mtx[2 * matrix_mtx.stride + 0] = 32;
+    matrix_mtx[2 * matrix_mtx.stride + 1] = 31;
+    matrix_mtx[2 * matrix_mtx.stride + 2] = 33;
+    matrix_mtx[2 * matrix_mtx.stride + 3] = 37;
+    matrix_mtx[2 * matrix_mtx.stride + 4] = 39;
+    matrix_mtx[2 * matrix_mtx.stride + 5] = 38;
+    matrix_mtx[2 * matrix_mtx.stride + 6] = 36;
+
+    matrix_mtx[3 * matrix_mtx.stride + 0] = 72;
+    matrix_mtx[3 * matrix_mtx.stride + 1] = 71;
+    matrix_mtx[3 * matrix_mtx.stride + 2] = 73;
+    matrix_mtx[3 * matrix_mtx.stride + 3] = 77;
+    matrix_mtx[3 * matrix_mtx.stride + 4] = 79;
+    matrix_mtx[3 * matrix_mtx.stride + 5] = 78;
+    matrix_mtx[3 * matrix_mtx.stride + 6] = 76;
+
+
+
+    pic::matrix matrixWithMultipledRows = createMatrixMultipled(matrix_mtx);
+    pic::matrix matrixRow1Mult1 = adaptedMatrix(matrix_mtx, 1, 1);
+    pic::matrix matrixRow1Mult3 = adaptedMatrix(matrix_mtx, 1, 3);
+    pic::matrix cmatrixWithMultipledRows = createMatrixMultipled(matrix_mtx);
+    pic::matrix cmatrixRow1Mult1 = adaptedMatrix(matrix_mtx, 1, 1);
+    pic::matrix cmatrixRow1Mult3 = adaptedMatrix(matrix_mtx, 1, 3);
+
+    std::cout << "matrices:"<<std::endl;
+    matrixWithMultipledRows.print_matrix();
+    matrixRow1Mult1.print_matrix();
+    matrixRow1Mult3.print_matrix();
+  
+    pic::Complex16 permMatrix = calcPermanenent_DFE(matrixWithMultipledRows);
+    pic::Complex16 permMatrixR1M1 = calcPermanenent_DFE(matrixRow1Mult1);
+    pic::Complex16 permMatrixR1M3 = calcPermanenent_DFE(matrixRow1Mult3);
+    auto &calc = self->calculator;
+    pic::Complex16 cpermMatrix = calc->calculate(cmatrixWithMultipledRows);
+    pic::Complex16 cpermMatrixR1M1 = calc->calculate(cmatrixRow1Mult1);
+    pic::Complex16 cpermMatrixR1M3 = calc->calculate(cmatrixRow1Mult3);
+
+
+    std::cout << "permMatrix      : " << permMatrix << std::endl;
+    std::cout << "permMatrixR1M1  : " << permMatrixR1M1 << std::endl;
+    std::cout << "permMatrixR1M3  : " << permMatrixR1M3 << std::endl;
+    std::cout << "cpermMatrix     : " << cpermMatrix << std::endl;
+    std::cout << "cpermMatrixR1M1 : " << cpermMatrixR1M1 << std::endl;
+    std::cout << "cpermMatrixR1M3 : " << cpermMatrixR1M3 << std::endl;
+
+    pic::Complex16 calcPermanent1 =
+        (1.0 / 4.0) * (permMatrixR1M3 - 3 * permMatrixR1M1);
+    pic::Complex16 calcPermanent2 =
+        (1.0 / 4.0) * (cpermMatrixR1M3 - 3 * cpermMatrixR1M1);
+
+    std::cout << "calculated permanent1  : " << calcPermanent1 << std::endl;
+    std::cout << "calculated permanent2  : " << calcPermanent2 << std::endl;
+
+    pic::matrix matrixSecondRowMultipled = createMatrixMultipled(matrix_mtx);
+    pic::matrix matrixp2 = createMatrixFromIndices(matrix_mtx, 1, 2);
+    pic::matrix matrixm2 = createMatrixFromIndices(matrix_mtx, 1, -2);
+    pic::matrix matrix0 =  createMatrixFromIndices(matrix_mtx, 1, 0);
+
+    auto copy_matrix_mtx = matrix_mtx.copy();
+    auto copy_mSRM = matrixSecondRowMultipled.copy();
+    auto copy_mp2 = matrixp2.copy();
+    auto copy_mm2 = matrixm2.copy();
+    auto copy_m0 = matrix0.copy();
+
+    pic::Complex16 permOrig = calcPermanenent_DFE(matrix_mtx);
+    pic::Complex16 perm0 = calcPermanenent_DFE(matrixSecondRowMultipled);
+    pic::Complex16 perm1 = calcPermanenent_DFE(matrixp2);
+    pic::Complex16 perm2 = calcPermanenent_DFE(matrixm2);
+    pic::Complex16 perm3 = calcPermanenent_DFE(matrix0);
+
+    //std::cout << "permOrig : " << permOrig << std::endl;
+    //std::cout << "perm0    : " << perm0 << std::endl;
+    //std::cout << "perm1    : " << perm1 << std::endl;
+    //std::cout << "perm2    : " << perm2 << std::endl;
+    //std::cout << "perm3    : " << perm3 << std::endl;
+
+    std::cout << "calc per.: " << 1.0/4.0 * (perm1 + perm2 - 2 * perm3) << std::endl;
+
+    {
+      auto &calc = self->calculator;
+ 
+      //std::cout << "matrix_Mtx:\n";
+      //matrix_mtx.print_matrix();
+      
+      pic::Complex16 permOrig = calc->calculate(copy_matrix_mtx);
+      pic::Complex16 perm0 = calc->calculate(copy_mSRM);
+      pic::Complex16 perm1 = calc->calculate(copy_mp2);
+      pic::Complex16 perm2 = calc->calculate(copy_mm2);
+      pic::Complex16 perm3 = calc->calculate(copy_m0);
+
+      std::cout << "permOrig : " << permOrig << std::endl;
+      std::cout << "perm0    : " << perm0 << std::endl;
+      std::cout << "perm1    : " << perm1 << std::endl;
+      std::cout << "perm2    : " << perm2 << std::endl;
+      std::cout << "perm3    : " << perm3 << std::endl;
+
+      std::cout << "calc per.: " << 1.0/4.0 * (perm1 + perm2 - 2 * perm3) << std::endl;
+    }
+
+
+    pic::Complex16 permanent = permOrig;
+
+    return Py_BuildValue("D", &permanent);
+}
+
+static PyObject *
+GlynnPermanentCalculator_Wrapper_calculateDFE_multiple_rows(GlynnPermanentCalculator_wrapper *self)
+{
+
+    // create PIC version of the input matrices
+    pic::matrix matrix_mtx = numpy2matrix(self->matrix);
+
 
     pic::matrix matrixSecondRowMultipled = createMatrixMultipled(matrix_mtx);
     pic::matrix matrixp2 = createMatrixFromIndices(matrix_mtx, 1, 2);
@@ -663,6 +771,9 @@ static PyMethodDef GlynnPermanentCalculator_wrapper_Methods[] = {
      "Method to calculate the permanent."
     },
     {"calculateDFE", (PyCFunction) GlynnPermanentCalculator_Wrapper_calculateDFE, METH_NOARGS,
+     "Method to calculate the permanent on the DFE."
+    },
+    {"calculateDFE_multiple_rows", (PyCFunction) GlynnPermanentCalculator_Wrapper_calculateDFE_multiple_rows, METH_NOARGS,
      "Method to calculate the permanent on the DFE."
     },
     {"calculateDFEDualCard", (PyCFunction) GlynnPermanentCalculator_Wrapper_calculateDFEDualCard, METH_NOARGS,

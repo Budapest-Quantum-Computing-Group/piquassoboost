@@ -34,6 +34,8 @@ public:
     PicState_int colMultiplicities;
     PicState_int initialRowMultiplicities;
 
+    // row number of final matrix
+    int finalRowNumber;
     PicState_int rowSummation;
     /// storage for partial permanents
     ComplexM<long double> sumOfPartialPermanents;

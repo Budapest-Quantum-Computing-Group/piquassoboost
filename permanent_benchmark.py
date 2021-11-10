@@ -1,5 +1,5 @@
 import numpy as np
-from thewalrus.libwalrus import perm_complex, perm_real, perm_BBFG_real, perm_BBFG_complex
+#from thewalrus.libwalrus import perm_complex, perm_real, perm_BBFG_real, perm_BBFG_complex
 from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent
 import piquasso as pq
 import random
@@ -31,15 +31,30 @@ def generate_random_unitary( dim ):
 
     return state.interferometer
 
+from piquasso._math.linalg import reduce_
+def adapt_matrix(matrix, initial_state):
+    return reduce_(matrix, initial_state)
+    # indices = []
+    # for i, multiplicity in enumerate(initial_state):
+    #    indices.extend([i] * multiplicity)
+    
 
+    # return matrix[np.ix_(indices, range(len(matrix)))]
+    
 
 
 
 
 
 # generate the random matrix
-dim = 10
+dim = 15
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
+initial_state = [1,2,1,1]
+Adapted_matrix = adapt_matrix(A, initial_state)
+
+print(Adapted_matrix)
+
+
 Arep = A
 
 #np.save("mtx", A )
@@ -55,7 +70,7 @@ iter_loops = 1
 time_walrus = 1000000        
 for idx in range(iter_loops):
     start = time.time()   
-    permanent_walrus_quad_Ryser = perm_complex(Arep, quad=True)
+    permanent_walrus_quad_Ryser = 1 # perm_complex(Arep, quad=True)
     time_loc = time.time() - start
     start = time.time()   
        
