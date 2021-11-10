@@ -36,6 +36,7 @@ public:
 
     // row number of final matrix
     int finalRowNumber;
+    int finalColNumber;
     PicState_int rowSummation;
     /// storage for partial permanents
     ComplexM<long double> sumOfPartialPermanents;

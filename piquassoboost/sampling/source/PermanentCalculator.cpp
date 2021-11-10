@@ -148,6 +148,11 @@ Complex16 PermanentCalculator::calculatePermanent(
         }
     }
 
+    finalColNumber = 0;
+    for (int i = 0; i < colMultiplicities.size(); i++){
+        finalColNumber += colMultiplicities[i];
+    }
+
 
 
 
@@ -249,20 +254,28 @@ Complex16 PermanentCalculator::calculatePermanentFromExplicitMatrix(
     int coefficient
 ){
     // Creating new matrix with the given values
-    matrix finalMatrix(finalRowNumber, mtx.cols);
+    matrix finalMatrix(finalRowNumber, finalColNumber);
     memset(finalMatrix.get_data(), 0, finalMatrix.cols * sizeof(Complex16));
 
     int currentRowIndex = 0;
     for (int rowIndex = 0; rowIndex < mtx.rows; rowIndex++){
         if (rowSummation[rowIndex] == 1){
+            int currentColIndex = 0;
             // adding elements to the first row
             for (int colIndex = 0; colIndex < mtx.cols; colIndex++){
-                finalMatrix[colIndex] += rowMultiplicities[rowIndex] * mtx[rowIndex * mtx.stride + colIndex];
+                for (int q = 0; q < colMultiplicities[colIndex]; q++){
+                    finalMatrix[currentColIndex] += rowMultiplicities[rowIndex] * mtx[rowIndex * mtx.stride + colIndex];
+                    currentColIndex++;
+                }
             }
         }else{
+            int currentColIndex = 0;
             for (int colIndex = 0; colIndex < mtx.cols; colIndex++){
-                finalMatrix[currentRowIndex * finalMatrix.stride + colIndex] =
-                    rowMultiplicities[rowIndex] * mtx[rowIndex * mtx.stride + colIndex];
+                for (int q = 0; q < colMultiplicities[colIndex]; q++){
+                    finalMatrix[currentRowIndex * finalMatrix.stride + currentColIndex] =
+                        rowMultiplicities[rowIndex] * mtx[rowIndex * mtx.stride + colIndex];
+                    currentColIndex++;
+                }
             }
             currentRowIndex++;
         }
