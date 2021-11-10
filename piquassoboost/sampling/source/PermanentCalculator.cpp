@@ -1,5 +1,5 @@
 #include "PermanentCalculator.h"
-
+#include "common_functionalities.h" // binomialCoeff
 namespace pic {
 
 
@@ -45,7 +45,8 @@ Complex16 PermanentCalculator::calculatePermanent(
 
 void PermanentCalculator::calculatePermanentWithStartIndex(
     PicState_int& rowMultiplicities,
-    int startIndex
+    int startIndex,
+    int coefficient
 ){
     const int rows = rowMultiplicities.size();
 
@@ -58,7 +59,8 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
         // calculate permanent
 
         calculatePermanentFromExplicitMatrix(
-            rowMultiplicities
+            rowMultiplicities,
+            coefficient
         );
     }else{
         // here the multiplicity is higher than 1 !
@@ -69,15 +71,20 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
 
             // create new copy of rowMultiplicities.
             // rowMultiplicities has to be each values corresponding to rowMultiplicities[i]
-
+            int sign = 1;
             for (int multiplicity = -rowMultiplicity; multiplicity <= rowMultiplicity; multiplicity += 2){
                 PicState_int newRowMultiplicities = rowMultiplicities.copy();
                 newRowMultiplicities[startIndex] = multiplicity;
-        
+                // coefficient is multiplied by the binomial coefficient multiplicity over rowMultiplicity and
+                // the sign determined by multiplicity modulo 4
+                int newCoefficient = coefficient * sign * binomialCoeff(multiplicity, rowMultiplicity);
+
                 calculatePermanentWithStartIndex(
                     newRowMultiplicities,
-                    startIndex + 1
+                    startIndex + 1,
+                    newCoefficient
                 );
+                sign *= -1;
             }
         }
         // odd case
@@ -85,14 +92,18 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
             // create other matrix with the same rows
             // the i'th row has to be multiplied with the numbers from 1 to rowMultiplicities[i]
             // sum up the calculated values with coefficients
-            for (int multiplicity = 1; multiplicity <= rowMultiplicity; multiplicity += 2){
+            int sign = 1;
+            for (int multiplicity = rowMultiplicity; multiplicity > 0; multiplicity -= 2){
                 PicState_int newRowMultiplicities = rowMultiplicities.copy();
                 newRowMultiplicities[startIndex] = multiplicity;
+                int newCoefficient = coefficient * sign * binomialCoeff(multiplicity, rowMultiplicity);
         
                 calculatePermanentWithStartIndex(
                     newRowMultiplicities,
-                    startIndex + 1
+                    startIndex + 1,
+                    newCoefficient
                 );                
+                sign *= -1;
             }
         }
 
@@ -100,9 +111,11 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
 }
 
 Complex16 PermanentCalculator::calculatePermanentFromExplicitMatrix(
-    PicState_int& rowMultiplicities
+    PicState_int& rowMultiplicities,
+    int coefficient
 ){
     std::cout << "permanent calculation" << std::endl;
+    std::cout << "coefficient: " << coefficient << std::endl;
     std::cout << "rowSummation: ";
     for (int i = 0; i < rowSummation.size(); i++){
         std::cout << rowSummation[i] << " ";

@@ -47,13 +47,15 @@ public:
 
     void PermanentCalculator::calculatePermanentWithStartIndex(
         PicState_int& rowMultiplicities,
-        int startIndex
+        int startIndex,
+        int coefficient
     );
 
     Complex16 calculate(matrix mtx);
 
     Complex16 calculatePermanentFromExplicitMatrix(
-        PicState_int& rowMultiplicities
+        PicState_int& rowMultiplicities,
+        int coefficient
     );
 
 };
