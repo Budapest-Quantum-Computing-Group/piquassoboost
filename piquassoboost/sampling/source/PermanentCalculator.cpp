@@ -140,7 +140,8 @@ Complex16 PermanentCalculator::calculatePermanent(
     //std::cout << std::endl;
     
     normalizationFactor = 1;
-    for (int i = 0; i < rowSummation.size(); i++){
+    rowSummation[0] = 0;
+    for (int i = 1; i < rowSummation.size(); i++){
         if (rowMultiplicities[i] % 2 == 0){
             rowSummation[i] = 1;
             normalizationFactor *= 1.0 / power_of_2(rowMultiplicities[i]);
