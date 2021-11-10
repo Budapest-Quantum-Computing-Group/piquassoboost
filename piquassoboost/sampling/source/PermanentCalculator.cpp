@@ -1,5 +1,6 @@
 #include "PermanentCalculator.h"
 #include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculatorRepeated.h"
 
 #include "common_functionalities.h" // binomialCoeff
 
@@ -112,6 +113,8 @@ Complex16 PermanentCalculator::calculatePermanent(
     PicState_int64 &inputState,
     PicState_int64 &outputState
 ){
+    auto mtxCopy = mtx.copy();
+
     sumOfPartialPermanents = ComplexM<long double>();
 
     // row multiplicities are determined by the output state
@@ -151,7 +154,21 @@ Complex16 PermanentCalculator::calculatePermanent(
     calculatePermanentWithStartIndex(rowMultiplicities, 0, 1);
 
     mtx.print_matrix();
-    return 1;
+
+    GlynnPermanentCalculatorRepeated engine;
+    auto permWithGlynnRepeated = engine.calculate(mtxCopy, inputState, outputState);
+
+
+    Complex32 sumOfPermanents = sumOfPartialPermanents.get();
+
+
+    std::cout << "permWithGlynnRepeated: " << permWithGlynnRepeated << std::endl;
+    std::cout << "sumOfPermanents      : " << sumOfPermanents << std::endl;
+
+    return Complex16(
+        sumOfPermanents.real(),
+        sumOfPermanents.imag()
+    );
 }
 
 
@@ -274,11 +291,18 @@ Complex16 PermanentCalculator::calculatePermanentFromExplicitMatrix(
     //mtx.print_matrix();
     
     matrix finalMatrix2 = finalMatrix.copy();
-    Complex16 partialPermanent_DFE = 1; //calcPermanenent_DFE(finalMatrix);
+    //Complex16 partialPermanent_DFE = 1; //calcPermanenent_DFE(finalMatrix);
     GlynnPermanentCalculator glynnCalculatorCPU;
     Complex16 partialPermanent_CPU = glynnCalculatorCPU.calculate(finalMatrix2);
 
-    std::cout << "DFE: "<< partialPermanent_DFE<< std::endl;
+    Complex32 partialPermanent_CPU32(
+        partialPermanent_CPU.real(),
+        partialPermanent_CPU.imag()
+    );
+    double coefficientDouble = coefficient;
+    sumOfPartialPermanents += partialPermanent_CPU32 * coefficientDouble;
+
+    //std::cout << "DFE: "<< partialPermanent_DFE<< std::endl;
     std::cout << "CPU: "<< partialPermanent_CPU<< std::endl;
 
 
