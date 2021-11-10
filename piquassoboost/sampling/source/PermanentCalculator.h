@@ -30,6 +30,9 @@ namespace pic {
 class PermanentCalculator{
 public:
     matrix& mtx;
+
+    // the 2^n factor which is decreased because of the algorithm
+    Complex16 normalizationFactor;
     //PicState_int rowMultiplicities;
     PicState_int colMultiplicities;
     PicState_int initialRowMultiplicities;
@@ -54,9 +57,7 @@ public:
         int coefficient
     );
 
-    Complex16 calculate(matrix mtx);
-
-    Complex16 calculatePermanentFromExplicitMatrix(
+    void calculatePermanentFromExplicitMatrix(
         PicState_int& rowMultiplicities,
         int coefficient
     );

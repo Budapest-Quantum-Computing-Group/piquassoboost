@@ -139,9 +139,11 @@ Complex16 PermanentCalculator::calculatePermanent(
     //}
     //std::cout << std::endl;
     
+    normalizationFactor = 1;
     for (int i = 0; i < rowSummation.size(); i++){
         if (rowMultiplicities[i] % 2 == 0){
             rowSummation[i] = 1;
+            normalizationFactor *= 1.0 / power_of_2(rowMultiplicities[i]);
         }else{
             rowSummation[i] = 0;
             finalRowNumber++;
@@ -153,9 +155,6 @@ Complex16 PermanentCalculator::calculatePermanent(
         finalColNumber += colMultiplicities[i];
     }
 
-
-
-
     calculatePermanentWithStartIndex(rowMultiplicities, 0, 1);
 
     mtx.print_matrix();
@@ -165,6 +164,7 @@ Complex16 PermanentCalculator::calculatePermanent(
 
 
     Complex32 sumOfPermanents = sumOfPartialPermanents.get();
+    Complex32 finalPermanent = sumOfPermanents * normalizationFactor;
 
 
     std::cout << "permWithGlynnRepeated: " << permWithGlynnRepeated << std::endl;
@@ -249,7 +249,7 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
     }
 }
 
-Complex16 PermanentCalculator::calculatePermanentFromExplicitMatrix(
+void PermanentCalculator::calculatePermanentFromExplicitMatrix(
     PicState_int& rowMultiplicities,
     int coefficient
 ){
@@ -319,7 +319,7 @@ Complex16 PermanentCalculator::calculatePermanentFromExplicitMatrix(
     std::cout << "CPU: "<< partialPermanent_CPU<< std::endl;
 
 
-    return 0;
+    return;
 }
 
 
