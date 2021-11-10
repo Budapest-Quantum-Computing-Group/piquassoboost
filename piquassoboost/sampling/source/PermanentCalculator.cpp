@@ -147,6 +147,9 @@ Complex16 PermanentCalculator::calculatePermanent(
         }else{
             rowSummation[i] = 0;
             finalRowNumber++;
+            if (rowMultiplicities[i] > 1){
+                normalizationFactor *= 1.0 / power_of_2(rowMultiplicities[i]-1);
+            }
         }
     }
 
@@ -168,7 +171,7 @@ Complex16 PermanentCalculator::calculatePermanent(
 
 
     std::cout << "permWithGlynnRepeated: " << permWithGlynnRepeated << std::endl;
-    std::cout << "sumOfPermanents      : " << sumOfPermanents << std::endl;
+    std::cout << "finalPermanent       : " << finalPermanent << std::endl;
 
     return Complex16(
         sumOfPermanents.real(),
@@ -231,11 +234,12 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
             // the i'th row has to be multiplied with the numbers from 1 to rowMultiplicities[i]
             // sum up the calculated values with coefficients
             int sign = 1;
+            int countOfPlusOnes = rowMultiplicity;
             for (int multiplicity = rowMultiplicity; multiplicity > 0; multiplicity -= 2){
                 PicState_int newRowMultiplicities = rowMultiplicities.copy();
                 newRowMultiplicities[startIndex] = multiplicity;
                 //std::cout << "binom: ("<<rowMultiplicity <<","<<multiplicity<<")"<<std::endl;
-                int newCoefficient = coefficient * sign * binomialCoeff(rowMultiplicity, multiplicity);
+                int newCoefficient = coefficient * sign * binomialCoeff(rowMultiplicity, countOfPlusOnes);
         
                 calculatePermanentWithStartIndex(
                     newRowMultiplicities,
@@ -243,6 +247,7 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
                     newCoefficient
                 );                
                 sign *= -1;
+                countOfPlusOnes -= 1;
             }
         }
 
