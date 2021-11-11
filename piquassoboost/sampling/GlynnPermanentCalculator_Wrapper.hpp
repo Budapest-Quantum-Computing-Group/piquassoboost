@@ -9,6 +9,7 @@
 #include "GlynnPermanentCalculatorDFE.h"
 #include "numpy_interface.h"
 
+#include "../../ctests/matrix_helper.hpp"
 
 
 /**
@@ -173,7 +174,34 @@ GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *
 }
 
 
+void ctestOfDFE(){
 
+    int dim = 5;
+    pic::matrix mtx = pic::getRandomComplexMatrix<pic::matrix, pic::Complex16>(dim, pic::RANDOM);
+    pic::PicState_int64 input(5);
+    pic::PicState_int64 output(5);
+    for (int i = 0; i < 5; i++){
+        input[i] = 2;
+        output[i] = 2;
+    }
+
+    const int first = 1;
+    const int second = 1;
+    const int third = 1;
+    const int fourth = 2;
+    const int fifth = 5;
+
+    input[0] = output[0] = first;
+    input[1] = output[1] = second;
+    input[2] = output[2] = third;
+    input[3] = output[3] = fourth;
+    input[4] = output[4] = fifth;
+
+
+    pic::GlynnPermanentCalculatorDFE permanentCalculator(mtx);
+    auto j = permanentCalculator.calculatePermanent(input, output);
+
+}
 
 
 
@@ -193,6 +221,8 @@ GlynnPermanentCalculator_Wrapper_calculateDFEDualCard(GlynnPermanentCalculator_w
 
     // initialize DFE array
     initialize_DFE();
+    
+    ctestOfDFE();
 
     pic::Complex16 perm;
     GlynnPermanentCalculator_DFEDualCard( matrix_mtx, perm );

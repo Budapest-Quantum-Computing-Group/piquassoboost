@@ -1,5 +1,5 @@
 import numpy as np
-from thewalrus.libwalrus import perm_complex, perm_real, perm_BBFG_real, perm_BBFG_complex
+#from thewalrus.libwalrus import perm_complex, perm_real, perm_BBFG_real, perm_BBFG_complex
 from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent
 import piquasso as pq
 import random
@@ -55,7 +55,7 @@ iter_loops = 1
 time_walrus = 1000000000        
 for idx in range(iter_loops):
     start = time.time()   
-    permanent_walrus_quad_Ryser = perm_complex(Arep, quad=True)
+    permanent_walrus_quad_Ryser = 1 #perm_complex(Arep, quad=True)
     time_loc = time.time() - start
     start = time.time()   
        

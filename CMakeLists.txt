@@ -386,10 +386,10 @@ target_link_libraries(piquassoboost PRIVATE
     ${TBBMALLOC_LIB}
     ${TBBMALLOC_PROXY_LIB}
     ${TBB_LIB}
-    ${MPI_C_LIBRARIES}   
+    ${MPI_C_LIBRARIES}
     "-L/opt/maxcompiler-2021.1/lib"
     "-L/opt/maxeler/maxeleros/lib"
-    "/home/rakytap/workspace/PermanentGlynnCPU/dist/release/lib/libPermanentGlynnDFE.so"
+    "/home/ston/workspace/PermanentGlynnCPU/dist/release/lib/libPermanentGlynnDFE.so"
 ) 
 
 
