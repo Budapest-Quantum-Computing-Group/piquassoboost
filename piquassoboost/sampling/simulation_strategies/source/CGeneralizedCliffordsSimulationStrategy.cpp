@@ -482,10 +482,57 @@ calculate_outputs_probability(
  
     if ( interferometer_mtx.rows >= 22 ) {
 
-       // initialize DFE array
-       initialize_DFE();
 
-       GlynnPermanentCalculator_DFEDualCard(interferometer_mtx, permanent);
+        std::cout << "input_state: ";
+        for (int i = 0; i < input_state.size(); i++){
+            std::cout << input_state[i] << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "output_state: ";
+        for (int i = 0; i < output_state.size(); i++){
+            std::cout << output_state[i] << " ";
+        }
+        std::cout << std::endl;
+
+        matrix modifiedInterferometerMatrix = adaptInterferometer(
+            interferometer_mtx,
+            input_state,
+            output_state
+        );
+
+        std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
+            return elem > 0;
+        };
+
+        PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
+        PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
+    
+        // initialize DFE array
+        initialize_DFE();
+        
+
+        std::cout << "adapted_input_state: ";
+        for (int i = 0; i < adapted_input_state.size(); i++){
+            std::cout << adapted_input_state[i] << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "adapted_output_state: ";
+        for (int i = 0; i < adapted_output_state.size(); i++){
+            std::cout << adapted_output_state[i] << " ";
+        }
+        std::cout << std::endl;
+        interferometer_mtx.print_matrix();
+        modifiedInterferometerMatrix.print_matrix();
+        
+        std::cout << "permanent calculation started\n";
+        
+
+        GlynnPermanentCalculatorDFE permanentCalculatorDFE(modifiedInterferometerMatrix);
+        permanent = permanentCalculatorDFE.calculatePermanent(
+            adapted_input_state,
+            adapted_output_state
+        );
+        std::cout << "calculated perm: " << permanent << std::endl;
 
     }
     else {

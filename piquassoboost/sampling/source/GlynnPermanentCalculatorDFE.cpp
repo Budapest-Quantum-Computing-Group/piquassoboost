@@ -15,10 +15,6 @@
  */
 
 #include "GlynnPermanentCalculatorDFE.h"
-//testing purpose
-#include "GlynnPermanentCalculator.h"
-#include "GlynnPermanentCalculatorRepeated.h"
-//end of testing purpose
 
 #include "common_functionalities.h" // binomialCoeff, power_of_2
 
@@ -349,19 +345,9 @@ Complex16 GlynnPermanentCalculatorDFE::calculatePermanent(
         calculatePermanentWithStartIndex(rowMultiplicities, 1, 1);
     }
 
-    // debugging
-    GlynnPermanentCalculatorRepeated engine;
-    auto permWithGlynnRepeated = engine.calculate(mtxCopy, inputState, outputState);
-    // end of debugging
-
 
     Complex16 sumOfPermanents = sumOfPartialPermanents.get();
     Complex16 finalPermanent = sumOfPermanents * normalizationFactor;
-
-    //debugging
-    std::cout << "permWithGlynnRepeated: " << permWithGlynnRepeated << std::endl;
-    std::cout << "finalPermanent       : " << finalPermanent << std::endl;
-    //end of debugging
 
     return finalPermanent;
 }
@@ -381,7 +367,6 @@ void GlynnPermanentCalculatorDFE::calculatePermanentWithStartIndex(
     if (startIndex == rows){
         // create matrix with the given values
         // calculate permanent
-
         calculatePermanentFromExplicitMatrix(
             rowMultiplicities,
             coefficient
@@ -402,7 +387,7 @@ void GlynnPermanentCalculatorDFE::calculatePermanentWithStartIndex(
                 newRowMultiplicities[startIndex] = multiplicity;
                 // coefficient is multiplied by the binomial coefficient multiplicity over rowMultiplicity and
                 // the sign determined by multiplicity modulo 4
-                //std::cout << "binom: ("<<rowMultiplicity <<","<<multiplicity<<")"<<std::endl;
+
                 int newCoefficient = coefficient * sign * binomialCoeff(rowMultiplicity, countOfMinuses);
 
                 calculatePermanentWithStartIndex(
@@ -423,8 +408,8 @@ void GlynnPermanentCalculatorDFE::calculatePermanentWithStartIndex(
             int countOfPlusOnes = rowMultiplicity;
             for (int multiplicity = rowMultiplicity; multiplicity > 0; multiplicity -= 2){
                 PicState_int newRowMultiplicities = rowMultiplicities.copy();
+
                 newRowMultiplicities[startIndex] = multiplicity;
-                //std::cout << "binom: ("<<rowMultiplicity <<","<<multiplicity<<")"<<std::endl;
                 int newCoefficient = coefficient * sign * binomialCoeff(rowMultiplicity, countOfPlusOnes);
         
                 calculatePermanentWithStartIndex(
@@ -446,7 +431,7 @@ void GlynnPermanentCalculatorDFE::calculatePermanentFromExplicitMatrix(
     int coefficient
 ){
     // Creating new matrix with the given values
-    // This can be more efficient by calculating the rows before and storing them
+    // This can be further developed by calculating the rows before and storing them
     // in a matrix with column multiplicities
     matrix finalMatrix(finalRowNumber, finalColNumber);
 
@@ -473,42 +458,14 @@ void GlynnPermanentCalculatorDFE::calculatePermanentFromExplicitMatrix(
             currentRowIndex++;
         }
     }
-
-    // debugging
-    std::cout << "permanent calculation" << std::endl;
-    std::cout << "coefficient: " << coefficient << std::endl;
-    std::cout << "rowSummation: ";
-    for (size_t i = 0; i < rowSummation.size(); i++){
-        std::cout << rowSummation[i] << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "colMultiplicities: ";
-    for (size_t i = 0; i < colMultiplicities.size(); i++){
-        std::cout << colMultiplicities[i] << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "rowMultiplicities: ";
-    for (size_t i = 0; i < rowMultiplicities.size(); i++){
-        std::cout << rowMultiplicities[i] << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "Final matrix:";
-    finalMatrix.print_matrix();
-    //mtx.print_matrix();
-    // end of debugging
     
     matrix finalMatrix2 = finalMatrix.copy();
 
     Complex16 partialPermanent_DFE;
     GlynnPermanentCalculator_DFEDualCard(finalMatrix, partialPermanent_DFE);
-    GlynnPermanentCalculator glynnCalculatorCPU;
-    Complex16 partialPermanent_CPU = glynnCalculatorCPU.calculate(finalMatrix2);
 
     double coefficientDouble = coefficient;
     sumOfPartialPermanents += partialPermanent_DFE * coefficientDouble;
-
-    std::cout << "DFE: "<< partialPermanent_DFE<< std::endl;
-    std::cout << "CPU: "<< partialPermanent_CPU<< std::endl;
 
     return;
 }
