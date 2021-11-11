@@ -70,7 +70,7 @@ private:
     /// array determines whether the specific row has to be added to the first with some multiplicity
     PicState_int rowSummation;
     /// storage for partial permanents
-    ComplexM<long double> sumOfPartialPermanents;
+    ComplexM<double> sumOfPartialPermanents;
 
 public:
     /** @brief Constructs the calculator class.

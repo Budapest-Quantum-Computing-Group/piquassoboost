@@ -36,16 +36,13 @@ namespace pic {
 void
 GlynnPermanentCalculator_DFEDualCard(matrix& matrix_mtx, Complex16& perm)
 {
-
-
-    Complex16* mtx_data = matrix_mtx.get_data();
     
 
     // calulate the maximal sum of the columns to normalize the matrix
     matrix colSumMax( matrix_mtx.cols, 1);
     memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex16) );
-    for (int idx=0; idx<matrix_mtx.rows; idx++) {
-        for( int jdx=0; jdx<matrix_mtx.cols; jdx++) {
+    for (size_t idx=0; idx<matrix_mtx.rows; idx++) {
+        for( size_t jdx=0; jdx<matrix_mtx.cols; jdx++) {
             Complex16 value1 = colSumMax[jdx] + matrix_mtx[ idx*matrix_mtx.stride + jdx];
             Complex16 value2 = colSumMax[jdx] - matrix_mtx[ idx*matrix_mtx.stride + jdx];
             if ( std::abs( value1 ) < std::abs( value2 ) ) {
@@ -64,13 +61,13 @@ GlynnPermanentCalculator_DFEDualCard(matrix& matrix_mtx, Complex16& perm)
 
     // calculate the renormalization coefficients
     matrix_base<double> renormalize_data(matrix_mtx.cols, 1);
-    for (int jdx=0; jdx<matrix_mtx.cols; jdx++ ) {
+    for (size_t jdx=0; jdx<matrix_mtx.cols; jdx++ ) {
         renormalize_data[jdx] = std::abs(colSumMax[jdx]);
     }
 
     // renormalize the input matrix
-    for (int idx=0; idx<matrix_mtx.rows; idx++) {
-        for( int jdx=0; jdx<matrix_mtx.cols; jdx++) {
+    for (size_t idx=0; idx<matrix_mtx.rows; idx++) {
+        for( size_t jdx=0; jdx<matrix_mtx.cols; jdx++) {
             matrix_mtx[ idx*matrix_mtx.stride + jdx] = matrix_mtx[ idx*matrix_mtx.stride + jdx]/renormalize_data[jdx];
         }
 
@@ -174,15 +171,13 @@ for (int idx=0; idx<8; idx++) {
 void
 GlynnPermanentCalculator_DFESingleCard(matrix& matrix_mtx, Complex16& perm) {
 
-
-    Complex16* mtx_data = matrix_mtx.get_data();
     
 
     // calulate the maximal sum of the columns to normalize the matrix
     matrix colSumMax( matrix_mtx.cols, 1);
     memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex16) );
-    for (int idx=0; idx<matrix_mtx.rows; idx++) {
-        for( int jdx=0; jdx<matrix_mtx.cols; jdx++) {
+    for (size_t idx=0; idx<matrix_mtx.rows; idx++) {
+        for( size_t jdx=0; jdx<matrix_mtx.cols; jdx++) {
             Complex16 value1 = colSumMax[jdx] + matrix_mtx[ idx*matrix_mtx.stride + jdx];
             Complex16 value2 = colSumMax[jdx] - matrix_mtx[ idx*matrix_mtx.stride + jdx];
             if ( std::abs( value1 ) < std::abs( value2 ) ) {
@@ -201,13 +196,13 @@ GlynnPermanentCalculator_DFESingleCard(matrix& matrix_mtx, Complex16& perm) {
 
     // calculate the renormalization coefficients
     matrix_base<double> renormalize_data(matrix_mtx.cols, 1);
-    for (int jdx=0; jdx<matrix_mtx.cols; jdx++ ) {
+    for (size_t jdx=0; jdx<matrix_mtx.cols; jdx++ ) {
         renormalize_data[jdx] = std::abs(colSumMax[jdx]);
     }
 
     // renormalize the input matrix
-    for (int idx=0; idx<matrix_mtx.rows; idx++) {
-        for( int jdx=0; jdx<matrix_mtx.cols; jdx++) {
+    for (size_t idx=0; idx<matrix_mtx.rows; idx++) {
+        for( size_t jdx=0; jdx<matrix_mtx.cols; jdx++) {
             matrix_mtx[ idx*matrix_mtx.stride + jdx] = matrix_mtx[ idx*matrix_mtx.stride + jdx]/renormalize_data[jdx];
         }
 
@@ -283,7 +278,7 @@ Complex16 GlynnPermanentCalculatorDFE::calculatePermanent(
 ){
     auto mtxCopy = mtx.copy();
 
-    sumOfPartialPermanents = ComplexM<long double>();
+    sumOfPartialPermanents = ComplexM<double>();
 
     // row multiplicities are determined by the output state
     PicState_int rowMultiplicities =
@@ -312,7 +307,7 @@ Complex16 GlynnPermanentCalculatorDFE::calculatePermanent(
     rowSummation[0] = 0;
 
     // checking the paritiy of each multiplicity
-    for (int i = 1; i < rowSummation.size(); i++){
+    for (size_t i = 1; i < rowSummation.size(); i++){
         if ( 0 == rowMultiplicities[i] % 2 ){
             rowSummation[i] = 1;
             normalizationFactor *= 1.0 / power_of_2(rowMultiplicities[i]);
@@ -327,7 +322,7 @@ Complex16 GlynnPermanentCalculatorDFE::calculatePermanent(
 
     // final number of columns. This has to be calculated once as well.
     finalColNumber = 0;
-    for (int i = 0; i < colMultiplicities.size(); i++){
+    for (size_t i = 0; i < colMultiplicities.size(); i++){
         finalColNumber += colMultiplicities[i];
     }
 
@@ -354,21 +349,21 @@ Complex16 GlynnPermanentCalculatorDFE::calculatePermanent(
         calculatePermanentWithStartIndex(rowMultiplicities, 1, 1);
     }
 
+    // debugging
     GlynnPermanentCalculatorRepeated engine;
     auto permWithGlynnRepeated = engine.calculate(mtxCopy, inputState, outputState);
+    // end of debugging
 
 
-    Complex32 sumOfPermanents = sumOfPartialPermanents.get();
-    Complex32 finalPermanent = sumOfPermanents * normalizationFactor;
+    Complex16 sumOfPermanents = sumOfPartialPermanents.get();
+    Complex16 finalPermanent = sumOfPermanents * normalizationFactor;
 
-
+    //debugging
     std::cout << "permWithGlynnRepeated: " << permWithGlynnRepeated << std::endl;
     std::cout << "finalPermanent       : " << finalPermanent << std::endl;
+    //end of debugging
 
-    return Complex16(
-        sumOfPermanents.real(),
-        sumOfPermanents.imag()
-    );
+    return finalPermanent;
 }
 
 
@@ -456,11 +451,11 @@ void GlynnPermanentCalculatorDFE::calculatePermanentFromExplicitMatrix(
     matrix finalMatrix(finalRowNumber, finalColNumber);
 
     int currentRowIndex = 0;
-    for (int rowIndex = 0; rowIndex < mtx.rows; rowIndex++){
+    for (size_t rowIndex = 0; rowIndex < mtx.rows; rowIndex++){
         if (rowSummation[rowIndex] == 1){
             int currentColIndex = 0;
             // adding elements to the first row
-            for (int colIndex = 0; colIndex < mtx.cols; colIndex++){
+            for (size_t colIndex = 0; colIndex < mtx.cols; colIndex++){
                 for (int q = 0; q < colMultiplicities[colIndex]; q++){
                     finalMatrix[currentColIndex] += rowMultiplicities[rowIndex] * mtx[rowIndex * mtx.stride + colIndex];
                     currentColIndex++;
@@ -468,7 +463,7 @@ void GlynnPermanentCalculatorDFE::calculatePermanentFromExplicitMatrix(
             }
         }else{
             int currentColIndex = 0;
-            for (int colIndex = 0; colIndex < mtx.cols; colIndex++){
+            for (size_t colIndex = 0; colIndex < mtx.cols; colIndex++){
                 for (int q = 0; q < colMultiplicities[colIndex]; q++){
                     finalMatrix[currentRowIndex * finalMatrix.stride + currentColIndex] =
                         rowMultiplicities[rowIndex] * mtx[rowIndex * mtx.stride + colIndex];
@@ -483,23 +478,24 @@ void GlynnPermanentCalculatorDFE::calculatePermanentFromExplicitMatrix(
     std::cout << "permanent calculation" << std::endl;
     std::cout << "coefficient: " << coefficient << std::endl;
     std::cout << "rowSummation: ";
-    for (int i = 0; i < rowSummation.size(); i++){
+    for (size_t i = 0; i < rowSummation.size(); i++){
         std::cout << rowSummation[i] << " ";
     }
     std::cout << std::endl;
     std::cout << "colMultiplicities: ";
-    for (int i = 0; i < colMultiplicities.size(); i++){
+    for (size_t i = 0; i < colMultiplicities.size(); i++){
         std::cout << colMultiplicities[i] << " ";
     }
     std::cout << std::endl;
     std::cout << "rowMultiplicities: ";
-    for (int i = 0; i < rowMultiplicities.size(); i++){
+    for (size_t i = 0; i < rowMultiplicities.size(); i++){
         std::cout << rowMultiplicities[i] << " ";
     }
     std::cout << std::endl;
     std::cout << "Final matrix:";
     finalMatrix.print_matrix();
     //mtx.print_matrix();
+    // end of debugging
     
     matrix finalMatrix2 = finalMatrix.copy();
 
@@ -508,12 +504,8 @@ void GlynnPermanentCalculatorDFE::calculatePermanentFromExplicitMatrix(
     GlynnPermanentCalculator glynnCalculatorCPU;
     Complex16 partialPermanent_CPU = glynnCalculatorCPU.calculate(finalMatrix2);
 
-    Complex32 partialPermanent_CPU32(
-        partialPermanent_CPU.real(),
-        partialPermanent_CPU.imag()
-    );
     double coefficientDouble = coefficient;
-    sumOfPartialPermanents += partialPermanent_CPU32 * coefficientDouble;
+    sumOfPartialPermanents += partialPermanent_DFE * coefficientDouble;
 
     std::cout << "DFE: "<< partialPermanent_DFE<< std::endl;
     std::cout << "CPU: "<< partialPermanent_CPU<< std::endl;
