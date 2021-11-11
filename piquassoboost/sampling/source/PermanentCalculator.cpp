@@ -2,7 +2,7 @@
 #include "GlynnPermanentCalculator.h"
 #include "GlynnPermanentCalculatorRepeated.h"
 
-#include "common_functionalities.h" // binomialCoeff
+#include "common_functionalities.h" // binomialCoeff, power_of_2
 
 namespace pic {
 
@@ -109,6 +109,7 @@ PermanentCalculator::PermanentCalculator(matrix &mtx)
 
 }
 
+
 Complex16 PermanentCalculator::calculatePermanent(
     PicState_int64 &inputState,
     PicState_int64 &outputState
@@ -121,8 +122,6 @@ Complex16 PermanentCalculator::calculatePermanent(
     PicState_int rowMultiplicities =
         convert_PicState_int64_to_PicState_int(outputState);
 
-    initialRowMultiplicities = rowMultiplicities.copy();
-
     // column multiplicities are determined by the input state
     colMultiplicities =
         convert_PicState_int64_to_PicState_int(inputState);
@@ -130,19 +129,24 @@ Complex16 PermanentCalculator::calculatePermanent(
     // create vector of values which determine whether the specific row has to be added or not
     // 0 means not
     // 1 means it has to be added to the first row with multiplicity rowMultiplicity[i]
-    finalRowNumber = 1; // first row always has to be there! (it is not calculated explicitly just here)
-    rowSummation = PicState_int(outputState.size());
+
+
+    // first row always has to be there! (it is not calculated explicitly just here)
+    // this number is updated based on the parity of the rowMultiplicities
+    finalRowNumber = 1;
     
-    //std::cout << "rowMultiplicities: "<<std::endl;
-    //for (int i = 0; i < rowMultiplicities.size(); i++){
-    //    std::cout << rowMultiplicities[i] << " ";
-    //}
-    //std::cout << std::endl;
-    
+    // we are reducing the size of the matrix, the normalization factor of the BB/FG algorithm has to be updated manually
+    // we always get the same size of matrix, hence, the factor has to be updated once
     normalizationFactor = 1;
+
+    // rowSummation shows whether the current row has to added to the first row or not with specific multiplicities
+    rowSummation = PicState_int(outputState.size());
+    // first row is always there, it is always updated with the current multiplicity.
     rowSummation[0] = 0;
+
+    // checking the paritiy of each multiplicity
     for (int i = 1; i < rowSummation.size(); i++){
-        if (rowMultiplicities[i] % 2 == 0){
+        if ( 0 == rowMultiplicities[i] % 2 ){
             rowSummation[i] = 1;
             normalizationFactor *= 1.0 / power_of_2(rowMultiplicities[i]);
         }else{
@@ -154,11 +158,13 @@ Complex16 PermanentCalculator::calculatePermanent(
         }
     }
 
+    // final number of columns. This has to be calculated once as well.
     finalColNumber = 0;
     for (int i = 0; i < colMultiplicities.size(); i++){
         finalColNumber += colMultiplicities[i];
     }
 
+    // first row is calculated differently from the others since all the deltas can not be -1's
     if (rowMultiplicities[0] > 0){
         int currentMultiplicity = rowMultiplicities[0];
 
@@ -166,6 +172,7 @@ Complex16 PermanentCalculator::calculatePermanent(
 
         int sign = 1;
         int numberOfMinuses = 0;
+        // the difference is in the binomial coefficient and the limit of the loop
         for (int multiplicity = currentMultiplicity; multiplicity > -currentMultiplicity; multiplicity -= 2){
             int coefficient = sign * binomialCoeff(currentMultiplicity-1, numberOfMinuses);
             PicState_int newRowMultiplicities = rowMultiplicities.copy();
@@ -179,9 +186,6 @@ Complex16 PermanentCalculator::calculatePermanent(
     }else{
         calculatePermanentWithStartIndex(rowMultiplicities, 1, 1);
     }
-
-
-    mtx.print_matrix();
 
     GlynnPermanentCalculatorRepeated engine;
     auto permWithGlynnRepeated = engine.calculate(mtxCopy, inputState, outputState);
@@ -199,7 +203,6 @@ Complex16 PermanentCalculator::calculatePermanent(
         sumOfPermanents.imag()
     );
 }
-
 
 
 void PermanentCalculator::calculatePermanentWithStartIndex(
@@ -275,13 +278,15 @@ void PermanentCalculator::calculatePermanentWithStartIndex(
     }
 }
 
+
 void PermanentCalculator::calculatePermanentFromExplicitMatrix(
     PicState_int& rowMultiplicities,
     int coefficient
 ){
     // Creating new matrix with the given values
+    // This can be more efficient by calculating the rows before and storing them
+    // in a matrix with column multiplicities
     matrix finalMatrix(finalRowNumber, finalColNumber);
-    memset(finalMatrix.get_data(), 0, finalMatrix.cols * sizeof(Complex16));
 
     int currentRowIndex = 0;
     for (int rowIndex = 0; rowIndex < mtx.rows; rowIndex++){
@@ -307,7 +312,7 @@ void PermanentCalculator::calculatePermanentFromExplicitMatrix(
         }
     }
 
-    
+    // debugging
     std::cout << "permanent calculation" << std::endl;
     std::cout << "coefficient: " << coefficient << std::endl;
     std::cout << "rowSummation: ";
@@ -343,7 +348,6 @@ void PermanentCalculator::calculatePermanentFromExplicitMatrix(
 
     //std::cout << "DFE: "<< partialPermanent_DFE<< std::endl;
     std::cout << "CPU: "<< partialPermanent_CPU<< std::endl;
-
 
     return;
 }

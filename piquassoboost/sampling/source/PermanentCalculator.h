@@ -21,42 +21,70 @@
 #include "matrix32.h"
 #include "PicState.h"
 
-#ifndef CPYTHON
-#include <tbb/tbb.h>
-#endif
 
 namespace pic {
 
 class PermanentCalculator{
-public:
+private:
+    /// pic matrix which stores the specific matrix we want to work on
     matrix& mtx;
 
-    // the 2^n factor which is decreased because of the algorithm
+    /// the 2^n factor which is decreased because of the algorithm
     Complex16 normalizationFactor;
-    //PicState_int rowMultiplicities;
+    /// column multiplicities determined by the input_state
     PicState_int colMultiplicities;
-    PicState_int initialRowMultiplicities;
-
-    // row number of final matrix
+    /// row number of final matrix
     int finalRowNumber;
+    /// column number of final matrix
     int finalColNumber;
+    /// array determines whether the specific row has to be added to the first with some multiplicity
     PicState_int rowSummation;
     /// storage for partial permanents
     ComplexM<long double> sumOfPartialPermanents;
 
+public:
+    /** @brief Constructs the calculator class.
+     *  @param mtx The matrix which we are calculating the permanent of
+     */
     PermanentCalculator(matrix& mtx);
 
+    /** @brief Call to calculate the permanent via Glynn formula scaling with n*2^n.
+     *         This algorithm improves the calculation in case if there are greater
+     *         numbers in the output state
+     *  @param mtx The effective scattering matrix of a boson sampling instance
+     *  @param input_state The input state
+     *  @param output_state The output state
+     *  @return Returns with the calculated permanent
+     */
     Complex16 calculatePermanent(
         PicState_int64& inputState,
         PicState_int64& outputState
     );
 
+private:
+    /** @brief calculates the rowMultiplicities from @param startIndex to
+     *         the number of rows in the matrix recursively.
+     *  If the multiplicity is greater than 1 it calculates the corresponding
+     *  coefficient and calls itself with the specific multiplicity and
+     *  coefficient. If the startIndex reaches the number of rows then permanent
+     *  is calculated based on Glyyn's formula and storing it in the
+     *  member field.
+     *  @param rowMultiplicities array storing the multiplicties of the rows
+     *  @param startIndex index from where the algorithm shoud calculate
+     *  @param coefficient coefficient based on the previous function calls
+     */
     void PermanentCalculator::calculatePermanentWithStartIndex(
         PicState_int& rowMultiplicities,
         int startIndex,
         int coefficient
     );
 
+    /** @brief calculates the partial permanent based on Glynn's formula
+     *         and stores it in member variable.
+     *  
+     *  @param rowMultiplicities array storing the multiplicties of the rows
+     *  @param coefficient coefficient of the current partial permanent
+     */
     void calculatePermanentFromExplicitMatrix(
         PicState_int& rowMultiplicities,
         int coefficient
