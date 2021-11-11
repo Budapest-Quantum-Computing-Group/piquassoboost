@@ -177,18 +177,18 @@ void testCaseInitializerList(std::initializer_list<int> input, std::initializer_
 int main(){
     int dim = 5;
     pic::matrix mtx = pic::getRandomComplexMatrix<pic::matrix, pic::Complex16>(dim, pic::RANDOM);
-    pic::PicState_int64 input(5);
-    pic::PicState_int64 output(5);
-    for (int i = 0; i < 5; i++){
+    pic::PicState_int64 input(dim);
+    pic::PicState_int64 output(dim);
+    for (int i = 0; i < dim; i++){
         input[i] = 2;
         output[i] = 2;
     }
 
-    const int first = 1;
-    const int second = 1;
-    const int third = 1;
-    const int fourth = 2;
-    const int fifth = 5;
+    const int first = 5;
+    const int second = 2;
+    const int third = 4;
+    const int fourth = 7;
+    const int fifth = 3;
 
     input[0] = output[0] = first;
     input[1] = output[1] = second;
