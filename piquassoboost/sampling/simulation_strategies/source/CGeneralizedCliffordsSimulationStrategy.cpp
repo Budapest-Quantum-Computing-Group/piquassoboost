@@ -75,6 +75,11 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 */
 CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in ) {
 
+    std::cout << "initialize_DFE start\n";
+    // initialize DFE array
+    initialize_DFE();
+    std::cout << "initialize_DFE ended\n";
+
     Update_interferometer_matrix( interferometer_matrix_in );
 
     // seed the random generator
@@ -509,10 +514,6 @@ calculate_outputs_probability(
         //std::cout << std::endl;
 
 
-        std::cout << "initialize_DFE start\n";
-        // initialize DFE array
-        initialize_DFE();
-        std::cout << "initialize_DFE ended\n";
         
 
         //std::cout << "adapted_input_state: ";
