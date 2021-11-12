@@ -480,7 +480,21 @@ calculate_outputs_probability(
     Complex16 permanent;
 
  
-    if ( interferometer_mtx.rows >= 22 ) {
+    matrix modifiedInterferometerMatrix = adaptInterferometer(
+        interferometer_mtx,
+        input_state,
+        output_state
+    );
+
+    std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
+        return elem > 0;
+    };
+
+    PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
+    PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
+
+
+    if ( modifiedInterferometerMatrix.rows >= 4 ) {
 
 
         std::cout << "input_state: ";
@@ -494,21 +508,11 @@ calculate_outputs_probability(
         }
         std::cout << std::endl;
 
-        matrix modifiedInterferometerMatrix = adaptInterferometer(
-            interferometer_mtx,
-            input_state,
-            output_state
-        );
 
-        std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
-            return elem > 0;
-        };
-
-        PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
-        PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
-    
+        std::cout << "initialize_DFE start\n";
         // initialize DFE array
         initialize_DFE();
+        std::cout << "initialize_DFE ended\n";
         
 
         std::cout << "adapted_input_state: ";
@@ -532,24 +536,19 @@ calculate_outputs_probability(
             adapted_input_state,
             adapted_output_state
         );
-        std::cout << "calculated perm: " << permanent << std::endl;
+        std::cout << "calculated perm1: " << permanent << std::endl;
 
+        modifiedInterferometerMatrix.print_matrix();
+        GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
+        permanent = permanentCalculatorRecursive.calculate(
+            modifiedInterferometerMatrix,
+            adapted_input_state,
+            adapted_output_state
+        );
+        std::cout << "calculated perm2: " << permanent << std::endl;
     }
     else {
 
-        matrix modifiedInterferometerMatrix = adaptInterferometer(
-            interferometer_mtx,
-            input_state,
-            output_state
-        );
-
-        std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
-            return elem > 0;
-        };
-
-        PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
-        PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
-    
         
         GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
         permanent = permanentCalculatorRecursive.calculate(

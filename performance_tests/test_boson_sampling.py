@@ -16,11 +16,14 @@
 import time
 import pytest
 import itertools
+import scipy
 
 import numpy as np
 
 import piquasso as pq
 
+from scipy.optimize import root_scalar
+from scipy import stats
 
 @pytest.fixture
 def print_histogram():
@@ -99,3 +102,45 @@ def test_complex_sampling(print_histogram):
         print("C++ time elapsed:", time.time() - t0, "s")
 
         print_histogram(result.samples)
+
+
+def test_complex_sampling_interferometer(print_histogram):
+    """
+    NOTE: with random interferometer matrix with the given dimension
+    """
+
+    def _generate_parameters(d):
+
+        return {
+            "interferometer": scipy.stats.unitary_group.rvs(d)
+        }
+
+
+
+
+    dimension = 22
+    
+    params = _generate_parameters(dimension)
+
+    for _ in itertools.repeat(None, 1):
+        shots = 1
+
+        with pq.Program() as program:
+
+            pq.Q(all) | pq.Interferometer(params["interferometer"])
+
+            pq.Q(all) | pq.Sampling()
+
+        state = pq.SamplingState(1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1)
+
+        t0 = time.time()
+
+        result = state.apply(program, shots=shots)
+        
+        t1 = time.time()
+        
+        print("histogram:")
+        print_histogram(result.samples)
+        
+        print("C++ time elapsed:", t1 - t0, "s")
+
