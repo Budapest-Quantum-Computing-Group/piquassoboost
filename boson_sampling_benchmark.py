@@ -44,12 +44,12 @@ def complex_sampling_interferometer():
 
 
 
-    dimension = 7
+    dimension = 20
     
     params = _generate_parameters(dimension)
 
     for _ in itertools.repeat(None, 1):
-        shots = 10
+        shots = 1
 
         with pq.Program() as program:
 
@@ -57,8 +57,9 @@ def complex_sampling_interferometer():
 
             pq.Q(all) | pq.Sampling()
 
-        state = pq.SamplingState(1, 1, 1, 1, 1, 1, 1)
-
+        #state = pq.SamplingState(1, 1, 1, 1, 1, 1, 1, 1, 1, 1)#10
+        #state = pq.SamplingState(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)#14
+        state = pq.SamplingState(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)#20
         t0 = time.time()
 
         result = state.apply(program, shots=shots)

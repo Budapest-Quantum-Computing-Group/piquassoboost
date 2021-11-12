@@ -158,7 +158,7 @@ void calculate_weights( tbb::blocked_range<size_t> &r, PicState_int64 &input_sta
 @param sample The current output sample for which the probabilities are calculated
 @param possible_outputs Vector of possible output states
 */
-void generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, PicStates &possible_outputs );
+void generate_output_states(size_t &r, PicState_int64& sample, PicStates &possible_outputs );
 
 
 /**

@@ -28,11 +28,10 @@
 
 
 namespace pic {
-/*
-    double rand_nums[40] = {0.929965, 0.961441, 0.46097, 0.090787, 0.137104, 0.499059, 0.951187, 0.373533, 0.634074, 0.0886671, 0.0856861, 0.999702, 0.419755, 0.376557, 0.947568, 0.705106, 0.0520666, 0.45318,
-            0.874288, 0.656594, 0.287817, 0.484918, 0.854716, 0.31408, 0.516911, 0.374158, 0.0124914, 0.878496, 0.322593, 0.699271, 0.0583747, 0.56629, 0.195314, 0.00059639, 0.443711, 0.652659, 0.350379, 0.839752, 0.710161, 0.28553};
-    int rand_num_idx = 0;
-*/
+
+static int permanentsNumber = 0;
+static int permanentsNumberForOnePhoton = 0;
+static double averageTimes[50] = {0.0};
 
 
 
@@ -75,11 +74,6 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 */
 CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in ) {
 
-    std::cout << "initialize_DFE start\n";
-    // initialize DFE array
-    initialize_DFE();
-    std::cout << "initialize_DFE ended\n";
-
     Update_interferometer_matrix( interferometer_matrix_in );
 
     // seed the random generator
@@ -93,9 +87,11 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 */
 CGeneralizedCliffordsSimulationStrategy::~CGeneralizedCliffordsSimulationStrategy() {
 
-    // unload DFE
-    releive_DFE();
-
+    //std::cout << "permanentsNumber: " << permanentsNumber << std::endl;
+//
+    //for (int i = 0; i < 40; i++){
+    //    std::cout << "runtimesArray["<<i<<"] = " << averageTimes[i]<<std::endl;
+    //}
 }
 
 /**
@@ -132,7 +128,7 @@ CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_i
 
     // get the possible substates of the input state and their weight for the probability calculations
     get_sorted_possible_states();
-
+    std::cout << "get sorted poss ran.\n";
 
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
@@ -250,6 +246,8 @@ CGeneralizedCliffordsSimulationStrategy::fill_r_sample( PicState_int64& sample )
 
 
     while (number_of_input_photons > sample.number_of_photons) {
+        
+        permanentsNumberForOnePhoton = 0;
 
         if ( pmfs.count(sample) == 0) {
 
@@ -258,19 +256,24 @@ CGeneralizedCliffordsSimulationStrategy::fill_r_sample( PicState_int64& sample )
             possible_outputs.reserve(sample.size());
             for (size_t idx=0; idx<sample.size();idx++) {
                 PicState_int64 possible_output(sample.size(),0);
-                    possible_outputs.push_back( possible_output );
+                possible_outputs.push_back( possible_output );
             }
 
             // create a new key for the hash table
             PicState_int64 key = sample.copy();
+            tbb::tick_count t0a = tbb::tick_count::now();
             calculate_new_layer_of_pmfs( key, possible_outputs );
-            possible_output_states[key] = possible_outputs; // TODO: reserve space for possible_output_states
+            tbb::tick_count t0b = tbb::tick_count::now();
 
+            tbb::tick_count t1a = tbb::tick_count::now();
+            possible_output_states[key] = possible_outputs; // TODO: reserve space for possible_output_states
+            tbb::tick_count t1b = tbb::tick_count::now();
+            std::cout << "times: "<< (t0b - t0a).seconds() << " , " << (t1b-t1a).seconds()<<std::endl;
         }
 
         // pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs
         sample_from_latest_pmf(sample);
-
+        std::cout << "sample.number_of_photons: " << sample.number_of_photons <<std::endl;
 
     }
 
@@ -318,21 +321,34 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
     // container to store the new layer of output probabilities
     matrix_base<double> pmf(1, possible_outputs.size());
     tbb::combinable<double> probability_sum{0.0};
-    tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_outputs.size()), [&](tbb::blocked_range<size_t> r ) {
+
+    tbb::tick_count t1a = tbb::tick_count::now();
+    auto sumTImes = (t1a-t1a).seconds();
+    for ( size_t idx =  0; idx <  possible_outputs.size(); idx++ ) {
 
         // thread local storage for probability sum
         double &probability_sum_priv = probability_sum.local();
 
         // Generate output states
-        generate_output_states( r, sample, possible_outputs );
+
+        generate_output_states( idx, sample, possible_outputs );
 
         // calculate the individual probabilities associated with the output states
-        for ( auto idx=r.begin(); idx!=r.end(); idx++) {
+        //for ( auto idx=r.begin(); idx!=r.end(); idx++) {
             pmf[idx] = 0;
 
             // calculate the individual probabilities
             for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
+
+                tbb::tick_count t2a = tbb::tick_count::now();
+                
                 double probability = calculate_outputs_probability(interferometer_matrix, possible_input_states[jdx], possible_outputs[idx]);
+                permanentsNumber++;
+                permanentsNumberForOnePhoton++;
+
+                tbb::tick_count t2b = tbb::tick_count::now();
+                sumTImes += (t2b-t2a).seconds();
+
                 probability = probability*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
                 pmf[idx] = pmf[idx] + probability;
             }
@@ -340,10 +356,21 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
             probability_sum_priv = probability_sum_priv + pmf[idx];
 
 
-        }
+        //}
 
 
-    }); //parallel for
+    }
+
+    tbb::tick_count t1b = tbb::tick_count::now();
+    
+    std::cout << "prob calc time "<< (t1b-t1a).seconds()<<std::endl;
+    std::cout << "permanent calculation time: " << sumTImes << std::endl;
+    std::cout << "permanentsNumber : " << permanentsNumber << std::endl;
+    std::cout << "average time for size "<<sample.number_of_photons+1 << " : " << (t1b-t1a).seconds() / permanentsNumberForOnePhoton << std::endl;
+    averageTimes[sample.number_of_photons+1] = std::max(
+        averageTimes[sample.number_of_photons+1],
+        (t1b-t1a).seconds() / permanentsNumberForOnePhoton
+    );
 
     // normalize the probabilities:
     double probability_sum_total = 0;
@@ -456,15 +483,15 @@ void calculate_weights( tbb::blocked_range<size_t> &r, PicState_int64 &input_sta
 @param possible_outputs Vector of possible output states
 */
 void
-generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, PicStates &possible_outputs ) {
+generate_output_states( size_t &idx, PicState_int64& sample, PicStates &possible_outputs ) {
 
     int64_t* sample_data = sample.get_data();
-    for ( auto idx=r.begin(); idx!=r.end(); idx++) {
+   // for ( auto idx=r.begin(); idx!=r.end(); idx++) {
         int64_t* output_data = possible_outputs[idx].get_data();
         memcpy( output_data, sample_data, sample.size()*sizeof(int64_t) );
         output_data[idx] = output_data[idx]+1;
         possible_outputs[idx].number_of_photons = sample.number_of_photons + 1;
-    }
+   // }
 }
 
 
@@ -499,7 +526,7 @@ calculate_outputs_probability(
     PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
 
 
-    if ( modifiedInterferometerMatrix.rows >= 4 ) {
+    if ( modifiedInterferometerMatrix.rows >= 22 ) {
 
 
         //std::cout << "input_state: ";
@@ -512,6 +539,7 @@ calculate_outputs_probability(
         //    std::cout << output_state[i] << " ";
         //}
         //std::cout << std::endl;
+
 
 
         
@@ -531,22 +559,32 @@ calculate_outputs_probability(
         
         //std::cout << "permanent calculation started\n";
         
+        //std::cout << "initialize_DFE start\n";
+        // initialize DFE array
+        //initialize_DFE();
+        //std::cout << "initialize_DFE ended\n";
 
         GlynnPermanentCalculatorDFE permanentCalculatorDFE(modifiedInterferometerMatrix);
         permanent = permanentCalculatorDFE.calculatePermanent(
             adapted_input_state,
             adapted_output_state
         );
-        std::cout << "calculated perm1 DFE: " << permanent << std::endl;
+        
+        //std::cout << "calculation ended\n";
+        
+        // unload DFE
+        //releive_DFE();
+
+        //std::cout << "calculated perm1 DFE: " << permanent << std::endl;
 
         //modifiedInterferometerMatrix.print_matrix();
-        GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
-        permanent = permanentCalculatorRecursive.calculate(
-            modifiedInterferometerMatrix,
-            adapted_input_state,
-            adapted_output_state
-        );
-        std::cout << "calculated perm2 CPU: " << permanent << std::endl;
+        //GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
+        //permanent = permanentCalculatorRecursive.calculate(
+        //    modifiedInterferometerMatrix,
+        //    adapted_input_state,
+        //    adapted_output_state
+        //);
+        //std::cout << "calculated perm2 CPU: " << permanent << std::endl;
     }
     else {
 

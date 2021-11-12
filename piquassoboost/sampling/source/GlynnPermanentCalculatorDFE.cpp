@@ -272,7 +272,6 @@ Complex16 GlynnPermanentCalculatorDFE::calculatePermanent(
     PicState_int64 &inputState,
     PicState_int64 &outputState
 ){
-    auto mtxCopy = mtx.copy();
 
     sumOfPartialPermanents = ComplexM<double>();
 
@@ -435,6 +434,11 @@ void GlynnPermanentCalculatorDFE::calculatePermanentFromExplicitMatrix(
     // in a matrix with column multiplicities
     matrix finalMatrix(finalRowNumber, finalColNumber);
 
+    std::cout << "rowMul: ";
+    for (int i = 0; rowMultiplicities.size(); i++){
+        std::cout << rowMultiplicities[i] << " ";
+    }
+    std::cout << std::endl;
     int currentRowIndex = 0;
     for (size_t rowIndex = 0; rowIndex < mtx.rows; rowIndex++){
         if (rowSummation[rowIndex] == 1){

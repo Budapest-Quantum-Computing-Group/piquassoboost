@@ -189,7 +189,7 @@ getRandomComplexMatrix(size_t n, pic::RandomMatrixType type){
 
     // initialize random generator as a standard normal distribution generator
     std::default_random_engine generator;
-    generator.seed(time(NULL));
+    generator.seed(time(NULL)+rand());
     std::normal_distribution<long double> distribution(0.0, 1.0);
 
     if (type == pic::RANDOM){
