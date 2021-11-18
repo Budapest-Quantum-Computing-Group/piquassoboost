@@ -31,20 +31,21 @@ namespace pic {
 
 
 // Currently only used when we have a CBLAS without CblasConjNoTrans
-#if !(CBLAS_CONJ_NO_TRANS_PRESENT)
 
-/// Calculate the element-wise complex conjugate of a vector
-void conjVector(matrix &M) {
+#if CBLAS_CONJ_NO_TRANS_PRESENT == 0
+
+/// Calculate the element-wise complex conjugate of a matrix
+matrix conjMatrix(matrix &M) {
+    matrix output(M.rows, M.cols);
+
     size_t size = M.size();
 
     pic::Complex16* data = M.get_data();
 
-    pic::Complex16 one = pic::Complex16(1.0, 0.0);
-
     for (size_t i = 0; i < size; i++) {
-        data[i] = mult_a_bconj(one, data[i]);
+        output[i] = pic::Complex16(data[i].real(), -data[i].imag());
     }
-    M.conjugate();
+    return output;
 }
 
 #endif
@@ -79,13 +80,13 @@ dot( matrix &A, matrix &B ) {
  * matrices if they are conjugated but not transposed. This way they will fall in the
  * `CblasNoTrans` category, which is supported.
  */
-#if !(CBLAS_CONJ_NO_TRANS_PRESENT)
+#if CBLAS_CONJ_NO_TRANS_PRESENT == 0
     if ( B.is_conjugated() && !B.is_transposed() ) {
-        conjVector( B );
+        B = conjMatrix( B );
     }
 
     if ( A.is_conjugated() && !A.is_transposed() ) {
-        conjVector( A );
+        A = conjMatrix( A );
     }
 #endif
 
