@@ -29,6 +29,27 @@ namespace pic {
 
 //tbb::spin_mutex my_mutex;
 
+
+// Currently only used when we have a CBLAS without CblasConjNoTrans
+#if !(CBLAS_CONJ_NO_TRANS_PRESENT)
+
+/// Calculate the element-wise complex conjugate of a vector
+void conjVector(matrix &M) {
+    size_t size = M.size();
+
+    pic::Complex16* data = M.get_data();
+
+    pic::Complex16 one = pic::Complex16(1.0, 0.0);
+
+    for (size_t i = 0; i < size; i++) {
+        data[i] = mult_a_bconj(one, data[i]);
+    }
+    M.conjugate();
+}
+
+#endif
+
+
 /**
 @brief Call to calculate the product of two complex matrices by calling method zgemm3m from the CBLAS library.
 @param A The first matrix.
@@ -54,17 +75,17 @@ dot( matrix &A, matrix &B ) {
     assert( check_matrices( A, B ) );
 
 
-#if BLAS==1 // MKL does not support option CblasConjNoTrans so the conjugation of the matrices are done in prior.
+/* Some CBLAS packages come without CblasConjNoTrans, so we have to de-conjugate the
+ * matrices if they are conjugated but not transposed. This way they will fall in the
+ * `CblasNoTrans` category, which is supported.
+ */
+#if !(CBLAS_CONJ_NO_TRANS_PRESENT)
     if ( B.is_conjugated() && !B.is_transposed() ) {
-        matrix tmp = matrix( B.rows, B.cols );
-        vzConj( B.cols*B.rows, B.get_data(), tmp.get_data() );
-        B = tmp;
+        conjVector( B );
     }
 
     if ( A.is_conjugated() && !A.is_transposed() ) {
-        matrix tmp = matrix( A.rows, A.cols );
-        vzConj( A.cols*A.rows, A.get_data(), tmp.get_data() );
-         A = tmp;
+        conjVector( A );
     }
 #endif
 

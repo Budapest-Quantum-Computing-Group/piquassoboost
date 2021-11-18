@@ -41,13 +41,6 @@ void cblas_zgemv(const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA
                  const void *X, const int incX, const void *beta, void *Y, const int incY);
 
 
-#if BLAS==1 // MKL
-
-/// Calculate the element-wise complex conjugate of a vector
-void vzConj(int num, pic::Complex16* input, pic::Complex16* output);
-
-#endif
-
 #ifdef __cplusplus
 }
 #endif

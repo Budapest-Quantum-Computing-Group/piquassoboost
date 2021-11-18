@@ -456,6 +456,18 @@ endif()
 mark_as_advanced(CBLAS_DIR)
 mark_as_advanced(CBLAS_DIR_FOUND)
 
+include(CheckCXXSourceCompiles)
+
+check_cxx_source_compiles("
+  #include <cblas.h>
+
+  int main()
+  {
+    CBLAS_TRANSPOSE test_variable = CblasConjNoTrans;
+    return 0;
+  }"
+CBLAS_CONJ_NO_TRANS_PRESENT)
+
 # check that CBLAS has been found
 # -------------------------------
 include(FindPackageHandleStandardArgs)
