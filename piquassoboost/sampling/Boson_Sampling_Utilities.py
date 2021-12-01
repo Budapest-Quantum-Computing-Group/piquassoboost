@@ -90,27 +90,13 @@ class GlynnPermanent(GlynnPermanentCalculator_wrapper):
     """
     
 
-    def __init__(self, matrix):
+    def __init__(self):
 
         # call the constructor of the wrapper class
-        super(GlynnPermanent, self).__init__(matrix=matrix)
+        super(GlynnPermanent, self).__init__()
         pass
 
        
-    def calculate(self):
-        """
-            ?????????????????.
-            :return: The permanent of the matrix.
-        """
-
-
-
-        # call the permanent calculator of the parent class
-        return super(GlynnPermanent, self).calculate()
-
-
-
-
 
 class PowerTraceHafnian(PowerTraceHafnian_wrapper):
     """

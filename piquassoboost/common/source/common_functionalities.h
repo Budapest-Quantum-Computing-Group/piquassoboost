@@ -17,6 +17,8 @@
 #ifndef COMMON_FUNCTIONALITIES_H
 #define COMMON_FUNCTIONALITIES_H
 
+#include <immintrin.h>
+
 
 #include "PicVector.hpp"
 #include "PicState.h"

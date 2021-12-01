@@ -51,7 +51,7 @@ Arep = A
 #    Arep[:,idx] = A[:,0]
         
 # calculate the permanent using walrus library
-iter_loops = 1
+iter_loops = 2
 time_walrus = 1000000000        
 for idx in range(iter_loops):
     start = time.time()   
@@ -97,12 +97,12 @@ for idx in range(iter_loops):
 
 
 
-permanent_Glynn_calculator = GlynnPermanent( Arep )
+permanent_Glynn_calculator = GlynnPermanent( )
 time_Glynn_Cpp = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_Glynn_Cpp = permanent_Glynn_calculator.calculate()
+    permanent_Glynn_Cpp = permanent_Glynn_calculator.calculate(Arep)
 
     time_loc = time.time() - start
     start = time.time()   
@@ -112,16 +112,13 @@ for idx in range(iter_loops):
 
 
 
-permanent_Glynn_calculator = GlynnPermanent( Arep )
+permanent_Glynn_calculator = GlynnPermanent(  )
 time_Glynn_DFE = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    if (dim <= 28 ):
-        permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFE()
-    else:
-        permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFEDualCard()
-
+    permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFE(Arep)
+    print( permanent_Glynn_DFE )
     time_loc = time.time() - start
     start = time.time()   
        

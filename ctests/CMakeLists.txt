@@ -364,3 +364,11 @@ target_compile_options(permanents_speed PRIVATE
 )
 
 
+# adding compile options
+target_compile_options(common_functionalities PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
+
+
