@@ -13,20 +13,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import re
+import piquasso as pq
 
-import pytest
+from piquasso.instructions import measurements
 
-import piquassoboost as pqb
+from .calculations import sampling
 
 
-@pytest.fixture(autouse=True)
-def _patch(request):
-    regexp = re.compile(f"{re.escape(str(request.config.rootdir))}\/(.+?)\/(.*)")
-
-    result = regexp.search(str(request.fspath))
-
-    if result.group(1) == "piquasso-module":
-        # NOTE: Only override the simulators, when the origin Piquasso Python tests are
-        # executed. For tests originating in PiquassoBoost, handle everything manually!
-        pqb.patch()
+class BoostedSamplingSimulator(pq.SamplingSimulator):
+    _instruction_map = {
+        **pq.SamplingSimulator._instruction_map,
+        measurements.Sampling: sampling,
+    }

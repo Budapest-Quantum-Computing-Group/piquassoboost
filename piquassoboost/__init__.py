@@ -15,15 +15,10 @@
 
 import piquasso as pq
 
-from piquassoboost.gaussian.state import GaussianState
-from piquassoboost.sampling.state import SamplingState
+from piquassoboost.gaussian.simulator import BoostedGaussianSimulator
+from piquassoboost.sampling.simulator import BoostedSamplingSimulator
 
 
 def patch():
-    class BoostPlugin:
-        classes = {
-            "GaussianState": GaussianState,
-            "SamplingState": SamplingState,
-        }
-
-    pq.use(BoostPlugin)
+    pq.GaussianSimulator = BoostedGaussianSimulator
+    pq.SamplingSimulator = BoostedSamplingSimulator

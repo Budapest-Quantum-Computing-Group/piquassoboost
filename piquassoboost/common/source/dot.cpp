@@ -329,8 +329,6 @@ zgemm_Task_serial::zgemm_chunk() {
     Complex16 alpha(1.0, 0.0);
     Complex16 beta(0.0, 0.0);
 
-
-
     cblas_zgemm(CblasRowMajor, Atranspose, Btranspose, m, n, k, (double*)&alpha, (double*)A_zgemm_data, lda, (double*)B_zgemm_data, ldb, (double*)&beta, (double*)C_zgemm_data, ldc);
 
 

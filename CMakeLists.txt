@@ -321,7 +321,7 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicState.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dot.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/common_functionalities.cpp
-    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/CGaussianState.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/CalculationHelpers.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/GaussianState_Cov.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/extract_rows.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/transform_rows.cpp
@@ -427,7 +427,7 @@ set_target_properties(piquassoboost PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicStateHash.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dot.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/common_functionalities.h
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/CGaussianState.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/CalculationHelpers.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/GaussianState_Cov.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/extract_rows.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/transform_rows.h

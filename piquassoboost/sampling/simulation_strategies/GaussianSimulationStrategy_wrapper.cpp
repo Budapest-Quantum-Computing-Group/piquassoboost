@@ -131,16 +131,23 @@ static int
 GaussianSimulationStrategy_wrapper_init(GaussianSimulationStrategy_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"covariance_matrix", (char*)"m", (char*)"fock_cutoff", NULL};
+    static char *kwlist[] = {
+        (char*)"covariance_matrix",
+        (char*)"m",
+        (char*)"fock_cutoff",
+        (char*)"seed",
+        NULL
+    };
 
     // initiate variables for input arguments
     PyObject *covariance_matrix_arg = NULL;
     PyObject *m_arg = NULL;
     int fock_cutoff = 0;
+    PyObject* seed = NULL;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOi", kwlist,
-                                     &covariance_matrix_arg, &m_arg, &fock_cutoff))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOiO", kwlist,
+                                     &covariance_matrix_arg, &m_arg, &fock_cutoff, &seed))
         return -1;
 
     // convert python object array to numpy C API array
@@ -176,6 +183,8 @@ GaussianSimulationStrategy_wrapper_init(GaussianSimulationStrategy_wrapper *self
 
     // create instance of class ChinHuhPermanentCalculator
     self->simulation_strategy = create_ChinHuhPermanentCalculator( covariance_matrix_mtx, m_mtx, fock_cutoff );
+
+    self->simulation_strategy->seed(PyLong_AsUnsignedLongLong(seed));
 
     return 0;
 }

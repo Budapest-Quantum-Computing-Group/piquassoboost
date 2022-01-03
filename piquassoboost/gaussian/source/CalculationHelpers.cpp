@@ -15,7 +15,7 @@
  */
 
 #include <iostream>
-#include "CGaussianState.h"
+#include "CalculationHelpers.h"
 #include "dot.h"
 #include <memory.h>
 #include <tbb/scalable_allocator.h>
@@ -29,27 +29,6 @@
 
 namespace pic {
 
-/**
-@brief Default constructor of the class.
-@return Returns with the instance of the class.
-*/
-CGaussianState::CGaussianState() {}
-
-/**
-@brief Constructor of the class.
-@param C_in Input matrix defined by
-@param G_in Input matrix defined by
-@param m_in Input matrix defined by
-@return Returns with the instance of the class.
-*/
-CGaussianState::CGaussianState( matrix &C_in, matrix &G_in, matrix &m_in) {
-
-    Update( C_in, G_in, m_in);
-}
-
-
-
-
 
 /**
 @brief Applies the matrix T to the C and G.
@@ -58,7 +37,7 @@ CGaussianState::CGaussianState( matrix &C_in, matrix &G_in, matrix &m_in) {
 @return Returns with 0 in case of success.
 */
 int
-CGaussianState::apply_to_C_and_G( matrix &T, std::vector<size_t> modes ) {
+apply_to_C_and_G( matrix &C, matrix &G, matrix &T, std::vector<size_t> modes ) {
 
 #if BLAS==1
     int NumThreads = mkl_get_max_threads();
@@ -179,63 +158,7 @@ CGaussianState::apply_to_C_and_G( matrix &T, std::vector<size_t> modes ) {
 #endif
 
     return 0;
-
-
 }
-
-
-/**
-@brief Call to update the memory addresses of the stored matrices
-@param C_in Input matrix defined by
-@param G_in Input matrix defined by
-@param m_in Input matrix defined by
-*/
-void
-CGaussianState::Update( matrix &C_in, matrix &G_in, matrix &m_in) {
-
-    C = C_in;
-    G = G_in;
-    m = m_in;
-
-}
-
-
-
-/**
-@brief Call to update the memory address of the matrix C
-@param C_in Input matrix defined by
-*/
-void
-CGaussianState::Update_C( matrix &C_in) {
-
-    C = C_in;
-
-}
-
-
-/**
-@brief Call to update the memory address of the matrix G
-@param G_in Input matrix defined by
-*/
-void
-CGaussianState::Update_G(matrix &G_in) {
-
-    G = G_in;
-
-}
-
-
-/**
-@brief Call to update the memory address of the vector containing the displacements
-@param m_in The new displacement vector
-*/
-void
-CGaussianState::Update_m(matrix &m_in) {
-
-    m = m_in;
-
-}
-
 
 
 } // PIC
