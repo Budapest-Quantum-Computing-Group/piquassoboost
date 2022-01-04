@@ -27,7 +27,7 @@ setup(
             "piquasso", "piquasso.*",
         )
     ),
-    version='0.1',
+    version='0.2.0',
     url="https://gitlab.inf.elte.hu/wigner-rcp-quantum-computing-and-information-group/piquassoboost",  # noqa: E501
     maintainer="The Piquasso team",
     maintainer_email="kolarovszki@inf.elte.hu",

@@ -22,3 +22,6 @@ from piquassoboost.sampling.simulator import BoostedSamplingSimulator
 def patch():
     pq.GaussianSimulator = BoostedGaussianSimulator
     pq.SamplingSimulator = BoostedSamplingSimulator
+
+
+__version__ = "0.2.0"
