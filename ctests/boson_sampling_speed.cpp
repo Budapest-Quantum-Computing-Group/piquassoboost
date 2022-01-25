@@ -152,18 +152,19 @@ int main() {
     //testCaseInitializerList({1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,1},100);
     //testCaseInitializerList({1,1,1,0,0,0,0,0,0},100);
 
+    std::cout << "initialization of DFE started" << std::endl;
     initialize_DFE();
+    std::cout << "initialization of DFE ended" << std::endl;
 
-    testCaseInitializerList(
-        {1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,2,1,5,1,1,1,1,1,1,1,1,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,1,1,4,1,1,1,0,0,0,0,2,1,5,1,1,1,1,1,1,1,1,1,1,1,1},
-        100
-    );
-    
-
+    //testCaseInitializerList(
+    //    {1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,2,1,5,1,1,1,1,1,1,1,1,1,1,1,1},
+    //    {0,0,0,0,0,0,0,0,0,1,1,4,1,1,1,0,0,0,0,2,1,5,1,1,1,1,1,1,1,1,1,1,1,1},
+    //    100
+    //);
+    //
     constexpr int iterationNumber = 100;
 
-    for (int matrix_dimension = 20; matrix_dimension < 30; matrix_dimension++){
+    for (int matrix_dimension = 22; matrix_dimension < 23; matrix_dimension++){
         std::cout << "Dim: "<<matrix_dimension << std::endl;
 
         std::vector<int> inputState;
@@ -173,7 +174,9 @@ int main() {
         testCase(inputState, inputState, iterationNumber);
     }
     
+    std::cout << "releiving of DFE started" << std::endl;
     releive_DFE();
+    std::cout << "releiving of DFE ended" << std::endl;
 
     std::cout << "All test cases passed." << std::endl;
     return 0;

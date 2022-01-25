@@ -29,6 +29,9 @@
 
 int test_extract_corner(size_t dim, std::vector<size_t> modes_in);
 
+#ifndef MAXDIM_EXTRACT_CORNER_CTEST
+#define MAXDIM_EXTRACT_CORNER_CTEST 100
+#endif
 
 
 /**
@@ -85,10 +88,15 @@ int test_extract_corner(const size_t dim, std::vector<size_t> modes_in){
     }
         
     // bool array with the logical indexes of the columns of the matrix
-    bool cols_logical[dim] = {0};
+    bool cols_logical[MAXDIM_EXTRACT_CORNER_CTEST];
+    for (bool &elem : cols_logical)
+        elem = false;
     
     // expected bool array
-    bool cols_logical_expected[dim] = {0};
+    bool cols_logical_expected[MAXDIM_EXTRACT_CORNER_CTEST];
+    for (bool &elem : cols_logical_expected)
+        elem = false;
+    
     for ( size_t mode : modes_in ){
         cols_logical_expected[mode] = 1;
     }

@@ -64,6 +64,10 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
    seed(time(NULL));
   
 
+        std::cout << "initialize_DFE start\n";
+        // initialize DFE array
+        initialize_DFE();
+        std::cout << "initialize_DFE ended\n";
 }
 
 
@@ -79,6 +83,11 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
     // seed the random generator
     seed(time(NULL));
 
+        std::cout << "initialize_DFE start\n";
+        // initialize DFE array
+        initialize_DFE();
+        std::cout << "initialize_DFE ended\n";
+
 }
 
 
@@ -92,6 +101,8 @@ CGeneralizedCliffordsSimulationStrategy::~CGeneralizedCliffordsSimulationStrateg
     //for (int i = 0; i < 40; i++){
     //    std::cout << "runtimesArray["<<i<<"] = " << averageTimes[i]<<std::endl;
     //}
+
+    releive_DFE();
 }
 
 /**
