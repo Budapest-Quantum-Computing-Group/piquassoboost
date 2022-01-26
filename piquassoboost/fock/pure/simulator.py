@@ -15,22 +15,8 @@
 
 import piquasso as pq
 
-from piquasso.instructions import gates, measurements
-
 from piquassoboost.config import BoostConfig
 
-from .calculations import passive_linear, threshold_measurement, particle_number_measurement
 
-class BoostedGaussianSimulator(pq.GaussianSimulator):
-    _instruction_map = {
-        **pq.GaussianSimulator._instruction_map,
-        gates.Interferometer: passive_linear,
-        gates.Beamsplitter: passive_linear,
-        gates.Phaseshifter: passive_linear,
-        gates.MachZehnder: passive_linear,
-        gates.Fourier: passive_linear,
-        measurements.ThresholdMeasurement: threshold_measurement,
-        measurements.ParticleNumberMeasurement: particle_number_measurement,
-    }
-
+class BoostedPureFockSimulator(pq.PureFockSimulator):
     _config_class = BoostConfig

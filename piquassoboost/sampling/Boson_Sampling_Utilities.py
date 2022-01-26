@@ -15,8 +15,6 @@
 
 __author__ = 'Tomasz Rybotycki', 'Peter Rakyta'
 
-from typing import List, Optional
-
 import numpy as np
 
 from .Boson_Sampling_Utilities_wrapper import ChinHuhPermanentCalculator_wrapper
@@ -29,45 +27,37 @@ from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnianRecursive_wra
 
 class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
     """
-        This class is designed to calculate permanent of effective scattering matrix of a boson sampling instance.
-        Note, that it can be used to calculate permanent of given matrix. All that is required that input and output
-        states are set to [1, 1, ..., 1] with proper dimensions.
+    This class is designed to calculate permanent of effective scattering matrix of a
+    boson sampling instance. Note, that it can be used to calculate permanent of given
+    matrix. All that is required that input and output states are set to [1, 1, ..., 1]
+    with proper dimensions.
+
+    Assuming that input state, output state and the matrix are defined correctly (that
+    is we've got m x m matrix, and vectors of with length m) this calculates the
+    permanent of an effective scattering matrix related to probability of obtaining
+    output state from given input state.
     """
-    
+
+    # NOTE: This is needed because we use different names in `piquassoboost` and
+    # in `theboss`.
+    compute_permanent = ChinHuhPermanentCalculator_wrapper.calculate
 
     def __init__(self, matrix, input_state, output_state):
 
-        if not (type(input_state) is np.ndarray):
-            input_state = np.array(input_state)
-
-        if not (type(output_state) is np.ndarray):
-            output_state = np.array(output_state)
+        # input/output states should be numpy arrays
+        input_state = np.asarray(input_state)
+        output_state = np.asarray(output_state)
 
         # input/output states should be  of type int64
         input_state = input_state.astype(np.int64)
         output_state = output_state.astype(np.int64)
 
         # call the constructor of the wrapper class
-        super(ChinHuhPermanentCalculator, self).__init__(matrix=matrix, input_state=input_state, output_state=output_state)
-        pass
-
-       
-    def calculate(self):
-        """
-            This is the main method of the calculator. Assuming that input state, output state and the matrix are
-            defined correctly (that is we've got m x m matrix, and vectors of with length m) this calculates the
-            permanent of an effective scattering matrix related to probability of obtaining output state from given
-            input state.
-            :return: Permanent of effective scattering matrix.
-        """
-
-#        if not self.__can_calculation_be_performed():
-#            raise AttributeError
-
-
-        # call the permanent calculator of the parent class
-        return super(ChinHuhPermanentCalculator, self).calculate()
-
+        super().__init__(
+            matrix=matrix,
+            input_state=input_state,
+            output_state=output_state
+        )
 
     def __can_calculation_be_performed(self) -> bool:
         """
@@ -80,35 +70,22 @@ class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
                and len(self.output_state) == self.matrix.shape[0]
 
 
-
-
-
-
 class GlynnPermanent(GlynnPermanentCalculator_wrapper):
     """
-        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin
+Glynn (BBFG) formula)
     """
-    
-
     def __init__(self, matrix):
-
         # call the constructor of the wrapper class
-        super(GlynnPermanent, self).__init__(matrix=matrix)
-        pass
+        super().__init__(matrix=matrix)
 
-       
     def calculate(self):
         """
             ?????????????????.
             :return: The permanent of the matrix.
         """
-
-
-
         # call the permanent calculator of the parent class
-        return super(GlynnPermanent, self).calculate()
-
-
+        return super().calculate()
 
 
 

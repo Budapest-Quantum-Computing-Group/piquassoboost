@@ -34,10 +34,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "numpy>=1.19.4",
-        (
-            "piquasso@git+ssh://git@github.com/Budapest-Quantum-Computing-Group/"
-            "piquasso.git@0.5.0#egg=piquasso"
-        ),  # TODO: install a package instead!
+        "piquasso==0.8.1",
     ],
     tests_require=["pytest"],
     description='The C++ binding for the Piquasso project',

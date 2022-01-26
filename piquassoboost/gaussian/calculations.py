@@ -24,8 +24,6 @@ from .calculation_extension import apply_passive_linear_to_C_and_G
 from piquasso.api.result import Result
 from piquasso._backends.gaussian import calculations as pq_calculations
 
-from piquassoboost.sampling.Boson_Sampling_Utilities import PowerTraceLoopHafnian
-
 from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 
 
@@ -75,11 +73,8 @@ def threshold_measurement(state, instruction, shots):
 
 
 def particle_number_measurement(state, instruction, shots) -> Result:
-    def cpp_loop_hafnian(matrix: np.ndarray):
-        return PowerTraceLoopHafnian(matrix).calculate()
-
     samples = pq_calculations._get_particle_number_measurement_samples(
-        state, instruction, shots, cpp_loop_hafnian
+        state, instruction, shots
     )
 
     return Result(state=state, samples=samples)
