@@ -228,7 +228,7 @@ double calculate() {
 
     // start task iterations originating from the initial selected modes
 #ifdef __MPI__
-    StartMPIIterations<scalar_type_long>( L );
+    StartMPIIterations( L );
 #else
     IterateOverSelectedModes( selected_index_holes, 0, L, num_of_modes-1 );
 #endif
@@ -336,7 +336,6 @@ protected:
 @brief Call to start MPI distributed iterations
 @param L Matrix containing partial Cholesky decomposition if the initial matrix to be reused
 */
-template<class scalar_type_long>
 void StartMPIIterations( matrix_type &L ) {
 
     // start activity on the current MPI process

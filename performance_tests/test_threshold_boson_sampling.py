@@ -37,7 +37,7 @@ class TestThresholdBosonSampling:
         d = 10
 
         # Number of shots
-        shots = 10000
+        shots = 100
 
         # rundom parameters for squeezing gates
         squeezing_params_r = np.random.random(d)

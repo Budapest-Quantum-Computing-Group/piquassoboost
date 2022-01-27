@@ -27,6 +27,10 @@
 
 #include "tasks_apply_to_C_and_G/extract_corner.h"
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 int test_extract_corner(size_t dim, std::vector<size_t> modes_in);
 
 
@@ -35,6 +39,13 @@ int test_extract_corner(size_t dim, std::vector<size_t> modes_in);
 @brief Unit test case for the column extractation method
 */
 int main() {
+
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
+
+
     // Test with dimension 8 and qumodes {1, 3, 6}
     std::vector<size_t> modes_in_1 = {1, 3, 6};
     test_extract_corner(8, modes_in_1);
@@ -144,6 +155,13 @@ int test_extract_corner(const size_t dim, std::vector<size_t> modes_in){
     
     
     std::cout << "Test passed. " << std::endl;
+
+
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
+
     return 0;
 }
 

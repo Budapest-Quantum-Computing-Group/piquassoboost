@@ -20,8 +20,8 @@ class TestPermanentCalculators:
     def test_value_two_dimensional(self):
         """Check permanent value calculated by C++ Glynn permanent calculator"""
 
-        d = 20
-        n = 100
+        d = 10
+        n = 10
 
         matrices = []
         for _ in range(n):
@@ -65,7 +65,7 @@ class TestPermanentCalculators:
             permanent_calculator_pq_chinhuh = ChinHuhPermanentCalculator(matrix, input_state, output_state)
 
             start = time.time()
-            pq_permanent_chinhuh = 1 #permanent_calculator_pq_chinhuh.calculate()
+            pq_permanent_chinhuh = permanent_calculator_pq_chinhuh.calculate()
             end = time.time()
             pq_chinhuh_time += end - start
             pq_permanents_chinhuh.append(pq_permanent_chinhuh)

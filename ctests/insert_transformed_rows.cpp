@@ -29,12 +29,21 @@
 
 #include "tasks_apply_to_C_and_G/insert_transformed_rows.h"
 
-
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
 
 /**
 @brief Unit test case for the insert_transformed_rows
 */
 int main() {
+
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
+
+
     printf("\n\n****************************************\n");
     printf("Test of insert_transformed_rows\n");
     printf("****************************************\n\n\n");
@@ -139,6 +148,12 @@ int main() {
         }
     }
     std::cout << "Test passed. " << std::endl;
+
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
+
 
     return 0;
 };

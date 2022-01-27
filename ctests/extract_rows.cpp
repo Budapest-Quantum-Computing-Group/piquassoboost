@@ -28,12 +28,21 @@
 
 #include "tasks_apply_to_C_and_G/extract_rows.h"
 
-
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
 
 /**
 @brief Unit test case for the row extractation method
 */
 int main() {
+
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
+
+
     printf("\n\n****************************************\n");
     printf("Test of row extractation method\n");
     printf("****************************************\n\n\n");
@@ -100,6 +109,12 @@ int main() {
         assert(std::abs(diff) < pic::epsilon);
     }
     std::cout << "Test passed. " << std::endl;
+
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
+
 
     return 0;
 };
