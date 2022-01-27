@@ -20,7 +20,9 @@
 #include "matrix.h"
 #include "dot.h"
 
-
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
 
 /**
 @brief Unit test to check matrix multiplication with strides
@@ -33,6 +35,11 @@ int main() {
 
     // seed the random generator
     srand ( time ( NULL));
+
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
 
 
     // allocate matrix array for matrix A
@@ -94,6 +101,11 @@ int main() {
     assert( std::abs(diff)<1e-13 );
     std::cout << "Test passed"  << std::endl;
 
+
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
 
 
   return 0;

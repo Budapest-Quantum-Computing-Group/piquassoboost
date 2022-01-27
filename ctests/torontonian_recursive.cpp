@@ -43,7 +43,7 @@
 */
 int main(){
 
-    constexpr size_t dim = 30;
+    constexpr size_t dim = 40;
 
 #ifdef __MPI__
     // Initialize the MPI environment
@@ -57,8 +57,8 @@ int main(){
 
 #ifdef __MPI__
     // ensure that each MPI process gets the same input matrix from rank 0
-    void* syncronized_data = (void*)mtx.get_data();
-    MPI_Bcast(syncronized_data, mtx.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    void* syncronized_data = (void*)matrix.get_data();
+    MPI_Bcast(syncronized_data, matrix.size()*2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 
     // This is a hack for being able to compare the results of the

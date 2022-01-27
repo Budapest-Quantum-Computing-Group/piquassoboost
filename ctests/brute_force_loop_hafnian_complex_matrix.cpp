@@ -22,6 +22,10 @@
 #include "tbb/tbb.h"
 
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 /**
 @brief Unit test case for the loop hafnian of complex symmetric matrices: compare brute force method with power trace method
 */
@@ -34,6 +38,10 @@ int main() {
     // seed the random generator
     srand ( time ( NULL));
 
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
 
     // allocate matrix array
     size_t dim = 4;
@@ -99,6 +107,11 @@ std::cout << (t1-t0).seconds() << " " <<(t3-t2).seconds() << " " << (t5-t4).seco
     assert( std::abs(hafnian_power_trace-hafnian_expected)<1e-13 );
     std::cout << "Test passed"  << std::endl;
 
+
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
 
 
 

@@ -27,6 +27,10 @@
 
 #include "common_functionalities.h"
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 
 int mainIsSymmetric();
 int testCaseIsSymmetric(size_t dim, bool testOfSymmetric);
@@ -36,6 +40,12 @@ int testCaseIsHermitian(size_t dim, bool testOfHermitian);
 
 
 int main(){
+
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
+
 
     /**
     @brief Unit test cases for the function checking symmetric property of a matrix
@@ -47,6 +57,11 @@ int main(){
     @brief Unit test cases for the function checking hermitian property of a matrix
     */
     mainIsHermitian();
+
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
     
     return 0;
 }

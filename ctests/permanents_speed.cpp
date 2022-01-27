@@ -7,6 +7,10 @@
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "matrix_helper.hpp"
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 constexpr bool printTimes = true;
 
 bool AreClose(const pic::Complex16 &a, const pic::Complex16 &b){
@@ -176,6 +180,11 @@ void testCaseInitializerList(std::initializer_list<int> input, std::initializer_
 
 int main() {
 
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
+
     printf("\n\n********************************************************\n");
     printf("Test of permanents calculators speed\n");
     printf("********************************************************\n\n\n");
@@ -221,6 +230,13 @@ int main() {
     }
 
     std::cout << "All test cases passed." << std::endl;
+
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
+
+
     return 0;
     
 }

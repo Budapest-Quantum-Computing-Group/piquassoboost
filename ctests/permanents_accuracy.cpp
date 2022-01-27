@@ -8,6 +8,10 @@
 #include "matrix32.h"
 
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
 bool AreClose(const pic::Complex16 &a, const pic::Complex16 &b){
     double eps = 1e-6;
 
@@ -63,6 +67,11 @@ int main() {
     printf("\n\n********************************************************\n");
     printf("Test of permanents calculators accuracy\n");
     printf("********************************************************\n\n\n");
+
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
 
     constexpr int iterationNumber = 10;
     for (int dim = 2; dim < 10; dim++){
@@ -127,5 +136,10 @@ int main() {
     std::cout << "GlRe time: " << (t5-t4).seconds() << std::endl;
 
     std::cout << "All test cases were passed." << std::endl;
+
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
     
 }

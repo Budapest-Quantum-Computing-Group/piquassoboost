@@ -18,6 +18,9 @@
 #include "matrix.h"
 #include "matrix_helper.hpp"
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
 
 
 /**
@@ -39,6 +42,16 @@ void test_calc_torontonian(){
 */
 int main(){
 
+#ifdef __MPI__
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+#endif
+
     test_calc_torontonian();
+
+#ifdef __MPI__
+    // Finalize the MPI environment.
+    MPI_Finalize();
+#endif
 
 }
