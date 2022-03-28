@@ -25,6 +25,8 @@ typedef struct GlynnPermanentCalculator_wrapper {
     void *handle = NULL;
     ///
     void *rephandle = NULL;
+    /// set 0 to use CPU implementation, set 1 to use single DFE implementation, set 2 to use dual DFE implementation
+    int DFE = 0;
     /// The C++ variant of class CGlynnPermanentCalculator
     pic::GlynnPermanentCalculator* calculator;
 } GlynnPermanentCalculator_wrapper;
@@ -95,24 +97,25 @@ GlynnPermanentCalculator_wrapper_dealloc(GlynnPermanentCalculator_wrapper *self)
 @param type A pointer pointing to a structure describing the type of the class GlynnPermanentCalculator_wrapper.
 */
 static PyObject *
-GlynnPermanentCalculator_wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
+GlynnPermanentCalculator_wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+
     GlynnPermanentCalculator_wrapper *self;
     self = (GlynnPermanentCalculator_wrapper *) type->tp_alloc(type, 0);
-    if (self != NULL) {}
 
     self->matrix = NULL;
 
     // dynamic-loading the correct DFE permanent calculator (Simulator/DFE/single or dual) from shared libararies
-    self->handle = dlopen(getenv("SLIC_CONF") ? DFE_PATH_SIM DFE_LIB_SIM : DFE_PATH DFE_LIB, RTLD_NOW); //"MAXELEROSDIR"
+    self->handle = dlopen(getenv("SLIC_CONF") ? DFE_PATH_SIM DFE_LIB_SIM /*use simulator*/ : DFE_PATH DFE_LIB /* use DFE */, RTLD_NOW); //"MAXELEROSDIR"
+
     if (self->handle == NULL) {
         char* pwd = getcwd(NULL, 0);
         fprintf(stderr, "%s\n'%s' (in %s mode) failed to load from working directory '%s'\n", dlerror(), getenv("SLIC_CONF") ? DFE_PATH_SIM DFE_LIB_SIM : DFE_PATH DFE_LIB, getenv("SLIC_CONF") ? "simulator" : "DFE", pwd);
         free(pwd);
     } else {
-      calcPermanentGlynnDFE = (CALCPERMGLYNNDFE)dlsym(self->handle, "calcPermanentGlynnDFE");
-      initialize_DFE = (INITPERMGLYNNDFE)dlsym(self->handle, "initialize_DFE");
-      releive_DFE = (FREEPERMGLYNNDFE)dlsym(self->handle, "releive_DFE");
+        // in case the DFE libraries were loaded successfully the function pointers are set to initialize/releive DFE engine and run DFE calculations
+        calcPermanentGlynnDFE = (CALCPERMGLYNNDFE)dlsym(self->handle, "calcPermanentGlynnDFE");
+        initialize_DFE = (INITPERMGLYNNDFE)dlsym(self->handle, "initialize_DFE");
+        releive_DFE = (FREEPERMGLYNNDFE)dlsym(self->handle, "releive_DFE");
     }
 /*
     // dynamic-loading the correct DFE REPEATED permanent calculator (Simulator/DFE/single or dual) from shared libararies
@@ -142,18 +145,15 @@ static int
 GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, PyObject *args, PyObject *kwds)
 {
 
-    // initialize DFE array
-    //initialize_DFE();
-
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"matrix", NULL};
+    static char *kwlist[] = {(char*)"matrix", (char*)"DFE", NULL};
 
     // initiate variables for input arguments
     PyObject *matrix_arg = NULL;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,
-                                     &matrix_arg))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oi", kwlist,
+                                     &matrix_arg, &(self->DFE)))
         return -1;
 
     // convert python object array to numpy C API array
@@ -302,28 +302,19 @@ GlynnPermanentCalculator_Wrapper_calculate_repeated(GlynnPermanentCalculator_wra
 @param kwds A tuple of keywords
 */
 static PyObject *
-GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *self, PyObject *args, PyObject *kwds)
+GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *self)
 {
 
-    // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"matrix", (char*)"dual", NULL};
 
-    // initiate variables for input arguments
-    int useDual = 0;
-
-    // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|p", kwlist,
-                                     &useDual))
-        return Py_BuildValue("");
 
     // create PIC version of the input matrices
     pic::matrix matrix_mtx = numpy2matrix(self->matrix);
 
-    if (initialize_DFE) initialize_DFE(useDual);
+    if (initialize_DFE) initialize_DFE(self->DFE);
 
     pic::Complex16 perm;
-    
-    if (calcPermanentGlynnDFE) GlynnPermanentCalculator_DFE( matrix_mtx, perm, useDual);
+  
+    if (calcPermanentGlynnDFE) GlynnPermanentCalculator_DFE( matrix_mtx, perm, self->DFE);
     else perm = self->calculator->calculate(matrix_mtx);
 
     return Py_BuildValue("D", &perm);
