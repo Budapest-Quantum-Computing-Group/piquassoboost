@@ -341,6 +341,8 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculator.cpp
+    #${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorInf.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorDFE.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeated.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/Torontonian.cpp
@@ -411,6 +413,9 @@ target_link_libraries(piquassoboost PRIVATE
     ${TBBMALLOC_PROXY_LIB}
     ${TBB_LIB}
     ${MPI_C_LIBRARIES}    
+    "-L/opt/maxcompiler-2021.1/lib"                                                                                                                                                                               
+    "-L/opt/maxeler/maxeleros/lib"
+
 )
 
 target_include_directories(piquassoboost PRIVATE
