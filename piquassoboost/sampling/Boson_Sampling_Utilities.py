@@ -74,14 +74,16 @@ class GlynnPermanent(GlynnPermanentCalculator_wrapper):
     """
         This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin
 Glynn (BBFG) formula)
+        :DFE: set 0 to use CPU implementation, set 1 to use single DFE implementation, set 2 to use dual DFE implementation
     """
-    def __init__(self, matrix):
+    def __init__(self, matrix, DFE=0):
         # call the constructor of the wrapper class
-        super().__init__(matrix=matrix)
+        super().__init__(matrix=matrix, DFE=DFE)
+
 
     def calculate(self):
         """
-            ?????????????????.
+            Run the permanent calculation process according to the initialized values in the cosntructor
             :return: The permanent of the matrix.
         """
         # call the permanent calculator of the parent class
