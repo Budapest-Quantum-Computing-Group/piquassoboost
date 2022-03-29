@@ -189,10 +189,29 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
     // create PIC version of the input matrices
     pic::matrix matrix_mtx = numpy2matrix(self->matrix);
 
-    // start the calculation of the permanent
-    pic::Complex16 ret = self->calculator->calculate(matrix_mtx);
+    // variable to store the calculated permanent
+    pic::Complex16 perm;
 
-    return Py_BuildValue("D", &ret);
+    if ( self->DFE==0 ) {
+        // CPU implementation of permanent calculator
+        perm = self->calculator->calculate(matrix_mtx);
+    }
+    else if (self->DFE==1 || self->DFE==2) {
+        // single and dual DFE impelementation for permanent
+        if (!calcPermanentGlynnDFE) {
+            printf("DFE calculator handles not initialized");
+            abort();
+        }
+
+        // initialize DFE if needed
+        if (initialize_DFE) initialize_DFE(self->DFE);
+
+        // calculate permanent on DFE
+        GlynnPermanentCalculator_DFE( matrix_mtx, perm, self->DFE);
+    }
+
+
+    return Py_BuildValue("D", &perm);
 }
 
 
@@ -295,30 +314,6 @@ GlynnPermanentCalculator_Wrapper_calculate_repeated(GlynnPermanentCalculator_wra
 }
 
 
-/**
-@brief Wrapper function to call the calculate the Permanent on a DFE
-@param self A pointer pointing to an instance of the class GlynnPermanentCalculator_Wrapper.
-@param args A tuple of the input arguments: ??????????????
-@param kwds A tuple of keywords
-*/
-static PyObject *
-GlynnPermanentCalculator_Wrapper_calculateDFE(GlynnPermanentCalculator_wrapper *self)
-{
-
-
-
-    // create PIC version of the input matrices
-    pic::matrix matrix_mtx = numpy2matrix(self->matrix);
-
-    if (initialize_DFE) initialize_DFE(self->DFE);
-
-    pic::Complex16 perm;
-  
-    if (calcPermanentGlynnDFE) GlynnPermanentCalculator_DFE( matrix_mtx, perm, self->DFE);
-    else perm = self->calculator->calculate(matrix_mtx);
-
-    return Py_BuildValue("D", &perm);
-}
 
 /**
 @brief Wrapper function to call the calculate method of C++ class CGlynnPermanentCalculator
@@ -423,9 +418,6 @@ static PyMethodDef GlynnPermanentCalculator_wrapper_Methods[] = {
     },
     {"calculateInf", (PyCFunction) GlynnPermanentCalculator_Wrapper_calculateInf, METH_NOARGS,
      "Method to calculate the permanent with GMP MPFR for infinite precision."
-    },
-    {"calculateDFE", (PyCFunction) GlynnPermanentCalculator_Wrapper_calculateDFE, METH_VARARGS | METH_KEYWORDS,
-     "Method to calculate the permanent on single or dual DFE."
     },
     {"calculate_repeated", (PyCFunction) GlynnPermanentCalculator_Wrapper_calculate_repeated, METH_VARARGS | METH_KEYWORDS,
      "Method to calculate the permanent with repeated rows and columns."
