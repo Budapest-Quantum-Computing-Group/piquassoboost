@@ -38,7 +38,7 @@ def generate_random_unitary( dim ):
 
 
 # generate the random matrix
-dim = 30
+dim = 20
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
 Arep = A
 
@@ -123,7 +123,7 @@ time_Glynn_DFE = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_Glynn_DFE = permanent_Glynn_calculator.calculateDFE()
+    permanent_Glynn_DFE = permanent_Glynn_calculator.calculate()
     time_loc = time.time() - start
     start = time.time()   
        
@@ -132,12 +132,12 @@ for idx in range(iter_loops):
 
 
 
-permanent_Glynn_calculator = GlynnPermanent( matrix=Arep, DFE=2 )
+permanent_Glynn_calculator = GlynnPermanent( Arep, DFE=2 )
 time_Glynn_dual_DFE = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_Glynn_dual_DFE = permanent_Glynn_calculator.calculateDFE()
+    permanent_Glynn_dual_DFE = permanent_Glynn_calculator.calculate()
     time_loc = time.time() - start
     start = time.time()   
        
@@ -151,6 +151,26 @@ print( permanent_Glynn_DFE )
 print( permanent_Glynn_dual_DFE )
 
 
+if (dim<=24):
+    permanent_Glynn_calculator = GlynnPermanent( Arep, precision=2 )
+    time_Glynn_InfinitePrecision = 1000000000
+    for idx in range(iter_loops):
+        start = time.time()   
+
+        permanent_Glynn_InfinitePrecision = permanent_Glynn_calculator.calculate()
+        time_loc = time.time() - start
+        start = time.time()   
+       
+        if time_Glynn_InfinitePrecision > time_loc:
+            time_Glynn_InfinitePrecision = time_loc
+
+
+        
+
+    print( permanent_Glynn_InfinitePrecision )
+
+
+
 print(' ')
 print('*******************************************')
 print('Time elapsed with walrus: ' + str(time_walrus))
@@ -159,6 +179,8 @@ print('Time elapsed with piquasso: ' + str(time_Cpp))
 print('Time elapsed with piquasso Glynn: ' + str(time_Glynn_Cpp))
 print('Time elapsed with DFE Glynn: ' + str(time_Glynn_DFE))
 print('Time elapsed with dual DFE Glynn: ' + str(time_Glynn_dual_DFE))
+if (dim<=24):
+    print('Time elapsed with infinite precision Glynn: ' + str(time_Glynn_InfinitePrecision))
 #print( "speedup: " + str(time_walrus/time_Cpp) )
 print( "speedup Glynn: " + str(time_walrus/time_Glynn_Cpp) )
 print(' ')

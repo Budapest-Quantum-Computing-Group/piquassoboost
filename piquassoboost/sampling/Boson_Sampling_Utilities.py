@@ -75,15 +75,16 @@ class GlynnPermanent(GlynnPermanentCalculator_wrapper):
         This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin
 Glynn (BBFG) formula)
         :DFE: set 0 to use CPU implementation, set 1 to use single DFE implementation, set 2 to use dual DFE implementation
+        :precision: set 1 (default) to use long double precision, set 2 to use infinite computational precision using the GNU MPFR library. Has no effect if DFE>0 is set.
     """
-    def __init__(self, matrix, DFE=0):
+    def __init__(self, matrix, DFE=0, precision=1):
         # call the constructor of the wrapper class
-        super().__init__(matrix=matrix, DFE=DFE)
+        super().__init__(matrix=matrix, DFE=DFE, precision=precision)
 
 
     def calculate(self):
         """
-            Run the permanent calculation process according to the initialized values in the cosntructor
+            Run the permanent calculation process according to the initialized values in the constructor
             :return: The permanent of the matrix.
         """
         # call the permanent calculator of the parent class
@@ -106,7 +107,7 @@ class PowerTraceHafnian(PowerTraceHafnian_wrapper):
        
     def calculate(self):
         """
-            ?????????????????.
+            Run the hafnian calculation process according to the initialized values in the constructor
             :return: The hafnian of the matrix.
         """
 

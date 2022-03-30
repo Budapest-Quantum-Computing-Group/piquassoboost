@@ -9,10 +9,21 @@ namespace pic {
 
 
 
-
+/**
+@brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
 GlynnPermanentCalculatorRepeated::GlynnPermanentCalculatorRepeated() {}
 
 
+
+/**
+@brief Call to calculate the permanent via Glynn formula scaling with n*2^n. (Does not use gray coding, but does the calculation is similar but scalable fashion)
+@param mtx The effective scattering matrix of a boson sampling instance
+@param input_state The input state
+@param output_state The output state
+@return Returns with the calculated permanent
+*/
 Complex16 GlynnPermanentCalculatorRepeated::calculate(
     matrix &mtx,
     PicState_int64& input_state,
@@ -32,7 +43,13 @@ Complex16 GlynnPermanentCalculatorRepeated::calculate(
 }
 
 
-
+/**
+@brief Default constructor of the class.
+@param mtx Unitary describing a quantum circuit
+@param row_multiplicities vector describing the row multiplicity
+@param col_multiplicities vector describing the column multiplicity
+@return Returns with the instance of the class.
+*/
 GlynnPermanentCalculatorRepeatedTask::GlynnPermanentCalculatorRepeatedTask(
     matrix &mtx,
     PicState_int& row_multiplicities,
@@ -81,7 +98,10 @@ GlynnPermanentCalculatorRepeatedTask::GlynnPermanentCalculatorRepeatedTask(
     }
 }
 
-
+/**
+@brief Call to calculate the permanent via Glynn formula. scales with n*2^n
+@return Returns with the calculated permanent
+*/
 Complex16
 GlynnPermanentCalculatorRepeatedTask::calculate() {
 
@@ -139,7 +159,14 @@ GlynnPermanentCalculatorRepeatedTask::calculate() {
     return Complex16(permanent.real(), permanent.imag());
 }
 
-
+/**
+@brief Method to span parallel tasks via iterative function calls.
+(new task is spanned by altering one element in the vector of deltas)
+@param colSum The sum of \f$ \delta_j a_{ij} \f$ in Eq. (S2) of arXiv:1606.05836
+@param sign The current product \f$ \prod\delta_i $\f
+@param index_min \f$ \delta_j a_{ij} $\f with \f$ 0<i<index_min $\f are kept constant, while the signs of \f$ \delta_i \f$  with \f$ i>=idx_min $\f are changed.
+@param currentMultiplicity multiplicity of the current delta vector
+*/
 void 
 GlynnPermanentCalculatorRepeatedTask::IterateOverDeltas(
     matrix32& colSum,
