@@ -27,6 +27,8 @@ typedef struct GlynnPermanentCalculator_wrapper {
     void *rephandle = NULL;
     /// set 0 to use CPU implementation, set 1 to use single DFE implementation, set 2 to use dual DFE implementation
     int DFE = 0;
+    /// set 1 (default) to use long double precision, set 2 to use infinite computational precision using the GNU MPFR library. Has no effect if DFE>0 is set.
+    int precision = 1;
     /// The C++ variant of class CGlynnPermanentCalculator
     pic::GlynnPermanentCalculator* calculator;
 } GlynnPermanentCalculator_wrapper;
@@ -146,14 +148,14 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
 {
 
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"matrix", (char*)"DFE", NULL};
+    static char *kwlist[] = {(char*)"matrix", (char*)"DFE", (char*)"precision", NULL};
 
     // initiate variables for input arguments
     PyObject *matrix_arg = NULL;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oi", kwlist,
-                                     &matrix_arg, &(self->DFE)))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oii", kwlist,
+                                     &matrix_arg, &(self->DFE), &(self->precision)))
         return -1;
 
     // convert python object array to numpy C API array
@@ -167,6 +169,27 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
     else {
         self->matrix = PyArray_FROM_OTF(matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
+
+
+    // validating input arguments
+#ifdef __MPFR__
+    if ( self->precision < 1 || self->precision > 2 ) {
+        printf("Wrong value set for precision: %d", self->precision);
+        return -1;
+    }
+#else
+    if ( self->precision < 1 || self->precision > 1 ) {
+        printf("Wrong value set for precision: %d", self->precision);
+        return -1;
+    }
+#endif 
+
+
+
+    if ( self->DFE < 0 || self->DFE > 2 ) {
+        printf("Wrong value set for DFE: %d", self->DFE);
+        return -1;
+    }   
 
     // create instance of class GlynnPermanentCalculator
     self->calculator = create_GlynnPermanentCalculator();
@@ -193,8 +216,22 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
     pic::Complex16 perm;
 
     if ( self->DFE==0 ) {
-        // CPU implementation of permanent calculator
-        perm = self->calculator->calculate(matrix_mtx);
+
+        if ( self->precision == 1 ) {
+            // CPU implementation of permanent calculator with long double precision
+            perm = self->calculator->calculate(matrix_mtx);
+        }
+#ifdef __MPFR__
+        else if ( self->precision == 2 ) {
+            // start the calculation of the permanent with infinite precision using library MPFR
+            pic::GlynnPermanentCalculatorInf calcInf;
+            perm = calcInf.calculate(matrix_mtx);
+        }
+#endif
+        else {
+            printf("Wrong value set for precision: %d ", self->precision);
+            abort();
+        }
     }
     else if (self->DFE==1 || self->DFE==2) {
         // single and dual DFE impelementation for permanent
@@ -214,26 +251,6 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
     return Py_BuildValue("D", &perm);
 }
 
-
-/**
-@brief Wrapper function to call the calculate method of C++ class CGlynnPermanentCalculator
-@param self A pointer pointing to an instance of the class GlynnPermanentCalculator_Wrapper.
-@param args A tuple of the input arguments: ??????????????
-@param kwds A tuple of keywords
-*/
-static PyObject *
-GlynnPermanentCalculator_Wrapper_calculateInf(GlynnPermanentCalculator_wrapper *self)
-{
-
-    // create PIC version of the input matrices
-    pic::matrix matrix_mtx = numpy2matrix(self->matrix);
-
-    // start the calculation of the permanent
-    //pic::GlynnPermanentCalculatorInf* calcInf = new pic::GlynnPermanentCalculatorInf();
-    pic::Complex16 ret;// = calcInf->calculate(matrix_mtx);
-
-    return Py_BuildValue("D", &ret);
-}
 
 
 /**
@@ -415,9 +432,6 @@ static PyMemberDef GlynnPermanentCalculator_wrapper_Members[] = {
 static PyMethodDef GlynnPermanentCalculator_wrapper_Methods[] = {
     {"calculate", (PyCFunction) GlynnPermanentCalculator_Wrapper_calculate, METH_NOARGS,
      "Method to calculate the permanent."
-    },
-    {"calculateInf", (PyCFunction) GlynnPermanentCalculator_Wrapper_calculateInf, METH_NOARGS,
-     "Method to calculate the permanent with GMP MPFR for infinite precision."
     },
     {"calculate_repeated", (PyCFunction) GlynnPermanentCalculator_Wrapper_calculate_repeated, METH_VARARGS | METH_KEYWORDS,
      "Method to calculate the permanent with repeated rows and columns."

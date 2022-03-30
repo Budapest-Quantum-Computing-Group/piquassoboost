@@ -323,6 +323,61 @@ else()
 endif()
 
 
+
+############################################################xx
+# checking MPFR libraries and headers
+
+if(DEFINED ENV{PIQUASSOBOOST_MPFR})
+  # adding MPFR library dir if given by environment variable
+  if(DEFINED ENV{MPFR_LIB_DIR})
+
+    find_library(MPFR_LIB mpfr
+               PATHS $ENV{MPFR_LIB_DIR}
+               NO_DEFAULT_PATH
+               REQUIRED)
+
+  else()
+
+    find_library(MPFR_LIB mpfr
+               PATHS ${PYTHON_SYS_PATH}
+               NO_DEFAULT_PATH
+               REQUIRED)
+  
+  endif()
+
+
+  # adding MPFR include dir
+  if(DEFINED ENV{MPFR_INC_DIR})
+
+    set(CMAKE_REQUIRED_FLAGS "-c")
+    check_include_file_cxx(mpfr.h MPFR_HEADER "-I$ENV{MPFR_INC_DIR}")
+
+    if(NOT MPFR_HEADER)
+      message(FATAL_ERROR "MPFR header mpfr.h not found")
+    endif()
+
+    message("-- Adding include directory $ENV{MPFR_INC_DIR}")
+    list(APPEND EXTRA_INCLUDES "$ENV{MPFR_INC_DIR}")
+
+  else()
+ 
+    set(CMAKE_REQUIRED_FLAGS "-c")
+    check_include_file_cxx(mpfr.h MPFR_HEADER )
+    list(APPEND EXTRA_INCLUDES "${CMAKE_REQUIRED_INCLUDES}") 
+
+    if(NOT MPFR_HEADER)
+      message(FATAL_ERROR "MPFR header mpfr.h not found")
+    endif()
+
+  endif()
+
+else()
+
+  set(MPFR_LIB)
+
+endif()
+
+
 list(APPEND piquassoboost_files 
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicTypes.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dependency_graph.cpp
@@ -341,7 +396,6 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculator.cpp
-    #${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorInf.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorDFE.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeated.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.cpp
@@ -361,6 +415,17 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/RepeatedColumnPairs.cpp
 
 )
+
+# add infinite precision implementations if required
+if (DEFINED ENV{PIQUASSOBOOST_MPFR})
+  list(APPEND piquassoboost_files 
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorInf.cpp
+  )
+
+  list(APPEND CXX_FLAGS_DEBUG "-D__MPFR__=1")
+  list(APPEND CXX_FLAGS_RELEASE "-D__MPFR__=1")
+
+endif()
 
 # add architecture specific kernels
 if (${HAVE_AVX512F_EXTENSIONS})
@@ -413,6 +478,7 @@ target_link_libraries(piquassoboost PRIVATE
     ${TBBMALLOC_PROXY_LIB}
     ${TBB_LIB}
     ${MPI_C_LIBRARIES}    
+    ${MPFR_LIB}
     "-L/opt/maxcompiler-2021.1/lib"                                                                                                                                                                               
     "-L/opt/maxeler/maxeleros/lib"
 

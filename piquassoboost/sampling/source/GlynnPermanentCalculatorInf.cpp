@@ -31,7 +31,8 @@ GlynnPermanentCalculatorInf::calculate(matrix &mtx) {
     return calculator.calculate( mtx );
 }
 
-
+#define REALPART(c) reinterpret_cast<FloatInf(&)[2]>(c)[0]
+#define IMAGPART(c) reinterpret_cast<FloatInf(&)[2]>(c)[1]
 
 /**
 @brief Default constructor of the class.
@@ -50,8 +51,8 @@ GlynnPermanentCalculatorInfTask::calculate(matrix &mtx) {
     Complex16* mtx_data = mtx.get_data();
     
     // calculate and store 2*mtx being used later in the recursive calls
-    mtx2 = matrix32( mtx.rows, mtx.cols);
-    Complex32* mtx2_data = mtx2.get_data();
+    mtx2 = matrix( mtx.rows, mtx.cols);
+    Complex16* mtx2_data = mtx2.get_data();
 
     tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.rows), [&](tbb::blocked_range<size_t> r) {
         for (size_t row_idx=r.begin(); row_idx<r.end(); ++row_idx){
@@ -69,13 +70,12 @@ GlynnPermanentCalculatorInfTask::calculate(matrix &mtx) {
     // calulate the initial sum of the columns
     ComplexInf* colSum_data = new ComplexInf[mtx.rows];
 
-
-
     tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.rows), [&](tbb::blocked_range<size_t> r) {
         for (size_t col_idx=r.begin(); col_idx<r.end(); ++col_idx){
             size_t row_offset = 0;
             for (size_t row_idx=0; row_idx<mtx.rows; ++row_idx) {
-                colSum_data[col_idx] += mtx_data[ row_offset + col_idx ];
+                REALPART(colSum_data[col_idx]) += mtx_data[ row_offset + col_idx ].real();
+                IMAGPART(colSum_data[col_idx]) += mtx_data[ row_offset + col_idx ].imag();
                 row_offset += mtx.stride;
             }
 
@@ -83,25 +83,26 @@ GlynnPermanentCalculatorInfTask::calculate(matrix &mtx) {
     });
 
     // thread local storage for partial permanent
-    priv_addend = tbb::combinable<ComplexM<FloatInf>> {[](){return ComplexM<FloatInf>();}};
+    priv_addend = tbb::combinable<ComplexInf> {[](){ return ComplexInf(); }};
 
 
     // start the iterations over vectors of deltas
     IterateOverDeltas( colSum_data, 1, 1 );
 
     // sum up partial permanents
-    ComplexInf permanent( 0.0, 0.0 );
+    ComplexInf permanent;
 
-    priv_addend.combine_each([&](ComplexM<FloatInf> &a) {
-        permanent = permanent + a.get();
+    priv_addend.combine_each([&](ComplexInf &a) {
+        REALPART(permanent) += REALPART(a);
+        IMAGPART(permanent) += IMAGPART(a);
     });
 
-    permanent = permanent / (long double)power_of_2( (unsigned long long) (mtx.rows-1) );
+    permanent /= (long double)power_of_2( (unsigned long long) (mtx.rows-1) );
 
     delete [] colSum_data;
 
 
-    return Complex16(permanent.real(), permanent.imag());
+    return Complex16(REALPART(permanent), IMAGPART(permanent));
 
 
 }
@@ -120,14 +121,34 @@ GlynnPermanentCalculatorInfTask::IterateOverDeltas( pic::ComplexInf* colSum_data
     //pic::ComplexInf* colSum_data = colSum.get_data();
 
     // Calculate the partial permanent
-    pic::ComplexInf colSumProd(1.0,0.0);
-    for (int idx=0; idx<mtx2.cols; idx++) {
-        colSumProd *= colSum_data[idx];
+    pic::ComplexInf colSumProd(colSum_data[0]);
+    for (int idx=1; idx<mtx2.cols; idx++) { //(a+bi)(c+di)=ac-bd+(bc+ad)i or (ac - bd)+((a+b)*(c+d)-ac-bd)i
+        //colSumProd *= colSum_data[idx];
+        /*FloatInf acbd(REALPART(colSumProd) * REALPART(colSum_data[idx]));
+        acbd -= IMAGPART(colSumProd) * IMAGPART(colSum_data[idx]);
+        FloatInf bcad(IMAGPART(colSumProd) * REALPART(colSum_data[idx]));
+        bcad += REALPART(colSumProd) * IMAGPART(colSum_data[idx]);
+        REALPART(colSumProd) = acbd;
+        IMAGPART(colSumProd) = bcad;*/
+        FloatInf ac(std::move(REALPART(colSumProd) * REALPART(colSum_data[idx])));
+        FloatInf bd(std::move(IMAGPART(colSumProd) * IMAGPART(colSum_data[idx])));
+        FloatInf p(std::move(REALPART(colSumProd) + IMAGPART(colSumProd)));
+        p *= REALPART(colSum_data[idx]) + IMAGPART(colSum_data[idx]); p -= ac + bd;
+        ac -= bd;
+        REALPART(colSumProd) = ac;
+        IMAGPART(colSumProd) = p;
     }
 
     // add partial permanent to the local value
-    pic::ComplexM<pic::FloatInf> &permanent_priv = priv_addend.local();
-    permanent_priv += sign * colSumProd;
+    pic::ComplexInf &permanent_priv = priv_addend.local();
+    if (sign > 0) {
+        REALPART(permanent_priv) += REALPART(colSumProd);
+        IMAGPART(permanent_priv) += IMAGPART(colSumProd);
+    } else {
+        REALPART(permanent_priv) -= REALPART(colSumProd);
+        IMAGPART(permanent_priv) -= IMAGPART(colSumProd);
+    }
+    
 
 
     tbb::parallel_for( tbb::blocked_range<int>(index_min,mtx2.rows), [&](tbb::blocked_range<int> r) {
@@ -136,13 +157,15 @@ GlynnPermanentCalculatorInfTask::IterateOverDeltas( pic::ComplexInf* colSum_data
             // create an altered vector from the current delta
             pic::ComplexInf* colSum_new_data = new pic::ComplexInf[mtx2.cols];
 
-            pic::Complex32* mtx2_data = mtx2.get_data();
+            pic::Complex16* mtx2_data = mtx2.get_data();
             
             size_t row_offset = idx*mtx2.stride;
 
             for (size_t jdx=0; jdx<mtx2.cols; jdx++) {
-                colSum_new_data[jdx].real(colSum_data[jdx].real()); colSum_new_data[jdx].imag(colSum_data[jdx].imag());
-                colSum_new_data[jdx] -= mtx2_data[row_offset+jdx];
+                REALPART(colSum_new_data[jdx]) = REALPART(colSum_data[jdx]);
+                REALPART(colSum_new_data[jdx]) -= mtx2_data[row_offset+jdx].real(); 
+                IMAGPART(colSum_new_data[jdx]) = IMAGPART(colSum_data[jdx]);
+                IMAGPART(colSum_new_data[jdx]) -= mtx2_data[row_offset+jdx].imag();
             }
 
             // spawn new iteration            
@@ -154,19 +177,14 @@ GlynnPermanentCalculatorInfTask::IterateOverDeltas( pic::ComplexInf* colSum_data
 
 /*
     for (int idx=index_min; idx<colSum.size(); ++idx){
-
         // create an altered vector from the current delta
         matrix_base<pic::ComplexInf> colSum_new = colSum.copy();
-
         pic::ComplexInf* mtx2_data = mtx2.get_data();
         pic::ComplexInf* colSum_new_data = colSum_new.get_data();
-
         size_t row_offset = idx*mtx2.stride;
-
         for (int jdx=0; jdx<mtx2.cols; jdx++) {
             colSum_new_data[jdx] = colSum_new_data[jdx] - mtx2_data[row_offset+jdx];
         }
-
         // spawn new iteration            
         IterateOverDeltas( colSum_new, -sign, idx+1 );
     }
