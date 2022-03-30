@@ -90,57 +90,6 @@ bool isSymmetric( matrix mtx_in, double tolerance );
 bool isHermitian( matrix mtx_in, double tolerance );
 
 
-
-
-/**
-@brief Function which performs the operation \f$ ret = sum_i a_i*b_i \f$ of two complex vectors with AVX2 instruction set if available.
-The number of elements in the vectors should be even, and the vectors should be aligned at 32bit boundaries.
-@param a Pointer to the first vector
-@param b Pointer to the second vector
-@param element_num the number of elements;
-@return The calculated sum
-*/
-static inline void vector_dot_vector( Complex16* a, Complex16* b, size_t element_num, Complex16& ret )
-
-{
-
-
-    __m256d neg = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);
-
-    for(size_t kdx = 0; kdx<element_num; kdx=kdx+2) {
-        __m256d a_vec = _mm256_load_pd((double*)(a + kdx));
-        __m256d b_vec = _mm256_load_pd((double*)(b + kdx));
-
-        // Multiply elements of a_vec and b_vec
-        __m256d vec3 = _mm256_mul_pd(a_vec, b_vec);
-
-        // Switch the real and imaginary elements of b_vec
-        b_vec = _mm256_permute_pd(b_vec, 0x5);
-
-        // Negate the imaginary elements of b_vec
-        b_vec = _mm256_mul_pd(b_vec, neg);
-
-        // Multiply elements of a_vec and the modified b_vec
-        __m256d vec4 = _mm256_mul_pd(a_vec, b_vec);
-
-        // Horizontally subtract the elements in vec3 and vec4
-        b_vec = _mm256_hsub_pd(vec3, vec4);
-
-        ret = ret + *((Complex16*)&b_vec[0]) + *((Complex16*)&b_vec[2]);
-
-
-    }
-
-
-/*
-    for (size_t kdx=0; kdx<element_num; kdx++) {
-        tmp += a[kdx] * b[kdx];
-    }
-*/
-    return;
-
-};
-
 } // PIC
 
 #endif // COMMON_FUNCTIONALITIES_H
