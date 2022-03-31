@@ -6,10 +6,17 @@
 #include <numpy/arrayobject.h>
 #include "structmember.h"
 #include "GlynnPermanentCalculator.h"
-#include "GlynnPermanentCalculatorInf.h"
 #include "GlynnPermanentCalculatorRepeated.h"
+
+#ifdef __MPFR__
+#include "GlynnPermanentCalculatorInf.h"
+#endif
+
+#ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
 #include "GlynnPermanentCalculatorRepeatedDFE.h"
+#endif
+
 #include "numpy_interface.h"
 #include <dlfcn.h>
 
@@ -134,9 +141,11 @@ static void
 GlynnPermanentCalculator_wrapper_dealloc(GlynnPermanentCalculator_wrapper *self)
 {
     // unload DFE
+#ifdef __DFE__
     if (releive_DFE) releive_DFE();
     if (self->handle) dlclose(self->handle);
     if (self->rephandle) dlclose(self->rephandle);
+#endif
 
     if ( self->precision == 1 ) {
         if ( self->input_state || self->output_state) {
@@ -169,13 +178,13 @@ GlynnPermanentCalculator_wrapper_dealloc(GlynnPermanentCalculator_wrapper *self)
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
+#ifdef __DFE__
 #define DFE_PATH_SIM "./dist/release/lib/"
 #define DFE_PATH "/home/rakytap/Permanent_Project/PermanentGlynn/PermanentGlynnCPU/dist/release/lib/"
 #define DFE_REP_PATH "/home/rakytap/Permanent_Project/PermanentGlynn/PermanentGlynnCPU/dist/release/lib/"
 #define DFE_LIB_SIM "libPermanentGlynnSIM.so"
 #define DFE_LIB "libPermanentGlynnDFE.so"
-#define DFE_REP_LIB_SIM "libPermRepGlynnSIM.so"
-#define DFE_REP_LIB "libPermRepGlynnDFE.so"
+#endif
 
 /**
 @brief Method called when a python instance of the class GlynnPermanentCalculator_wrapper is allocated
@@ -189,6 +198,7 @@ GlynnPermanentCalculator_wrapper_new(PyTypeObject *type, PyObject *args, PyObjec
 
     self->matrix = NULL;
 
+#ifdef __DFE__
     // dynamic-loading the correct DFE permanent calculator (Simulator/DFE/single or dual) from shared libararies
     self->handle = dlopen(getenv("SLIC_CONF") ? DFE_PATH_SIM DFE_LIB_SIM /*use simulator*/ : DFE_PATH DFE_LIB /* use DFE */, RTLD_NOW); //"MAXELEROSDIR"
 
@@ -196,12 +206,15 @@ GlynnPermanentCalculator_wrapper_new(PyTypeObject *type, PyObject *args, PyObjec
         char* pwd = getcwd(NULL, 0);
         fprintf(stderr, "%s\n'%s' (in %s mode) failed to load from working directory '%s'\n", dlerror(), getenv("SLIC_CONF") ? DFE_PATH_SIM DFE_LIB_SIM : DFE_PATH DFE_LIB, getenv("SLIC_CONF") ? "simulator" : "DFE", pwd);
         free(pwd);
+        PyErr_SetString(PyExc_Exception, "Failed to load DFE libraries.");
+        return NULL;
     } else {
         // in case the DFE libraries were loaded successfully the function pointers are set to initialize/releive DFE engine and run DFE calculations
         calcPermanentGlynnDFE = (CALCPERMGLYNNDFE)dlsym(self->handle, "calcPermanentGlynnDFE");
         initialize_DFE = (INITPERMGLYNNDFE)dlsym(self->handle, "initialize_DFE");
         releive_DFE = (FREEPERMGLYNNDFE)dlsym(self->handle, "releive_DFE");
     }
+#endif
  
     return (PyObject *) self;
 }
@@ -282,11 +295,17 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
 #endif 
 
 
-
+#ifdef __DFE__
     if ( self->DFE < 0 || self->DFE > 2 ) {
         PyErr_SetString(PyExc_Exception, "Wrong value set for DFE.");
         return -1;
-    }   
+    } 
+#else
+    if ( self->DFE < 0 || self->DFE > 0 ) {
+        PyErr_SetString(PyExc_Exception, "DFE not implemented. Only DFE=0 (default) value is valid parameter");
+        return -1;
+    } 
+#endif
 
     if ( self->precision == 1 ) {
         if ( self->input_state || self->output_state) {
@@ -386,6 +405,7 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
             return NULL;
         }
     }
+#ifdef __DFE__
     else if (self->DFE==1 || self->DFE==2) {
         // single and dual DFE impelementation for permanent
         if (!calcPermanentGlynnDFE) {
@@ -399,7 +419,7 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
         // calculate permanent on DFE
         GlynnPermanentCalculator_DFE( matrix_mtx, perm, self->DFE);
     }
-
+#endif
 
     return Py_BuildValue("D", &perm);
 }
