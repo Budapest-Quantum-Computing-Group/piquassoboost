@@ -129,6 +129,67 @@ class TestPermanentCalculators:
         assert( abs(permanent_Glynn_Cpp_repeated - permanent_Glynn_Cpp) < 1e-6 )
 
 
+    def test_value_repeated(self):
+        """Check permanent value calculated by C++ Glynn permanent calculator"""
+
+        d = 15
+        n = 10
+
+        matrices = []
+        for _ in range(n):
+            matrices.append(unitary_group.rvs(d))
+        
+
+        pq_permanents_glynn = []
+        pq_glynn_time = 0
+        for i in range(n):
+            matrix = matrices[i]
+            input_state = [1] * d
+            input_state[0] = 3
+            input_state[4] = 2
+            input_state[8] = 3
+            output_state = input_state
+
+            permanent_calculator_pq_glynn = GlynnPermanent(matrix, input_state=input_state, output_state=output_state)
+            start = time.time()
+            pq_permanent_glynn = permanent_calculator_pq_glynn.calculate()
+            end = time.time()
+            pq_glynn_time += end - start
+            pq_permanents_glynn.append(pq_permanent_glynn)
+
+
+        #print("permanent(matrix) by PQ Glynn:", pq_permanents_glynn)
+
+
+        pq_permanents_chinhuh = []
+        pq_chinhuh_time = 0
+        for i in range(n):
+            matrix = matrices[i]
+            input_state = [1] * d
+            input_state[0] = 3
+            input_state[4] = 2
+            input_state[8] = 3
+            output_state = input_state
+
+            permanent_calculator_pq_chinhuh = ChinHuhPermanentCalculator(matrix, input_state, output_state)
+
+            start = time.time()
+            pq_permanent_chinhuh = permanent_calculator_pq_chinhuh.calculate()
+            end = time.time()
+            pq_chinhuh_time += end - start
+            pq_permanents_chinhuh.append(pq_permanent_chinhuh)
+
+        #print("permanent(matrix) by PQ ChinH:", pq_permanents_chinhuh)
+
+
+        for i in range(n):
+            pq_gl_value = pq_permanents_glynn[i]
+            pq_ch_value = pq_permanents_chinhuh[i]
+
+            assert( abs(pq_ch_value - pq_ch_value) < 1.e-9 )
+
+
+
     def test_value_two_dimensional(self):
         """Check permanent value calculated by C++ Glynn permanent calculator"""
 
