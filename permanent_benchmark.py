@@ -38,7 +38,7 @@ def generate_random_unitary( dim ):
 
 
 # generate the random matrix
-dim = 20
+dim = 26
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
 Arep = A
 
@@ -72,14 +72,11 @@ for idx in range(iter_loops):
         if time_walrus_BBFG > time_loc:
             time_walrus_BBFG = time_loc
 
-        
-        # calculate the hafnian with the power trace method using the piquasso library
-        input_state = np.ones(dim, np.int64)
-#        input_state = np.zeros(dim, np.int64)
-#        input_state[0] = dim
-        output_state = np.ones(dim, np.int64)
+# multiplicities of input/output states
+input_state = np.ones(dim, np.int64)
+output_state = np.ones(dim, np.int64)
 
-
+# ChinHuh permanent calculator
 permanent_ChinHuh_calculator = ChinHuhPermanentCalculator( A, input_state, output_state )
 time_Cpp = 1000000
 for idx in range(iter_loops):
@@ -94,9 +91,27 @@ for idx in range(iter_loops):
         time_Cpp = time_loc
 
 
+# multiplicities of input/output states
+input_state = np.ones(dim, np.int64)
+output_state = np.ones(dim, np.int64)
 
 
+# Glynn repeated permanent calculator
+permanent_Glynn_calculator_repeated = GlynnPermanent( Arep, input_state=input_state, output_state=output_state )
+time_Glynn_Cpp_repeated = 1000000000
+for idx in range(iter_loops):
+    start = time.time()   
 
+    permanent_Glynn_Cpp_repeated = permanent_Glynn_calculator_repeated.calculate()
+
+    time_loc = time.time() - start
+    start = time.time()   
+       
+    if time_Glynn_Cpp_repeated > time_loc:
+        time_Glynn_Cpp_repeated = time_loc
+
+
+# Glynn permanent calculator
 permanent_Glynn_calculator = GlynnPermanent( Arep )
 time_Glynn_Cpp = 1000000000
 for idx in range(iter_loops):
@@ -115,9 +130,10 @@ print(' ')
 print( permanent_walrus_quad_Ryser )
 print( permanent_walrus_quad_BBFG )
 print( permanent_ChinHuh_Cpp )
+print( permanent_Glynn_Cpp_repeated )
 print( permanent_Glynn_Cpp )
 
-
+# Glynn DFE permanent calculator
 permanent_Glynn_calculator = GlynnPermanent( Arep, DFE=1  )
 time_Glynn_DFE = 1000000000
 for idx in range(iter_loops):
@@ -131,7 +147,7 @@ for idx in range(iter_loops):
         time_Glynn_DFE = time_loc
 
 
-
+# Glynn dual DFE permanent calculator
 permanent_Glynn_calculator = GlynnPermanent( Arep, DFE=2 )
 time_Glynn_dual_DFE = 1000000000
 for idx in range(iter_loops):
@@ -150,7 +166,7 @@ for idx in range(iter_loops):
 print( permanent_Glynn_DFE )
 print( permanent_Glynn_dual_DFE )
 
-
+# Glynn Inf permanent calculator
 if (dim<=24):
     permanent_Glynn_calculator = GlynnPermanent( Arep, precision=2 )
     time_Glynn_InfinitePrecision = 1000000000
@@ -175,8 +191,9 @@ print(' ')
 print('*******************************************')
 print('Time elapsed with walrus: ' + str(time_walrus))
 print('Time elapsed with walrus BBFG : ' + str(time_walrus_BBFG))
-print('Time elapsed with piquasso: ' + str(time_Cpp))
+print('Time elapsed with piquasso Chin-Huh: ' + str(time_Cpp))
 print('Time elapsed with piquasso Glynn: ' + str(time_Glynn_Cpp))
+print('Time elapsed with piquasso Glynn repeated: ' + str(time_Glynn_Cpp_repeated))
 print('Time elapsed with DFE Glynn: ' + str(time_Glynn_DFE))
 print('Time elapsed with dual DFE Glynn: ' + str(time_Glynn_dual_DFE))
 if (dim<=24):
