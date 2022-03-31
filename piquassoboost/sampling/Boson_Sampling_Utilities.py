@@ -45,12 +45,8 @@ class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
     def __init__(self, matrix, input_state, output_state):
 
         # input/output states should be numpy arrays
-        input_state = np.asarray(input_state)
-        output_state = np.asarray(output_state)
-
-        # input/output states should be  of type int64
-        input_state = input_state.astype(np.int64)
-        output_state = output_state.astype(np.int64)
+        input_state = np.asarray(input_state, dtype=np.int64)
+        output_state = np.asarray(output_state, dtype=np.int64)
 
         # call the constructor of the wrapper class
         super().__init__(
@@ -77,9 +73,31 @@ Glynn (BBFG) formula)
         :DFE: set 0 to use CPU implementation, set 1 to use single DFE implementation, set 2 to use dual DFE implementation
         :precision: set 1 (default) to use long double precision, set 2 to use infinite computational precision using the GNU MPFR library. Has no effect if DFE>0 is set.
     """
-    def __init__(self, matrix, DFE=0, precision=1):
+    def __init__(self, matrix, input_state=None, output_state=None, DFE=0, precision=1):
         # call the constructor of the wrapper class
-        super().__init__(matrix=matrix, DFE=DFE, precision=precision)
+
+        if (input_state is None)  and (output_state is None):
+            super().__init__(matrix=matrix, DFE=DFE, precision=precision)
+
+        elif (input_state is None):
+
+            # input/output states should be numpy arrays
+            output_state = np.asarray(output_state, dtype=np.int64)
+            super().__init__(matrix=matrix, output_state=output_state, DFE=DFE, precision=precision)
+
+        elif (output_state is None):
+
+            # input/output states should be numpy arrays
+            input_state = np.asarray(input_state, dtype=np.int64)
+            super().__init__(matrix=matrix, input_state=input_state, DFE=DFE, precision=precision)
+
+        else:
+
+            # input/output states should be numpy arrays
+            input_state = np.asarray(input_state, dtype=np.int64)
+            output_state = np.asarray(output_state, dtype=np.int64)
+            super().__init__(matrix=matrix, input_state=input_state, output_state=output_state, DFE=DFE, precision=precision)
+
 
 
     def calculate(self):
@@ -89,6 +107,7 @@ Glynn (BBFG) formula)
         """
         # call the permanent calculator of the parent class
         return super().calculate()
+
 
 
 

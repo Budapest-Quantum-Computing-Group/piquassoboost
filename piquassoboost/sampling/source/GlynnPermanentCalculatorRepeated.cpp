@@ -30,6 +30,21 @@ Complex16 GlynnPermanentCalculatorRepeated::calculate(
     PicState_int64& output_state
 ) {
 
+    if (mtx.rows != mtx.cols) {
+        std::string error("GlynnPermanentCalculatorRepeated::calculate:  Input matrix should be squared");
+        throw error;
+    }
+
+    int sum_input_states = sum(input_state);
+    int sum_output_states = sum(output_state);
+    if ( sum_input_states != sum_output_states) {
+        std::string error("GlynnPermanentCalculatorRepeated::calculate:  Number of input and output states should be equal");
+        throw error;
+    }
+
+    if (mtx.rows == 0 || sum_input_states == 0 || sum_output_states == 0)
+        return Complex16(1.0, 0.0);
+
     // column multiplicities are determined by the input state
     PicState_int col_multiplicities =
         convert_PicState_int64_to_PicState_int(input_state);
