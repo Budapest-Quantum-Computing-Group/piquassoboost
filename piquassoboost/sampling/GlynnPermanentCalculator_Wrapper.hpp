@@ -14,7 +14,6 @@
 
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
-#include "GlynnPermanentCalculatorRepeatedDFE.h"
 #endif
 
 #include "numpy_interface.h"
