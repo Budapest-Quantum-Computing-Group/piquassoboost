@@ -145,9 +145,7 @@ CGeneralizedCliffordsSimulationStrategy::Update_interferometer_matrix( matrix &i
 */
 std::vector<PicState_int64>
 CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_in, int samples_number ) {
-#ifdef __MPI__
-std::cout << world_size << " " << current_rank << std::endl;
-#endif
+
     input_state = input_state_in;
 
     // get the possible substates of the input state and their weight for the probability calculations
@@ -372,7 +370,7 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
     }
 
 #ifdef __MPI__
-    // collecting the calculated pmfs from the other MPI workers
+    // reducing the calculated pmfs over the MPI workers
     double probability_sum_tmp;
     MPI_Allreduce( &probability_sum_total, &probability_sum_tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     probability_sum_total = probability_sum_tmp;
