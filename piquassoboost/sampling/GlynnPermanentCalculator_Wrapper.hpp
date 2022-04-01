@@ -101,7 +101,7 @@ release_GlynnPermanentCalculatorRepeated( pic::GlynnPermanentCalculatorRepeated*
     return;
 }
 
-
+#ifdef __MPFR__
 
 /**
 @brief Creates an instance of class GlynnPermanentCalculatorInf and return with a pointer pointing to the class instance (C++ linking is needed)
@@ -126,6 +126,7 @@ release_GlynnPermanentCalculatorInf ( pic::GlynnPermanentCalculatorInf*  instanc
 }
 
 
+#endif
 
 
 extern "C"
@@ -158,10 +159,12 @@ GlynnPermanentCalculator_wrapper_dealloc(GlynnPermanentCalculator_wrapper *self)
 
 
     }
+#ifdef __MPFR__
     else if ( self->precision == 2 ) {
         // deallocate the instance of class GlynnPermanentCalculatorInf
         release_GlynnPermanentCalculatorInf( self->calculator.cpu_inf );
     }
+#endif
     else {
         printf("CPU permanent calculator uninitialized\n");
     }
@@ -317,10 +320,12 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
         } 
 
     }
+#ifdef __MPFR__
     else if ( self->precision == 2 ) {
         // create instance of class GlynnPermanentCalculator
         self->calculator.cpu_inf = create_GlynnPermanentCalculatorInf();
     }
+#endif
     else {
         PyErr_SetString(PyExc_Exception, "CPU permanent calculator uninitialized.");
     }
