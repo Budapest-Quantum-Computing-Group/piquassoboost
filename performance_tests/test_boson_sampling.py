@@ -22,6 +22,11 @@ import numpy as np
 import piquasso as pq
 import piquassoboost as pqb
 
+try:
+    from mpi4py import MPI
+except ModuleNotFoundError:
+    pass
+
 
 @pytest.fixture
 def print_histogram():
@@ -61,7 +66,7 @@ def test_two_mode_sampling(print_histogram):
     simulator = pqb.BoostedSamplingSimulator(d=2)
 
 
-    for _ in itertools.repeat(None, 10):
+    for _ in itertools.repeat(None, 1):
         t0 = time.time()
 
         result = simulator.execute(program=program, shots=shots)
@@ -94,7 +99,7 @@ def test_complex_sampling(print_histogram):
 
     simulator = pqb.BoostedSamplingSimulator(d=5)
 
-    for _ in itertools.repeat(None, 10):
+    for _ in itertools.repeat(None, 1):
         t0 = time.time()
 
         result = simulator.execute(program=program, shots=shots)
@@ -102,3 +107,5 @@ def test_complex_sampling(print_histogram):
         print("C++ time elapsed:", time.time() - t0, "s")
 
         print_histogram(result.samples)
+
+
