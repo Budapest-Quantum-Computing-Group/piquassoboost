@@ -30,10 +30,6 @@ Complex16 GlynnPermanentCalculatorRepeated::calculate(
     PicState_int64& output_state
 ) {
 
-    if (mtx.rows != mtx.cols) {
-        std::string error("GlynnPermanentCalculatorRepeated::calculate:  Input matrix should be squared");
-        throw error;
-    }
 
     int sum_input_states = sum(input_state);
     int sum_output_states = sum(output_state);

@@ -25,6 +25,11 @@
 #include <chrono>
 
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
+
+
 namespace pic {
 /*
     double rand_nums[40] = {0.929965, 0.961441, 0.46097, 0.090787, 0.137104, 0.499059, 0.951187, 0.373533, 0.634074, 0.0886671, 0.0856861, 0.999702, 0.419755, 0.376557, 0.947568, 0.705106, 0.0520666, 0.45318,
@@ -32,6 +37,13 @@ namespace pic {
     int rand_num_idx = 0;
 */
 
+
+
+static tbb::spin_mutex my_mutex;
+
+static double t0;
+static double t1;
+static double t2;
 
 
 /**
@@ -59,8 +71,18 @@ sum( PicState_int64 &vec) {
 @return Returns with the instance of the class.
 */
 CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy() {
-   // seed the random generator
+    // seed the random generator
     seed(time(NULL));
+
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+#endif
+
 }
 
 
@@ -75,6 +97,15 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 
     // seed the random generator
     seed(time(NULL));
+
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+#endif
 }
 
 
@@ -82,6 +113,7 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 @brief Destructor of the class
 */
 CGeneralizedCliffordsSimulationStrategy::~CGeneralizedCliffordsSimulationStrategy() {
+
 }
 
 /**
@@ -113,7 +145,9 @@ CGeneralizedCliffordsSimulationStrategy::Update_interferometer_matrix( matrix &i
 */
 std::vector<PicState_int64>
 CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_in, int samples_number ) {
-
+#ifdef __MPI__
+std::cout << world_size << " " << current_rank << std::endl;
+#endif
     input_state = input_state_in;
 
     // get the possible substates of the input state and their weight for the probability calculations
@@ -135,6 +169,12 @@ CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_i
         fill_r_sample( *it );
     }
 
+
+    // clear the disctionaries
+    pmfs.clear();
+    possible_output_states.clear();
+    labeled_states.clear();
+    input_state_inidices.clear();
 
     return samples;
 }
@@ -242,15 +282,15 @@ CGeneralizedCliffordsSimulationStrategy::fill_r_sample( PicState_int64& sample )
             // preallocate states for possible output states
             PicStates possible_outputs;
             possible_outputs.reserve(sample.size());
-            for (size_t idx=0; idx<sample.size();idx++) {
-                PicState_int64 possible_output(sample.size(),0);
-                    possible_outputs.push_back( possible_output );
+            for (size_t idx=0; idx<sample.size(); idx++) {
+                PicState_int64 possible_output(sample.size(), 0);
+                possible_outputs.push_back( possible_output );
             }
 
             // create a new key for the hash table
             PicState_int64 key = sample.copy();
             calculate_new_layer_of_pmfs( key, possible_outputs );
-            possible_output_states[key] = possible_outputs; // TODO: reserve space for possible_output_states
+            possible_output_states[key] = possible_outputs;
 
         }
 
@@ -279,7 +319,7 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
     concurrent_PicStates &possible_input_states = labeled_states[number_of_particle_to_sample];
 
     // parallel loop to calculate the weights from possible input states and their weight
-    matrix_base<double> multinomial_coefficients = matrix_base<double>(1,possible_input_states.size());
+    matrix_base<double> multinomial_coefficients = matrix_base<double>(1, possible_input_states.size());
     tbb::combinable<double> wieght_norm{0.0};
 
     tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_input_states.size()), [&](tbb::blocked_range<size_t> r ) {
@@ -303,39 +343,46 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
 
     // container to store the new layer of output probabilities
     matrix_base<double> pmf(1, possible_outputs.size());
-    tbb::combinable<double> probability_sum{0.0};
-    tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_outputs.size()), [&](tbb::blocked_range<size_t> r ) {
 
-        // thread local storage for probability sum
-        double &probability_sum_priv = probability_sum.local();
-
-        // Generate output states
-        generate_output_states( r, sample, possible_outputs );
-
-        // calculate the individual probabilities associated with the output states
-        for ( auto idx=r.begin(); idx!=r.end(); idx++) {
-            pmf[idx] = 0;
-
-            // calculate the individual probabilities
-            for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
-                double probability = calculate_outputs_probability(interferometer_matrix, possible_input_states[jdx], possible_outputs[idx]);
-                probability = probability*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
-                pmf[idx] = pmf[idx] + probability;
-            }
-
-            probability_sum_priv = probability_sum_priv + pmf[idx];
-
-
-        }
-
-
-    }); //parallel for
+    // Generate output states
+    generate_output_states( sample, possible_outputs );
 
     // normalize the probabilities:
     double probability_sum_total = 0;
-    probability_sum.combine_each([&](double a) {  // combine thread local data into a total one
-        probability_sum_total = probability_sum_total + a;
-    });
+
+    // calculate the individual probabilities associated with the output states
+    for ( int idx=0; idx<possible_outputs.size(); idx++) {
+        pmf[idx] = 0;
+
+#ifdef __MPI__
+       // distribute the work over the nodes according to the value of idx
+       if (idx % world_size != current_rank) continue;
+#endif
+
+        // calculate the individual probabilities
+        for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
+            double probability = calculate_outputs_probability(interferometer_matrix, possible_input_states[jdx], possible_outputs[idx]);
+            probability = probability*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
+            pmf[idx] = pmf[idx] + probability;
+        }
+
+        probability_sum_total = probability_sum_total + pmf[idx];
+
+
+    }
+
+#ifdef __MPI__
+    // collecting the calculated pmfs from the other MPI workers
+    double probability_sum_tmp;
+    MPI_Allreduce( &probability_sum_total, &probability_sum_tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    probability_sum_total = probability_sum_tmp;
+
+    matrix_base<double> pmf_tmp(1, possible_outputs.size());
+    MPI_Allreduce( (void*)pmf.get_data(), (void*)pmf_tmp.get_data(), pmf_tmp.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    pmf = pmf_tmp;
+
+#endif
+
 
     for (size_t idx=0;idx<pmf.size(); idx++) {
         pmf[idx] = pmf[idx]/probability_sum_total;
@@ -357,13 +404,19 @@ void
 CGeneralizedCliffordsSimulationStrategy::sample_from_latest_pmf( PicState_int64& sample ) {
 
 
-
-
-
     // create a random double
     double rand_num = (double)rand()/RAND_MAX;
    //double rand_num = rand_nums[rand_num_idx];//distribution(generator);
     //rand_num_idx = rand_num_idx + 1;
+
+
+#ifdef __MPI__
+    // broadcast the generated random number to all other workers
+    MPI_Bcast(&rand_num, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+
+
+
 
     // get the probabilities of the outputs
     matrix_base<double> pmf = pmfs[sample];
@@ -437,15 +490,14 @@ void calculate_weights( tbb::blocked_range<size_t> &r, PicState_int64 &input_sta
 
 /**
 @brief Call to generate possible output state
-@param r Range containing the indexes labeling the output samples;
 @param sample The current output sample for which the probabilities are calculated
 @param possible_outputs Vector of possible output states
 */
 void
-generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, PicStates &possible_outputs ) {
+generate_output_states( PicState_int64& sample, PicStates &possible_outputs ) {
 
     int64_t* sample_data = sample.get_data();
-    for ( auto idx=r.begin(); idx!=r.end(); idx++) {
+    for ( size_t idx=0; idx<possible_outputs.size(); idx++) {
         int64_t* output_data = possible_outputs[idx].get_data();
         memcpy( output_data, sample_data, sample.size()*sizeof(int64_t) );
         output_data[idx] = output_data[idx]+1;
