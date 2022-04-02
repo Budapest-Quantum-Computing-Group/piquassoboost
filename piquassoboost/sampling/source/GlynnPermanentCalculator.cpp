@@ -59,7 +59,7 @@ GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
 
             size_t row_offset   = row_idx*mtx.stride;
             size_t row_offset_2 = row_idx*mtx2.stride;
-            for (size_t col_idx=0; col_idx<mtx.rows; ++col_idx) {
+            for (size_t col_idx=0; col_idx<mtx.cols; ++col_idx) {
                 mtx2_data[row_offset_2+col_idx] = 2*mtx_data[ row_offset + col_idx ];
             }
 
@@ -68,13 +68,13 @@ GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
 
 
     // calulate the initial sum of the columns
-    matrix32 colSum( mtx.rows, 1);
+    matrix32 colSum( mtx.cols, 1);
     Complex32* colSum_data = colSum.get_data();
     memset( colSum_data, 0.0, colSum.size()*sizeof(Complex32));
 
 
 
-    tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.rows), [&](tbb::blocked_range<size_t> r) {
+    tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.cols), [&](tbb::blocked_range<size_t> r) {
         for (size_t col_idx=r.begin(); col_idx<r.end(); ++col_idx){
 
             size_t row_offset = 0;
@@ -135,7 +135,7 @@ GlynnPermanentCalculatorTask::IterateOverDeltas( matrix32& colSum, int sign, int
     permanent_priv += sign*colSumProd;
 
 
-    tbb::parallel_for( tbb::blocked_range<int>(index_min,colSum.rows), [&](tbb::blocked_range<int> r) {
+    tbb::parallel_for( tbb::blocked_range<int>(index_min,mtx2.rows), [&](tbb::blocked_range<int> r) {
         for (int idx=r.begin(); idx<r.end(); ++idx){
 
             // create an altered vector from the current delta
