@@ -43,7 +43,7 @@ def print_histogram(samples):
     return
 
 
-dim = 10
+dim = 12
 
 # generate random matrix
 U = unitary_group.rvs(dim)#generate_random_unitary(dim)
