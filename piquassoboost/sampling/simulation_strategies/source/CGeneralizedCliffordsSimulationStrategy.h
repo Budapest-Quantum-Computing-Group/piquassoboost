@@ -58,6 +58,9 @@ protected:
     int world_size;
     /// The rank of the MPI process
     int current_rank;
+
+    int MPI_start_index;
+    int MPI_end_index;
 #endif
 
 

@@ -25,8 +25,10 @@ union CPU_glynn {
     pic::GlynnPermanentCalculator* cpu_long_double;
     /// long double precision calculator using repeated rows implementation
     pic::GlynnPermanentCalculatorRepeated* cpu_long_double_repeated;
+#ifdef __MPFR__
     /// infinite precision calculator
     pic::GlynnPermanentCalculatorInf* cpu_inf;
+#endif
 };
 
 /**

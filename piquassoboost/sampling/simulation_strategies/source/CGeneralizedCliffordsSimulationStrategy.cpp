@@ -39,13 +39,6 @@ namespace pic {
 
 
 
-static tbb::spin_mutex my_mutex;
-
-static double t0;
-static double t1;
-static double t2;
-
-
 /**
 @brief Call to calculate sum of integers stored in a PicState
 @param vec a container if integers
@@ -113,7 +106,6 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 @brief Destructor of the class
 */
 CGeneralizedCliffordsSimulationStrategy::~CGeneralizedCliffordsSimulationStrategy() {
-
 }
 
 /**
@@ -154,18 +146,80 @@ CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_i
 
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
-    samples.reserve( samples_number );
-    for (int idx=0; idx<samples_number; idx++) {
 
-        PicState_int64 sample(input_state_in.cols, 0);
-        sample.number_of_photons = 0;
-        samples.push_back(sample);
+    if ( samples_number <= 0 ) return;
+
+    samples.reserve( samples_number );
+
+
+#ifdef __MPI__
+
+    int samples_number_per_process = samples_number/world_size;
+
+    // calculate the first iteration of the sampling process
+    PicState_int64 sample(input_state_in.cols, 0);
+    sample.number_of_photons = 0;
+    fill_r_sample( sample );
+    
+    
+    // calculate the individual outputs for the shots and send the calculated outputs to other MPI processes in parallel
+    PicState_int64 sample_new;
+    for (int idx=1; idx<samples_number_per_process; idx++) {
+
+        tbb::parallel_invoke(
+
+            [&]{
+                sample_new = PicState_int64(input_state_in.cols, 0);
+                sample_new.number_of_photons = 0;
+                fill_r_sample( sample_new );
+            },
+            [&]{
+    
+                // gather the samples over the MPI processes
+                PicState_int64 sample_gathered( sample.size()*world_size );
+                int bytes = sample.size()*sizeof(int64_t);
+  
+                MPI_Allgather(sample.get_data(), bytes, MPI_BYTE, sample_gathered.get_data(), bytes, MPI_BYTE, MPI_COMM_WORLD);
+        
+                for( int rank=0; rank<world_size; rank++) {
+                    PicState_int64 sample_local( sample_gathered.get_data()+rank*sample.size(), sample.size() );
+                    samples.push_back( sample_local.copy() );
+                }
+
+            }
+
+        ); // parallel invoke     
+
+        sample = sample_new;
+        
+
     }
+
+   
+    // gather the samples over the MPI processes of the last iteration
+    PicState_int64 sample_gathered( sample.size()*world_size );
+    int bytes = sample.size()*sizeof(int64_t);
+    MPI_Allgather(sample.get_data(), bytes, MPI_BYTE, sample_gathered.get_data(), bytes, MPI_BYTE, MPI_COMM_WORLD);
+        
+    for( int rank=0; rank<world_size; rank++) {
+        PicState_int64 sample_local( sample_gathered.get_data()+rank*sample.size(), sample.size() );
+        samples.push_back( sample_local.copy() );
+    }
+
+
+#else
 
     // calculate the individual outputs for the shots
-    for (auto it=samples.begin(); it!=samples.end(); it++) {
-        fill_r_sample( *it );
+    for (int idx=0; idx<samples_number; idx++) {
+        PicState_int64 sample(input_state_in.cols, 0);
+        sample.number_of_photons = 0;
+        fill_r_sample( sample );
+        samples.push_back( sample );
     }
+
+
+#endif
+
 
 
     // clear the disctionaries
@@ -299,7 +353,6 @@ CGeneralizedCliffordsSimulationStrategy::fill_r_sample( PicState_int64& sample )
     }
 
 
-
 }
 
 
@@ -341,6 +394,7 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
 
     // container to store the new layer of output probabilities
     matrix_base<double> pmf(1, possible_outputs.size());
+    memset( pmf.get_data(), 0.0, pmf.size()*sizeof(double) );
 
     // Generate output states
     generate_output_states( sample, possible_outputs );
@@ -350,12 +404,8 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
 
     // calculate the individual probabilities associated with the output states
     for ( int idx=0; idx<possible_outputs.size(); idx++) {
-        pmf[idx] = 0;
 
-#ifdef __MPI__
-       // distribute the work over the nodes according to the value of idx
-       if (idx % world_size != current_rank) continue;
-#endif
+        pmf[idx] = 0;
 
         // calculate the individual probabilities
         for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
@@ -369,22 +419,11 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
 
     }
 
-#ifdef __MPI__
-    // reducing the calculated pmfs over the MPI workers
-    double probability_sum_tmp;
-    MPI_Allreduce( &probability_sum_total, &probability_sum_tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    probability_sum_total = probability_sum_tmp;
-
-    matrix_base<double> pmf_tmp(1, possible_outputs.size());
-    MPI_Allreduce( (void*)pmf.get_data(), (void*)pmf_tmp.get_data(), pmf_tmp.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    pmf = pmf_tmp;
-
-#endif
-
 
     for (size_t idx=0;idx<pmf.size(); idx++) {
         pmf[idx] = pmf[idx]/probability_sum_total;
     }
+
 
     // store the calculated probability layer
     PicState_int64 key = sample.copy();
@@ -408,35 +447,27 @@ CGeneralizedCliffordsSimulationStrategy::sample_from_latest_pmf( PicState_int64&
     //rand_num_idx = rand_num_idx + 1;
 
 
-#ifdef __MPI__
-    // broadcast the generated random number to all other workers
-    MPI_Bcast(&rand_num, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
-
-
-
 
     // get the probabilities of the outputs
     matrix_base<double> pmf = pmfs[sample];
 
     // determine the random index according to the distribution described by pmf
-    size_t random_index=0;
+    int sampled_index=0;
     double prob_sum = 0.0;
-    for (size_t idx=0; idx<pmf.size(); idx++) {
+    for (int idx=0; idx<pmf.size(); idx++) {
         prob_sum = prob_sum + pmf[idx];
         if ( prob_sum >= rand_num) {
-            random_index = idx;
+            sampled_index = idx;
             break;
         }
     }
 
     // copy the new key
-    PicState_int64 &new_key = possible_output_states[sample][random_index];
+    PicState_int64 &new_key = possible_output_states[sample][sampled_index];
     int64_t* sample_data = sample.get_data();
     int64_t* new_key_data = new_key.get_data();
 
     memcpy( sample_data, new_key_data, sample.size()*sizeof(int64_t));
-
     sample.number_of_photons = new_key.number_of_photons;
 }
 
