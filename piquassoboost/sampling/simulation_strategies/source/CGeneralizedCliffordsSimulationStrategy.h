@@ -53,6 +53,16 @@ protected:
     /// The vector of indices corresponding to values greater than 0 in the input state
     PicVector<int64_t> input_state_inidices;
 
+#ifdef __MPI__
+    /// The number of processes
+    int world_size;
+    /// The rank of the MPI process
+    int current_rank;
+
+    int MPI_start_index;
+    int MPI_end_index;
+#endif
+
 
 public:
 
@@ -154,11 +164,10 @@ void calculate_weights( tbb::blocked_range<size_t> &r, PicState_int64 &input_sta
 
 /**
 @brief Call to generate possible output state
-@param r Range containing the indexes labeling the output samples;
 @param sample The current output sample for which the probabilities are calculated
 @param possible_outputs Vector of possible output states
 */
-void generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, PicStates &possible_outputs );
+void generate_output_states( PicState_int64& sample, PicStates &possible_outputs );
 
 
 /**
