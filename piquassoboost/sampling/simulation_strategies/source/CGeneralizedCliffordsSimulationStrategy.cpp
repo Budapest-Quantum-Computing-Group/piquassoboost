@@ -262,6 +262,7 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
         labeled_states.push_back(tmp);
     }
 
+    if (input_state_inidices.size() == 0) return;
     // creaint recursively possible output states
     tbb::parallel_for ((int64_t)0, input_state[input_state_inidices[0]]+1, (int64_t)1, [&](int64_t idx){
 
