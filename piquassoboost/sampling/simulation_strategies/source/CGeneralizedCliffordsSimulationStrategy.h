@@ -25,6 +25,12 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define GlynnRep 0
+#define ChinHuh 1
+#define GlynnRepSingleDFE 2
+#define GlynnRepDualDFE 3
+#define GlynnRepMultiSingleDFE 4
+#define GlynnRepMultiDualDFE 5
 
 namespace pic {
 
@@ -52,7 +58,7 @@ protected:
     std::vector<concurrent_PicStates> labeled_states;
     /// The vector of indices corresponding to values greater than 0 in the input state
     PicVector<int64_t> input_state_inidices;
-
+    int lib;
 #ifdef __MPI__
     /// The number of processes
     int world_size;
@@ -62,7 +68,6 @@ protected:
     int MPI_start_index;
     int MPI_end_index;
 #endif
-
 
 public:
 
@@ -77,7 +82,7 @@ CGeneralizedCliffordsSimulationStrategy();
 @param interferometer_matrix_in The matrix describing the interferometer
 @return Returns with the instance of the class.
 */
-CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in );
+CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in, int lib );
 
 /**
 @brief Destructor of the class
@@ -176,7 +181,7 @@ void generate_output_states( PicState_int64& sample, PicStates &possible_outputs
  *  @param input_state The input state.
  *  @param output_state The output state.
  */
-double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state);
+double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state, int lib);
 
 
 /** @brief Creates a matrix from the `interferometerMatrix` corresponding to the parameters `input_state` and `output_state`.

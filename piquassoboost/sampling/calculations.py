@@ -21,6 +21,12 @@ from theboss.boson_sampling_utilities.boson_sampling_utilities import (
 from .BosonSamplingSimulator import BosonSamplingSimulator
 from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
     GeneralizedCliffordsSimulationStrategy,
+    GeneralizedCliffordsSimulationStrategyChinHuh,
+    GeneralizedCliffordsSimulationStrategyChinHuh,
+    GeneralizedCliffordsSimulationStrategySingleDFE,
+    GeneralizedCliffordsSimulationStrategyDualDFE,
+    GeneralizedCliffordsSimulationStrategyMultiSingleDFE,
+    GeneralizedCliffordsSimulationStrategyMultiDualDFE,
 )
 
 from piquasso.api.result import Result
@@ -54,7 +60,7 @@ def sampling(state, instruction, shots) -> Result:
         for _ in initial_state:
             initial_state = np.append(initial_state, 0)
 
-    simulation_strategy = GeneralizedCliffordsSimulationStrategy(
+    simulation_strategy = GeneralizedCliffordsSimulationStrategyMultiSingleDFE(
         interferometer, state._config.seed_sequence
     )
     sampling_simulator = BosonSamplingSimulator(simulation_strategy)
