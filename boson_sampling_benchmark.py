@@ -43,12 +43,12 @@ def print_histogram(samples):
     return
 
 
-dim = 12
+dim = 16
 
 # generate random matrix
 U = unitary_group.rvs(dim)#generate_random_unitary(dim)
 
-shots = 100
+shots = 1
 
 with pq.Program() as program:
     pq.Q() | pq.StateVector(np.ones(dim))

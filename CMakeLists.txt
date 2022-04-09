@@ -429,6 +429,7 @@ endif()
 if (DEFINED ENV{PIQUASSOBOOST_DFE})
   list(APPEND piquassoboost_files 
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorDFE.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeatedDFE.cpp
   )
 
   list(APPEND CXX_FLAGS_DEBUG "-D__DFE__=1")

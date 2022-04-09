@@ -54,7 +54,7 @@ int sum( PicVector<int> vec);
 @param vec a PicState_int64 instance
 @return Returns with the sum of the elements of the container
 */
-int sum( PicState_int64 vec);
+int sum( const PicState_int64& vec);
 
 
 // export the template functions with the template parameters
