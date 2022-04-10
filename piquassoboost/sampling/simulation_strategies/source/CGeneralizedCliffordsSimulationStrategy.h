@@ -25,12 +25,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define GlynnRep 0
-#define ChinHuh 1
-#define GlynnRepSingleDFE 2
-#define GlynnRepDualDFE 3
-#define GlynnRepMultiSingleDFE 4
-#define GlynnRepMultiDualDFE 5
+#include "BatchedPermanentCalculator.h"
+
+
 
 namespace pic {
 
@@ -58,6 +55,12 @@ protected:
     std::vector<concurrent_PicStates> labeled_states;
     /// The vector of indices corresponding to values greater than 0 in the input state
     PicVector<int64_t> input_state_inidices;
+
+    /// class to accumulate more matrices and calculate the permanents for them in one shot. (Developed for DFE usage)
+    BatchednPermanentCalculator perm_accumulator;
+
+
+
     int lib;
 #ifdef __MPI__
     /// The number of processes
@@ -184,37 +187,14 @@ void generate_output_states( PicState_int64& sample, PicStates &possible_outputs
 double calculate_outputs_probability(matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state, int lib);
 
 
-/** @brief Creates a matrix from the `interferometerMatrix` corresponding to the parameters `input_state` and `output_state`.
- *         Corresponding rows and columns are multipled based on output and input states.
- *  @param interferometerMatrix Unitary matrix describing a quantum circuit
- *  @param input_state_in The input state
- *  @param output_state_in The output state
- *  @return Returns with the created matrix
+/**
+ *  @brief Call to determine the output probability of associated with the input and output states
+ *  @param interferometer_mtx The matrix of the interferometer.
+ *  @param input_state The input state.
+ *  @param output_state The output state.
  */
-matrix
-adaptInterferometerGlynnMultiplied(
-    matrix& interferometerMatrix,
-    PicState_int64 &input_state,
-    PicState_int64 &output_state
-);
+double calculate_outputs_probability(Complex16& permanent, PicState_int64 &input_state, PicState_int64 &output_state);
 
-
-/** @brief Creates a matrix from the `interferometerMatrix` corresponding to 
- *         the parameters `input_state` and `output_state`.
- *         Does not adapt input and ouput states. They have to be adapted explicitly.
- *         Those matrix rows and columns remain in the adapted matrix where the multiplicity
- *         given by the input and ouput states is nonzero.
- *  @param interferometerMatrix Unitary matrix describing a quantum circuit
- *  @param input_state_in The input state
- *  @param output_state_in The output state
- *  @return Returns with the created matrix
- */
-matrix
-adaptInterferometer(
-    matrix& interferometerMatrix,
-    PicState_int64 &input_state,
-    PicState_int64 &output_state
-);
 
 
 } // PIC
