@@ -1,7 +1,9 @@
 #include "GlynnPermanentCalculatorDFE.h"
 #include "GlynnPermanentCalculator.h"
 
+#ifndef CPYTHON
 #include <tbb/tbb.h>
+#endif
 
 #include <atomic>
 #include <dlfcn.h>
@@ -172,34 +174,37 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, std::vector<Com
       return;
     }
     matrix_base<long double> renormalize_data(matrices.size(), matrices.begin()->cols);
-    for (size_t i = 0; i < matrices.size(); i++) {
-        matrix& matrix_mtx = matrices[i];
-        if (!useFloat) {
-            // calulate the maximal sum of the columns to normalize the matrix
-            matrix_base<Complex32> colSumMax( matrix_mtx.cols, 1);
-            memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex32) );
-            for (size_t idx=0; idx<matrix_mtx.rows; idx++) {
-                for( size_t jdx=0; jdx<matrix_mtx.cols; jdx++) {
-                    Complex32 value1 = colSumMax[jdx] + matrix_mtx[ idx*matrix_mtx.stride + jdx];
-                    Complex32 value2 = colSumMax[jdx] - matrix_mtx[ idx*matrix_mtx.stride + jdx];
-                    if ( std::abs( value1 ) < std::abs( value2 ) ) {
-                        colSumMax[jdx] = value2;
+    //for (size_t i = 0; i < matrices.size(); i++) {
+    tbb::parallel_for( tbb::blocked_range<size_t>(0, matrices.size()), [&](tbb::blocked_range<size_t> r) {
+        for (size_t i=r.begin(); i<r.end(); ++i) {
+            matrix& matrix_mtx = matrices[i];
+            if (!useFloat) {
+                // calulate the maximal sum of the columns to normalize the matrix
+                matrix_base<Complex32> colSumMax( matrix_mtx.cols, 1);
+                memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex32) );
+                for (size_t idx=0; idx<matrix_mtx.rows; idx++) {
+                    for( size_t jdx=0; jdx<matrix_mtx.cols; jdx++) {
+                        Complex32 value1 = colSumMax[jdx] + matrix_mtx[ idx*matrix_mtx.stride + jdx];
+                        Complex32 value2 = colSumMax[jdx] - matrix_mtx[ idx*matrix_mtx.stride + jdx];
+                        if ( std::abs( value1 ) < std::abs( value2 ) ) {
+                            colSumMax[jdx] = value2;
+                        }
+                        else {
+                            colSumMax[jdx] = value1;
+                        }
+            
                     }
-                    else {
-                        colSumMax[jdx] = value1;
-                    }
-        
+            
                 }
-        
-            }
-        
-            // calculate the renormalization coefficients
-            for (size_t jdx=0; jdx<matrix_mtx.cols; jdx++ ) {
-                renormalize_data[i*renormalize_data.stride+jdx] = std::abs(colSumMax[jdx]); 
-                //printf("%d %.21Lf\n", jdx, renormalize_data[jdx]);
+            
+                // calculate the renormalization coefficients
+                for (size_t jdx=0; jdx<matrix_mtx.cols; jdx++ ) {
+                    renormalize_data[i*renormalize_data.stride+jdx] = std::abs(colSumMax[jdx]); 
+                    //printf("%d %.21Lf\n", jdx, renormalize_data[jdx]);
+                }
             }
         }
-    }
+    });
 
     // renormalize the input matrix and convert to fixed point maximizing precision via long doubles
     // SLR and DFE input matrix with 1.0 filling on top row, 0 elsewhere 
@@ -212,25 +217,30 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, std::vector<Com
     const long double fixpow = 1ULL << 62;
     const double fOne = doubleToLLRaw(1.0);
     for (size_t i = 0; i < actualinits; i++) {
-      mtxfix[i] = matrix_base<ComplexFix16>(rows * matrices.size(), max_fpga_cols);
-      size_t basecol = max_fpga_cols * i;
-      size_t lastcol = matrices.begin()->cols<=basecol ? 0 : std::min(max_fpga_cols, matrices.begin()->cols-basecol);
-      for (size_t j = 0; j < matrices.size(); j++) {
-          size_t rowbase = j * rows;
-          matrix& matrix_mtx = matrices[j];
-          for (size_t idx=0; idx < rows; idx++) {
-            size_t offset = idx * matrix_mtx.stride + basecol;
-            size_t offset_small = (rowbase + idx)*mtxfix[i].stride;
-            for (size_t jdx = 0; jdx < lastcol; jdx++) {
-              mtxfix[i][offset_small+jdx].real = useFloat ? doubleToLLRaw(matrix_mtx[offset+jdx].real()) : llrint((long double)matrix_mtx[offset+jdx].real() * fixpow / renormalize_data[j*renormalize_data.stride+basecol+jdx]);
-              mtxfix[i][offset_small+jdx].imag = useFloat ? doubleToLLRaw(matrix_mtx[offset+jdx].imag()) : llrint((long double)matrix_mtx[offset+jdx].imag() * fixpow / renormalize_data[j*renormalize_data.stride+basecol+jdx]);
-              //printf("%d %d %d %llX %llX\n", i, idx, jdx, mtxfix[i][offset_small+jdx].real, mtxfix[i][offset_small+jdx].imag); 
-            }
-            memset(&mtxfix[i][offset_small+lastcol], 0, sizeof(ComplexFix16)*(max_fpga_cols-lastcol));
-          }
-          for (size_t jdx = lastcol; jdx < max_fpga_cols; jdx++) mtxfix[i][rowbase*mtxfix[i].stride+jdx].real = useFloat ? fOne : fixpow;
-      } 
+        mtxfix[i] = matrix_base<ComplexFix16>(rows * matrices.size(), max_fpga_cols);
     }
+    tbb::parallel_for( tbb::blocked_range<size_t>(0, matrices.size()), [&](tbb::blocked_range<size_t> r) {
+        for (size_t i = 0; i < actualinits; i++) {
+          size_t basecol = max_fpga_cols * i;
+          size_t lastcol = matrices.begin()->cols<=basecol ? 0 : std::min(max_fpga_cols, matrices.begin()->cols-basecol);
+          //for (size_t j = 0; j < matrices.size(); j++) {
+          for (size_t j = r.begin(); j < r.end(); j++) {
+              size_t rowbase = j * rows;
+              matrix& matrix_mtx = matrices[j];
+              for (size_t idx=0; idx < rows; idx++) {
+                size_t offset = idx * matrix_mtx.stride + basecol;
+                size_t offset_small = (rowbase + idx)*mtxfix[i].stride;
+                for (size_t jdx = 0; jdx < lastcol; jdx++) {
+                  mtxfix[i][offset_small+jdx].real = useFloat ? doubleToLLRaw(matrix_mtx[offset+jdx].real()) : llrint((long double)matrix_mtx[offset+jdx].real() * fixpow / renormalize_data[j*renormalize_data.stride+basecol+jdx]);
+                  mtxfix[i][offset_small+jdx].imag = useFloat ? doubleToLLRaw(matrix_mtx[offset+jdx].imag()) : llrint((long double)matrix_mtx[offset+jdx].imag() * fixpow / renormalize_data[j*renormalize_data.stride+basecol+jdx]);
+                  //printf("%d %d %d %llX %llX\n", i, idx, jdx, mtxfix[i][offset_small+jdx].real, mtxfix[i][offset_small+jdx].imag); 
+                }
+                memset(&mtxfix[i][offset_small+lastcol], 0, sizeof(ComplexFix16)*(max_fpga_cols-lastcol));
+              }
+              for (size_t jdx = lastcol; jdx < max_fpga_cols; jdx++) mtxfix[i][rowbase*mtxfix[i].stride+jdx].real = useFloat ? fOne : fixpow;
+          } 
+        }
+    });
 
     //note: stride must equal number of columns, or this will not work as the C call expects contiguous data
     ComplexFix16* mtx_fix_data[numinits];
@@ -252,8 +262,6 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, std::vector<Com
 void
 GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, int useFloat)
 {
-
-tbb::tick_count t0 = tbb::tick_count::now();
     lock_lib();
     if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
     else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);
@@ -318,8 +326,7 @@ tbb::tick_count t0 = tbb::tick_count::now();
       }
       for (size_t jdx = lastcol; jdx < max_fpga_cols; jdx++) mtxfix[i][jdx].real = useFloat ? fOne : fixpow; 
     }
-tbb::tick_count t1 = tbb::tick_count::now();
-std::cout << "normalization for DFE: " << (t1-t0).seconds() << " " << dfe_mtx_size << " " << actualinits << std::endl;
+
     //note: stride must equal number of columns, or this will not work as the C call expects contiguous data
     ComplexFix16* mtx_fix_data[numinits];
     //assert(mtxfix[i].stride == mtxfix[i].cols);

@@ -397,6 +397,7 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeated.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BatchedPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/Torontonian.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianRecursive.cpp
