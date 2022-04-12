@@ -72,11 +72,11 @@ std::cout << "total time in accumulator: " << t_tot << std::endl;
 @param index The index of the new element. (For performance reasons the vontainer must be preallocated with function reserve)
 @return Returns with the calculated permanent
 */
-void BatchednPermanentCalculator::add( PicState_int64& input_state, PicState_int64& output_state, size_t index ) {
+void BatchednPermanentCalculator::add( PicState_int64* input_state, PicState_int64* output_state, size_t index ) {
 
 
-    int sum_input_states = input_state.number_of_photons;
-    int sum_output_states = output_state.number_of_photons;
+    int sum_input_states = input_state->number_of_photons;
+    int sum_output_states = output_state->number_of_photons;
     if ( sum_input_states != sum_output_states) {
         std::string error("BatchednPermanentCalculator::add:  Number of input and output states should be equal");
         throw error;
@@ -111,8 +111,8 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
 
     if ( lib == GlynnRep ) {
 
-        GlynnPermanentCalculator permanentCalculator;
-        //GlynnPermanentCalculatorRepeated permanentCalculator;
+        //GlynnPermanentCalculator permanentCalculator;
+        GlynnPermanentCalculatorRepeated permanentCalculator;
 
         // define function to filter out nonzero elements
         std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
@@ -122,18 +122,18 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
  
         // calculate the permanents on CPU
         for ( int idx=0; idx<input_states.size(); idx++) {
-
+/*
             // create the matrix for which permanent would be calculated including row/col multiplicities
             matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, input_states[idx], output_states[idx] );
             ret[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
-/*
+*/
             // create the matrix for which permanent would be calculated
-            matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_states[idx], output_states[idx] );
-            PicState_int64 adapted_input_state = input_states[idx].filter(filterNonZero);
-            PicState_int64 adapted_output_state = output_states[idx].filter(filterNonZero);    
+            matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, *(input_states[idx]), *(output_states[idx]) );
+            PicState_int64 adapted_input_state = input_states[idx]->filter(filterNonZero);
+            PicState_int64 adapted_output_state = output_states[idx]->filter(filterNonZero);    
         
             ret[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
-*/
+
         }
     
     } 
@@ -143,7 +143,7 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
 
         // calculate the permanents on CPU
         for ( int idx=0; idx<input_states.size(); idx++) {       
-            ret[idx] = permanentCalculator.calculate( interferometer_matrix, input_states[idx], output_states[idx]);
+            ret[idx] = permanentCalculator.calculate( interferometer_matrix, *input_states[idx], *output_states[idx]);
         }
 
     }
@@ -384,11 +384,11 @@ std::vector<matrix>* BatchednPermanentCalculator::create_batch( int start_index)
  *  @return Returns with the created matrix
  */
 matrix
-adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState_int64 &input_state,  PicState_int64 &output_state) {
+adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState_int64* input_state,  PicState_int64* output_state) {
 
     int n = interferometerMatrix.rows;
 
-    int64_t sum = input_state.number_of_photons;
+    int64_t sum = input_state->number_of_photons;
     matrix mtx(sum, sum);
 
     int row_idx = 0;
@@ -396,12 +396,12 @@ adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState
     int row_offset = 0;
     for (int i = 0; i < n; i++){
 
-        for (int db_row = 0; db_row < output_state[i]; db_row++){
+        for (int db_row = 0; db_row < (*output_state)[i]; db_row++){
 
             int col_idx = 0;
 
             for (int j = 0; j < n; j++){
-                for (int db_col = 0; db_col < input_state[j]; db_col++){
+                for (int db_col = 0; db_col < (*input_state)[j]; db_col++){
                     mtx[row_offset + col_idx] =  interferometerMatrix[row_offset_orig + j];
                     col_idx++;
                 }
@@ -432,10 +432,20 @@ adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState
 matrix
 adaptInterferometer( const matrix& interferometerMatrix, PicState_int64 &input_state, PicState_int64 &output_state) {
 
-    int sumInput = input_state.number_of_photons;
-    int sumOutput = output_state.number_of_photons;
+    int nonZeroInput = 0;
+    for (int i = 0; i < input_state.size(); i++){
+        if (input_state[i] > 0){
+            nonZeroInput++;
+        }
+    }
+    int nonZeroOutput = 0;
+    for (int i = 0; i < output_state.size(); i++){
+        if (output_state[i] > 0){
+            nonZeroOutput++;
+        }
+    }
 
-    matrix new_mtx(sumOutput, sumInput);    
+    matrix new_mtx(nonZeroOutput, nonZeroInput);    
 
     int n = interferometerMatrix.rows;
 
@@ -454,7 +464,7 @@ adaptInterferometer( const matrix& interferometerMatrix, PicState_int64 &input_s
             row_idx++;
         }
     }
-    
+
 
     return new_mtx;
 
