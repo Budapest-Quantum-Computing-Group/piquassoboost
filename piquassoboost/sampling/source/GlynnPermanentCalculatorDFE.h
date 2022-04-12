@@ -4,6 +4,7 @@
 
 #include <mutex>
 #include "matrix.h"
+#include "matrix_real16.h"
 
 #ifndef CPYTHON
 #include <tbb/tbb.h>
@@ -19,8 +20,26 @@ typedef struct ComplexFix16 {
   __int64_t imag;
 } ComplexFix16;
 
-void
-GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, std::vector<Complex16>& perm, int useDual, int useFloat);
+
+/**
+@brief ???????
+*/
+matrix_real16* get_renormalization_data( std::vector<matrix>* matrices );
+
+/**
+@brief ???????
+*/
+std::vector<matrix_base<ComplexFix16>>* renormalize_matrices( std::vector<matrix>* matrices, matrix_real16* renormalize_data, int useFloat );
+
+/**
+@brief ???????
+*/
+void GlynnPermanentCalculatorBatch_DFE(std::vector<matrix_base<ComplexFix16>>* mtxfix, matrix_real16* renormalize_data, int row_num, int col_num, int perm_num, matrix& perm, int useDual, int useFloat);
+
+/**
+@brief ???????
+*/
+void GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, matrix& perm, int useDual, int useFloat);
 
 /**
 @brief Wrapper function to call the calculate the Permanent on a DFE

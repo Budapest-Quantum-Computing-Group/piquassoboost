@@ -12,6 +12,12 @@
 namespace pic {
 
 
+static double t_DFE_prep=0.0;
+static double t_CPU_time=0.0;
+static double t_DFE_time=0.0;
+static double t_tot=0.0;
+
+
 /**
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
@@ -20,9 +26,7 @@ BatchednPermanentCalculator::BatchednPermanentCalculator() {
 
     interferometer_matrix = matrix(0,0);
 
-    // reserve space for containers
-    input_states.reserve(30);
-    output_states.reserve(30);
+    batch_size_max = 100000;
 
 
 
@@ -37,11 +41,7 @@ BatchednPermanentCalculator::BatchednPermanentCalculator(matrix& interferometer_
 
     interferometer_matrix = interferometer_matrix_in;
 
-
-    // reserve space for containers
-    input_states.reserve(30);
-    output_states.reserve(30);
-
+    batch_size_max = 100000;
 
 
 }
@@ -51,6 +51,11 @@ BatchednPermanentCalculator::BatchednPermanentCalculator(matrix& interferometer_
 @brief Destructor of the class
 */
 BatchednPermanentCalculator::~BatchednPermanentCalculator() {
+
+std::cout << "DFE preparation time: " << t_DFE_prep << std::endl;
+std::cout << "DFE time: " << t_DFE_time << std::endl;
+std::cout << "CPU time in accumulator: " << t_CPU_time << std::endl;
+std::cout << "total time in accumulator: " << t_tot << std::endl;
 
     // clear the contained inputs and metadata
     clear();
@@ -64,26 +69,27 @@ BatchednPermanentCalculator::~BatchednPermanentCalculator() {
 @param mtx The effective scattering matrix of a boson sampling instance
 @param input_state The input state
 @param output_state The output state
+@param index The index of the new element. (For performance reasons the vontainer must be preallocated with function reserve)
 @return Returns with the calculated permanent
 */
-void BatchednPermanentCalculator::add( PicState_int64& input_state, PicState_int64& output_state ) {
+void BatchednPermanentCalculator::add( PicState_int64& input_state, PicState_int64& output_state, size_t index ) {
 
 
-    int sum_input_states = sum(input_state);
-    int sum_output_states = sum(output_state);
+    int sum_input_states = input_state.number_of_photons;
+    int sum_output_states = output_state.number_of_photons;
     if ( sum_input_states != sum_output_states) {
         std::string error("BatchednPermanentCalculator::add:  Number of input and output states should be equal");
         throw error;
     }
 
-    if (sum_input_states == 0 || sum_output_states == 0)
-        return;
+    if ( index >= input_states.size() || index >= output_states.size() ) {
+        std::string error("BatchednPermanentCalculator::add:  Containers must be resized");
+        throw error;
+    }
 
-
-    input_states.push_back(input_state);
-    output_states.push_back(output_state);
-
-
+    
+    input_states[index] = input_state;
+    output_states[index] = output_state;
     
 }
 
@@ -94,20 +100,19 @@ void BatchednPermanentCalculator::add( PicState_int64& input_state, PicState_int
 @brief Call to calculate the permanents of the accumulated matrices. The list of matrices is cleared after the calculation.
 @return Returns with the vector of the calculated permanents
 */
-std::vector<Complex16> BatchednPermanentCalculator::calculate(int lib) {
+matrix BatchednPermanentCalculator::calculate(int lib) {
 
     if (interferometer_matrix.size() == 0) {
         std::string error("BatchednPermanentCalculator::calculate:  interferometer matrix is zero");
         throw error;
     }
 
-    std::vector<Complex16> ret;
-    ret.resize( input_states.size());
+    matrix ret(1, input_states.size());
 
     if ( lib == GlynnRep ) {
 
-        //GlynnPermanentCalculator permanentCalculator;
-        GlynnPermanentCalculatorRepeated permanentCalculator;
+        GlynnPermanentCalculator permanentCalculator;
+        //GlynnPermanentCalculatorRepeated permanentCalculator;
 
         // define function to filter out nonzero elements
         std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
@@ -119,15 +124,16 @@ std::vector<Complex16> BatchednPermanentCalculator::calculate(int lib) {
         for ( int idx=0; idx<input_states.size(); idx++) {
 
             // create the matrix for which permanent would be calculated including row/col multiplicities
-            //matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(matrices[idx], input_states[idx], output_states[idx] );
-            //ret[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
-
+            matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, input_states[idx], output_states[idx] );
+            ret[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
+/*
             // create the matrix for which permanent would be calculated
             matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_states[idx], output_states[idx] );
             PicState_int64 adapted_input_state = input_states[idx].filter(filterNonZero);
             PicState_int64 adapted_output_state = output_states[idx].filter(filterNonZero);    
         
             ret[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
+*/
         }
     
     } 
@@ -149,25 +155,150 @@ std::vector<Complex16> BatchednPermanentCalculator::calculate(int lib) {
 
 
         // calculate the permanents on DFE
-        int useDual = 1;
+        int useDual = lib == GlynnRepMultiSingleDFE ? 0 : 1;
         int useFloat = 0;
 
-        std::vector<matrix> matrices;
-        matrices.reserve( input_states.size());
+tbb::tick_count t0 = tbb::tick_count::now();
+        init_dfe_lib(DFE_MAIN, useDual);
+tbb::tick_count t1 = tbb::tick_count::now();
+t_DFE_prep += (t1-t0).seconds();
+        inc_dfe_lib_count();
 
-        // calculate the permanents on CPU
-        for ( int idx=0; idx<input_states.size(); idx++) {
+        // create the first batch
+        int start_index = 0;
+tbb::tick_count t0a = tbb::tick_count::now();
 
-            // create the matrix for which permanent would be calculated including row/col multiplicities
-            matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, input_states[idx], output_states[idx] );
 
-            matrices.push_back( modifiedInterferometerMatrix );
+        std::vector<matrix>* matrices = create_batch( start_index );
+        std::vector<matrix>* matrices_old = NULL;
+        // get data for matrix renormalization
+        matrix_real16* renormalize_data = get_renormalization_data(matrices);
+        matrix_real16* renormalize_data_old = NULL;
+        // renormalize the matrices for DFE calculation
+        std::vector<matrix_base<ComplexFix16>>* mtxfix = renormalize_matrices( matrices, renormalize_data, useFloat );
+        std::vector<matrix_base<ComplexFix16>>* mtxfix_old = NULL;
+
+
+tbb::tick_count t1a = tbb::tick_count::now();
+t_CPU_time += (t1a-t0a).seconds();        
+
+
+        while ( start_index < (int)input_states.size() ) {
+//std::cout << start_index << " " << input_states.size() << std::endl;
+
+            std::vector<matrix>* matrices_new;
+            matrix_real16* renormalize_data_new;
+            std::vector<matrix_base<ComplexFix16>>* mtxfix_new;
+
+            tbb::parallel_invoke(    
+                [&]{
+tbb::tick_count t0 = tbb::tick_count::now();
+                    // calculate the permanents
+                    matrix ret_batched(ret.get_data()+start_index, 1, matrices->size());
+
+                    if (matrices->begin()->rows < 4) { //compute with other method
+                        GlynnPermanentCalculator gpc;
+                        for (size_t i = 0; i < matrices->size(); i++) {
+                            ret_batched[i] = gpc.calculate((*matrices)[i]);
+                        }
+                        return;
+                    }
+  
+
+                    // calculate the permanent on DFE
+                    GlynnPermanentCalculatorBatch_DFE(mtxfix, renormalize_data, matrices->begin()->rows, matrices->begin()->cols, matrices->size(), ret_batched, useDual, useFloat);
+
+                    //GlynnPermanentCalculatorBatch_DFE(*matrices, ret_batched, useDual, useFloat);
+tbb::tick_count t1 = tbb::tick_count::now();
+t_DFE_time += (t1-t0).seconds();
+                },
+                [&]{
+//tbb::tick_count t0 = tbb::tick_count::now();
+
+                    // in parallel create the new batch
+                    matrices_new = create_batch( start_index+matrices->size() );    
+
+                    // get data for matrix renormalization
+                    renormalize_data_new = get_renormalization_data(matrices_new);
+
+                    // renormalize the matrices for DFE calculation
+                    mtxfix_new = renormalize_matrices( matrices_new, renormalize_data_new, useFloat );
+//tbb::tick_count t1 = tbb::tick_count::now();
+//t_CPU_time += (t1-t0).seconds();
+        
+                },
+                [&]{
+                    if (matrices_old) {
+                        delete(matrices_old);
+                        matrices_old = NULL;
+                    } 
+                },
+                [&]{
+                    if (mtxfix_old) {
+                        delete(mtxfix_old);
+                        mtxfix_old = NULL;
+                    } 
+                },
+                [&]{
+                    if (renormalize_data_old) {
+                        delete(renormalize_data_old);
+                        renormalize_data_old = NULL;
+                    } 
+                }
+            );      
+
+
+            start_index += (int)matrices->size();
+tbb::tick_count t0cpu = tbb::tick_count::now();
+
+            mtxfix_old = mtxfix;
+            matrices_old = matrices;
+            renormalize_data_old = renormalize_data;
+            mtxfix = mtxfix_new;
+            matrices = matrices_new;
+            renormalize_data = renormalize_data_new;
+
+tbb::tick_count t1cpu = tbb::tick_count::now();
+t_CPU_time += (t1cpu-t0cpu).seconds();
+
         }
 
+        if ( mtxfix->size() > 0 ) {
+            // calculate the last batch if any left
+            matrix ret_batched(ret.get_data()+start_index, 1, matrices->size());
+            GlynnPermanentCalculatorBatch_DFE(mtxfix, renormalize_data, matrices->begin()->rows, matrices->begin()->cols, matrices->size(), ret_batched, useDual, useFloat);
+            //GlynnPermanentCalculatorBatch_DFE(*matrices, ret_batched, useDual, useFloat);
+        }
 
-        GlynnPermanentCalculatorBatch_DFE(matrices, ret, useDual, useFloat);
+        if (matrices_old) {
+            delete(matrices_old);
+            matrices_old = NULL;
+        } 
 
-}
+        if (mtxfix_old) {
+            delete(mtxfix_old);
+            mtxfix_old = NULL;
+        } 
+
+        if (renormalize_data_old) {
+            delete(renormalize_data_old);
+            renormalize_data_old = NULL;
+        } 
+
+        delete(mtxfix);
+        mtxfix = NULL;
+        delete(matrices);
+        matrices = NULL;
+        delete(renormalize_data);
+        renormalize_data = NULL;
+
+        
+dec_dfe_lib_count();
+tbb::tick_count t2 = tbb::tick_count::now();
+t_tot += (t2-t0).seconds();
+    }
+
+
 
 /*
 for ( int idx=0; idx<ret.size(); idx++ ) {
@@ -198,6 +329,51 @@ void BatchednPermanentCalculator::clear() {
 }
 
 
+/**
+@brief reservememory space to store data
+@param num_of_permanents The number of permanents to be calculated
+*/
+void BatchednPermanentCalculator::reserve_space( size_t num_of_permanents) {
+
+
+    input_states.resize(num_of_permanents);
+    output_states.resize(num_of_permanents);
+
+}
+
+
+
+
+/**
+@brief ????????
+@param num_of_permanents The number of permanents to be calculated
+*/
+std::vector<matrix>* BatchednPermanentCalculator::create_batch( int start_index) {
+
+    
+    std::vector<matrix>* matrices = new std::vector<matrix>;
+
+    // determine the size of the batch
+    int batch_size = (int)input_states.size() - start_index < batch_size_max ? input_states.size() - start_index : batch_size_max;
+
+    matrices->resize( batch_size);
+
+    // create matrices for DFE
+    tbb::parallel_for( tbb::blocked_range<size_t>( 0, batch_size), [&](tbb::blocked_range<size_t> r ) {
+        for( size_t idx=r.begin(); idx!=r.end(); idx++) {
+
+            // create the matrix for which permanent would be calculated including row/col multiplicities
+            matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, input_states[idx+start_index], output_states[idx+start_index] );
+            (*matrices)[idx] = modifiedInterferometerMatrix;
+        }
+
+    });
+
+    return matrices;
+
+}
+
+
 
 
 /** @brief Creates a matrix from the `interferometerMatrix` corresponding to the parameters `input_state` and `output_state`.
@@ -208,34 +384,34 @@ void BatchednPermanentCalculator::clear() {
  *  @return Returns with the created matrix
  */
 matrix
-adaptInterferometerGlynnMultiplied(
-    matrix& interferometerMatrix,
-    PicState_int64 &input_state,
-    PicState_int64 &output_state
-) {
+adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState_int64 &input_state,  PicState_int64 &output_state) {
+
     int n = interferometerMatrix.rows;
 
-    int64_t sum = 0;
-    for (size_t i = 0; i < input_state.size(); i++){
-        sum += input_state[i];
-    }
+    int64_t sum = input_state.number_of_photons;
     matrix mtx(sum, sum);
 
     int row_idx = 0;
+    int row_offset_orig = 0;
+    int row_offset = 0;
     for (int i = 0; i < n; i++){
+
         for (int db_row = 0; db_row < output_state[i]; db_row++){
+
             int col_idx = 0;
+
             for (int j = 0; j < n; j++){
                 for (int db_col = 0; db_col < input_state[j]; db_col++){
-                    mtx[row_idx * mtx.stride + col_idx] =
-                        interferometerMatrix[i * interferometerMatrix.stride + j];
-
+                    mtx[row_offset + col_idx] =  interferometerMatrix[row_offset_orig + j];
                     col_idx++;
                 }
             }
 
-            row_idx++;
+            row_offset += mtx.stride;
         }
+
+        row_offset_orig += interferometerMatrix.stride;
+
     }
 
     return mtx;
@@ -254,23 +430,10 @@ adaptInterferometerGlynnMultiplied(
  *  @return Returns with the created matrix
  */
 matrix
-adaptInterferometer(
-    matrix& interferometerMatrix,
-    PicState_int64 &input_state,
-    PicState_int64 &output_state
-) {
-    int sumInput = 0;
-    for (int i = 0; i < input_state.size(); i++){
-        if (input_state[i] > 0){
-            sumInput++;
-        }
-    }
-    int sumOutput = 0;
-    for (int i = 0; i < output_state.size(); i++){
-        if (output_state[i] > 0){
-            sumOutput++;
-        }
-    }
+adaptInterferometer( const matrix& interferometerMatrix, PicState_int64 &input_state, PicState_int64 &output_state) {
+
+    int sumInput = input_state.number_of_photons;
+    int sumOutput = output_state.number_of_photons;
 
     matrix new_mtx(sumOutput, sumInput);    
 

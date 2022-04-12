@@ -219,8 +219,7 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
             PyList_SetItem(self->matrix, i, o);
             matrices.push_back(numpy2matrix(o));
         }
-        std::vector<pic::Complex16> ret;
-        ret.resize(sz);
+        pic::matrix ret(1, sz);
 #ifdef __DFE__        
         if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF)
             GlynnPermanentCalculatorBatch_DFE( matrices, ret, self->lib == GlynnDualDFE || self->lib == GlynnDualDFEF, self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF);
