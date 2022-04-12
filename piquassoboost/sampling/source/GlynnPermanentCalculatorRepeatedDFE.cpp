@@ -165,8 +165,7 @@ std::cout << "ooooooooooooooo" << std::endl;
             gcodeidx ^= (1ULL << curmp.size()) - (1ULL << (i+1));        
             break;
           } else if (i == 0) {
-              std::vector<Complex16> perms;
-              perms.resize(matrices.size());
+              matrix perms(1, matrices.size());
 
               GlynnPermanentCalculatorBatch_DFE(matrices, perms, useDual, false);
 

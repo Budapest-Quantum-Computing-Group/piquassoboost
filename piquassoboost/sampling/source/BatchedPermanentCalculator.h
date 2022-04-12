@@ -38,6 +38,10 @@ protected:
     /// Unitaries describing a quantum circuit
     PicStates output_states;
 
+//std::vector<matrix> matrices;
+
+int batch_size_max;
+
 public:
 
 /**
@@ -67,21 +71,36 @@ BatchednPermanentCalculator(matrix& interferometer_matrix_in);
 @param mtx An effective scattering matrix of a boson sampling instance
 @param input_state An input state
 @param output_state An output state
+@param index The index of the new element. (For performance reasons the vontainer must be preallocated with function reserve)
 */
-void add( PicState_int64& input_state, PicState_int64& output_state );
+void add( PicState_int64& input_state, PicState_int64& output_state, size_t index );
 
 
 /**
 @brief Call to calculate the permanents of the accumulated matrices.
 @return Returns with the vector of the calculated permanents
 */
-std::vector<Complex16> calculate(int lib=0);
+matrix calculate(int lib=0);
 
 
 /**
 @brief Call toclear the list of matrices and other metadata.
 */
 void clear();
+
+
+/**
+@brief reservememory space to store data
+@param num_of_permanents The number of permanents to be calculated
+*/
+void reserve_space( size_t num_of_permanents);
+
+
+/**
+@brief ????????
+@param num_of_permanents The number of permanents to be calculated
+*/
+std::vector<matrix>* create_batch( int start_index);
 
 
 }; //BatchednPermanentCalculator
@@ -98,11 +117,7 @@ void clear();
  *  @return Returns with the created matrix
  */
 matrix
-adaptInterferometerGlynnMultiplied(
-    matrix& interferometerMatrix,
-    PicState_int64 &input_state,
-    PicState_int64 &output_state
-);
+adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState_int64 &input_state, PicState_int64 &output_state );
 
 
 /** @brief Creates a matrix from the `interferometerMatrix` corresponding to 
@@ -116,11 +131,7 @@ adaptInterferometerGlynnMultiplied(
  *  @return Returns with the created matrix
  */
 matrix
-adaptInterferometer(
-    matrix& interferometerMatrix,
-    PicState_int64 &input_state,
-    PicState_int64 &output_state
-);
+adaptInterferometer(const matrix& interferometerMatrix, PicState_int64 &input_state, PicState_int64 &output_state);
 
 
 
