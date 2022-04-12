@@ -394,24 +394,25 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
     perm_accumulator.clear();
     perm_accumulator.reserve_space( possible_outputs.size() * possible_input_states.size());
 
+
 tbb::tick_count t0cpu = tbb::tick_count::now();
     // Accumulate matrices and other metada for which output probabilites are then calculated
-    tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_outputs.size()), [&](tbb::blocked_range<size_t> r ) {
     //for ( int idx=0; idx<possible_outputs.size(); idx++) {
-        for( size_t idx=r.begin(); idx!=r.end(); idx++) {
+    tbb::parallel_for( (size_t)0, possible_outputs.size(), (size_t)1, [&](size_t idx ) {
 
-            size_t index_offset = idx*possible_input_states.size();
+        size_t index_offset = idx*possible_input_states.size();
 
-            // calculate the individual probabilities
-            for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
-           
+        // calculate the individual probabilities
+        //for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
+        tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_input_states.size()), [&](tbb::blocked_range<size_t> r ) {
+            for( size_t jdx=r.begin(); jdx!=r.end(); jdx++) {
+         
                 // accumulate input/output states for permanent calculations
-
-                perm_accumulator.add(possible_input_states[jdx], possible_outputs[idx], index_offset+jdx);
+                perm_accumulator.add(&possible_input_states[jdx], &possible_outputs[idx], index_offset+jdx);
 
             }
 
-        }
+        });
 
     });
 tbb::tick_count t1cpu = tbb::tick_count::now();
@@ -425,15 +426,20 @@ t_perm_accumulator += (t1-t0).seconds();
 
 t0cpu = tbb::tick_count::now();
     // calculate the individual probabilities associated with the output states
-    tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_outputs.size()), [&](tbb::blocked_range<size_t> r ) {
-        for( size_t idx=r.begin(); idx!=r.end(); idx++) {
+    tbb::parallel_for( (size_t)0, possible_outputs.size(), (size_t)1, [&](size_t idx ) {
 
-            pmf[idx] = 0;
+        pmf[idx] = 0;
 
-            size_t offset = idx*possible_input_states.size();
+        size_t offset = idx*possible_input_states.size();
 
-            // calculate the individual probabilities
-            for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
+        // calculate the individual probabilities
+
+        tbb::combinable<double> pmf_addend{[](){return 0.0;}};
+
+        //for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
+        tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_input_states.size()), [&](tbb::blocked_range<size_t> r ) {
+            for( size_t jdx=r.begin(); jdx!=r.end(); jdx++) {
+
 
                 //double probability_tmp = calculate_outputs_probability(interferometer_matrix, possible_input_states[jdx], possible_outputs[idx], lib);
                 //probability_tmp = probability_tmp*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
@@ -441,15 +447,24 @@ t0cpu = tbb::tick_count::now();
                 double probability = calculate_outputs_probability(permanents[offset+jdx], possible_input_states[jdx], possible_outputs[idx]);
                 probability = probability*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
 
-                pmf[idx] = pmf[idx] + probability;
+                // thread local probability
+                double& pmf_priv = pmf_addend.local();
+
+                pmf_priv = pmf_priv + probability;
 //std::cout << "probabilities: " << probability << " " << probability_tmp << " " << permanents[offset] << std::endl;
 
 
             }
 
-            probability_sum_total = probability_sum_total + pmf[idx];
+        });
 
-        }
+        pmf_addend.combine_each([&](double &a) {
+             pmf[idx] = pmf[idx] + a;
+        });
+
+        probability_sum_total = probability_sum_total + pmf[idx];           
+
+
     });
     
 
