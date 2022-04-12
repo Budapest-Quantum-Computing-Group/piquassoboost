@@ -34,9 +34,9 @@ protected:
     /// The matrix describing the interferometer
     matrix interferometer_matrix;
     /// Unitaries describing a quantum circuit
-    PicStates input_states;
+    std::vector<PicState_int64*> input_states;
     /// Unitaries describing a quantum circuit
-    PicStates output_states;
+    std::vector<PicState_int64*> output_states;
 
 //std::vector<matrix> matrices;
 
@@ -73,7 +73,7 @@ BatchednPermanentCalculator(matrix& interferometer_matrix_in);
 @param output_state An output state
 @param index The index of the new element. (For performance reasons the vontainer must be preallocated with function reserve)
 */
-void add( PicState_int64& input_state, PicState_int64& output_state, size_t index );
+void add( PicState_int64* input_state, PicState_int64* output_state, size_t index );
 
 
 /**
@@ -117,7 +117,7 @@ std::vector<matrix>* create_batch( int start_index);
  *  @return Returns with the created matrix
  */
 matrix
-adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState_int64 &input_state, PicState_int64 &output_state );
+adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState_int64* input_state, PicState_int64* output_state );
 
 
 /** @brief Creates a matrix from the `interferometerMatrix` corresponding to 
@@ -131,7 +131,7 @@ adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState
  *  @return Returns with the created matrix
  */
 matrix
-adaptInterferometer(const matrix& interferometerMatrix, PicState_int64 &input_state, PicState_int64 &output_state);
+adaptInterferometer(const matrix& interferometerMatrix, PicState_int64& input_state, PicState_int64& output_state);
 
 
 
