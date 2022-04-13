@@ -25,7 +25,7 @@ GlynnPermanentCalculator::GlynnPermanentCalculator() {}
 */
 Complex16
 GlynnPermanentCalculator::calculate(matrix &mtx) {
-    if (mtx.rows == 0)
+    if (mtx.rows == 0 || mtx.cols == 0)
         return Complex16(1.0, 0.0);
     if (mtx.rows >= mtx.cols + 2)
         return Complex16(0.0, 0.0);
