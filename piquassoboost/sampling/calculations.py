@@ -60,7 +60,7 @@ def particle_number_measurement(state, instruction, shots) -> Result:
         for _ in initial_state:
             initial_state = np.append(initial_state, 0)
 
-    simulation_strategy = GeneralizedCliffordsSimulationStrategyMultiSingleDFE(
+    simulation_strategy = GeneralizedCliffordsSimulationStrategy(
         interferometer, state._config.seed_sequence
     )
     sampling_simulator = BosonSamplingSimulator(simulation_strategy)
