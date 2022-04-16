@@ -185,6 +185,34 @@ inline long long doubleToLLRaw(double d)
     return *pll;
 }
 
+inline void symmetricQuadrantNormalize(Complex32* sums, Complex16 val) {
+    Complex32 value1 = sums[0] + val;
+    Complex32 value2 = sums[0] - val;
+    Complex32 value3 = sums[1] + val;
+    Complex32 value4 = sums[1] - val;
+    int symQuad1 = (value1.real() < 0) == (value1.imag() < 0);                  
+    int symQuad2 = (value2.real() < 0) == (value2.imag() < 0);
+    int symQuad3 = (value3.real() < 0) == (value3.imag() < 0);
+    int symQuad4 = (value4.real() < 0) == (value4.imag() < 0);
+    if (symQuad1 == symQuad2) { 
+        sums[symQuad1] = std::norm(value1) > std::norm(value2) ? value1 : value2;
+        if (symQuad3 == symQuad2) {
+            sums[symQuad3] = std::norm(value3) > std::norm(sums[symQuad3]) ? value3 : sums[symQuad3];
+            if (symQuad4 == symQuad3) {
+                sums[symQuad4] = std::norm(value4) > std::norm(sums[symQuad4]) ? value4 : sums[symQuad4];
+            } else sums[symQuad4] = value4;
+        } else {
+            sums[symQuad3] = value3;
+            sums[symQuad4] = std::norm(value4) > std::norm(sums[symQuad4]) ? value4 : sums[symQuad4];
+        }
+    } else {
+        sums[symQuad1] = value1;
+        sums[symQuad2] = value2;
+        sums[symQuad3] = std::norm(value3) > std::norm(sums[symQuad3]) ? value3 : sums[symQuad3];  
+        sums[symQuad4] = std::norm(value4) > std::norm(sums[symQuad4]) ? value4 : sums[symQuad4];
+    }
+}
+
 /**
 @brief ???????
 */
@@ -199,22 +227,15 @@ matrix_real16* get_renormalization_data( std::vector<matrix>* matrices ) {
     //for (size_t i = 0; i < matrices.size(); i++) {
     tbb::parallel_for( tbb::blocked_range<size_t>(0, matrices->size()), [&](tbb::blocked_range<size_t> r) {
         for (size_t i=r.begin(); i<r.end(); ++i) {
-
             matrix& matrix_mtx = (*matrices)[i];
+
             // calulate the maximal sum of the columns to normalize the matrix
-            matrix_base<Complex32> colSumMax( matrix_mtx.cols, 1);
+            matrix_base<Complex32> colSumMax( matrix_mtx.cols, 2);
             memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex32) );
             for (size_t idx=0; idx<matrix_mtx.rows; idx++) {
                 for( size_t jdx=0; jdx<matrix_mtx.cols; jdx++) {
-                    Complex32 value1 = colSumMax[jdx] + matrix_mtx[ idx*matrix_mtx.stride + jdx];
-                    Complex32 value2 = colSumMax[jdx] - matrix_mtx[ idx*matrix_mtx.stride + jdx];
-                    if ( std::abs( value1 ) < std::abs( value2 ) ) {
-                        colSumMax[jdx] = value2;
-                    }
-                    else {
-                        colSumMax[jdx] = value1;
-                    }
-            
+                    size_t offset = idx*matrix_mtx.stride + jdx;
+                    symmetricQuadrantNormalize(&colSumMax[2*jdx], matrix_mtx[offset]);
                 }
             
             }
@@ -226,6 +247,7 @@ matrix_real16* get_renormalization_data( std::vector<matrix>* matrices ) {
             }
             
         }
+        
     });
 
     return renormalize_data;
@@ -378,7 +400,7 @@ GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, i
     else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);
 
     if (!((!useFloat && calcPermanentGlynnDFE) || (useFloat && calcPermanentGlynnDFEF)) ||
-        matrix_mtx.rows < 1+dfe_basekernpow2) { //compute with other method
+        matrix_mtx.rows < 1+dfe_basekernpow2 || matrix_mtx.cols == 0 || matrix_mtx.rows >= matrix_mtx.cols + 2) { //compute with other method
       GlynnPermanentCalculator gpc;
       perm = gpc.calculate(matrix_mtx);
       unlock_lib();
@@ -387,26 +409,19 @@ GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, i
     matrix_base<long double> renormalize_data(matrix_mtx.cols, 1);
     if (!useFloat) {
         // calulate the maximal sum of the columns to normalize the matrix
-        matrix_base<Complex32> colSumMax( matrix_mtx.cols, 1);
+        matrix_base<Complex32> colSumMax( matrix_mtx.cols, 2);
         memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex32) );
         for (size_t idx=0; idx<matrix_mtx.rows; idx++) {
             for( size_t jdx=0; jdx<matrix_mtx.cols; jdx++) {
-                Complex32 value1 = colSumMax[jdx] + matrix_mtx[ idx*matrix_mtx.stride + jdx];
-                Complex32 value2 = colSumMax[jdx] - matrix_mtx[ idx*matrix_mtx.stride + jdx];
-                if ( std::abs( value1 ) < std::abs( value2 ) ) {
-                    colSumMax[jdx] = value2;
-                }
-                else {
-                    colSumMax[jdx] = value1;
-                }
-    
+                size_t offset = idx*matrix_mtx.stride + jdx;              
+                symmetricQuadrantNormalize(&colSumMax[2*jdx], matrix_mtx[offset]);
             }
     
         }
     
         // calculate the renormalization coefficients
         for (size_t jdx=0; jdx<matrix_mtx.cols; jdx++ ) {
-            renormalize_data[jdx] = std::abs(colSumMax[jdx]); 
+            renormalize_data[jdx] = std::abs(std::norm(colSumMax[2*jdx]) > std::norm(colSumMax[2*jdx+1]) ? colSumMax[2*jdx] : colSumMax[2*jdx+1]);
             //printf("%d %.21Lf\n", jdx, renormalize_data[jdx]);
         }
     }
@@ -443,12 +458,14 @@ GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, i
     //assert(mtxfix[i].stride == mtxfix[i].cols);
     //assert(matrix_mtx.rows == matrix_mtx.cols && matrix_mtx.rows <= dfe_mtx_size);
     for (size_t i = 0; i < numinits; i++) mtx_fix_data[i] = mtxfix[i].get_data();
+   
     if (useFloat)
         calcPermanentGlynnDFEF( (const ComplexFix16**)mtx_fix_data, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, 1, &perm);
     else
         calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, 1, &perm);
 
     unlock_lib();
+
     return;
 }
 
