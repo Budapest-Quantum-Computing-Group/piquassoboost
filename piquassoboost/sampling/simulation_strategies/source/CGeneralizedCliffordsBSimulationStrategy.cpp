@@ -42,7 +42,8 @@ namespace pic {
 
 
 static double t_perm_accumulator=0.0;
-static double t_single_thread=0.0;
+static double t_DFE=0.0;
+static double t_CPU_permanent;
 static double t_CPU=0.0;
 
 
@@ -197,14 +198,22 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 
         // calculate the individual outputs for the shots
         for (int idx=0; idx<samples_number; idx++) {
+tbb::tick_count t0cpu = tbb::tick_count::now();
             PicState_int64 sample(input_state_in.cols, 0);
             sample.number_of_photons = 0;
 
             current_input = PicState_int64(sample.size(), 0);
+            current_input.number_of_photons = 0;
+
             working_input_state = particle_input_state.copy();
 
             fill_r_sample( sample );
+
             samples.push_back( sample );
+tbb::tick_count t1cpu = tbb::tick_count::now();
+t_CPU += (t1cpu-t0cpu).seconds();            
+std::cout << "DFE time: " << t_DFE << ", cpu permanent: " << t_CPU_permanent << std::endl;
+std::cout << "CPU time: " << t_CPU << std::endl;
         }
 
 
@@ -212,8 +221,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
     }
 
 
-std::cout << "perm accumulator time: " << t_perm_accumulator << std::endl;
-std::cout << "CPU time: " << t_CPU << std::endl;
+
 
     return samples;
 }
@@ -270,10 +278,139 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 
     // total sum of probabilities
     double probability_sum = 0.0;
+/*
+interferometer_matrix.print_matrix();
+sample.print_matrix();
+current_input.print_matrix();
+*/
+/*
+    std::vector<PicState_int64> input_states;
+    input_states.reserve(current_input.size());
+
+
+
+    // clear the permanent accumulator
+    perm_accumulator.clear();
+    perm_accumulator.reserve_space( current_input.size());
+
+    
+
+    tbb::parallel_for( tbb::blocked_range<size_t>( 0, current_input.size()), [&](tbb::blocked_range<size_t> r ) {
+        for( size_t jdx=r.begin(); jdx!=r.end(); jdx++) {
+
+            // add a photon to the current output state
+            PicState_int64&& input_state_loc = current_input.copy();
+            if (input_state_loc[idx]>0) {
+                input_state_loc[idx]--;
+         
+                // accumulate input/output states for permanent calculations
+                perm_accumulator.add(&input_state_loc, &sample, index_offset+jdx);
+
+        }
+
+    });
+*/
+
+    std::vector<matrix> matrices;
+    matrices.reserve( current_input.size() );
+
+    // calculate permanents of submatrices
+    matrix permanent_addends(1, current_input.size());
+
+#ifdef __DFE__
+    // determine the number of nonzero elements in the sample
+    size_t nonzero_elements = 0;
+    for (size_t jdx=0; jdx<sample.size(); jdx++) {
+        nonzero_elements = sample[jdx] > 0 ? nonzero_elements : nonzero_elements+1;
+    }
+#endif
+
+
+    for (size_t idx=0; idx<current_input.size(); idx++) {
+        //GlynnPermanentCalculator permanentCalculator;  
+        GlynnPermanentCalculatorRepeated permanentCalculator;  
+
+ 
+        // add a photon to the current output state
+        PicState_int64&& input_state_loc = current_input.copy();
+        if (input_state_loc[idx]>0) {
+            input_state_loc[idx]--;
+            input_state_loc.number_of_photons--;
+
+#ifdef __DFE__
+            if ( nonzero_elements < 7 ) {
+#endif
+/*
+                matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, &input_state_loc, &sample );
+                permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
+*/               
+            
+                matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
+                PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
+                PicState_int64 adapted_output_state = sample.filter(filterNonZero);
+                permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);  
+#ifdef __DFE__
+           }
+           else { 
+tbb::tick_count t0 = tbb::tick_count::now();
+                int useDual = 0;
+                //GlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, permanent_addends[idx], useDual);
+
+                int useFloat = 0; 
+
+                bool doCPU = false;
+                const size_t numinits = 4;
+                matrix_base<ComplexFix16> mtxfix[numinits] = {};
+                matrix_base<long double> renormalize_data_all;
+                uint8_t onerows = 0;
+                size_t photons = 0;
+                uint64_t totalPerms = 0;
+                std::vector<uint64_t> mplicity;
+                uint8_t mulsum = 0;
+
+                prepareDataForRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, useFloat, &mtxfix[0], renormalize_data_all, mplicity, onerows, photons, totalPerms, mulsum, doCPU);
+                GlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, useFloat, mtxfix, renormalize_data_all, mplicity, onerows, photons, totalPerms, mulsum, doCPU, useDual, permanent_addends[idx]);
+
+tbb::tick_count t1 = tbb::tick_count::now();
+t_DFE += (t1-t0).seconds();          
+
+tbb::tick_count t0cpu = tbb::tick_count::now();
+                matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
+                PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
+                PicState_int64 adapted_output_state = sample.filter(filterNonZero);
+                Complex16 permanent_tmp = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);  
+tbb::tick_count t1cpu = tbb::tick_count::now();
+t_CPU_permanent += (t1cpu-t0cpu).seconds();
+if ( std::norm( permanent_addends[idx] - permanent_tmp ) > 1e-3 ) {
+ std::cout << permanent_addends[idx] << " " << permanent_tmp << std::endl;
+}
+permanent_addends[idx] = permanent_tmp;
+//std::cout << "DFE permanent " << std::endl;
+                //matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, &input_state_loc, &sample );
+                //GlynnPermanentCalculator_DFE(modifiedInterferometerMatrix, permanent_addends[idx], 1, 0);
+
+           }
+#endif
+
+        }
+        else {
+            permanent_addends[idx] = Complex16(0.0,0.0);
+        }
+    }
+
+
+   
+
 
     // calculate probabilities by taking into account the a new particle can come in any new mode
     for (size_t mdx=0; mdx<sample.size(); mdx++ ) {
 
+        Complex16 permanent(0.0,0.0);
+        for (size_t idx=0; idx<current_input.size(); idx++) {
+            permanent = current_input[idx] == 0 ? permanent : permanent + current_input[idx]*permanent_addends[idx]*interferometer_matrix[mdx*interferometer_matrix.stride + idx];
+        }
+/*
+        
         // add a photon to the current output state
         PicState_int64&& output_state = sample.copy();
         output_state[mdx]++;
@@ -285,6 +422,12 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
         PicState_int64 adapted_output_state = output_state.filter(filterNonZero);    
        
         Complex16 permanent = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
+*/
+/*
+modifiedInterferometerMatrix.print_matrix();
+std::cout << permanent_b << " "  << permanent << std::endl;
+if ( std::norm( permanent-permanent_b)> 1e-3 ) abort();
+*/
 
         pmf[mdx] = permanent.real()*permanent.real() + permanent.imag()*permanent.imag();
         probability_sum += pmf[mdx];
@@ -317,6 +460,7 @@ CGeneralizedCliffordsBSimulationStrategy::update_current_input() {
     int rand_index = rand() % working_input_state.size();
 
     current_input[working_input_state[rand_index]]++;
+    current_input.number_of_photons++;
 
     // remove an item from working_input_state 
     PicState_int64 working_input_state_reduced(working_input_state.size()-1);
