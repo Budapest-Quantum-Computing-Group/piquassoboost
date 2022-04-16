@@ -355,22 +355,11 @@ current_input.print_matrix();
 tbb::tick_count t0 = tbb::tick_count::now();
                 int useDual = 0;
                 //GlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, permanent_addends[idx], useDual);
-
-                int useFloat = 0; 
-
-                bool doCPU = false;
-                const size_t numinits = 4;
-                matrix_base<ComplexFix16> mtxfix[numinits] = {};
-                matrix_base<long double> renormalize_data_all;
-                uint8_t onerows = 0;
-                size_t photons = 0;
-                uint64_t totalPerms = 0;
-                std::vector<uint64_t> mplicity;
-                uint8_t mulsum = 0;
-
-                prepareDataForRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, useFloat, &mtxfix[0], renormalize_data_all, mplicity, onerows, photons, totalPerms, mulsum, doCPU);
-                GlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, useFloat, mtxfix, renormalize_data_all, mplicity, onerows, photons, totalPerms, mulsum, doCPU, useDual, permanent_addends[idx]);
-
+                
+                cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(interferometer_matrix, input_state_loc, sample, useDual );
+                DFEcalculator.prepareDataForRepeatedMulti_DFE();
+                permanent_addends[idx] = DFEcalculator.calculate();
+                
 tbb::tick_count t1 = tbb::tick_count::now();
 t_DFE += (t1-t0).seconds();          
 
