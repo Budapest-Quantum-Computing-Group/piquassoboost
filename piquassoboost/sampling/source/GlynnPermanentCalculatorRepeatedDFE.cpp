@@ -106,6 +106,310 @@ extern "C" CALCPERMGLYNNDFE calcPermanentGlynnDFE;
 extern "C" CALCPERMGLYNNDFE calcPermanentGlynnDFEF;
 
 /**
+@brief Default constructor of the class.
+@return Returns with the instance of the class.
+*/
+cGlynnPermanentCalculatorRepeatedMulti_DFE::cGlynnPermanentCalculatorRepeatedMulti_DFE() {
+
+
+    mtxfix = NULL;
+}
+
+/**
+@brief Constructor of the class.
+@param ???????????????????
+@return Returns with the instance of the class.
+*/
+cGlynnPermanentCalculatorRepeatedMulti_DFE::cGlynnPermanentCalculatorRepeatedMulti_DFE( matrix& matrix_mtx_in, PicState_int64& input_state_in, PicState_int64& output_state_in, int useDual_in  ) {
+
+
+    // set 1 to use floating point number representation in DFE (not supported yet) or 0 to use fixed points
+    useFloat = 0;  
+    //
+    doCPU = false;
+    //
+    mtxfix = new matrix_base<ComplexFix16>[numinits];
+    //
+    matrix_base<long double> renormalize_data_all;
+    //
+    onerows = 0;
+    // The number of photons
+    photons = 0;
+    //
+    totalPerms = 0;
+    //
+    mulsum = 0;
+    //
+    useDual = useDual_in;
+    //
+    matrix_init = matrix_mtx_in;
+    //
+    input_state = input_state_in;
+    //
+    output_state = output_state_in;
+}
+
+/**
+@brief Destructor of the class
+*/
+cGlynnPermanentCalculatorRepeatedMulti_DFE::~cGlynnPermanentCalculatorRepeatedMulti_DFE() {
+
+
+    if (mtxfix != NULL) {
+        delete[](mtxfix);
+    }
+
+
+}
+
+
+/**
+@brief ???????
+*/
+void
+cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
+{
+    // if nothing uneaxpected happens the permanent calculations would be done on DFE not on CPU
+    doCPU = false;
+
+    // determine the number of particles
+    photons = 0;
+    int transpose = 0;
+    for (size_t i = 0; i < input_state.size(); i++) {
+        photons += input_state[i];
+        transpose += ((input_state[i] != 0) ? 1 : 0) - ((output_state[i] != 0) ? 1 : 0);  
+    }
+
+    if (photons < 1+dfe_basekernpow2) {
+        doCPU = true;
+        return;
+    }
+
+    transpose = transpose < 0; //transpose if needed to reduce complexity on rows direction
+    const size_t max_dim = dfe_mtx_size;
+    //convert multiplicities of rows and columns to indices
+    std::vector<unsigned char> colIndices; colIndices.reserve(max_dim);
+    for (size_t i = 0; i < output_state.size(); i++) {
+      for (size_t j = transpose ? output_state[i] : input_state[i]; j != 0; j--) {
+        colIndices.push_back(i);
+      }
+    }
+ 
+    PicState_int64 adj_input_state = transpose ? input_state.copy() : output_state.copy();  
+    std::vector<uint8_t> mrows;
+    std::vector<uint8_t> row_indices;
+    for (size_t i = 0; i < adj_input_state.size(); i++) {
+        if (adj_input_state[i] == 1) row_indices.push_back(i);
+        else if (adj_input_state[i] > 1) mrows.push_back(i);
+    }
+ 
+    //sort multiplicity >=2 row indices since we need anchor rows, and complexity reduction greatest by using smallest multiplicities
+    sort(mrows.begin(), mrows.end(), [&adj_input_state](size_t i, size_t j) { return adj_input_state[i] < adj_input_state[j]; }); 
+    if (row_indices.size() < 1) { //Glynn anchor row
+        row_indices.push_back(mrows[0]);
+        if (--adj_input_state[mrows[0]] == 1) {
+          row_indices.push_back(mrows[0]);
+          mrows.erase(mrows.begin());
+        }
+    }
+
+    //construct multiplicity Gray code counters
+    mulsum = 0;
+    onerows = row_indices.size();
+    std::vector<uint64_t> curmp, inp;
+    
+    // determine the number of smaller permanents
+    totalPerms = 1;
+    for (size_t i = 0; i < mrows.size(); i++) {
+        //for (size_t j = 0; j < adj_input_state[mrows[i]]; j++)
+        row_indices.push_back(mrows[i]);
+        curmp.push_back(adj_input_state[mrows[i]]);
+        inp.push_back(adj_input_state[mrows[i]]);
+        mulsum += adj_input_state[mrows[i]];
+        totalPerms *= (adj_input_state[mrows[i]] + 1);
+    }
+
+
+    if (onerows < 1+dfe_basekernpow2) { //pass the calculation to CPU
+        doCPU = true;
+        return;
+    }
+
+
+    // calulate the maximal sum of the columns to normalize the matrix
+    matrix_base<Complex32> colSumMax( photons, 2);
+    memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex32) );
+    for (size_t i=0; i<row_indices.size(); i++) {
+        //size_t offset = (transpose ? colIndices[i] : row_indices[i]) * matrix_init.stride;
+        for (int64_t idx = 0; idx < (i < onerows ? 1 : adj_input_state[row_indices[i]]); idx++) {
+            for( size_t jdx=0; jdx<photons; jdx++) {
+                size_t offset = transpose ? colIndices[jdx]*matrix_init.stride+row_indices[i] : row_indices[i]*matrix_init.stride+colIndices[jdx];
+                symmetricQuadrantNormalize(&colSumMax[2*jdx], matrix_init[offset]);
+            }
+        }
+    }
+
+    // calculate the renormalization coefficients
+    matrix_base<long double> renormalize_data(1, photons);
+    for (size_t jdx=0; jdx<photons; jdx++ ) {
+        renormalize_data[jdx] = std::abs(std::norm(colSumMax[2*jdx]) > std::norm(colSumMax[2*jdx+1]) ? colSumMax[2*jdx] : colSumMax[2*jdx+1]);
+    }
+    
+    // renormalize the input matrix and convert to fixed point maximizing precision via long doubles
+    // SLR and DFE input matrix with 1.0 filling on top row, 0 elsewhere 
+    const size_t rows = row_indices.size();
+    const size_t numinits = 4;
+    const size_t max_fpga_cols = max_dim / numinits;
+    const size_t actualinits = (photons + max_fpga_cols-1) / max_fpga_cols;
+    matrix_base<ComplexFix16> mtxprefix[numinits] = {};
+    const long double fixpow = 1ULL << 62;
+    for (size_t i = 0; i < actualinits; i++) {
+      mtxprefix[i] = matrix_base<ComplexFix16>(rows, max_fpga_cols);
+      size_t basecol = max_fpga_cols * i;
+      size_t lastcol = photons<=basecol ? 0 : std::min(max_fpga_cols, photons-basecol);
+      for (size_t idx=0; idx < rows; idx++) {
+        size_t offset_small = idx*mtxprefix[i].stride;
+        for (size_t jdx = 0; jdx < lastcol; jdx++) {
+          size_t offset = transpose ? colIndices[basecol+jdx]*matrix_init.stride+row_indices[idx] : row_indices[idx]*matrix_init.stride+colIndices[basecol+jdx];
+          mtxprefix[i][offset_small+jdx].real = llrint((long double)matrix_init[offset].real() * fixpow / renormalize_data[basecol+jdx]);
+          mtxprefix[i][offset_small+jdx].imag = llrint((long double)matrix_init[offset].imag() * fixpow / renormalize_data[basecol+jdx]);
+          if (idx >= onerows) { //start with all positive Gray codes, so sum everything onto the adjust row
+              for (int64_t j = 0; j < adj_input_state[row_indices[idx]]; j++) {
+                  mtxprefix[i][jdx].real += mtxprefix[i][offset_small+jdx].real;
+                  mtxprefix[i][jdx].imag += mtxprefix[i][offset_small+jdx].imag;
+              }
+          }
+        }
+        memset(&mtxprefix[i][offset_small+lastcol], 0, sizeof(ComplexFix16)*(max_fpga_cols-lastcol));
+      }
+      for (size_t jdx = lastcol; jdx < max_fpga_cols; jdx++) mtxprefix[i][jdx].real = fixpow;
+    }
+    
+    //matrix_base<ComplexFix16> mtxfix[numinits] = {};
+    for (size_t i = 0; i < actualinits; i++)
+        mtxfix[i] = matrix_base<ComplexFix16>(onerows * totalPerms, max_fpga_cols);
+  
+    Complex32 res;
+    uint64_t gcodeidx = 0, cur_multiplicity = 1, skipidx = (1ULL << curmp.size())-1; //gcodeidx is direction bit vector, skipidx set to not skip all indexes - technically "not skip index"
+   
+    while (true) {
+  
+        size_t offset_small = mplicity.size()*onerows*max_fpga_cols;
+        for (size_t i = 0; i < actualinits; i++) {
+            memcpy(mtxfix[i].get_data()+offset_small, mtxprefix[i].get_data(), sizeof(ComplexFix16) * onerows * max_fpga_cols);
+        }
+        mplicity.push_back(cur_multiplicity);   
+        
+             
+        if (skipidx == 0) { 
+            // at last step determine the normalization data
+            renormalize_data_all = matrix_base<long double>(totalPerms, photons);
+            for (size_t i = 0; i < totalPerms; i++) memcpy(renormalize_data_all.get_data()+photons*i, renormalize_data.get_data(), photons * sizeof(long double));  
+  
+            return;
+        }
+        
+        
+        size_t i = __builtin_ctzll(skipidx); //count of trailing zeros to compute next change index
+        bool curdir = (gcodeidx & (1ULL << i)) == 0;
+        cur_multiplicity = binomial_gcode(cur_multiplicity, curdir, inp[i], (curmp[i] + inp[i]) / 2);
+        curmp[i] = curdir ? curmp[i] - 2 : curmp[i] + 2;
+        size_t offset = (onerows+i)*max_fpga_cols;
+        //add or subtract to the adjustment row
+        for (size_t idx = 0; idx < actualinits; idx++) {
+            for (size_t j = 0; j < max_fpga_cols; j++) { //Gray code adjustment by adding or subtracting 2 times the appropriate row, caring for overflow since we are (64, -62) fixed point cannot multiply by 2 which requires 65 bits
+                if (curdir) {
+                    mtxprefix[idx][j].real = (mtxprefix[idx][j].real - mtxprefix[idx][offset+j].real) - mtxprefix[idx][offset+j].real;
+                    mtxprefix[idx][j].imag = (mtxprefix[idx][j].imag - mtxprefix[idx][offset+j].imag) - mtxprefix[idx][offset+j].imag;
+                } else {
+                    mtxprefix[idx][j].real = (mtxprefix[idx][j].real + mtxprefix[idx][offset+j].real) + mtxprefix[idx][offset+j].real;
+                    mtxprefix[idx][j].imag = (mtxprefix[idx][j].imag + mtxprefix[idx][offset+j].imag) + mtxprefix[idx][offset+j].imag;
+                }
+            }            
+        }
+        if ((!curdir && curmp[i] == inp[i]) || (curdir && curmp[i] == -inp[i])) skipidx ^= ((1ULL << (i+1)) - 1); //set all skipping before and including current index
+        else skipidx ^= ((1ULL << i) - 1); //flip all skipping which come before current index
+        gcodeidx ^= (1ULL << i) - 1; //flip all directions which come before current index
+    }
+
+
+
+}
+
+/**
+@brief ???????
+*/
+Complex16
+cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
+{
+
+    Complex16 perm(0.0,0.0);
+
+    lock_lib();
+    if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
+    else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);    
+
+    const size_t numinits = 4;
+
+    if (doCPU) { //compute with other method
+      GlynnPermanentCalculatorRepeated gpc;
+      perm = gpc.calculate(matrix_init, input_state, output_state);
+      unlock_lib();
+      return perm;
+    }
+
+    std::vector<Complex16> perms;
+    perms.resize(totalPerms);
+    //GlynnPermanentCalculatorBatch_DFE(matrices, perms, useDual, false);
+    //note: stride must equal number of columns, or this will not work as the C call expects contiguous data
+    ComplexFix16* mtx_fix_data[numinits];
+
+    //assert(mtxfix[i].stride == mtxfix[i].cols);
+    for (size_t i = 0; i < numinits; i++) {
+        mtx_fix_data[i] = mtxfix[i].get_data();
+    }
+
+    if (totalPerms == 1) {
+        matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(matrix_init, &input_state, &output_state );
+        GlynnPermanentCalculator_DFE(modifiedInterferometerMatrix, perm, useDual, useFloat);
+        unlock_lib();
+        return perm;
+    }
+
+    if (useFloat) {
+        calcPermanentGlynnDFEF( (const ComplexFix16**)mtx_fix_data, renormalize_data_all.get_data(), onerows, photons, totalPerms, perms.data());
+    }
+    else {
+tbb::tick_count t0 = tbb::tick_count::now();            
+        calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data_all.get_data(), onerows, photons, totalPerms, perms.data());    
+tbb::tick_count t1 = tbb::tick_count::now();
+t_DFE += (t1-t0).seconds();                                       
+    }
+
+    Complex32 res_tmp(0.0,0.0);
+    for (size_t i = 0; i < perms.size(); i++) {
+        if (i & 1) {
+            res_tmp -= ToComplex32(perms[i]) * (long double)mplicity[i]; 
+        }
+        else {
+            res_tmp += ToComplex32(perms[i]) * (long double)mplicity[i];
+        }
+    }
+    perm = ToComplex16(res_tmp / (long double)(1ULL << mulsum)); //2**mulsum is the effective number of permanents or sum of all multiplicities
+    unlock_lib();
+
+tbb::tick_count t1_tot = tbb::tick_count::now();
+//t_DFE_tot += (t1_tot-t0_tot).seconds();
+//std::cout << "clean DFE time: " << t_DFE << ", tot DFE time:" << t_DFE_tot << std::endl; 
+
+    return perm;
+
+
+}
+
+
+
+/**
 @brief ???????
 */
 void
@@ -359,22 +663,12 @@ tbb::tick_count t0_tot = tbb::tick_count::now();
     lock_lib();
     int useFloat = 0;
     if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
-    else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);    
-
-    bool doCPU = false;
-    const size_t numinits = 4;
-    matrix_base<ComplexFix16> mtxfix[numinits] = {};
-    matrix_base<long double> renormalize_data_all;
-    uint8_t onerows = 0;
-    size_t photons = 0;
-    uint64_t totalPerms = 0;
-    std::vector<uint64_t> mplicity;
-    uint8_t mulsum = 0;
-
-    prepareDataForRepeatedMulti_DFE(matrix_init, input_state, output_state, useFloat, &mtxfix[0], renormalize_data_all, mplicity, onerows, photons, totalPerms, mulsum, doCPU);
-
-    GlynnPermanentCalculatorRepeatedMulti_DFE(matrix_init, input_state, output_state, useFloat, mtxfix, renormalize_data_all, mplicity, onerows, photons, totalPerms, mulsum, doCPU, useDual, perm);
-
+    else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);  
+    
+    cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(matrix_init, input_state, output_state, useDual );
+    DFEcalculator.prepareDataForRepeatedMulti_DFE();
+    perm = DFEcalculator.calculate();
+    
     unlock_lib();
     return;
 
