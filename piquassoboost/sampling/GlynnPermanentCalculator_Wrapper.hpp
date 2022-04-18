@@ -178,16 +178,22 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
     }
     
     // create instance of class GlynnPermanentCalculator
-    if (self->lib == GlynnCPP) self->calculator.cpu_long_double = create_GlynnPermanentCalculator();
+    if (self->lib == GlynnCPP) {
+        self->calculator.cpu_long_double = create_GlynnPermanentCalculator();
+    }
 #ifdef __MPFR__    
-    else if (self->lib == GlynnInf) self->calculator.cpu_inf = new pic::GlynnPermanentCalculatorInf();
+    else if (self->lib == GlynnInf) {
+        self->calculator.cpu_inf = new pic::GlynnPermanentCalculatorInf();
+    }
 #endif
 #ifdef __DFE__
-    else if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF)
+    else if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF) {
         inc_dfe_lib_count();
+    }
 #endif
-    else
-        PyErr_SetString(PyExc_Exception, "Wrong value set for lib.");
+    else {
+        PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
+    }
 
 
     return 0;
