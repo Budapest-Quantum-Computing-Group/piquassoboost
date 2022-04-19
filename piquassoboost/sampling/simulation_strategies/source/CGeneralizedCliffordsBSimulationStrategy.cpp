@@ -115,7 +115,7 @@ void
 CGeneralizedCliffordsBSimulationStrategy::Update_interferometer_matrix( matrix &interferometer_matrix_in ) {
 
     interferometer_matrix = interferometer_matrix_in;
-    perm_accumulator = BatchednPermanentCalculator( interferometer_matrix );
+    //perm_accumulator = BatchednPermanentCalculator( interferometer_matrix );
 
 }
 
@@ -211,12 +211,14 @@ tbb::tick_count t0cpu = tbb::tick_count::now();
             fill_r_sample( sample );
 
             samples.push_back( sample );
+/*
 sample.print_matrix();
 tbb::tick_count t1cpu = tbb::tick_count::now();
 t_CPU += (t1cpu-t0cpu).seconds();            
 std::cout << "DFE time: " << t_DFE << ", cpu permanent: " << t_CPU_permanent << std::endl;
 std::cout << "DFE_pure time: " << t_DFE_pure << std::endl;
 std::cout << "total sampling time: " << t_CPU << std::endl;
+*/
         }
 
 
@@ -387,6 +389,9 @@ t_DFE += (t1-t0).seconds();
     cGlynnPermanentCalculatorRepeatedMulti_DFE* DFEcalculator = NULL;
     size_t DFEcalculator_idx = 0;
 
+//sample.print_matrix();
+//current_input.print_matrix();
+
     for (size_t idx=0; idx<current_input.size(); idx++) {
         //GlynnPermanentCalculator permanentCalculator;  
         GlynnPermanentCalculatorRepeated permanentCalculator;  
@@ -418,6 +423,7 @@ t_DFE += (t1-t0).seconds();
            else { 
 tbb::tick_count t0 = tbb::tick_count::now();
 //std::cout << "DFE!!!!!!!!!!!!!!!!!!!!! " << nonzero_output_elements << " " << sample.number_of_photons << std::endl;
+
                 int useDual = 0;
                 lock_lib();
                 init_dfe_lib(DFE_MAIN, useDual);
@@ -434,9 +440,10 @@ tbb::tick_count t0 = tbb::tick_count::now();
                 },
                 [&]{      
                 tbb::tick_count t0 = tbb::tick_count::now();          
-                    if ( DFEcalculator != NULL ) {                    
+                    if ( DFEcalculator != NULL ) {
+//std::cout << "total sub-permanents: " << DFEcalculator->totalPerms << std::endl;                                        
                         permanent_addends[DFEcalculator_idx] = DFEcalculator->calculate();
-//std::cout << "total sub-permanents: " << DFEcalculator->totalPerms << std::endl;
+//std::cout << "calculated" << std::endl;                          
                         //std::cout << "iiiiiiiii " << permanent_addends_tmp[DFEcalculator_idx] << std::endl;
                         delete( DFEcalculator );
                         DFEcalculator = NULL;
@@ -475,8 +482,10 @@ t_DFE += (t1-t0).seconds();
 
 #ifdef __DFE__
     if ( DFEcalculator != NULL ) {  
-tbb::tick_count t0 = tbb::tick_count::now();    
+tbb::tick_count t0 = tbb::tick_count::now(); 
+//std::cout << "total sub-permanents: " << DFEcalculator->totalPerms << std::endl;   
         permanent_addends[DFEcalculator_idx] = DFEcalculator->calculate();
+//std::cout << "calculated" << std::endl;        
         //delete( DFEcalculator );
         DFEcalculator  = NULL;
 tbb::tick_count t1 = tbb::tick_count::now();
@@ -495,7 +504,7 @@ t_DFE_pure += (t1-t0).seconds();
 
 #endif      
 
-
+//std::cout << "iteration done" << std::endl;
 
    
 
@@ -589,142 +598,6 @@ working_input_state_reduced.print_matrix();
 
 
 /**
-@brief Call to calculate a new layer of probabilities of the possible output states
-@param sample A preallocated PicState_int64 for one output
-@param possible_outputs A preallocated vector of possible output states
-*/
-/*
-void
-CGeneralizedCliffordsBSimulationStrategy::calculate_new_layer_of_pmfs( PicState_int64& sample, PicStates &possible_outputs ) {
-
-    int64_t number_of_particle_to_sample = sample.number_of_photons + 1;
-    concurrent_PicStates &possible_input_states = labeled_states[number_of_particle_to_sample];
-
-    // parallel loop to calculate the weights from possible input states and their weight
-    matrix_base<double> multinomial_coefficients = matrix_base<double>(1,possible_input_states.size());
-    tbb::combinable<double> wieght_norm{0.0};
-
-    tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_input_states.size()), [&](tbb::blocked_range<size_t> r ) {
-        // thread local storage for weight_norm
-        double &wieght_norm_priv = wieght_norm.local();
-
-        // calculate the representation of the input states and their weights
-        calculate_weights( r, input_state, input_state_inidices, possible_input_states, multinomial_coefficients, wieght_norm_priv );
-    }); // parallel for
-
-    // normalize the calculated weights
-    double weight_norm_total=0;
-    wieght_norm.combine_each([&](double a) {  // combine thread local data into a total one
-        weight_norm_total = weight_norm_total + a;
-    });
-
-    weight_norm_total = sqrt(weight_norm_total);
-    for (size_t idx=0; idx<multinomial_coefficients.size(); idx++ ) {
-        multinomial_coefficients[idx] = multinomial_coefficients[idx]/weight_norm_total;
-    }
-
-    // container to store the new layer of output probabilities
-    matrix_base<double> pmf(1, possible_outputs.size());
-    memset( pmf.get_data(), 0.0, pmf.size()*sizeof(double) );
-
-    // Generate output states
-    generate_output_states( sample, possible_outputs );
-
-    // normalize the probabilities:
-    double probability_sum_total = 0;
-
-    // clear the permanent accumulator
-    perm_accumulator.clear();
-    perm_accumulator.reserve_space( possible_outputs.size() * possible_input_states.size());
-
-
-tbb::tick_count t0cpu = tbb::tick_count::now();
-    // Accumulate matrices and other metada for which output probabilites are then calculated
-    //for ( int idx=0; idx<possible_outputs.size(); idx++) {
-    tbb::parallel_for( (size_t)0, possible_outputs.size(), (size_t)1, [&](size_t idx ) {
-
-        size_t index_offset = idx*possible_input_states.size();
-
-        // calculate the individual probabilities
-        //for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
-        tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_input_states.size()), [&](tbb::blocked_range<size_t> r ) {
-            for( size_t jdx=r.begin(); jdx!=r.end(); jdx++) {
-         
-                // accumulate input/output states for permanent calculations
-                perm_accumulator.add(&possible_input_states[jdx], &possible_outputs[idx], index_offset+jdx);
-
-            }
-
-        });
-
-    });
-tbb::tick_count t1cpu = tbb::tick_count::now();
-t_CPU += (t1cpu-t0cpu).seconds();
-
-tbb::tick_count t0 = tbb::tick_count::now();
-    // calculate the permanents
-    matrix&& permanents = perm_accumulator.calculate(lib);
-tbb::tick_count t1 = tbb::tick_count::now();
-t_perm_accumulator += (t1-t0).seconds();
-
-t0cpu = tbb::tick_count::now();
-    // calculate the individual probabilities associated with the output states
-    tbb::parallel_for( (size_t)0, possible_outputs.size(), (size_t)1, [&](size_t idx ) {
-
-        pmf[idx] = 0;
-
-        size_t offset = idx*possible_input_states.size();
-
-        // calculate the individual probabilities
-
-        tbb::combinable<double> pmf_addend{[](){return 0.0;}};
-
-        //for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
-        tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_input_states.size()), [&](tbb::blocked_range<size_t> r ) {
-            for( size_t jdx=r.begin(); jdx!=r.end(); jdx++) {
-
-
-                //double probability_tmp = calculate_outputs_probability(interferometer_matrix, possible_input_states[jdx], possible_outputs[idx], lib);
-                //probability_tmp = probability_tmp*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
-
-                double probability = calculate_outputs_probability(permanents[offset+jdx], possible_input_states[jdx], possible_outputs[idx]);
-                probability = probability*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
-
-                // thread local probability
-                double& pmf_priv = pmf_addend.local();
-
-                pmf_priv = pmf_priv + probability;
-//std::cout << "probabilities: " << probability << " " << probability_tmp << " " << permanents[offset] << std::endl;
-
-
-            }
-
-        });
-
-        pmf_addend.combine_each([&](double &a) {
-             pmf[idx] = pmf[idx] + a;
-        });
-
-        probability_sum_total = probability_sum_total + pmf[idx];           
-
-
-    });
-    
-
-    for (size_t idx=0;idx<pmf.size(); idx++) {
-        pmf[idx] = pmf[idx]/probability_sum_total;
-    }
-
-    // store the calculated probability layer
-    PicState_int64 key = sample.copy();
-    pmfs[key] = pmf;
-t1cpu = tbb::tick_count::now();
-t_CPU += (t1cpu-t0cpu).seconds();
-
-}
-*/
-
-/**
 @brief Call to pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs.
 @param sample The current sample represanted by a PicState_int64 class that would be replaced by the new sample.
 */
@@ -781,77 +654,6 @@ particles_state.print_matrix();
 */
     return particles_state;
 }
-
-
-/**
-@brief Call to determine the output probability of associated with the input and output states ---- OBSOLETE, will be deleted
-@param interferometer_mtx The matrix of the interferometer.
-@param input_state The input state.
-@param output_state The output state.
-*/
-double
-calculate_outputs_probability( matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state, int lib ) {
-
-
-    Complex16 permanent;
-
-    matrix modifiedInterferometerMatrix = adaptInterferometer( interferometer_mtx, input_state, output_state );
-
-    std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
-        return elem > 0;
-    };
-
-    PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
-    PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
-    
-        
-    GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
-    permanent = permanentCalculatorRecursive.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state );
-
-    double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag();
-    // squared magnitude norm(a+ib) = a^2 + b^2 !!!
-
-    int64_t photon_num = 0;
-    for (size_t idx=0; idx<input_state.size(); idx++) {
-        photon_num = photon_num + input_state[idx];
-    }
-    probability = probability/factorial( photon_num );
-
-
-    for (size_t idx=0; idx<input_state.size(); idx++) {
-        probability = probability/factorial( input_state[idx] );
-    }
-
-    return probability;
-}
-
-
-
-/**
-@brief Call to determine the output probability of associated with the input and output states
-@param permanent The previously calculated permanent
-@param input_state The input state.
-@param output_state The output state.
-*/
-double
-calculate_outputs_probability( Complex16& permanent, PicState_int64 &input_state, PicState_int64 &output_state ) {
-
-
-
-    double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag();
-        // squared magnitude norm(a+ib) = a^2 + b^2 !!!
-
-    int64_t photon_num = sum(input_state);
-    probability = probability/factorial( photon_num );
-
-
-    for (size_t idx=0; idx<input_state.size(); idx++) {
-        probability = probability/factorial( input_state[idx] );
-    }
-
-    return probability;
-}
-
 
 
 
