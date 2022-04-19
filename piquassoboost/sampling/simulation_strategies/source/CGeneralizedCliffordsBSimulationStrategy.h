@@ -63,7 +63,7 @@ protected:
     
 
     /// class to accumulate more matrices and calculate the permanents for them in one shot. (Developed for DFE usage)
-    BatchednPermanentCalculator perm_accumulator;
+    //BatchednPermanentCalculator perm_accumulator;
 
 
 
