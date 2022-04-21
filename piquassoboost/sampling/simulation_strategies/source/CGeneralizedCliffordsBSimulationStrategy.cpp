@@ -18,9 +18,9 @@
 #include "CGeneralizedCliffordsBSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculator.h"
-#include "GlynnPermanentCalculatorDFE.h"
 #include "GlynnPermanentCalculatorRepeated.h"
 #ifdef __DFE__
+#include "GlynnPermanentCalculatorDFE.h"
 #include "GlynnPermanentCalculatorRepeatedDFE.h"
 #endif
 #include "CChinHuhPermanentCalculator.h"
@@ -147,6 +147,12 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
         // calculate the first iteration of the sampling process
         PicState_int64 sample(input_state_in.cols, 0);
         sample.number_of_photons = 0;
+
+        current_input = PicState_int64(sample.size(), 0);
+        current_input.number_of_photons = 0;
+
+        working_input_state = particle_input_state.copy();
+
         fill_r_sample( sample );
         
         
@@ -159,6 +165,12 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
                 [&]{
                     sample_new = PicState_int64(input_state_in.cols, 0);
                     sample_new.number_of_photons = 0;
+
+                    current_input = PicState_int64(sample.size(), 0);
+                    current_input.number_of_photons = 0;
+
+                    working_input_state = particle_input_state.copy();
+
                     fill_r_sample( sample_new );
                 },
                 [&]{
@@ -199,7 +211,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 
         // calculate the individual outputs for the shots
         for (int idx=0; idx<samples_number; idx++) {
-tbb::tick_count t0cpu = tbb::tick_count::now();
+//tbb::tick_count t0cpu = tbb::tick_count::now();
             PicState_int64 sample(input_state_in.cols, 0);
             sample.number_of_photons = 0;
 
@@ -283,38 +295,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 
     // total sum of probabilities
     double probability_sum = 0.0;
-/*
-interferometer_matrix.print_matrix();
-sample.print_matrix();
-current_input.print_matrix();
-*/
-/*
-    std::vector<PicState_int64> input_states;
-    input_states.reserve(current_input.size());
 
-
-
-    // clear the permanent accumulator
-    perm_accumulator.clear();
-    perm_accumulator.reserve_space( current_input.size());
-
-    
-
-    tbb::parallel_for( tbb::blocked_range<size_t>( 0, current_input.size()), [&](tbb::blocked_range<size_t> r ) {
-        for( size_t jdx=r.begin(); jdx!=r.end(); jdx++) {
-
-            // add a photon to the current output state
-            PicState_int64&& input_state_loc = current_input.copy();
-            if (input_state_loc[idx]>0) {
-                input_state_loc[idx]--;
-         
-                // accumulate input/output states for permanent calculations
-                perm_accumulator.add(&input_state_loc, &sample, index_offset+jdx);
-
-        }
-
-    });
-*/
 
     std::vector<matrix> matrices;
     matrices.reserve( current_input.size() );
@@ -343,51 +324,11 @@ current_input.print_matrix();
             nonzero_output_elements++;
         }
     }
-/*
-    // clear the permanent accumulator
-    perm_accumulator.clear();
-    perm_accumulator.reserve_space( nonzero_input_elements );
 
-    // local conatiner to holding the accumulated input states
-    std::vector<PicState_int64> accumulated_input_states;
-    accumulated_input_states.resize(nonzero_input_elements);
-
-    for ( size_t idx=0; idx<nonzero_indices.size(); idx++ ) {
-
-        // remove a photon from the current input state
-        PicState_int64&& input_state_loc = current_input.copy();
-        input_state_loc[nonzero_indices[idx]]--;
-        input_state_loc.number_of_photons--;
-
-        accumulated_input_states[idx] = input_state_loc;
-
-        // accumulate input/output states for permanent calculations
-        perm_accumulator.add(&accumulated_input_states[idx], &sample, idx);
-
-    }
-
-tbb::tick_count t0 = tbb::tick_count::now();  
-std::cout << nonzero_output_elements << " " << sample.number_of_photons << std::endl;
-    // calculate the permanents
-    if (nonzero_output_elements < 15) {
-        lib = GlynnRep;
-    }
-    else {
-        lib = GlynnRepMultiSingleDFE;
-std::cout << "DFE!!!!!!!!!!!!!!!!!!!!! " << nonzero_output_elements << std::endl;
-    }
-    matrix&& permanents_tmp = perm_accumulator.calculate(lib);
-
-    // fill out nonzero elements in permanent addends for Laplace decomposition
-    for (size_t idx=0; idx<nonzero_indices.size(); idx++ ) {
-        permanent_addends[nonzero_indices[idx]] = permanents_tmp[idx];
-    }
-tbb::tick_count t1 = tbb::tick_count::now();
-t_DFE += (t1-t0).seconds();
-*/
-
+#ifdef __DFE__
     cGlynnPermanentCalculatorRepeatedMulti_DFE* DFEcalculator = NULL;
     size_t DFEcalculator_idx = 0;
+#endif
 
 //sample.print_matrix();
 //current_input.print_matrix();
@@ -395,9 +336,11 @@ t_DFE += (t1-t0).seconds();
     for (size_t idx=0; idx<current_input.size(); idx++) {
         //GlynnPermanentCalculator permanentCalculator;  
         GlynnPermanentCalculatorRepeated permanentCalculator;  
-        
+
+#ifdef __DFE__        
         cGlynnPermanentCalculatorRepeatedMulti_DFE* DFEcalculator_new = NULL;
         size_t DFEcalculator_idx_new = 0;
+#endif
 
  
         // add a photon to the current output state
@@ -439,7 +382,7 @@ tbb::tick_count t0 = tbb::tick_count::now();
                     DFEcalculator_idx_new = idx;
                 },
                 [&]{      
-                tbb::tick_count t0 = tbb::tick_count::now();          
+                //tbb::tick_count t0 = tbb::tick_count::now();          
                     if ( DFEcalculator != NULL ) {
 //std::cout << "total sub-permanents: " << DFEcalculator->totalPerms << std::endl;                                        
                         permanent_addends[DFEcalculator_idx] = DFEcalculator->calculate();
@@ -448,16 +391,16 @@ tbb::tick_count t0 = tbb::tick_count::now();
                         delete( DFEcalculator );
                         DFEcalculator = NULL;
                     }
-                tbb::tick_count t1 = tbb::tick_count::now();
-                t_DFE_pure += (t1-t0).seconds();                     
+                //tbb::tick_count t1 = tbb::tick_count::now();
+                //t_DFE_pure += (t1-t0).seconds();                     
                 });
                 
                 DFEcalculator = DFEcalculator_new;
                 DFEcalculator_idx = DFEcalculator_idx_new;
                 unlock_lib();
                               
-tbb::tick_count t1 = tbb::tick_count::now();
-t_DFE += (t1-t0).seconds(); 
+//tbb::tick_count t1 = tbb::tick_count::now();
+//t_DFE += (t1-t0).seconds(); 
        
 
 //tbb::tick_count t0cpu = tbb::tick_count::now();
@@ -482,17 +425,17 @@ t_DFE += (t1-t0).seconds();
 
 #ifdef __DFE__
     if ( DFEcalculator != NULL ) {  
-tbb::tick_count t0 = tbb::tick_count::now(); 
+//tbb::tick_count t0 = tbb::tick_count::now(); 
 //std::cout << "total sub-permanents: " << DFEcalculator->totalPerms << std::endl;   
         permanent_addends[DFEcalculator_idx] = DFEcalculator->calculate();
 //std::cout << "calculated" << std::endl;        
         //delete( DFEcalculator );
         DFEcalculator  = NULL;
-tbb::tick_count t1 = tbb::tick_count::now();
+//tbb::tick_count t1 = tbb::tick_count::now();
 
 
-t_DFE += (t1-t0).seconds();         
-t_DFE_pure += (t1-t0).seconds();  
+//t_DFE += (t1-t0).seconds();         
+//t_DFE_pure += (t1-t0).seconds();  
       
         //for (size_t idx=0; idx<current_input.size(); idx++) {
         //    if ( std::norm( permanent_addends[idx] - permanent_addends_tmp[idx] ) > 1e-3 ) {
@@ -530,11 +473,7 @@ t_DFE_pure += (t1-t0).seconds();
        
         Complex16 permanent = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
 */
-/*
-modifiedInterferometerMatrix.print_matrix();
-std::cout << permanent_b << " "  << permanent << std::endl;
-if ( std::norm( permanent-permanent_b)> 1e-3 ) abort();
-*/
+
 
         pmf[mdx] = permanent.real()*permanent.real() + permanent.imag()*permanent.imag();
         probability_sum += pmf[mdx];
@@ -577,21 +516,12 @@ CGeneralizedCliffordsBSimulationStrategy::update_current_input() {
     if ( rand_index < working_input_state.size()-1 ) {
         memcpy( working_input_state_reduced.get_data()+rand_index, working_input_state.get_data()+rand_index+1, (working_input_state.size()-rand_index-1)*sizeof(int64_t) );
     }
-/*
-std::cout << rand_index << std::endl;
-working_input_state.print_matrix();
-working_input_state_reduced.print_matrix();
-*/
+
     // replace the working input state with the reduced one  
     working_input_state = working_input_state_reduced;
     
 
-    
-
-/*9
-    current_input[self._working_input_state.pop(
-            randint(0, len(self._working_input_state)))] += 1
-*/
+   
 }
 
 
@@ -648,10 +578,6 @@ PicState_int64 modes_state_to_particle_state( const PicState_int64& mode_state )
         }
     }
 
-/*
-mode_state.print_matrix();
-particles_state.print_matrix();
-*/
     return particles_state;
 }
 

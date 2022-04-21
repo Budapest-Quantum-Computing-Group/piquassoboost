@@ -22,7 +22,9 @@
 #include "CGeneralizedCliffordsBSimulationStrategy.h"
 #include "tbb/scalable_allocator.h"
 #include "numpy_interface.h"
+#ifdef _DFE_
 #include "GlynnPermanentCalculatorDFE.h"
+#endif
 
 
 /**
@@ -83,8 +85,11 @@ GeneralizedCliffordsSimulationStrategy_wrapper_dealloc(GeneralizedCliffordsSimul
     // deallocate the instance of class N_Qubit_Decomposition
     release_ChinHuhPermanentCalculator( self->simulation_strategy );
 
+#ifdef _DFE_
     if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
         dec_dfe_lib_count();
+#endif
+
     // release numpy arrays
     if (self->interferometer_matrix != NULL)
         Py_DECREF(self->interferometer_matrix);
@@ -164,8 +169,10 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
         self->simulation_strategy->seed(seed_C);
     }
 
+#ifdef _DFE_
     if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
         inc_dfe_lib_count();
+#endif
     
 
     return 0;
@@ -225,7 +232,13 @@ GeneralizedCliffordsSimulationStrategy_wrapper_simulate(GeneralizedCliffordsSimu
 
     
     // call the C++ variant of the sampling method
-    std::vector<pic::PicState_int64> samples = self->simulation_strategy->simulate(input_state_mtx, sample_num);
+    std::vector<pic::PicState_int64> samples;
+    try {
+        samples = self->simulation_strategy->simulate(input_state_mtx, sample_num);
+    }
+    catch (std::string err) {
+        PyErr_SetString(PyExc_Exception, err.c_str());
+    }
 
 
     // preallocate Python list to hold the calculated samples
