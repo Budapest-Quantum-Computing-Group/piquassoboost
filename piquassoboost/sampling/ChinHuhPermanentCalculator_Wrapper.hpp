@@ -204,6 +204,7 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
 #endif
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
+        return -1;
     }
 
     return 0;
@@ -243,6 +244,7 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
 #endif
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
+        return NULL;
     }
 
 

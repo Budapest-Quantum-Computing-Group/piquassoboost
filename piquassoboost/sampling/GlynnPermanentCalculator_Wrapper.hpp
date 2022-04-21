@@ -193,6 +193,7 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
 #endif
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
+        return -1;
     }
 
 
@@ -212,6 +213,7 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
 {
 
     if (PyList_Check(self->matrix)) {
+        // convert list of input numpy arrays into a vector of matices
         Py_ssize_t sz = PyList_Size(self->matrix);
         std::vector<pic::matrix> matrices;
         matrices.reserve(sz);
@@ -225,7 +227,10 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
             PyList_SetItem(self->matrix, i, o);
             matrices.push_back(numpy2matrix(o));
         }
+ 
+        // allocate space for the resulted permanents
         pic::matrix ret(1, sz);
+
 #ifdef __DFE__        
         if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF)
             GlynnPermanentCalculatorBatch_DFE( matrices, ret, self->lib == GlynnDualDFE || self->lib == GlynnDualDFEF, self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF);
@@ -233,9 +238,19 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
 #endif
         {
             for (size_t i = 0; i < matrices.size(); i++) {
-                if (self->lib == GlynnCPP) ret[i] = self->calculator.cpu_long_double->calculate(matrices[i]);
+                if (self->lib == GlynnCPP) {
+                    try {
+                        ret[i] = self->calculator.cpu_long_double->calculate(matrices[i]);
+                    }
+                    catch (std::string err) {
+                        PyErr_SetString(PyExc_Exception, err.c_str());
+                        return NULL;        
+                    }
+                }
 #ifdef __MPFR__
-                else if (self->lib == GlynnInf) ret[i] = self->calculator.cpu_inf->calculate(matrices[i]);
+                else if (self->lib == GlynnInf) {
+                    ret[i] = self->calculator.cpu_inf->calculate(matrices[i]);
+                }
 #endif
             }
         }    
@@ -247,7 +262,11 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
             Py_DECREF(o);
         }
         return list;
-    } else {
+
+
+    } 
+    else {
+
         // create PIC version of the input matrices
         pic::matrix matrix_mtx = numpy2matrix(self->matrix);
     
@@ -255,14 +274,24 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
     
         pic::Complex16 ret;
 
+        if (self->lib == GlynnCPP) {
+            try {
+                ret = self->calculator.cpu_long_double->calculate(matrix_mtx);
+            }
+            catch (std::string err) {
+                PyErr_SetString(PyExc_Exception, err.c_str());
+                return NULL;         
+            }
+        }
 #ifdef __DFE__        
-        if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF)
+        else if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF) {
             GlynnPermanentCalculator_DFE( matrix_mtx, ret, self->lib == GlynnDualDFE || self->lib == GlynnDualDFEF, self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF);
-        else
+        }
 #endif
-        if (self->lib == GlynnCPP) ret = self->calculator.cpu_long_double->calculate(matrix_mtx);
 #ifdef __MPFR__
-        else if (self->lib == GlynnInf) ret = self->calculator.cpu_inf->calculate(matrix_mtx);
+        else if (self->lib == GlynnInf) {
+            ret = self->calculator.cpu_inf->calculate(matrix_mtx);
+        }
 #endif
     
         return Py_BuildValue("D", &ret);
