@@ -15,6 +15,8 @@
 
 import numpy as np
 
+from functools import partial
+
 from theboss.boson_sampling_utilities.boson_sampling_utilities import (
     prepare_interferometer_matrix_in_expanded_space
 )
@@ -33,7 +35,7 @@ from piquasso.api.result import Result
 
 
 
-def sampling(state, instruction, shots) -> Result:
+def _sampling(state, instruction, shots, strategy_class) -> Result:
     """Simulates a boson sampling using generalized Clifford&Clifford algorithm
     from [Brod, Oszmaniec 2020].
 
@@ -60,7 +62,7 @@ def sampling(state, instruction, shots) -> Result:
         for _ in initial_state:
             initial_state = np.append(initial_state, 0)
 
-    simulation_strategy = GeneralizedCliffordsSimulationStrategy(
+    simulation_strategy = strategy_class(
         interferometer, state._config.seed_sequence
     )
     sampling_simulator = BosonSamplingSimulator(simulation_strategy)
@@ -77,3 +79,12 @@ def sampling(state, instruction, shots) -> Result:
         samples = trimmed_samples  # We want to return trimmed samples.
 
     return Result(state=state, samples=samples)
+
+
+sampling = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategy)
+
+sampling_chinhuh = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh)
+sampling_single_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE)
+sampling_dual_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE)
+sampling_multi_single_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE)
+sampling_multi_dual_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE)
