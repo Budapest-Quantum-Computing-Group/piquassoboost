@@ -67,7 +67,7 @@ with pq.Program() as program:
     pq.Q() | pq.StateVector(input_state)
     pq.Q() | pq.Interferometer(U)
 
-    pq.Q() | pq.Sampling()
+    pq.Q() | pq.ParticleNumberMeasurement()
 
 simulator = pqb.BoostedSamplingSimulator(d=dim)
 

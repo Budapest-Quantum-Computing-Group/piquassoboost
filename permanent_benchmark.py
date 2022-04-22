@@ -23,7 +23,7 @@ def generate_random_unitary( dim ):
 
                 pq.Q(*modes) | pq.Beamsplitter(theta=theta, phi=phi)
 
-        pq.Q() | pq.Sampling()
+        pq.Q() | pq.ParticleNumberMeasurement()
 
     state = pq.SamplingState(1, 1, 1, 1, 0, 0)
     state.apply(program, shots=1)
