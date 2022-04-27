@@ -22,6 +22,7 @@ from theboss.boson_sampling_utilities.boson_sampling_utilities import (
 )
 from .BosonSamplingSimulator import BosonSamplingSimulator
 from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
+    GeneralizedCliffordsBSimulationStrategy,
     GeneralizedCliffordsSimulationStrategy,
     GeneralizedCliffordsSimulationStrategyChinHuh,
     GeneralizedCliffordsSimulationStrategyChinHuh,
@@ -81,10 +82,11 @@ def _sampling(state, instruction, shots, strategy_class) -> Result:
     return Result(state=state, samples=samples)
 
 
-sampling = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategy)
+sampling = partial(_sampling, strategy_class=GeneralizedCliffordsBSimulationStrategy)
 
-sampling_chinhuh = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh)
-sampling_single_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE)
-sampling_dual_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE)
-sampling_multi_single_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE)
-sampling_multi_dual_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE)
+sampling_GeneralizedCliffords = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategy)
+sampling_GeneralizedCliffords_chinhuh = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh)
+sampling_GeneralizedCliffords_single_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE)
+sampling_GeneralizedCliffords_dual_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE)
+sampling_GeneralizedCliffords_multi_single_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE)
+sampling_GeneralizedCliffords_multi_dual_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE)
