@@ -20,8 +20,10 @@ from functools import partial
 from theboss.boson_sampling_utilities.boson_sampling_utilities import (
     prepare_interferometer_matrix_in_expanded_space
 )
+
 from .BosonSamplingSimulator import BosonSamplingSimulator
 from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
+    GeneralizedCliffordsBSimulationStrategy,
     GeneralizedCliffordsSimulationStrategy,
     GeneralizedCliffordsSimulationStrategyChinHuh,
     GeneralizedCliffordsSimulationStrategyChinHuh,
@@ -81,28 +83,11 @@ def _particle_number_measurement(state, instruction, shots, strategy_class) -> R
     return Result(state=state, samples=samples)
 
 
-particle_number_measurement = partial(
-    _particle_number_measurement,
-    strategy_class=GeneralizedCliffordsSimulationStrategy
-)
+particle_number_measurement = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsBSimulationStrategy)
 
-particle_number_measurement_chinhuh = partial(
-    _particle_number_measurement,
-    strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh
-)
-particle_number_measurement_single_dfe = partial(
-    _particle_number_measurement,
-    strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE
-)
-particle_number_measurement_dual_dfe = partial(
-    _particle_number_measurement,
-    strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE
-)
-particle_number_measurement_multi_single_dfe = partial(
-    _particle_number_measurement,
-    strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE
-)
-particle_number_measurement_multi_dual_dfe = partial(
-    _particle_number_measurement,
-    strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE
-)
+particle_number_measurement_GeneralizedCliffords = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategy)
+particle_number_measurement_GeneralizedCliffords_chinhuh = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh)
+particle_number_measurement_GeneralizedCliffords_single_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE)
+particle_number_measurement_GeneralizedCliffords_dual_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE)
+particle_number_measurement_GeneralizedCliffords_multi_single_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE)
+particle_number_measurement_GeneralizedCliffords_multi_dual_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE)

@@ -19,7 +19,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "structmember.h"
-#include "CGeneralizedCliffordsBSimulationStrategy.h"
+#include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "tbb/scalable_allocator.h"
 #include "numpy_interface.h"
 #ifdef _DFE_
@@ -35,8 +35,8 @@ typedef struct GeneralizedCliffordsSimulationStrategy_wrapper {
     int lib;
     /// pointer to numpy matrix to keep it alive
     PyObject *interferometer_matrix = NULL;
-    /// The C++ variant of class CGeneralizedCliffordsBSimulationStrategy
-    pic::CGeneralizedCliffordsBSimulationStrategy* simulation_strategy = NULL;
+    /// The C++ variant of class CGeneralizedCliffordsSimulationStrategy
+    pic::CGeneralizedCliffordsSimulationStrategy* simulation_strategy = NULL;
 
 } GeneralizedCliffordsSimulationStrategy_wrapper;
 
@@ -46,10 +46,10 @@ typedef struct GeneralizedCliffordsSimulationStrategy_wrapper {
 @param interferometer_matrix
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
-pic::CGeneralizedCliffordsBSimulationStrategy*
+pic::CGeneralizedCliffordsSimulationStrategy*
 cerate_ChinHuhPermanentCalculator( pic::matrix &interferometer_matrix_mtx, int lib ) {
 
-    return new pic::CGeneralizedCliffordsBSimulationStrategy(interferometer_matrix_mtx, lib);
+    return new pic::CGeneralizedCliffordsSimulationStrategy(interferometer_matrix_mtx, lib);
 
 }
 
@@ -58,7 +58,7 @@ cerate_ChinHuhPermanentCalculator( pic::matrix &interferometer_matrix_mtx, int l
 @param ptr A pointer pointing to an instance of ChinHuhPermanentCalculator class.
 */
 void
-release_ChinHuhPermanentCalculator( pic::CGeneralizedCliffordsBSimulationStrategy*  instance ) {
+release_ChinHuhPermanentCalculator( pic::CGeneralizedCliffordsSimulationStrategy*  instance ) {
     if ( instance != NULL ) {
         delete instance;
     }
