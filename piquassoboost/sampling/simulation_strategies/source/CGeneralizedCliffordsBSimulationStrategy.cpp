@@ -234,7 +234,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
             fill_r_sample( sample );
 
             samples.push_back( sample );
-//std::cout << "sample: " << idx+1 << std::endl;
+std::cout << "sample: " << idx+1 << std::endl;
 //sample.print_matrix();
 //tbb::tick_count t1cpu = tbb::tick_count::now();
 //t_CPU += (t1cpu-t0cpu).seconds();            
