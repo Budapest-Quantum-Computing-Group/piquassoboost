@@ -135,6 +135,11 @@ CGeneralizedCliffordsBSimulationStrategy::Update_interferometer_matrix( matrix &
 std::vector<PicState_int64>
 CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_in, int samples_number ) {
 
+#ifdef __DFE__
+    lock_lib();
+    init_dfe_lib(DFE_MAIN, useDual);   
+#endif
+
     input_state = input_state_in;
     number_of_input_photons = sum(input_state);
 
@@ -245,12 +250,8 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
     }
 
 #ifdef __DFE__
-    // release the DFE
-    if ( t_DFE > 0.0 ) {
-        unlock_lib();
-        unload_dfe_lib();
-        t_DFE = 0.0;
-    }
+    unlock_lib();
+    unload_dfe_lib();    
 #endif      
 
     return samples;
@@ -265,14 +266,6 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 void
 CGeneralizedCliffordsBSimulationStrategy::fill_r_sample( PicState_int64& sample ) {
 
-
-#ifdef __DFE__ 
-    tbb::tick_count t0 = tbb::tick_count::now();
-    if ( t_DFE == 0.0 ) {       
-        lock_lib();
-        init_dfe_lib(DFE_MAIN, useDual);   
-    }
-#endif
 
 
     while (number_of_input_photons > sample.number_of_photons) {
@@ -291,17 +284,7 @@ CGeneralizedCliffordsBSimulationStrategy::fill_r_sample( PicState_int64& sample 
 
     }
 
-
-#ifdef __DFE__
-    tbb::tick_count t1 = tbb::tick_count::now();
-    t_DFE += (t1-t0).seconds();
-    // release the DFE after 600 seconds
-    if ( t_DFE > 600 ) {
-        unlock_lib();
-        unload_dfe_lib();
-        t_DFE = 0.0;
-    }
-#endif      
+     
 
 
 }
@@ -426,7 +409,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
                 
                 DFEcalculator = DFEcalculator_new;
                 DFEcalculator_idx = DFEcalculator_idx_new;
-               
+             
                               
 //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
 //t_DFE += (t1-t0).seconds(); ////////////////////////// 

@@ -316,7 +316,6 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix_base<ComplexFix16>>* mtxfix
     lock_lib();
     if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
     else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);
-    inc_dfe_lib_count();
 
     //note: stride must equal number of columns, or this will not work as the C call expects contiguous data
     ComplexFix16* mtx_fix_data[mtxfix->size()];
@@ -330,7 +329,6 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix_base<ComplexFix16>>* mtxfix
         calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data->get_data(), row_num, col_num, perm_num, perm.get_data());
 
     unlock_lib();
-    dec_dfe_lib_count();
 
 }
 
@@ -346,7 +344,6 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, matrix& perm, i
     lock_lib();
     if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
     else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);
-    inc_dfe_lib_count();
 
     if (!((!useFloat && calcPermanentGlynnDFE) || (useFloat && calcPermanentGlynnDFEF)) ||
         matrices.begin()->rows < 1+dfe_basekernpow2) { //compute with other method
@@ -380,7 +377,6 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, matrix& perm, i
 
     
     unlock_lib();
-    dec_dfe_lib_count();
     return;
 }
 
@@ -393,7 +389,6 @@ GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, i
     lock_lib();
     if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
     else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);
-    inc_dfe_lib_count();
 
     if (!((!useFloat && calcPermanentGlynnDFE) || (useFloat && calcPermanentGlynnDFEF)) ||
         matrix_mtx.rows < 1+dfe_basekernpow2 || matrix_mtx.cols == 0 || matrix_mtx.rows >= matrix_mtx.cols + 2) { //compute with other method
@@ -476,7 +471,6 @@ GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, i
         calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, 1, &perm);
 
     unlock_lib();
-    dec_dfe_lib_count();
 
     return;
 }

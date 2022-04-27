@@ -127,7 +127,9 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::cGlynnPermanentCalculatorRepeatedMul
 @brief Destructor of the class
 */
 cGlynnPermanentCalculatorRepeatedMulti_DFE::~cGlynnPermanentCalculatorRepeatedMulti_DFE() {
+
     reset();
+
 }
 
 
@@ -304,7 +306,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
     size_t batch_num = std::ceil((double)totalPerms/maxmatrices);
     size_t batch_size = std::min(maxmatrices, (size_t)totalPerms);
     size_t permBase = 0;
-    ComplexFix16* mtx_fix_data[numinits];    
+    size_t batch_idx = 0;   
     mtxfix_batches.reserve( batch_num );
     numPerms_batches.reserve( batch_num );
 
@@ -349,8 +351,6 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
             // how many permanent addends are batched
             batch_size = std::min(maxmatrices, totalPerms - permBase);
             numPerms_batches.push_back( batch_size );
-
-
 
             mtxfix_batches.push_back(mtxfix);
 
@@ -408,12 +408,12 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
     Complex16 perm(0.0,0.0);
  
 
-    const size_t numinits = 4;
 
     if (doCPU) { //compute with other method
       GlynnPermanentCalculatorRepeated gpc;
       perm = gpc.calculate(matrix_init, input_state, output_state);
       unlock_lib();
+std::cout << "rrrrrrrrrrrrrrrrr" << std::endl;
       return perm;
     }
 
@@ -433,7 +433,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
     int useFloat = 0; 
 
     //const size_t numinits = 4;
-    matrix_base<ComplexFix16> mtxfix[numinits] = {};
+    //matrix_base<ComplexFix16> mtxfix[numinits] = {};
 
     ComplexFix16* mtx_fix_data[numinits];
     size_t permBase = 0;
@@ -443,14 +443,15 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
 
     for (size_t batch_idx=0; batch_idx<mtxfix_batches.size(); batch_idx++) { 
 
-        //matrix_base<ComplexFix16>* mtxfix = mtxfix_batches[idx];
+        //matrix_base<ComplexFix16>* mtxfix = mtxfix_batches[batch_idx];
+/*
         for (size_t i = 0; i < numinits; i++) {
             mtxfix[i] = mtxfix_batches[batch_idx][i];
         }
-
-        ComplexFix16* mtx_fix_data[numinits];
+*/
+        ComplexFix16** mtx_fix_data = new ComplexFix16*[numinits];
         for (size_t i = 0; i < numinits; i++) {
-            mtx_fix_data[i] = mtxfix[i].get_data();
+            mtx_fix_data[i] = mtxfix_batches[batch_idx][i].get_data();
         }
 
         if (useFloat) {
@@ -459,6 +460,8 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
         else {
             calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data_all.get_data(), onerows, photons, numPerms_batches[batch_idx], perms.data()+permBase);
         }
+
+        delete[](mtx_fix_data);
 
         permBase += numPerms_batches[batch_idx];
 
@@ -492,21 +495,25 @@ void
 cGlynnPermanentCalculatorRepeatedMulti_DFE::reset() {
 
     
-    doCPU = false;  
+    doCPU = false;
 
     for (size_t idx=0; idx<mtxfix_batches.size(); idx++ ) {
 
         matrix_base<ComplexFix16>* mtxfix = mtxfix_batches[idx];
-        if (mtxfix != NULL) {
-            delete[](mtxfix);
+
+        for (int idx=0; idx<numinits; idx++ ) {
+            mtxfix[idx] = matrix_base<ComplexFix16>(0,0);
         }
 
     }
+
+    mtxfix_batches.clear();
 
     renormalize_data_all = matrix_base<long double>(0,0);
     onerows = 0;
     photons = 0;
     mplicity.clear();
+
     mulsum = 0;
 
 
