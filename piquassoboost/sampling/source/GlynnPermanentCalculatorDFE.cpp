@@ -346,7 +346,6 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, matrix& perm, i
     lock_lib();
     if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
     else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);
-    inc_dfe_lib_count();
 
     if (!((!useFloat && calcPermanentGlynnDFE) || (useFloat && calcPermanentGlynnDFEF)) ||
         matrices.begin()->rows < 1+dfe_basekernpow2) { //compute with other method
@@ -380,7 +379,6 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, matrix& perm, i
 
     
     unlock_lib();
-    dec_dfe_lib_count();
     return;
 }
 
@@ -393,7 +391,6 @@ GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, i
     lock_lib();
     if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
     else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);
-    inc_dfe_lib_count();
 
     if (!((!useFloat && calcPermanentGlynnDFE) || (useFloat && calcPermanentGlynnDFEF)) ||
         matrix_mtx.rows < 1+dfe_basekernpow2 || matrix_mtx.cols == 0 || matrix_mtx.rows >= matrix_mtx.cols + 2) { //compute with other method
@@ -476,7 +473,6 @@ GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, i
         calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, 1, &perm);
 
     unlock_lib();
-    dec_dfe_lib_count();
 
     return;
 }
