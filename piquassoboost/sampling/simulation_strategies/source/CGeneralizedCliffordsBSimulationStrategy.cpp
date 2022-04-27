@@ -44,6 +44,7 @@ namespace pic {
 static double t_perm_accumulator=0.0;
 static double t_DFE=0.0;
 static double t_DFE_pure=0.0;
+static double t_DFE_prepare=0.0;
 static double t_CPU_permanent;
 static double t_CPU=0.0;
 
@@ -65,6 +66,8 @@ CGeneralizedCliffordsBSimulationStrategy::CGeneralizedCliffordsBSimulationStrate
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
 #endif
+
+
 }
 
 
@@ -88,6 +91,9 @@ CGeneralizedCliffordsBSimulationStrategy::CGeneralizedCliffordsBSimulationStrate
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
 #endif
+
+
+
 }
 
 
@@ -223,22 +229,29 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
             fill_r_sample( sample );
 
             samples.push_back( sample );
-/*
-sample.print_matrix();
-tbb::tick_count t1cpu = tbb::tick_count::now();
-t_CPU += (t1cpu-t0cpu).seconds();            
-std::cout << "DFE time: " << t_DFE << ", cpu permanent: " << t_CPU_permanent << std::endl;
-std::cout << "DFE_pure time: " << t_DFE_pure << std::endl;
-std::cout << "total sampling time: " << t_CPU << std::endl;
-*/
+//std::cout << "sample: " << idx+1 << std::endl;
+//sample.print_matrix();
+//tbb::tick_count t1cpu = tbb::tick_count::now();
+//t_CPU += (t1cpu-t0cpu).seconds();            
+//std::cout << "DFE all time: " << t_DFE << ", cpu permanent: " << t_CPU_permanent << std::endl;
+//std::cout << "DFE_pure time: " << t_DFE_pure << std::endl;
+//std::cout << "DFE_prepare time: " << t_DFE_prepare << std::endl;
+//std::cout << "total sampling time: " << t_CPU << std::endl;
+
         }
 
 
 #endif
     }
 
-
-
+#ifdef __DFE__
+    // release the DFE
+    if ( t_DFE > 0.0 ) {
+        unlock_lib();
+        unload_dfe_lib();
+        t_DFE = 0.0;
+    }
+#endif      
 
     return samples;
 }
@@ -253,7 +266,13 @@ void
 CGeneralizedCliffordsBSimulationStrategy::fill_r_sample( PicState_int64& sample ) {
 
 
-
+#ifdef __DFE__ 
+    tbb::tick_count t0 = tbb::tick_count::now();
+    if ( t_DFE == 0.0 ) {       
+        lock_lib();
+        init_dfe_lib(DFE_MAIN, useDual);   
+    }
+#endif
 
 
     while (number_of_input_photons > sample.number_of_photons) {
@@ -272,6 +291,17 @@ CGeneralizedCliffordsBSimulationStrategy::fill_r_sample( PicState_int64& sample 
 
     }
 
+
+#ifdef __DFE__
+    tbb::tick_count t1 = tbb::tick_count::now();
+    t_DFE += (t1-t0).seconds();
+    // release the DFE after 600 seconds
+    if ( t_DFE > 600 ) {
+        unlock_lib();
+        unload_dfe_lib();
+        t_DFE = 0.0;
+    }
+#endif      
 
 
 }
@@ -303,10 +333,10 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
     // calculate permanents of submatrices
     matrix permanent_addends(1, current_input.size());
     memset( permanent_addends.get_data(), 0.0, permanent_addends.size() );
-/*
+
     matrix permanent_addends_tmp(1, current_input.size());
     memset( permanent_addends_tmp.get_data(), 0.0, permanent_addends_tmp.size() );
-*/
+
 //#ifdef __DFE__
 
     // determine the number of nonzero elements in the current input/output
@@ -330,8 +360,6 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
     size_t DFEcalculator_idx = 0;
 #endif
 
-//sample.print_matrix();
-//current_input.print_matrix();
 
     for (size_t idx=0; idx<current_input.size(); idx++) {
         //GlynnPermanentCalculator permanentCalculator;  
@@ -339,7 +367,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 
 #ifdef __DFE__        
         cGlynnPermanentCalculatorRepeatedMulti_DFE* DFEcalculator_new = NULL;
-        size_t DFEcalculator_idx_new = 0;
+        size_t DFEcalculator_idx_new = 0; 
 #endif
 
  
@@ -352,7 +380,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 #ifdef __DFE__
             if ( nonzero_output_elements < 13 ) {
 #endif
-
+                //tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
                 //matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, &input_state_loc, &sample );
                 //permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
                
@@ -360,56 +388,59 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
                 matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
                 PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
                 PicState_int64 adapted_output_state = sample.filter(filterNonZero);
-                permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);  
+                permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
+
+                //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
+                //t_CPU_permanent += (t1-t0).seconds();    //////////////////////////             
+
 #ifdef __DFE__
            }
            else { 
-tbb::tick_count t0 = tbb::tick_count::now();
-//std::cout << "DFE!!!!!!!!!!!!!!!!!!!!! " << nonzero_output_elements << " " << sample.number_of_photons << std::endl;
 
-                int useDual = 0;
-                lock_lib();
-                init_dfe_lib(DFE_MAIN, useDual);
+//tbb::tick_count t0 = tbb::tick_count::now();////////////////////////// 
 
                 //GlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, permanent_addends[idx], useDual);
-
-              
+                               
+             
                 tbb::parallel_invoke(
     
                 [&]{                
+                    //tbb::tick_count t0 = tbb::tick_count::now(); ////////////////////////// 
                     DFEcalculator_new = new cGlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, useDual );
                     DFEcalculator_new->prepareDataForRepeatedMulti_DFE();
                     DFEcalculator_idx_new = idx;
+                    //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
+                    //t_DFE_prepare += (t1-t0).seconds();    //////////////////////////                
                 },
                 [&]{      
-                //tbb::tick_count t0 = tbb::tick_count::now();          
-                    if ( DFEcalculator != NULL ) {
-//std::cout << "total sub-permanents: " << DFEcalculator->totalPerms << std::endl;                                        
+                    //tbb::tick_count t0 = tbb::tick_count::now(); ////////////////////////// 
+                    if ( DFEcalculator != NULL ) {                                                     
                         permanent_addends[DFEcalculator_idx] = DFEcalculator->calculate();
-//std::cout << "calculated" << std::endl;                          
-                        //std::cout << "iiiiiiiii " << permanent_addends_tmp[DFEcalculator_idx] << std::endl;
                         delete( DFEcalculator );
                         DFEcalculator = NULL;
                     }
-                //tbb::tick_count t1 = tbb::tick_count::now();
-                //t_DFE_pure += (t1-t0).seconds();                     
+                    //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
+                    //t_DFE_pure += (t1-t0).seconds();    //////////////////////////                  
                 });
+
                 
                 DFEcalculator = DFEcalculator_new;
                 DFEcalculator_idx = DFEcalculator_idx_new;
-                unlock_lib();
+               
                               
-//tbb::tick_count t1 = tbb::tick_count::now();
-//t_DFE += (t1-t0).seconds(); 
+//tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
+//t_DFE += (t1-t0).seconds(); ////////////////////////// 
        
 
-//tbb::tick_count t0cpu = tbb::tick_count::now();
-//                matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
-//                PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
-//                PicState_int64 adapted_output_state = sample.filter(filterNonZero);
-//                permanent_addends_tmp[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);  
-//tbb::tick_count t1cpu = tbb::tick_count::now();
-//t_CPU_permanent += (t1cpu-t0cpu).seconds();
+                //matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
+                //PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
+                //PicState_int64 adapted_output_state = sample.filter(filterNonZero);
+                //permanent_addends_tmp[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);  
+
+                //if ( std::norm( permanent_addends[idx] - permanent_addends_tmp[idx] ) > 1e-3 ) {
+                //    std::cout << "difference in idx=" << idx << " " << permanent_addends[idx] << " " << permanent_addends_tmp[idx] << std::endl;
+                //    abort();
+                //}  
 
            }
 #endif
@@ -425,25 +456,23 @@ tbb::tick_count t0 = tbb::tick_count::now();
 
 #ifdef __DFE__
     if ( DFEcalculator != NULL ) {  
-//tbb::tick_count t0 = tbb::tick_count::now(); 
-//std::cout << "total sub-permanents: " << DFEcalculator->totalPerms << std::endl;   
+//tbb::tick_count t0 = tbb::tick_count::now(); //////////////////////////  
         permanent_addends[DFEcalculator_idx] = DFEcalculator->calculate();
-//std::cout << "calculated" << std::endl;        
-        //delete( DFEcalculator );
+        delete( DFEcalculator );
         DFEcalculator  = NULL;
-//tbb::tick_count t1 = tbb::tick_count::now();
+//tbb::tick_count t1 = tbb::tick_count::now();   //////////////////////////       
 
 
-//t_DFE += (t1-t0).seconds();         
-//t_DFE_pure += (t1-t0).seconds();  
-      
-        //for (size_t idx=0; idx<current_input.size(); idx++) {
-        //    if ( std::norm( permanent_addends[idx] - permanent_addends_tmp[idx] ) > 1e-3 ) {
-        //         std::cout << "difference in idx=" << idx << " " << permanent_addends[idx] << " " << permanent_addends_tmp[idx] << std::endl;
-        //    }  
-        //}
+//t_DFE += (t1-t0).seconds();   //////////////////////////       
+//t_DFE_pure += (t1-t0).seconds();  //////////////////////////     
                 
     }
+
+    //for (size_t idx=0; idx<current_input.size(); idx++) {
+    //    if ( std::norm( permanent_addends[idx] - permanent_addends_tmp[idx] ) > 1e-3 ) {
+    //         std::cout << "difference in idx=" << idx << " " << permanent_addends[idx] << " " << permanent_addends_tmp[idx] << std::endl;
+    //    }  
+    //}
 
 #endif      
 

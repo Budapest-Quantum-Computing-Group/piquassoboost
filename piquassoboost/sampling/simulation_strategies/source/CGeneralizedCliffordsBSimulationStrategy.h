@@ -53,21 +53,11 @@ protected:
     PicState_int64 working_input_state;
     ///
     matrix_real pmf;
-    
-
-
-
     /// The vector of indices corresponding to values greater than 0 in the input state
     PicVector<int64_t> input_state_inidices;
-
-    
-
-    /// class to accumulate more matrices and calculate the permanents for them in one shot. (Developed for DFE usage)
-    //BatchednPermanentCalculator perm_accumulator;
-
-
-
+    ///
     int lib;
+
 #ifdef __MPI__
     /// The number of processes
     int world_size;
@@ -76,6 +66,10 @@ protected:
 
     int MPI_start_index;
     int MPI_end_index;
+#endif
+
+#ifdef __DFE__
+    const int useDual = 0;
 #endif
 
 public:
