@@ -5,6 +5,7 @@
 #include "matrix.h"
 #include "GlynnPermanentCalculatorDFE.h"
 #include "PicState.h"
+#include "PicVector.hpp"
 
 #ifndef CPYTHON
 #include <tbb/tbb.h>
@@ -21,7 +22,6 @@ public:
 
     ///
     uint64_t totalPerms;
-protected:
 
     
     /// set 1 to use floating point number representation in DFE (not supported yet) or 0 to use fixed points
@@ -33,7 +33,11 @@ protected:
     ///
     const size_t numinits=4;
     ///
-    matrix_base<ComplexFix16>* mtxfix;
+    //matrix_base<ComplexFix16>* mtxfix;
+    ///
+    PicVector<matrix_base<ComplexFix16>*> mtxfix_batches;
+    ///
+    PicVector<uint64_t> numPerms_batches;
     ///
     matrix_base<long double> renormalize_data_all;
     ///
@@ -42,7 +46,7 @@ protected:
     size_t photons;
 
     ///
-    std::vector<uint64_t> mplicity;
+    PicVector<uint64_t> mplicity;
     ///
     uint8_t mulsum;
     ///
@@ -51,7 +55,6 @@ protected:
     PicState_int64 input_state;
     ///
     PicState_int64 output_state;
-
 
 
 public:
@@ -84,6 +87,12 @@ void prepareDataForRepeatedMulti_DFE();
 @brief ???????
 */
 Complex16 calculate();
+
+
+/**
+@brief ???????
+*/
+void reset();
 
 
 }; // GlynnPermanentCalculatorRepeatedMulti_DFE
