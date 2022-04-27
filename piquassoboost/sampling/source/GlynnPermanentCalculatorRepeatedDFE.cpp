@@ -503,6 +503,8 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::reset() {
         for (int idx=0; idx<numinits; idx++ ) {
             mtxfix[idx] = matrix_base<ComplexFix16>(0,0);
         }
+        
+        delete[] mtxfix;
 
     }
 
