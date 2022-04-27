@@ -38,14 +38,11 @@ class RepeatedPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
     def __init__(self, lib, matrix, input_state, output_state):
 
         if not (type(input_state) is np.ndarray):
-            input_state = np.array(input_state)
+            input_state = np.array(input_state, dtype=np.int64)
 
         if not (type(output_state) is np.ndarray):
-            output_state = np.array(output_state)
+            output_state = np.array(output_state, dtype=np.int64)
 
-        # input/output states should be  of type int64
-        input_state = input_state.astype(np.int64)
-        output_state = output_state.astype(np.int64)
 
         # call the constructor of the wrapper class
         super(RepeatedPermanentCalculator, self).__init__(lib=lib, matrix=matrix, input_state=input_state, output_state=output_state)

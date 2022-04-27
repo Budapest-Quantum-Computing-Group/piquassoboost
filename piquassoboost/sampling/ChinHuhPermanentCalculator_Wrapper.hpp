@@ -109,10 +109,11 @@ ChinHuhPermanentCalculator_wrapper_dealloc(ChinHuhPermanentCalculator_wrapper *s
     // deallocate the instance of class N_Qubit_Decomposition
     if (self->lib == ChinHuh) release_ChinHuhPermanentCalculator( self->calculator );
     else if (self->lib == GlynnRep && self->calculatorRep != NULL) delete self->calculatorRep;
+
     // release numpy arrays
-    Py_DECREF(self->matrix);
-    Py_DECREF(self->input_state);
-    Py_DECREF(self->output_state);
+    if (self->matrix) Py_DECREF(self->matrix);
+    if (self->input_state) Py_DECREF(self->input_state);
+    if (self->output_state) Py_DECREF(self->output_state);
 
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
@@ -231,10 +232,22 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
     pic::Complex16 ret;
     
     if (self->lib == ChinHuh) {
-        ret = self->calculator->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
+        try {
+            ret = self->calculator->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
+        }
+        catch (std::string err) {                    
+            PyErr_SetString(PyExc_Exception, err.c_str());
+            return NULL;
+        }
     }
     else if (self->lib == GlynnRep) {
-        ret = self->calculatorRep->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
+        try {
+            ret = self->calculatorRep->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
+        }
+        catch (std::string err) {                    
+            PyErr_SetString(PyExc_Exception, err.c_str());
+            return NULL;
+        }
     }
 #ifdef __DFE__    
     else if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE)
