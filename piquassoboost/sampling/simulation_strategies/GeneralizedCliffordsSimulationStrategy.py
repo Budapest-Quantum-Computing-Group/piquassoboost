@@ -17,6 +17,31 @@ from .GeneralizedCliffordsSimulationStrategy_wrapper import (
     GeneralizedCliffordsSimulationStrategy_wrapper
 )
 
+from .GeneralizedCliffordsBSimulationStrategy_wrapper import (
+    GeneralizedCliffordsBSimulationStrategy_wrapper
+)
+
+
+class GeneralizedCliffordsBSimulationStrategy(
+    GeneralizedCliffordsBSimulationStrategy_wrapper
+):
+    def __init__(self, interferometer_matrix, seed):
+
+        super().__init__(interferometer_matrix, seed=seed, lib=0)
+
+
+    def simulate(self, input_state, samples_number: int = 1):
+        """
+            Returns sample from linear optics experiments given output state.
+            :param input_state: Input state in particle basis.
+            :return: A resultant state after traversing through interferometer.
+        """
+
+        return super().simulate(input_state, samples_number)
+
+
+
+
 
 class GeneralizedCliffordsSimulationStrategy(
     GeneralizedCliffordsSimulationStrategy_wrapper

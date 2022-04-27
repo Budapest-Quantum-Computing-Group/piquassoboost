@@ -5,17 +5,13 @@
 #include "common_functionalities.h"
 #include "GlynnPermanentCalculator.h"
 #include "GlynnPermanentCalculatorRepeated.h"
+#ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
+#endif
 #include "CChinHuhPermanentCalculator.h"
 #include <math.h>
 
 namespace pic {
-
-
-static double t_DFE_prep=0.0;
-static double t_CPU_time=0.0;
-static double t_DFE_time=0.0;
-static double t_tot=0.0;
 
 
 /**
@@ -51,11 +47,6 @@ BatchednPermanentCalculator::BatchednPermanentCalculator(matrix& interferometer_
 @brief Destructor of the class
 */
 BatchednPermanentCalculator::~BatchednPermanentCalculator() {
-
-std::cout << "DFE preparation time: " << t_DFE_prep << std::endl;
-std::cout << "DFE time: " << t_DFE_time << std::endl;
-std::cout << "CPU time in accumulator: " << t_CPU_time << std::endl;
-std::cout << "total time in accumulator: " << t_tot << std::endl;
 
     // clear the contained inputs and metadata
     clear();
@@ -151,6 +142,7 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
         std::string error("BatchednPermanentCalculator::calculate:  repeated DFE not implemented yet");
         throw error;
     }
+#ifdef __DFE__
     else if (lib == GlynnRepMultiSingleDFE || lib == GlynnRepMultiDualDFE) {   
 
 
@@ -158,15 +150,11 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
         int useDual = lib == GlynnRepMultiSingleDFE ? 0 : 1;
         int useFloat = 0;
 
-tbb::tick_count t0 = tbb::tick_count::now();
         init_dfe_lib(DFE_MAIN, useDual);
-tbb::tick_count t1 = tbb::tick_count::now();
-t_DFE_prep += (t1-t0).seconds();
         inc_dfe_lib_count();
 
         // create the first batch
         int start_index = 0;
-tbb::tick_count t0a = tbb::tick_count::now();
 
 
         std::vector<matrix>* matrices = create_batch( start_index );
@@ -178,13 +166,10 @@ tbb::tick_count t0a = tbb::tick_count::now();
         std::vector<matrix_base<ComplexFix16>>* mtxfix = renormalize_matrices( matrices, renormalize_data, useFloat );
         std::vector<matrix_base<ComplexFix16>>* mtxfix_old = NULL;
 
-
-tbb::tick_count t1a = tbb::tick_count::now();
-t_CPU_time += (t1a-t0a).seconds();        
+   
 
 
         while ( start_index < (int)input_states.size() ) {
-//std::cout << start_index << " " << input_states.size() << std::endl;
 
             std::vector<matrix>* matrices_new;
             matrix_real16* renormalize_data_new;
@@ -192,7 +177,7 @@ t_CPU_time += (t1a-t0a).seconds();
 
             tbb::parallel_invoke(    
                 [&]{
-tbb::tick_count t0 = tbb::tick_count::now();
+
                     // calculate the permanents
                     matrix ret_batched(ret.get_data()+start_index, 1, matrices->size());
 
@@ -209,11 +194,9 @@ tbb::tick_count t0 = tbb::tick_count::now();
                     GlynnPermanentCalculatorBatch_DFE(mtxfix, renormalize_data, matrices->begin()->rows, matrices->begin()->cols, matrices->size(), ret_batched, useDual, useFloat);
 
                     //GlynnPermanentCalculatorBatch_DFE(*matrices, ret_batched, useDual, useFloat);
-tbb::tick_count t1 = tbb::tick_count::now();
-t_DFE_time += (t1-t0).seconds();
+
                 },
                 [&]{
-//tbb::tick_count t0 = tbb::tick_count::now();
 
                     // in parallel create the new batch
                     matrices_new = create_batch( start_index+matrices->size() );    
@@ -223,8 +206,7 @@ t_DFE_time += (t1-t0).seconds();
 
                     // renormalize the matrices for DFE calculation
                     mtxfix_new = renormalize_matrices( matrices_new, renormalize_data_new, useFloat );
-//tbb::tick_count t1 = tbb::tick_count::now();
-//t_CPU_time += (t1-t0).seconds();
+
         
                 },
                 [&]{
@@ -249,7 +231,6 @@ t_DFE_time += (t1-t0).seconds();
 
 
             start_index += (int)matrices->size();
-tbb::tick_count t0cpu = tbb::tick_count::now();
 
             mtxfix_old = mtxfix;
             matrices_old = matrices;
@@ -257,9 +238,6 @@ tbb::tick_count t0cpu = tbb::tick_count::now();
             mtxfix = mtxfix_new;
             matrices = matrices_new;
             renormalize_data = renormalize_data_new;
-
-tbb::tick_count t1cpu = tbb::tick_count::now();
-t_CPU_time += (t1cpu-t0cpu).seconds();
 
         }
 
@@ -293,23 +271,11 @@ t_CPU_time += (t1cpu-t0cpu).seconds();
         renormalize_data = NULL;
 
         
-dec_dfe_lib_count();
-tbb::tick_count t2 = tbb::tick_count::now();
-t_tot += (t2-t0).seconds();
+        dec_dfe_lib_count();
     }
 
+#endif
 
-
-/*
-for ( int idx=0; idx<ret.size(); idx++ ) {
-
-    Complex16 diff = ret[idx] - perms[idx];
-    if ( diff.real()*diff.real() + diff.imag()*diff.imag() > 1e-8 ) {
-        std::cout << ret[idx] << " " << perms[idx] << std::endl;
-    }
- 
-}
-*/
 
     return ret;
 }

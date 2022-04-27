@@ -191,14 +191,21 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
     }
 
   
-
     // create instance of class ChinHuhPermanentCalculator
-    if (self->lib == ChinHuh) self->calculator = create_ChinHuhPermanentCalculator();
-    else if (self->lib == GlynnRep) self->calculatorRep = new pic::GlynnPermanentCalculatorRepeated();
+    if (self->lib == ChinHuh) {
+        self->calculator = create_ChinHuhPermanentCalculator();
+    }
+    else if (self->lib == GlynnRep) {
+        self->calculatorRep = new pic::GlynnPermanentCalculatorRepeated();
+    }
 #ifdef __DFE__
     else if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
         inc_dfe_lib_count();
 #endif
+    else {
+        PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
+        return -1;
+    }
 
     return 0;
 }
@@ -222,14 +229,24 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
 
     // start the calculation of the permanent
     pic::Complex16 ret;
+    
+    if (self->lib == ChinHuh) {
+        ret = self->calculator->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
+    }
+    else if (self->lib == GlynnRep) {
+        ret = self->calculatorRep->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
+    }
 #ifdef __DFE__    
-    if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE)
+    else if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE)
         GlynnPermanentCalculatorRepeated_DFE( matrix_mtx, input_state_mtx, output_state_mtx, ret, self->lib == GlynnRepDualDFE);
     else if (self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE) 
         GlynnPermanentCalculatorRepeatedMulti_DFE( matrix_mtx, input_state_mtx, output_state_mtx, ret, self->lib == GlynnRepMultiDualDFE);
-    else
 #endif
-    ret = self->calculator->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
+    else {
+        PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
+        return NULL;
+    }
+
 
     return Py_BuildValue("D", &ret);
 }
