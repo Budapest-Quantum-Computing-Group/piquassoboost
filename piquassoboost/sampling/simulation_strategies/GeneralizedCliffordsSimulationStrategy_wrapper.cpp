@@ -22,7 +22,9 @@
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "tbb/scalable_allocator.h"
 #include "numpy_interface.h"
-
+#ifdef _DFE_
+#include "GlynnPermanentCalculatorDFE.h"
+#endif
 
 
 /**
@@ -30,6 +32,7 @@
 */
 typedef struct GeneralizedCliffordsSimulationStrategy_wrapper {
     PyObject_HEAD
+    int lib;
     /// pointer to numpy matrix to keep it alive
     PyObject *interferometer_matrix = NULL;
     /// The C++ variant of class CGeneralizedCliffordsSimulationStrategy
@@ -44,9 +47,9 @@ typedef struct GeneralizedCliffordsSimulationStrategy_wrapper {
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
 pic::CGeneralizedCliffordsSimulationStrategy*
-cerate_ChinHuhPermanentCalculator( pic::matrix &interferometer_matrix_mtx ) {
+cerate_ChinHuhPermanentCalculator( pic::matrix &interferometer_matrix_mtx, int lib ) {
 
-    return new pic::CGeneralizedCliffordsSimulationStrategy(interferometer_matrix_mtx);
+    return new pic::CGeneralizedCliffordsSimulationStrategy(interferometer_matrix_mtx, lib);
 
 }
 
@@ -81,6 +84,11 @@ GeneralizedCliffordsSimulationStrategy_wrapper_dealloc(GeneralizedCliffordsSimul
 
     // deallocate the instance of class N_Qubit_Decomposition
     release_ChinHuhPermanentCalculator( self->simulation_strategy );
+
+#ifdef _DFE_
+    if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
+        dec_dfe_lib_count();
+#endif
 
     // release numpy arrays
     if (self->interferometer_matrix != NULL)
@@ -118,20 +126,18 @@ static int
 GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"interferometer_matrix", (char*)"shots", NULL};
+    static char *kwlist[] = {(char*)"interferometer_matrix", (char*)"seed", (char*)"lib", NULL};
 
     // initiate variables for input arguments
     PyObject *interferometer_matrix_arg = NULL;
     PyObject *seed = NULL;
 
+    // deafult value for the permanent library
+    self->lib = GlynnRep;
+
     // parsing input arguments
-    if (
-        !PyArg_ParseTupleAndKeywords(
-            args, kwds, "|OO", kwlist,
-            &interferometer_matrix_arg,
-            &seed
-        )
-    )
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOi", kwlist,
+                                     &interferometer_matrix_arg, &seed, &self->lib))
         return -1;
 
     // convert python object array to numpy C API array
@@ -154,15 +160,38 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
 
     // create instance of class ChinHuhPermanentCalculator
     self->simulation_strategy = cerate_ChinHuhPermanentCalculator(
-        interferometer_matrix_mtx
+        interferometer_matrix_mtx, self->lib
     );
 
-    self->simulation_strategy->seed(PyLong_AsUnsignedLongLong(seed));
+    // set custom seed for sampling
+    if ( seed != NULL ) {
+        unsigned long long int seed_C = PyLong_AsUnsignedLongLong(seed);
+        self->simulation_strategy->seed(seed_C);
+    }
+
+#ifdef _DFE_
+    if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
+        inc_dfe_lib_count();
+#endif
+    
 
     return 0;
 }
 
+static PyObject *
+GeneralizedCliffordsSimulationStrategy_wrapper_seed(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *args)
+{
+    // initiate variables for input arguments
+    unsigned long long seed = 0;
 
+    // parsing input arguments
+    if (!PyArg_ParseTuple(args, "|K",
+                                     &seed))
+        return Py_BuildValue("i", -1);
+    self->simulation_strategy->seed(seed);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
 
 /**
 @brief Wrapper function to call the simulate method of C++ class CGaussianState
@@ -201,9 +230,15 @@ GeneralizedCliffordsSimulationStrategy_wrapper_simulate(GeneralizedCliffordsSimu
     pic::PicState_int64 input_state_mtx = numpy2PicState_int64(input_state);
 
 
-
+    
     // call the C++ variant of the sampling method
-    std::vector<pic::PicState_int64> samples = self->simulation_strategy->simulate(input_state_mtx, sample_num);
+    std::vector<pic::PicState_int64> samples;
+    try {
+        samples = self->simulation_strategy->simulate(input_state_mtx, sample_num);
+    }
+    catch (std::string err) {
+        PyErr_SetString(PyExc_Exception, err.c_str());
+    }
 
 
     // preallocate Python list to hold the calculated samples
@@ -283,6 +318,9 @@ static PyMemberDef GeneralizedCliffordsSimulationStrategy_wrapper_Members[] = {
 
 
 static PyMethodDef GeneralizedCliffordsSimulationStrategy_wrapper_Methods[] = {
+    {"seed", (PyCFunction) GeneralizedCliffordsSimulationStrategy_wrapper_seed, METH_VARARGS,
+     "Method to set random number generator seed for boson sampling"
+    },
     {"simulate", (PyCFunction) GeneralizedCliffordsSimulationStrategy_wrapper_simulate, METH_VARARGS,
      "Method to calculate boson sampling output samples"
     },

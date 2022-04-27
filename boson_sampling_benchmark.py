@@ -24,6 +24,7 @@ import piquassoboost as pqb
 
 from mpi4py import MPI
 from scipy.stats import unitary_group
+import random
 
 
 
@@ -43,15 +44,27 @@ def print_histogram(samples):
     return
 
 
-dim = 12
+dim = 60
+photon_number = 30
 
 # generate random matrix
 U = unitary_group.rvs(dim)#generate_random_unitary(dim)
 
+# generate random input state
+input_state = np.zeros(dim)
+list_of_indices = [index for index in range(dim)]
+for photon in range(photon_number):
+    rand_int = random.randint(0, len(list_of_indices)-1)
+    input_state[list_of_indices.pop(rand_int)] = 1
+
+print('input state:')
+print(input_state)
+
+
 shots = 100
 
 with pq.Program() as program:
-    pq.Q() | pq.StateVector(np.ones(dim))
+    pq.Q() | pq.StateVector(input_state)
     pq.Q() | pq.Interferometer(U)
 
     pq.Q() | pq.Sampling()

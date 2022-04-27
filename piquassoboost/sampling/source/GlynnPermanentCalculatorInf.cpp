@@ -177,14 +177,19 @@ GlynnPermanentCalculatorInfTask::IterateOverDeltas( pic::ComplexInf* colSum_data
 
 /*
     for (int idx=index_min; idx<colSum.size(); ++idx){
+
         // create an altered vector from the current delta
         matrix_base<pic::ComplexInf> colSum_new = colSum.copy();
+
         pic::ComplexInf* mtx2_data = mtx2.get_data();
         pic::ComplexInf* colSum_new_data = colSum_new.get_data();
+
         size_t row_offset = idx*mtx2.stride;
+
         for (int jdx=0; jdx<mtx2.cols; jdx++) {
             colSum_new_data[jdx] = colSum_new_data[jdx] - mtx2_data[row_offset+jdx];
         }
+
         // spawn new iteration            
         IterateOverDeltas( colSum_new, -sign, idx+1 );
     }

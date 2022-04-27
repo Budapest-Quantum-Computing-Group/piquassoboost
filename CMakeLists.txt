@@ -397,6 +397,7 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeated.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BatchedPermanentCalculator.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/Torontonian.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianRecursive.cpp
@@ -408,6 +409,7 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceLoopHafnian.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsBSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/ThresholdBosonSampling.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.cpp
@@ -429,6 +431,7 @@ endif()
 if (DEFINED ENV{PIQUASSOBOOST_DFE})
   list(APPEND piquassoboost_files 
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorDFE.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeatedDFE.cpp
   )
 
   list(APPEND CXX_FLAGS_DEBUG "-D__DFE__=1")
@@ -535,6 +538,7 @@ set_target_properties(piquassoboost PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceLoopHafnian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsBSimulationStrategy.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/ThresholdBosonSampling.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategy.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.h

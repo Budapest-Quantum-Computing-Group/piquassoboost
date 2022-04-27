@@ -88,7 +88,7 @@ int sum( PicVector<int> vec) {
 @return Returns with the sum of the elements of the container
 */
 int
-sum( PicState_int64 vec) {
+sum( const PicState_int64& vec) {
 
     int ret = 0;
     for (size_t idx=0; idx<vec.size(); idx++) {

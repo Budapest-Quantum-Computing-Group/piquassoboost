@@ -1,6 +1,6 @@
 import numpy as np
 from thewalrus.libwalrus import perm_complex, perm_real, perm_BBFG_real, perm_BBFG_complex
-from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent
+from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent, GlynnRepeatedPermanentCalculator, GlynnPermanentSingleDFE, GlynnPermanentDualDFE, GlynnPermanentInf
 import piquasso as pq
 import random
 from scipy.stats import unitary_group
@@ -82,7 +82,7 @@ time_Cpp = 1000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_ChinHuh_Cpp = 0#permanent_ChinHuh_calculator.calculate()
+    permanent_ChinHuh_Cpp = permanent_ChinHuh_calculator.calculate()
 
     time_loc = time.time() - start
     start = time.time()   
@@ -97,7 +97,7 @@ output_state = np.ones(dim, np.int64)
 
 
 # Glynn repeated permanent calculator
-permanent_Glynn_calculator_repeated = GlynnPermanent( Arep, input_state=input_state, output_state=output_state )
+permanent_Glynn_calculator_repeated = GlynnRepeatedPermanentCalculator( Arep, input_state=input_state, output_state=output_state )
 time_Glynn_Cpp_repeated = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
@@ -134,7 +134,7 @@ print( permanent_Glynn_Cpp_repeated )
 print( permanent_Glynn_Cpp )
 
 # Glynn DFE permanent calculator
-permanent_Glynn_calculator = GlynnPermanent( Arep, DFE=1  )
+permanent_Glynn_calculator = GlynnPermanentSingleDFE( Arep )
 time_Glynn_DFE = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
@@ -148,7 +148,7 @@ for idx in range(iter_loops):
 
 
 # Glynn dual DFE permanent calculator
-permanent_Glynn_calculator = GlynnPermanent( Arep, DFE=2 )
+permanent_Glynn_calculator = GlynnPermanentDualDFE( Arep )
 time_Glynn_dual_DFE = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
@@ -168,7 +168,7 @@ print( permanent_Glynn_dual_DFE )
 
 # Glynn Inf permanent calculator
 if (dim<=24):
-    permanent_Glynn_calculator = GlynnPermanent( Arep, precision=2 )
+    permanent_Glynn_calculator = GlynnPermanentInf( Arep )
     time_Glynn_InfinitePrecision = 1000000000
     for idx in range(iter_loops):
         start = time.time()   
