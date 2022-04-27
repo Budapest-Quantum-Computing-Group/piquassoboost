@@ -234,7 +234,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
             fill_r_sample( sample );
 
             samples.push_back( sample );
-std::cout << "sample: " << idx+1 << std::endl;
+//std::cout << "sample: " << idx+1 << std::endl;
 //sample.print_matrix();
 //tbb::tick_count t1cpu = tbb::tick_count::now();
 //t_CPU += (t1cpu-t0cpu).seconds();            
@@ -361,7 +361,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
             input_state_loc.number_of_photons--;
 
 #ifdef __DFE__
-            if ( nonzero_output_elements < 8 ) {
+            if ( nonzero_output_elements < 13 ) {
 #endif
                 //tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
                 //matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, &input_state_loc, &sample );
