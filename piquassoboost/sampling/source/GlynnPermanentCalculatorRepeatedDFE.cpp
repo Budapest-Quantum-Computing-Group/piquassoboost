@@ -413,7 +413,6 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
       GlynnPermanentCalculatorRepeated gpc;
       perm = gpc.calculate(matrix_init, input_state, output_state);
       unlock_lib();
-std::cout << "rrrrrrrrrrrrrrrrr" << std::endl;
       return perm;
     }
 
