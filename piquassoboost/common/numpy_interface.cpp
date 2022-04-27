@@ -57,6 +57,7 @@ PyObject* array_from_ptr(void * ptr, int dim, npy_intp* shape, int np_type) {
 
 
         // create numpy array
+        if (shape[0] == 0) return PyArray_SimpleNew(dim, shape, np_type);
         PyObject* arr = PyArray_SimpleNewFromData(dim, shape, np_type, ptr);
 
         // set memory keeper for the numpy array
