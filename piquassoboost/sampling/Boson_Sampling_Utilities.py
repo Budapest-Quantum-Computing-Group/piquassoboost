@@ -306,3 +306,4 @@ class PowerTraceLoopHafnianRecursive(PowerTraceLoopHafnianRecursive_wrapper):
 
         # call the permanent calculator of the parent class
         return super(PowerTraceLoopHafnianRecursive, self).calculate()
+

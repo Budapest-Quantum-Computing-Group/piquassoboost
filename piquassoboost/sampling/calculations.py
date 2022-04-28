@@ -1,17 +1,17 @@
 #
-#  Copyright 2021 Budapest Quantum Computing Group
+# Copyright 2021-2022 Budapest Quantum Computing Group
 #
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import numpy as np
 
@@ -36,7 +36,7 @@ from piquasso.api.result import Result
 
 
 
-def _sampling(state, instruction, shots, strategy_class) -> Result:
+def _particle_number_measurement(state, instruction, shots, strategy_class) -> Result:
     """Simulates a boson sampling using generalized Clifford&Clifford algorithm
     from [Brod, Oszmaniec 2020].
 
@@ -82,11 +82,11 @@ def _sampling(state, instruction, shots, strategy_class) -> Result:
     return Result(state=state, samples=samples)
 
 
-sampling = partial(_sampling, strategy_class=GeneralizedCliffordsBSimulationStrategy)
+particle_number_measurement = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsBSimulationStrategy)
 
-sampling_GeneralizedCliffords = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategy)
-sampling_GeneralizedCliffords_chinhuh = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh)
-sampling_GeneralizedCliffords_single_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE)
-sampling_GeneralizedCliffords_dual_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE)
-sampling_GeneralizedCliffords_multi_single_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE)
-sampling_GeneralizedCliffords_multi_dual_dfe = partial(_sampling, strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE)
+sampling_GeneralizedCliffords = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategy)
+sampling_GeneralizedCliffords_chinhuh = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh)
+sampling_GeneralizedCliffords_single_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE)
+sampling_GeneralizedCliffords_dual_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE)
+sampling_GeneralizedCliffords_multi_single_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE)
+sampling_GeneralizedCliffords_multi_dual_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE)
