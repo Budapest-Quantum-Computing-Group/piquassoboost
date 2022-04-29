@@ -87,6 +87,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::cGlynnPermanentCalculatorRepeatedMul
 
 
     mtxfix = NULL;
+    mtxfix_batched = NULL;
 }
 
 /**
@@ -103,6 +104,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::cGlynnPermanentCalculatorRepeatedMul
     doCPU = false;
     //
     mtxfix = NULL;//new matrix_base<ComplexFix16>[numinits];
+    mtxfix_batched = NULL;
     //
     //matrix_base<long double> renormalize_data_all;
     //
@@ -129,6 +131,15 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::cGlynnPermanentCalculatorRepeatedMul
 cGlynnPermanentCalculatorRepeatedMulti_DFE::~cGlynnPermanentCalculatorRepeatedMulti_DFE() {
 
     reset();
+
+    if (mtxfix_batched) {
+        for (int idx=0; idx<numinits; idx++ ) {
+            mtxfix_batched[idx] = matrix_base<ComplexFix16>(0,0);
+        }
+       
+        delete[] mtxfix_batched;
+        mtxfix_batched = NULL;
+    }
 
 }
 
@@ -159,8 +170,14 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::determineColIndices( PicState_int64&
 void 
 cGlynnPermanentCalculatorRepeatedMulti_DFE::reserveSpace()  {
 
-    
+    const size_t max_fpga_cols = max_dim / numinits;
+    mtxfix_batched = new matrix_base<ComplexFix16>[numinits];
+    for (size_t i = 0; i < numinits; i++) {
+        mtxfix_batched[i] = matrix_base<ComplexFix16>(onerows * totalPerms * colIndices.size(), max_fpga_cols);
+        memset(mtxfix_batched[i].get_data(), 0.0, mtxfix_batched[i].size()*sizeof(ComplexFix16));
+    };    
 
+    renormalize_data_batched = matrix_base<long double>(totalPerms*colIndices.size(), photons);
 }
 
 /**
@@ -249,7 +266,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::determineMultiplicitiesForRepeatedMu
 @brief ???????
 */
 void
-cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
+cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE(size_t batch_idx)
 {
 
 reset();
@@ -356,12 +373,15 @@ reset();
     //matrix_base<ComplexFix16> mtxfix[numinits] = {};
     mtxfix = new matrix_base<ComplexFix16>[numinits];
     for (size_t i = 0; i < numinits; i++) {
+/*
         mtxfix[i] = matrix_base<ComplexFix16>(onerows * totalPerms, max_fpga_cols);
         memset(mtxfix[i].get_data(), 0.0, mtxfix[i].size()*sizeof(ComplexFix16));
+*/
+        mtxfix[i] = matrix_base<ComplexFix16>(mtxfix_batched[i].get_data() + batch_idx*onerows*totalPerms*max_fpga_cols, onerows * totalPerms, max_fpga_cols, mtxfix_batched[i].stride);
     };
 
     //assert(mtxfix[i].stride == mtxfix[i].cols);
-    renormalize_data_all = matrix_base<long double>(totalPerms, photons);
+    renormalize_data_all = matrix_base<long double>(renormalize_data_batched.get_data()+batch_idx*totalPerms*photons, totalPerms, photons, renormalize_data_batched.stride);
     for (size_t i = 0; i < totalPerms; i++) {
         memcpy(renormalize_data_all.get_data()+photons*i, renormalize_data.get_data(), photons * sizeof(long double));
     }
@@ -536,7 +556,7 @@ GlynnPermanentCalculatorRepeatedMulti_DFE(matrix& matrix_init, PicState_int64& i
 
     cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(matrix_init, input_state, output_state, useDual );
     DFEcalculator.determineMultiplicitiesForRepeatedMulti_DFE();
-    DFEcalculator.prepareDataForRepeatedMulti_DFE();
+    DFEcalculator.prepareDataForRepeatedMulti_DFE(0);
     perm = DFEcalculator.calculate();
 
     

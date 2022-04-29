@@ -35,7 +35,11 @@ public:
     ///
     matrix_base<ComplexFix16>* mtxfix;
     ///
+    matrix_base<ComplexFix16>* mtxfix_batched;
+    ///
     matrix_base<long double> renormalize_data_all;
+    ///
+    matrix_base<long double> renormalize_data_batched;
     ///
     uint8_t onerows;
     /// The number of photons
@@ -114,7 +118,7 @@ void determineMultiplicitiesForRepeatedMulti_DFE();
 /**
 @brief ???????
 */
-void prepareDataForRepeatedMulti_DFE();
+void prepareDataForRepeatedMulti_DFE(size_t batch_idx);
 
 /**
 @brief ???????

@@ -398,7 +398,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 */
                 DFEcalculator.colIndices = colIndices;///////////////
                 DFEcalculator.colIndices.erase( DFEcalculator.colIndices.begin()+idx ) ;/////////////
-                DFEcalculator.prepareDataForRepeatedMulti_DFE();   
+                DFEcalculator.prepareDataForRepeatedMulti_DFE(idx);   
                 permanent_addends[colIndices[idx]] = DFEcalculator.calculate();                      
 
                 //DFEcalculator_new.prepareDataForRepeatedMulti_DFE();     
