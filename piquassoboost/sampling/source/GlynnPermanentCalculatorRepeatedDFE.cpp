@@ -136,9 +136,9 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::~cGlynnPermanentCalculatorRepeatedMu
 /**
 @brief ???????
 */
-void
-cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
-{
+void 
+cGlynnPermanentCalculatorRepeatedMulti_DFE::determineMultiplicitiesForRepeatedMulti_DFE() {
+
     reset();
 
     // if nothing uneaxpected happens the permanent calculations would be done on DFE not on CPU
@@ -152,32 +152,31 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
         t1 *= (input_state[i]+1); 
         t2 *= (output_state[i]+1);
     }
-    int transpose = t1 < t2; //transpose if needed to reduce complexity on rows direction
 
     if (photons < 1+dfe_basekernpow2) {
         doCPU = true;
         return;
     }
 
-    const size_t max_dim = dfe_mtx_size;
+    
     //convert multiplicities of rows and columns to indices
-    std::vector<unsigned char> colIndices; colIndices.reserve(max_dim);
-    for (size_t i = 0; i < output_state.size(); i++) {
-      for (size_t j = transpose ? output_state[i] : input_state[i]; j != 0; j--) {
-        colIndices.push_back(i);
-      }
+    colIndices.reserve(max_dim);
+    for (size_t i = 0; i < input_state.size(); i++) {
+        for (size_t j = 0; j<input_state[i]; j++) {
+            colIndices.push_back(i);
+        }
     }
  
-    PicState_int64 adj_input_state = transpose ? input_state.copy() : output_state.copy();  
-    std::vector<uint8_t> mrows;
-    std::vector<uint8_t> row_indices;
+    adj_input_state = output_state.copy();  
+
     for (size_t i = 0; i < adj_input_state.size(); i++) {
         if (adj_input_state[i] == 1) row_indices.push_back(i);
         else if (adj_input_state[i] > 1) mrows.push_back(i);
     }
  
     //sort multiplicity >=2 row indices since we need anchor rows, and complexity reduction greatest by using smallest multiplicities
-    sort(mrows.begin(), mrows.end(), [&adj_input_state](size_t i, size_t j) { return adj_input_state[i] < adj_input_state[j]; }); 
+    int64_t* adj_input_state_data = adj_input_state.get_data();
+    sort(mrows.begin(), mrows.end(), [&adj_input_state_data](size_t i, size_t j) { return adj_input_state_data[i] < adj_input_state_data[j]; }); 
     if (row_indices.size() < 1) { //Glynn anchor row, prevent streaming more than 256MB of data
         row_indices.push_back(mrows[0]);
         if (--adj_input_state[mrows[0]] == 1) {
@@ -189,7 +188,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
     //construct multiplicity Gray code counters
     mulsum = 0;
     onerows = row_indices.size();
-    std::vector<uint64_t> curmp, inp;
+    
     
     // determine the number of smaller permanents
     totalPerms = 1;
@@ -209,15 +208,28 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
     }
 
 
+}
+
+/**
+@brief ???????
+*/
+void
+cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
+{
+
+
+    if (doCPU) {
+        return;
+    }
+
     // calulate the maximal sum of the columns to normalize the matrix
     matrix_base<Complex32> colSumMax( photons, 2);
     memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex32) );
     //sum up vectors in first/upper-left and fourth/lower-right quadrants of the complex plane
     for (size_t i=0; i<row_indices.size(); i++) {
-        //size_t offset = (transpose ? colIndices[i] : row_indices[i]) * matrix_init.stride;
         for( size_t jdx=0; jdx<photons; jdx++) {
             for (int64_t idx = 0; idx < (i < onerows ? 1 : adj_input_state[row_indices[i]]); idx++) {
-                size_t offset = transpose ? colIndices[jdx]*matrix_init.stride+row_indices[i] : row_indices[i]*matrix_init.stride+colIndices[jdx];
+                size_t offset = row_indices[i]*matrix_init.stride + colIndices[jdx];
                 int realPos = matrix_init[offset].real() > 0;
                 int slopeUpLeft = realPos == (matrix_init[offset].imag() > 0);
                 if (realPos) colSumMax[2*jdx+slopeUpLeft] += matrix_init[offset];
@@ -228,10 +240,9 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
 
     //now try to add/subtract neighbor quadrant values to the prior sum vector to see if it increase the absolute value    
     for (size_t i=0; i<row_indices.size(); i++) {
-        //size_t offset = (transpose ? colIndices[i] : row_indices[i]) * matrix_init.stride;
         for( size_t jdx=0; jdx<photons; jdx++) {
             for (int64_t idx = 0; idx < (i < onerows ? 1 : adj_input_state[row_indices[i]]); idx++) {
-                size_t offset = transpose ? colIndices[jdx]*matrix_init.stride+row_indices[i] : row_indices[i]*matrix_init.stride+colIndices[jdx];
+                size_t offset = row_indices[i]*matrix_init.stride + colIndices[jdx];
                 int realPos = matrix_init[offset].real() > 0;
                 int slopeUpLeft = realPos == (matrix_init[offset].imag() > 0);
                 Complex32 value1 = colSumMax[2*jdx+1-slopeUpLeft] + matrix_init[offset];
@@ -269,7 +280,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
         size_t offset_small = idx*mtxprefix[kdx].stride;
 
         for (size_t jdx = 0; jdx < lastcol; jdx++) {
-          size_t offset = transpose ? colIndices[basecol+jdx]*matrix_init.stride+row_indices[idx] : row_indices[idx]*matrix_init.stride+colIndices[basecol+jdx];
+          size_t offset = row_indices[idx]*matrix_init.stride + colIndices[basecol+jdx];
           mtxprefix[kdx][offset_small+jdx].real = llrintl((long double)matrix_init[offset].real() * fixpow / renormalize_data[basecol+jdx]);
           mtxprefix[kdx][offset_small+jdx].imag = llrintl((long double)matrix_init[offset].imag() * fixpow / renormalize_data[basecol+jdx]);
           if (idx >= onerows) { //start with all positive Gray codes, so sum everything onto the adjust row
@@ -514,7 +525,13 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::reset() {
     onerows = 0;
     photons = 0;
     mplicity.clear();
-
+////
+    mrows.clear();
+    row_indices.clear();
+    colIndices.clear();
+    curmp.clear();
+    inp.clear();
+/////
     mulsum = 0;
 
 
@@ -537,6 +554,7 @@ GlynnPermanentCalculatorRepeatedMulti_DFE(matrix& matrix_init, PicState_int64& i
 
 
     cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(matrix_init, input_state, output_state, useDual );
+    DFEcalculator.determineMultiplicitiesForRepeatedMulti_DFE();
     DFEcalculator.prepareDataForRepeatedMulti_DFE();
     perm = DFEcalculator.calculate();
 

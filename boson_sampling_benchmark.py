@@ -74,7 +74,7 @@ print(input_state)
 
 print( sum(sum(U)))
 
-shots = 120
+shots = 2
 
 with pq.Program() as program:
     pq.Q() | pq.StateVector(input_state)

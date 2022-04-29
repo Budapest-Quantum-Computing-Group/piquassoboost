@@ -44,6 +44,20 @@ public:
     uint8_t onerows;
     /// The number of photons
     size_t photons;
+    ///
+    std::vector<uint8_t> mrows;
+    ///
+    std::vector<uint8_t> row_indices;
+    ///
+    PicState_int64 adj_input_state;
+    ///
+    std::vector<unsigned char> colIndices; 
+    ///
+    const size_t max_dim = dfe_mtx_size;
+    ///
+    std::vector<uint64_t> curmp;
+    ///
+    std::vector<uint64_t> inp;
 
     ///
     PicVector<uint64_t> mplicity;
@@ -77,6 +91,11 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE( matrix& matrix_mtx_in, PicState_int6
 */
 ~cGlynnPermanentCalculatorRepeatedMulti_DFE();
 
+
+/**
+@brief ???????
+*/
+void determineMultiplicitiesForRepeatedMulti_DFE();
 
 /**
 @brief ???????
