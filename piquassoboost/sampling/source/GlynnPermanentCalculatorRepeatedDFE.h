@@ -45,7 +45,7 @@ public:
     ///
     std::vector<uint8_t> row_indices;
     ///
-    PicState_int64 adj_input_state;
+    PicState_int64 output_state_loc;
     ///
     std::vector<unsigned char> colIndices; 
     ///
@@ -86,6 +86,24 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE( matrix& matrix_mtx_in, PicState_int6
 @brief Destructor of the class
 */
 ~cGlynnPermanentCalculatorRepeatedMulti_DFE();
+
+
+/**
+@brief Call to convert multiplicities of columns to indices
+*/
+void determineColIndices( PicState_int64& input_state );
+
+
+/**
+@brief Call to convert multiplicities of columns to indices
+*/
+void determineColIndices();
+
+
+/**
+@brief ????????????
+*/
+void reserveSpace();
 
 
 /**
