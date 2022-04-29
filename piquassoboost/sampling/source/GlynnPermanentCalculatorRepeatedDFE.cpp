@@ -252,7 +252,7 @@ void
 cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
 {
 
-
+reset();
     if (doCPU) {
         return;
     }
@@ -332,6 +332,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
       }
       for (size_t jdx = lastcol; jdx < max_fpga_cols; jdx++) mtxprefix[kdx][jdx].real = fixpow;
     }
+
 /*
     std::cout << "export mtxprefix" << std::endl;
     for (size_t kdx = 0; kdx < numinits; kdx++) {
@@ -345,7 +346,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
         }
         std::cout << tmp2 << std::endl;  
     }
-*/      
+*/     
 
   
     uint64_t gcodeidx = 0, cur_multiplicity = 1, skipidx = (1ULL << curmp.size())-1; //gcodeidx is direction bit vector, skipidx set to not skip all indexes - technically "not skip index"
@@ -364,6 +365,8 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
     for (size_t i = 0; i < totalPerms; i++) {
         memcpy(renormalize_data_all.get_data()+photons*i, renormalize_data.get_data(), photons * sizeof(long double));
     }
+
+    std::vector<uint64_t> curmp_loc = curmp;
 
     while (true) {
 
@@ -384,12 +387,13 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
 
         }
         
-        
+      
         size_t i = __builtin_ctzll(skipidx); //count of trailing zeros to compute next change index
         bool curdir = (gcodeidx & (1ULL << i)) == 0;
-        cur_multiplicity = binomial_gcode(cur_multiplicity, curdir, inp[i], (curmp[i] + inp[i]) / 2);
-        curmp[i] = curdir ? curmp[i] - 2 : curmp[i] + 2;
+        cur_multiplicity = binomial_gcode(cur_multiplicity, curdir, inp[i], (curmp_loc[i] + inp[i]) / 2);
+        curmp_loc[i] = curdir ? curmp_loc[i] - 2 : curmp_loc[i] + 2;
         size_t offset = (onerows+i)*max_fpga_cols;
+
         //add or subtract to the adjustment row
         for (size_t idx = 0; idx < actualinits; idx++) {
             for (size_t j = 0; j < max_fpga_cols; j++) { //Gray code adjustment by adding or subtracting 2 times the appropriate row, caring for overflow since we are (64, -62) fixed point cannot multiply by 2 which requires 65 bits
@@ -403,7 +407,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE()
             }            
         }
 
-        if ((!curdir && curmp[i] == inp[i]) || (curdir && curmp[i] == -inp[i])) skipidx ^= ((1ULL << (i+1)) - 1); //set all skipping before and including current index
+        if ((!curdir && curmp_loc[i] == inp[i]) || (curdir && curmp_loc[i] == -inp[i])) skipidx ^= ((1ULL << (i+1)) - 1); //set all skipping before and including current index
         else skipidx ^= ((1ULL << i) - 1); //flip all skipping which come before current index
         gcodeidx ^= (1ULL << i) - 1; //flip all directions which come before current index
     }
@@ -495,10 +499,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
 @brief ???????
 */
 void 
-cGlynnPermanentCalculatorRepeatedMulti_DFE::reset() {
-
-    
-    doCPU = false;
+cGlynnPermanentCalculatorRepeatedMulti_DFE::reset() {    
 
     if (mtxfix) {
         for (int idx=0; idx<numinits; idx++ ) {
@@ -512,17 +513,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::reset() {
 
 
     renormalize_data_all = matrix_base<long double>(0,0);
-    onerows = 0;
-    photons = 0;
     mplicity.clear();
-////
-    mrows.clear();
-    row_indices.clear();
-    colIndices.clear();
-    curmp.clear();
-    inp.clear();
-/////
-    mulsum = 0;
 
 
 
