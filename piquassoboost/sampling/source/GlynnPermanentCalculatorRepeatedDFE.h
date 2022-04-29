@@ -33,11 +33,7 @@ public:
     ///
     const size_t numinits=4;
     ///
-    //matrix_base<ComplexFix16>* mtxfix;
-    ///
-    PicVector<matrix_base<ComplexFix16>*> mtxfix_batches;
-    ///
-    PicVector<uint64_t> numPerms_batches;
+    matrix_base<ComplexFix16>* mtxfix;
     ///
     matrix_base<long double> renormalize_data_all;
     ///

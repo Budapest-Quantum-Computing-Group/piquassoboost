@@ -53,7 +53,7 @@ def print_histogram(samples):
 
 
 dim = 60
-photon_number = 30
+photon_number = 25
 
 # generate random matrix
 U = unitary_group.rvs(dim)#generate_random_unitary(dim)

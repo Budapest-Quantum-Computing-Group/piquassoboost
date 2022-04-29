@@ -382,8 +382,15 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 //tbb::tick_count t0 = tbb::tick_count::now();////////////////////////// 
 
                 //GlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, permanent_addends[idx], useDual);
+
+                DFEcalculator_new = new cGlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, useDual );
+                DFEcalculator_new->determineMultiplicitiesForRepeatedMulti_DFE();
+                DFEcalculator_new->prepareDataForRepeatedMulti_DFE();                         
+                permanent_addends[idx] = DFEcalculator_new->calculate();
+                delete( DFEcalculator_new );
+                DFEcalculator_new = NULL;
                                
-             
+/*             
 //                tbb::parallel_invoke(
     
 //                [&]{                
@@ -410,7 +417,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 
                 DFEcalculator = DFEcalculator_new;
                 DFEcalculator_idx = DFEcalculator_idx_new;
-                              
+  */                            
 //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
 //t_DFE += (t1-t0).seconds(); ////////////////////////// 
        
@@ -419,9 +426,11 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
                 PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
                 PicState_int64 adapted_output_state = sample.filter(filterNonZero);
                 permanent_addends_tmp[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state); 
-  
+//permanent_addends[idx] = permanent_addends_tmp[idx];  
 
-
+                if ( std::norm( permanent_addends[idx] - permanent_addends_tmp[idx] )/std::norm( permanent_addends[idx]) > 1e-3 ) {
+                    std::cout << "difference in idx=" << idx << " " << permanent_addends[idx] << " " << permanent_addends_tmp[idx] << std::endl;
+                 }  
 
            }
 #endif
@@ -449,11 +458,11 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
                 
 
 
-        for (size_t idx=0; idx<current_input.size(); idx++) {
-            if ( std::norm( permanent_addends[idx] - permanent_addends_tmp[idx] )/std::norm( permanent_addends[idx]) > 1e-3 ) {
-                std::cout << "difference in idx=" << idx << " " << permanent_addends[idx] << " " << permanent_addends_tmp[idx] << std::endl;
-            }  
-        }
+//        for (size_t idx=0; idx<current_input.size(); idx++) {
+//            if ( std::norm( permanent_addends[idx] - permanent_addends_tmp[idx] )/std::norm( permanent_addends[idx]) > 1e-3 ) {
+//                std::cout << "difference in idx=" << idx << " " << permanent_addends[idx] << " " << permanent_addends_tmp[idx] << std::endl;
+//            }  
+//        }
 
     }
 
