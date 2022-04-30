@@ -234,7 +234,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
             fill_r_sample( sample );
 
             samples.push_back( sample );
-//std::cout << "sample: " << idx+1 << std::endl;
+std::cout << "sample: " << idx+1 << std::endl;
 //sample.print_matrix();
 //tbb::tick_count t1cpu = tbb::tick_count::now();
 //t_CPU += (t1cpu-t0cpu).seconds();            
@@ -342,23 +342,32 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
     DFEcalculator.determineColIndices( current_input );
     DFEcalculator.determineMultiplicitiesForRepeatedMulti_DFE();
     DFEcalculator.reserveSpace();
-    std::vector<unsigned char> colIndices = DFEcalculator.colIndices;
+    std::vector<unsigned char>& colIndices = DFEcalculator.colIndices;
     DFEcalculator.determineNormalization(); 
+    const size_t nonzero_output_elements_threshold = 10;
 ////////////////////////////////
 
-    for (size_t idx=0; idx<colIndices.size(); idx++) {
+//tbb::tick_count t0 = tbb::tick_count::now();////////////////////////// 
+
+
+    tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
+    //for (size_t idx=0; idx<colIndices.size(); idx++) {
+
         //GlynnPermanentCalculator permanentCalculator;  
         GlynnPermanentCalculatorRepeated permanentCalculator;  
 
  
-        // add a photon to the current output state
-        PicState_int64&& input_state_loc = current_input.copy();
-        input_state_loc[colIndices[idx]]--;
-        input_state_loc.number_of_photons--;
+
 
 #ifdef __DFE__
-            if ( nonzero_output_elements < 13 ) {
+            if ( nonzero_output_elements < nonzero_output_elements_threshold ) {
 #endif
+
+                // remove a photon from the input state
+                PicState_int64&& input_state_loc = current_input.copy();
+                input_state_loc[colIndices[idx]]--;  
+                input_state_loc.number_of_photons--; 
+
                 //tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
                 //matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, &input_state_loc, &sample );
                 //permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
@@ -376,94 +385,55 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
            }
            else { 
 
-//tbb::tick_count t0 = tbb::tick_count::now();////////////////////////// 
 
-                //GlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, permanent_addends[idx], useDual);
 
-                //cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator_new(interferometer_matrix, input_state_loc, sample, useDual );
-                ////DFEcalculator_new.determineColIndices( input_state_loc );
-                //DFEcalculator_new.colIndices = colIndices;///////////////
-                //DFEcalculator_new.colIndices.erase( DFEcalculator_new.colIndices.begin()+idx ) ;/////////////
-/*
-                //DFEcalculator_new.determineMultiplicitiesForRepeatedMulti_DFE();
-                DFEcalculator_new.curmp = DFEcalculator.curmp;///////////////
-                DFEcalculator_new.inp = DFEcalculator.inp;///////////////
-                DFEcalculator_new.totalPerms = DFEcalculator.totalPerms;///////////////
-                DFEcalculator_new.onerows = DFEcalculator.onerows;///////////////
-                DFEcalculator_new.photons = DFEcalculator.photons;///////////////
-                DFEcalculator_new.doCPU = DFEcalculator.doCPU;///////////////
-                DFEcalculator_new.output_state_loc = DFEcalculator.output_state_loc;///////////////
-                DFEcalculator_new.row_indices = DFEcalculator.row_indices;///////////////
-                DFEcalculator_new.mrows = DFEcalculator.mrows;///////////////
-                DFEcalculator_new.mulsum = DFEcalculator.mulsum;///////////////
-*/
-                DFEcalculator.colIndices = colIndices;///////////////
-                DFEcalculator.colIndices.erase( DFEcalculator.colIndices.begin()+idx ) ;/////////////
-                DFEcalculator.addInputState( idx, input_state_loc );
+                DFEcalculator.initiateBatch(idx);
+                DFEcalculator.prepareDataForRepeatedMulti_DFE(idx);                            
 
-                DFEcalculator.prepareDataForRepeatedMulti_DFE(idx);   
-                //matrix perm_tmp = DFEcalculator.calculate(idx);          
-                //permanent_addends[colIndices[idx]] = perm_tmp[0];                      
-
-                //DFEcalculator_new.prepareDataForRepeatedMulti_DFE();     
-                //permanent_addends[colIndices[idx]] = DFEcalculator_new.calculate();
-                               
-/*             
-//                tbb::parallel_invoke(
-    
-//                [&]{                
-                    //tbb::tick_count t0 = tbb::tick_count::now(); ////////////////////////// 
-                    DFEcalculator_new = new cGlynnPermanentCalculatorRepeatedMulti_DFE(interferometer_matrix, input_state_loc, sample, useDual );
-                    DFEcalculator_new->determineMultiplicitiesForRepeatedMulti_DFE();
-                    DFEcalculator_new->prepareDataForRepeatedMulti_DFE();
-                    DFEcalculator_idx_new = idx;
-                    //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
-                    //t_DFE_prepare += (t1-t0).seconds();    //////////////////////////                
-//                },
-//                [&]{      
-                    //tbb::tick_count t0 = tbb::tick_count::now(); ////////////////////////// 
-                    if ( DFEcalculator != NULL ) {                                                     
-                        permanent_addends[DFEcalculator_idx] = DFEcalculator->calculate();
-                        delete( DFEcalculator );
-                        DFEcalculator = NULL;
-                    }
-                    //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
-                    //t_DFE_pure += (t1-t0).seconds();    //////////////////////////                  
-//                });
-
-                
-
-                DFEcalculator = DFEcalculator_new;
-                DFEcalculator_idx = DFEcalculator_idx_new;
-  */                            
-//tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
-//t_DFE += (t1-t0).seconds(); ////////////////////////// 
        
+/*
+                // remove a photon from the input state
+                PicState_int64&& input_state_loc = current_input.copy();
+                input_state_loc[colIndices[idx]]--;  
+                input_state_loc.number_of_photons--; 
 
                 matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
                 PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
                 PicState_int64 adapted_output_state = sample.filter(filterNonZero);
                 permanent_addends_tmp[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state); 
 //permanent_addends[idx] = permanent_addends_tmp[idx];  
-
+*/
 
 
            }
 #endif
 
         
-    }
+    //}
+    });
 
+/*
+if ( nonzero_output_elements >= nonzero_output_elements_threshold ) {
+    tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
+    t_DFE_prepare += (t1-t0).seconds(); ////////////////////////// 
+}
+*/
 
-    if ( nonzero_output_elements >= 13 ) {
+    if ( nonzero_output_elements >= nonzero_output_elements_threshold ) {
+
+//tbb::tick_count t0 = tbb::tick_count::now();////////////////////////// 
+        matrix perms_batched = DFEcalculator.calculate();   
+//tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
+//t_DFE += (t1-t0).seconds(); ////////////////////////// 
 
         for (size_t idx=0; idx<colIndices.size(); idx++) {
-            matrix perm_tmp = DFEcalculator.calculate(idx);          
-            permanent_addends[colIndices[idx]] = perm_tmp[0]; 
-
+            //permanent_addends[colIndices[idx]] = DFEcalculator.calculate(idx); 
+            permanent_addends[colIndices[idx]] = perms_batched[idx];
+/*
             if ( std::norm( permanent_addends[colIndices[idx]] - permanent_addends_tmp[colIndices[idx]] )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
                 std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << permanent_addends_tmp[colIndices[idx]] << std::endl;
             }  
+*/
         }
                 
     }

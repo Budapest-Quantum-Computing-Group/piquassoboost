@@ -53,6 +53,8 @@ public:
     ///
     std::vector<unsigned char> colIndices; 
     ///
+    PicVector<std::vector<unsigned char>> colIndices_batched;
+    ///
     const size_t max_dim = dfe_mtx_size;
     ///
     std::vector<uint64_t> curmp;
@@ -115,6 +117,11 @@ void reserveSpace();
 */
 void addInputState(size_t batch_idx, PicState_int64& input_state_in);
 
+/**
+@brief ???????
+*/
+void initiateBatch(size_t batch_idx);
+
 
 /**
 @brief ???????
@@ -132,16 +139,21 @@ void determineNormalization();
 */
 void prepareDataForRepeatedMulti_DFE(size_t batch_idx);
 
-/**
-@brief ???????
-*/
-matrix calculate(size_t batch_idx);
 
 
 /**
 @brief ???????
 */
-void reset();
+matrix calculate();
+
+
+
+/**
+@brief ???????
+*/
+Complex16 calculate(size_t batch_idx);
+
+
 
 
 }; // GlynnPermanentCalculatorRepeatedMulti_DFE

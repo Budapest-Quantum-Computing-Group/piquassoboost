@@ -53,7 +53,7 @@ def print_histogram(samples):
 
 
 dim = 60
-photon_number = 25
+photon_number = 30
 
 # generate random matrix
 U = unitary_group.rvs(dim)#generate_random_unitary(dim)
@@ -74,7 +74,7 @@ print(input_state)
 
 print( sum(sum(U)))
 
-shots = 2
+shots = 10
 
 with pq.Program() as program:
     pq.Q() | pq.StateVector(input_state)
