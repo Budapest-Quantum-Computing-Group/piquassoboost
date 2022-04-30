@@ -86,7 +86,7 @@ extern "C" CALCPERMGLYNNDFE calcPermanentGlynnDFEF;
 cGlynnPermanentCalculatorRepeatedMulti_DFE::cGlynnPermanentCalculatorRepeatedMulti_DFE() {
 
 
-    mtxfix = NULL;
+    //mtxfix = NULL;
     mtxfix_batched = NULL;
 }
 
@@ -103,7 +103,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::cGlynnPermanentCalculatorRepeatedMul
     //
     doCPU = false;
     //
-    mtxfix = NULL;//new matrix_base<ComplexFix16>[numinits];
+    //mtxfix = NULL;//new matrix_base<ComplexFix16>[numinits];
     mtxfix_batched = NULL;
     //
     //matrix_base<long double> renormalize_data_all;
@@ -165,6 +165,17 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::determineColIndices( PicState_int64&
 
 
 /**
+@brief Call to convert multiplicities of columns to indices
+*/
+void 
+cGlynnPermanentCalculatorRepeatedMulti_DFE::determineColIndices() {
+
+    determineColIndices( input_state );
+}
+
+
+
+/**
 @brief ????????????
 */
 void 
@@ -178,16 +189,25 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::reserveSpace()  {
     };    
 
     renormalize_data_batched = matrix_base<long double>(totalPerms*colIndices.size(), photons);
+
+    input_states.resize( colIndices.size() );
 }
+
+
 
 /**
-@brief Call to convert multiplicities of columns to indices
+@brief ???????
 */
 void 
-cGlynnPermanentCalculatorRepeatedMulti_DFE::determineColIndices() {
+cGlynnPermanentCalculatorRepeatedMulti_DFE::addInputState(size_t batch_idx, PicState_int64& input_state_in ) {
 
-    determineColIndices( input_state );
+
+    input_states[batch_idx] = input_state_in;
+
 }
+
+
+
 
 
 /**
@@ -403,7 +423,7 @@ reset();
     size_t maxmatrices = (1ULL << 28) / bytesPerMatrix;
 
     //matrix_base<ComplexFix16> mtxfix[numinits] = {};
-    mtxfix = new matrix_base<ComplexFix16>[numinits];
+    matrix_base<ComplexFix16> mtxfix[numinits];
     for (size_t i = 0; i < numinits; i++) {
 /*
         mtxfix[i] = matrix_base<ComplexFix16>(onerows * totalPerms, max_fpga_cols);
@@ -413,7 +433,7 @@ reset();
     };
 
     //assert(mtxfix[i].stride == mtxfix[i].cols);
-    renormalize_data_all = matrix_base<long double>(renormalize_data_batched.get_data()+batch_idx*totalPerms*photons, totalPerms, photons, renormalize_data_batched.stride);
+    matrix_base<long double> renormalize_data_all(renormalize_data_batched.get_data()+batch_idx*totalPerms*photons, totalPerms, photons, renormalize_data_batched.stride);
     for (size_t i = 0; i < totalPerms; i++) {
         memcpy(renormalize_data_all.get_data()+photons*i, renormalize_data_loc.get_data(), photons * sizeof(long double));
     }
@@ -480,42 +500,48 @@ reset();
 /**
 @brief ???????
 */
-Complex16
-cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
+matrix
+cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate(size_t batch_idx)
 {
 
-    Complex16 perm(0.0,0.0);
- 
-
+    matrix perms(1,colIndices.size());
 
     if (doCPU) { //compute with other method
-      GlynnPermanentCalculatorRepeated gpc;
-      perm = gpc.calculate(matrix_init, input_state, output_state);
-      unlock_lib();
-      return perm;
+        GlynnPermanentCalculatorRepeated gpc;
+        for ( size_t idx=0; idx<input_states.size(); idx++) {
+            perms[idx] = gpc.calculate(matrix_init, input_states[idx], output_state);
+        }
+        unlock_lib();
+        return perms;
     }
 
 
 
     //assert(mtxfix[i].stride == mtxfix[i].cols);
 
-
+/*
     if (totalPerms == 1) {
         matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(matrix_init, &input_state, &output_state );
         GlynnPermanentCalculator_DFE(modifiedInterferometerMatrix, perm, useDual, useFloat);
         unlock_lib();
         return perm;
     }
-
+*/
     lock_lib();
     int useFloat = 0; 
 
     //const size_t numinits = 4;
     //matrix_base<ComplexFix16> mtxfix[numinits] = {};
 
-    size_t permBase = 0;
-    std::vector<Complex16> perms;
-    perms.resize(totalPerms);
+    const size_t max_fpga_cols = max_dim / numinits;
+
+    matrix_base<ComplexFix16> mtxfix[numinits];
+    for (size_t i = 0; i < numinits; i++) {
+        mtxfix[i] = matrix_base<ComplexFix16>(mtxfix_batched[i].get_data() + batch_idx*onerows*totalPerms*max_fpga_cols, onerows * totalPerms, max_fpga_cols, mtxfix_batched[i].stride);
+    };
+
+    std::vector<Complex16> perms_DFE;
+    perms_DFE.resize(totalPerms);
 
 
 
@@ -524,32 +550,37 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
         mtx_fix_data[i] = mtxfix[i].get_data();
     }
 
+
+    //assert(mtxfix[i].stride == mtxfix[i].cols);
+    matrix_base<long double> renormalize_data_all(renormalize_data_batched.get_data()+batch_idx*totalPerms*photons, totalPerms, photons, renormalize_data_batched.stride);
+
     if (useFloat) {
-        calcPermanentGlynnDFEF( (const ComplexFix16**)mtx_fix_data, renormalize_data_all.get_data(), onerows, photons, totalPerms, perms.data()+permBase);
+        calcPermanentGlynnDFEF( (const ComplexFix16**)mtx_fix_data, renormalize_data_all.get_data(), onerows, photons, totalPerms, perms_DFE.data());
     }
     else {
-        calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data_all.get_data(), onerows, photons, totalPerms, perms.data()+permBase);
+        calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data_all.get_data(), onerows, photons, totalPerms, perms_DFE.data());
     }
 
     delete[](mtx_fix_data);
 
                                          
-
+    perms = matrix(1,1);
 
     Complex32 res_tmp(0.0,0.0);
-    for (size_t i = 0; i < perms.size(); i++) {
+    for (size_t i = 0; i < perms_DFE.size(); i++) {
         if (i & 1) {
-            res_tmp -= ToComplex32(perms[i]) * (long double)mplicity[i]; 
+            res_tmp -= ToComplex32(perms_DFE[i]) * (long double)mplicity[i]; 
         }
         else {
-            res_tmp += ToComplex32(perms[i]) * (long double)mplicity[i];
+            res_tmp += ToComplex32(perms_DFE[i]) * (long double)mplicity[i];
         }
     }
-    perm = ToComplex16(res_tmp / (long double)(1ULL << mulsum)); //2**mulsum is the effective number of permanents or sum of all multiplicities
+    Complex16 perm = ToComplex16(res_tmp / (long double)(1ULL << mulsum)); //2**mulsum is the effective number of permanents or sum of all multiplicities
+    perms[0] = perm;
 
     unlock_lib();
 
-    return perm;
+    return perms;
 
 
 }
@@ -561,7 +592,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate()
 */
 void 
 cGlynnPermanentCalculatorRepeatedMulti_DFE::reset() {    
-
+/*
     if (mtxfix) {
         for (int idx=0; idx<numinits; idx++ ) {
             mtxfix[idx] = matrix_base<ComplexFix16>(0,0);
@@ -570,10 +601,10 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::reset() {
         delete[] mtxfix;
         mtxfix = NULL;
     }
+*/
 
 
-
-    renormalize_data_all = matrix_base<long double>(0,0);
+    //renormalize_data_all = matrix_base<long double>(0,0);
     //mplicity.clear();
 
 
@@ -598,7 +629,9 @@ GlynnPermanentCalculatorRepeatedMulti_DFE(matrix& matrix_init, PicState_int64& i
     cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(matrix_init, input_state, output_state, useDual );
     DFEcalculator.determineMultiplicitiesForRepeatedMulti_DFE();
     DFEcalculator.prepareDataForRepeatedMulti_DFE(0);
-    perm = DFEcalculator.calculate();
+    matrix perms = DFEcalculator.calculate(0);
+
+    perm = perms[0];
 
     
     unlock_lib();

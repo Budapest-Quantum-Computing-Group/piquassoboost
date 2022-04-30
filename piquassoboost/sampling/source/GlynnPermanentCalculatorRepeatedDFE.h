@@ -33,15 +33,13 @@ public:
     ///
     const size_t numinits=4;
     ///
-    matrix_base<ComplexFix16>* mtxfix;
-    ///
     matrix_base<ComplexFix16>* mtxfix_batched;
     ///
     matrix_base<long double> renormalize_data;
     ///
-    matrix_base<long double> renormalize_data_all;
-    ///
     matrix_base<long double> renormalize_data_batched;
+    ///
+    PicVector<PicState_int64> input_states;
     ///
     uint8_t onerows;
     /// The number of photons
@@ -115,6 +113,12 @@ void reserveSpace();
 /**
 @brief ???????
 */
+void addInputState(size_t batch_idx, PicState_int64& input_state_in);
+
+
+/**
+@brief ???????
+*/
 void determineMultiplicitiesForRepeatedMulti_DFE();
 
 
@@ -131,7 +135,7 @@ void prepareDataForRepeatedMulti_DFE(size_t batch_idx);
 /**
 @brief ???????
 */
-Complex16 calculate();
+matrix calculate(size_t batch_idx);
 
 
 /**

@@ -399,9 +399,11 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 */
                 DFEcalculator.colIndices = colIndices;///////////////
                 DFEcalculator.colIndices.erase( DFEcalculator.colIndices.begin()+idx ) ;/////////////
+                DFEcalculator.addInputState( idx, input_state_loc );
 
                 DFEcalculator.prepareDataForRepeatedMulti_DFE(idx);   
-                permanent_addends[colIndices[idx]] = DFEcalculator.calculate();                      
+                //matrix perm_tmp = DFEcalculator.calculate(idx);          
+                //permanent_addends[colIndices[idx]] = perm_tmp[0];                      
 
                 //DFEcalculator_new.prepareDataForRepeatedMulti_DFE();     
                 //permanent_addends[colIndices[idx]] = DFEcalculator_new.calculate();
@@ -444,14 +446,26 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
                 permanent_addends_tmp[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state); 
 //permanent_addends[idx] = permanent_addends_tmp[idx];  
 
-                if ( std::norm( permanent_addends[colIndices[idx]] - permanent_addends_tmp[colIndices[idx]] )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
-                    std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << permanent_addends_tmp[colIndices[idx]] << std::endl;
-                 }  
+
 
            }
 #endif
 
         
+    }
+
+
+    if ( nonzero_output_elements >= 13 ) {
+
+        for (size_t idx=0; idx<colIndices.size(); idx++) {
+            matrix perm_tmp = DFEcalculator.calculate(idx);          
+            permanent_addends[colIndices[idx]] = perm_tmp[0]; 
+
+            if ( std::norm( permanent_addends[colIndices[idx]] - permanent_addends_tmp[colIndices[idx]] )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
+                std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << permanent_addends_tmp[colIndices[idx]] << std::endl;
+            }  
+        }
+                
     }
 
      
