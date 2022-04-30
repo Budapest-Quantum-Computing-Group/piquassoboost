@@ -37,6 +37,8 @@ public:
     ///
     matrix_base<ComplexFix16>* mtxfix_batched;
     ///
+    matrix_base<long double> renormalize_data;
+    ///
     matrix_base<long double> renormalize_data_all;
     ///
     matrix_base<long double> renormalize_data_batched;
@@ -114,6 +116,12 @@ void reserveSpace();
 @brief ???????
 */
 void determineMultiplicitiesForRepeatedMulti_DFE();
+
+
+/**
+@brief ???????
+*/
+void determineNormalization();
 
 /**
 @brief ???????

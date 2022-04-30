@@ -262,6 +262,67 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::determineMultiplicitiesForRepeatedMu
 
 }
 
+
+/**
+@brief ???????
+*/
+void
+cGlynnPermanentCalculatorRepeatedMulti_DFE::determineNormalization()
+{
+
+    size_t photons_init = photons+1;
+
+    // calulate the maximal sum of the columns to normalize the matrix
+    matrix_base<Complex32> colSumMax( photons_init, 2);
+    memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex32) );
+    //sum up vectors in first/upper-left and fourth/lower-right quadrants of the complex plane
+    for (size_t i=0; i<row_indices.size(); i++) {
+
+        for( size_t jdx=0; jdx<photons_init; jdx++) {
+
+            for (int64_t idx = 0; idx < (i < onerows ? 1 : output_state_loc[row_indices[i]]); idx++) {
+                size_t offset = row_indices[i]*matrix_init.stride + colIndices[jdx];
+                int realPos = matrix_init[offset].real() > 0;
+                int slopeUpLeft = realPos == (matrix_init[offset].imag() > 0);
+                if (realPos) colSumMax[2*jdx+slopeUpLeft] += matrix_init[offset];
+                else colSumMax[2*jdx+slopeUpLeft] -= matrix_init[offset];
+            }
+
+        }
+
+    }
+
+    //now try to add/subtract neighbor quadrant values to the prior sum vector to see if it increase the absolute value    
+    for (size_t i=0; i<row_indices.size(); i++) {
+
+        for( size_t jdx=0; jdx<photons_init; jdx++) {
+
+            for (int64_t idx = 0; idx < (i < onerows ? 1 : output_state_loc[row_indices[i]]); idx++) {
+
+                size_t offset = row_indices[i]*matrix_init.stride + colIndices[jdx];
+                int realPos = matrix_init[offset].real() > 0;
+                int slopeUpLeft = realPos == (matrix_init[offset].imag() > 0);
+                Complex32 value1 = colSumMax[2*jdx+1-slopeUpLeft] + matrix_init[offset];
+                Complex32 value2 = colSumMax[2*jdx+1-slopeUpLeft] - matrix_init[offset];
+                colSumMax[2*jdx+1-slopeUpLeft] = std::norm(value1) > std::norm(value2) ? value1 : value2;
+            }
+
+        }
+
+    } 
+
+
+    // calculate the renormalization coefficients
+    renormalize_data = matrix_base<long double>(1, photons_init);
+    for (size_t jdx=0; jdx<photons_init; jdx++ ) {
+        renormalize_data[jdx] = std::abs(std::norm(colSumMax[2*jdx]) > std::norm(colSumMax[2*jdx+1]) ? colSumMax[2*jdx] : colSumMax[2*jdx+1]);
+        //printf("%d %.21Lf\n", jdx, renormalize_data[jdx]);
+    }
+
+
+}
+
+
 /**
 @brief ???????
 */
@@ -274,44 +335,15 @@ reset();
         return;
     }
 
-    
-
-    // calulate the maximal sum of the columns to normalize the matrix
-    matrix_base<Complex32> colSumMax( photons, 2);
-    memset( colSumMax.get_data(), 0.0, colSumMax.size()*sizeof(Complex32) );
-    //sum up vectors in first/upper-left and fourth/lower-right quadrants of the complex plane
-    for (size_t i=0; i<row_indices.size(); i++) {
-        for( size_t jdx=0; jdx<photons; jdx++) {
-            for (int64_t idx = 0; idx < (i < onerows ? 1 : output_state_loc[row_indices[i]]); idx++) {
-                size_t offset = row_indices[i]*matrix_init.stride + colIndices[jdx];
-                int realPos = matrix_init[offset].real() > 0;
-                int slopeUpLeft = realPos == (matrix_init[offset].imag() > 0);
-                if (realPos) colSumMax[2*jdx+slopeUpLeft] += matrix_init[offset];
-                else colSumMax[2*jdx+slopeUpLeft] -= matrix_init[offset];
-            }
-        }
+    // construct array stroing the renormalization coefficients excluding the column determined by batch_idx
+    matrix_base<long double> renormalize_data_loc(1, photons);
+    if ( batch_idx>0) {
+        memcpy( renormalize_data_loc.get_data(), renormalize_data.get_data(), batch_idx*sizeof(long double) );
+    }
+    if ( batch_idx<photons ) {
+        memcpy( renormalize_data_loc.get_data()+batch_idx, renormalize_data.get_data()+batch_idx+1, (photons-batch_idx)*sizeof(long double) );
     }
 
-    //now try to add/subtract neighbor quadrant values to the prior sum vector to see if it increase the absolute value    
-    for (size_t i=0; i<row_indices.size(); i++) {
-        for( size_t jdx=0; jdx<photons; jdx++) {
-            for (int64_t idx = 0; idx < (i < onerows ? 1 : output_state_loc[row_indices[i]]); idx++) {
-                size_t offset = row_indices[i]*matrix_init.stride + colIndices[jdx];
-                int realPos = matrix_init[offset].real() > 0;
-                int slopeUpLeft = realPos == (matrix_init[offset].imag() > 0);
-                Complex32 value1 = colSumMax[2*jdx+1-slopeUpLeft] + matrix_init[offset];
-                Complex32 value2 = colSumMax[2*jdx+1-slopeUpLeft] - matrix_init[offset];
-                colSumMax[2*jdx+1-slopeUpLeft] = std::norm(value1) > std::norm(value2) ? value1 : value2;
-            }
-        }
-    } 
-
-    // calculate the renormalization coefficients
-    matrix_base<long double> renormalize_data(1, photons);
-    for (size_t jdx=0; jdx<photons; jdx++ ) {
-        renormalize_data[jdx] = std::abs(std::norm(colSumMax[2*jdx]) > std::norm(colSumMax[2*jdx+1]) ? colSumMax[2*jdx] : colSumMax[2*jdx+1]);
-        //printf("%d %.21Lf\n", jdx, renormalize_data[jdx]);
-    }
 
     // renormalize the input matrix and convert to fixed point maximizing precision via long doubles
     // SLR and DFE input matrix with 1.0 filling on top row, 0 elsewhere 
@@ -324,7 +356,7 @@ reset();
     //tbb::parallel_for( (size_t)0, actualinits, (size_t)1, [&](size_t kdx){
     for (size_t kdx = 0; kdx < numinits; kdx++) {
         mtxprefix[kdx] = matrix_base<ComplexFix16>(rows, max_fpga_cols);
-        memset(mtxprefix[kdx].get_data(), 0.0, mtxprefix[kdx].size()*sizeof(ComplexFix16));
+        memset(mtxprefix[kdx].get_data(), 0, mtxprefix[kdx].size()*sizeof(ComplexFix16));
     }
 
     for (size_t kdx = 0; kdx < actualinits; kdx++) {
@@ -335,8 +367,8 @@ reset();
 
         for (size_t jdx = 0; jdx < lastcol; jdx++) {
           size_t offset = row_indices[idx]*matrix_init.stride + colIndices[basecol+jdx];
-          mtxprefix[kdx][offset_small+jdx].real = llrintl((long double)matrix_init[offset].real() * fixpow / renormalize_data[basecol+jdx]);
-          mtxprefix[kdx][offset_small+jdx].imag = llrintl((long double)matrix_init[offset].imag() * fixpow / renormalize_data[basecol+jdx]);
+          mtxprefix[kdx][offset_small+jdx].real = llrintl((long double)matrix_init[offset].real() * fixpow / renormalize_data_loc[basecol+jdx]);
+          mtxprefix[kdx][offset_small+jdx].imag = llrintl((long double)matrix_init[offset].imag() * fixpow / renormalize_data_loc[basecol+jdx]);
           if (idx >= onerows) { //start with all positive Gray codes, so sum everything onto the adjust row
               for (int64_t j = 0; j < output_state_loc[row_indices[idx]]; j++) {
                   mtxprefix[kdx][jdx].real += mtxprefix[kdx][offset_small+jdx].real;
@@ -383,19 +415,22 @@ reset();
     //assert(mtxfix[i].stride == mtxfix[i].cols);
     renormalize_data_all = matrix_base<long double>(renormalize_data_batched.get_data()+batch_idx*totalPerms*photons, totalPerms, photons, renormalize_data_batched.stride);
     for (size_t i = 0; i < totalPerms; i++) {
-        memcpy(renormalize_data_all.get_data()+photons*i, renormalize_data.get_data(), photons * sizeof(long double));
+        memcpy(renormalize_data_all.get_data()+photons*i, renormalize_data_loc.get_data(), photons * sizeof(long double));
     }
 
     std::vector<uint64_t> curmp_loc = curmp;
+    size_t perm_idx = 0;
 
     while (true) {
 
-        //size_t offset_small = mplicity.size()*onerows*max_fpga_cols;
-        size_t offset_small = mplicity.size()*onerows*max_fpga_cols;
+        size_t offset_small = perm_idx*onerows*max_fpga_cols;
         for (size_t i = 0; i < actualinits; i++) {
             memcpy(mtxfix[i].get_data()+offset_small, mtxprefix[i].get_data(), sizeof(ComplexFix16) * onerows * max_fpga_cols);
         }
-        mplicity.push_back(cur_multiplicity);   
+
+        if ( batch_idx==0 ) {
+            mplicity.push_back(cur_multiplicity);   
+        }
 
 
         
@@ -410,7 +445,11 @@ reset();
       
         size_t i = __builtin_ctzll(skipidx); //count of trailing zeros to compute next change index
         bool curdir = (gcodeidx & (1ULL << i)) == 0;
-        cur_multiplicity = binomial_gcode(cur_multiplicity, curdir, inp[i], (curmp_loc[i] + inp[i]) / 2);
+
+        if ( batch_idx==0 ) {
+            cur_multiplicity = binomial_gcode(cur_multiplicity, curdir, inp[i], (curmp_loc[i] + inp[i]) / 2);
+        }
+
         curmp_loc[i] = curdir ? curmp_loc[i] - 2 : curmp_loc[i] + 2;
         size_t offset = (onerows+i)*max_fpga_cols;
 
@@ -430,6 +469,8 @@ reset();
         if ((!curdir && curmp_loc[i] == inp[i]) || (curdir && curmp_loc[i] == -inp[i])) skipidx ^= ((1ULL << (i+1)) - 1); //set all skipping before and including current index
         else skipidx ^= ((1ULL << i) - 1); //flip all skipping which come before current index
         gcodeidx ^= (1ULL << i) - 1; //flip all directions which come before current index
+
+        perm_idx++;
     }
 
 
@@ -533,7 +574,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::reset() {
 
 
     renormalize_data_all = matrix_base<long double>(0,0);
-    mplicity.clear();
+    //mplicity.clear();
 
 
 

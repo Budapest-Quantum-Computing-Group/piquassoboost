@@ -343,6 +343,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
     DFEcalculator.determineMultiplicitiesForRepeatedMulti_DFE();
     DFEcalculator.reserveSpace();
     std::vector<unsigned char> colIndices = DFEcalculator.colIndices;
+    DFEcalculator.determineNormalization(); 
 ////////////////////////////////
 
     for (size_t idx=0; idx<colIndices.size(); idx++) {
@@ -398,6 +399,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 */
                 DFEcalculator.colIndices = colIndices;///////////////
                 DFEcalculator.colIndices.erase( DFEcalculator.colIndices.begin()+idx ) ;/////////////
+
                 DFEcalculator.prepareDataForRepeatedMulti_DFE(idx);   
                 permanent_addends[colIndices[idx]] = DFEcalculator.calculate();                      
 
