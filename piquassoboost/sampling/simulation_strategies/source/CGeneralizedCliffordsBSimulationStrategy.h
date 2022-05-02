@@ -70,6 +70,7 @@ protected:
 
 #ifdef __DFE__
     const int useDual = 0;
+    bool out_of_memory;
 #endif
 
 public:

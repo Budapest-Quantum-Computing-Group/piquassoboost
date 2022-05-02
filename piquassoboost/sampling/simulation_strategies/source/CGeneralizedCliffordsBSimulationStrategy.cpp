@@ -137,7 +137,8 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 
 #ifdef __DFE__
     lock_lib();
-    init_dfe_lib(DFE_MAIN, useDual);   
+    init_dfe_lib(DFE_MAIN, useDual); 
+    out_of_memory = false;  
 #endif
 
     input_state = input_state_in;
@@ -232,6 +233,13 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
             working_input_state = particle_input_state.copy();
 
             fill_r_sample( sample );
+            
+#ifdef __DFE__
+            if (out_of_memory) {
+                out_of_memory = false;
+                continue;
+            }
+#endif
 
             samples.push_back( sample );
 std::cout << "sample: " << idx+1 << std::endl;
@@ -275,6 +283,12 @@ CGeneralizedCliffordsBSimulationStrategy::fill_r_sample( PicState_int64& sample 
 
         // calculate new layer of probabilities from which an intermediate (or final) output state is sampled
         compute_pmf( sample );
+        
+#ifdef __DFE__
+        if (out_of_memory) {
+            return;
+        }
+#endif
 
         // pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs
         sample_from_pmf(sample);
@@ -337,107 +351,124 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
         }
     }
 
-////////////////////////////
-    cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(interferometer_matrix, current_input, sample, useDual );
-    DFEcalculator.determineColIndices( current_input );
-    DFEcalculator.determineMultiplicitiesForRepeatedMulti_DFE();
-    DFEcalculator.reserveSpace();
-    std::vector<unsigned char>& colIndices = DFEcalculator.colIndices;
-    DFEcalculator.determineNormalization(); 
-    const size_t nonzero_output_elements_threshold = 10;
-////////////////////////////////
-
-//tbb::tick_count t0 = tbb::tick_count::now();////////////////////////// 
-
-
-    tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
-    //for (size_t idx=0; idx<colIndices.size(); idx++) {
-
-        //GlynnPermanentCalculator permanentCalculator;  
-        GlynnPermanentCalculatorRepeated permanentCalculator;  
-
- 
 
 
 #ifdef __DFE__
-            if ( nonzero_output_elements < nonzero_output_elements_threshold ) {
+    const size_t nonzero_output_elements_threshold = 10;
+//////////////////////////////////
+GlynnPermanentCalculatorRepeated permanentCalculator;
+        cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(interferometer_matrix, current_input, sample, useDual );
+        DFEcalculator.determineColIndices( current_input );
+std::vector<unsigned char>& colIndices = DFEcalculator.colIndices;
+///////////////////////////////////
+
+
+    if ( nonzero_output_elements < nonzero_output_elements_threshold ) {
 #endif
+        tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
+        //for (size_t idx=0; idx<colIndices.size(); idx++) {
 
-                // remove a photon from the input state
-                PicState_int64&& input_state_loc = current_input.copy();
-                input_state_loc[colIndices[idx]]--;  
-                input_state_loc.number_of_photons--; 
+            // remove a photon from the input state
+            PicState_int64&& input_state_loc = current_input.copy();
+            input_state_loc[colIndices[idx]]--;  
+            input_state_loc.number_of_photons--; 
 
-                //tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
-                //matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, &input_state_loc, &sample );
-                //permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
+            //tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
+            //matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, &input_state_loc, &sample );
+            //permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
                
             
-                matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
-                PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
-                PicState_int64 adapted_output_state = sample.filter(filterNonZero);
-                permanent_addends[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
+            matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
+            PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
+            PicState_int64 adapted_output_state = sample.filter(filterNonZero);
+            permanent_addends[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
 
-                //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
-                //t_CPU_permanent += (t1-t0).seconds();    //////////////////////////             
+            //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
+            //t_CPU_permanent += (t1-t0).seconds();    //////////////////////////             
 
+        //}
+        });
 #ifdef __DFE__
-           }
-           else { 
+    }
+    else {
+
+        cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(interferometer_matrix, current_input, sample, useDual );
+        DFEcalculator.determineColIndices( current_input );
+        DFEcalculator.determineMultiplicities();
+        if ( DFEcalculator.determineBatchIterations() )  {
+            out_of_memory = true;
+std::cout << "oooooooooooooooooooooooooooooooO determineBatchIterations" << std::endl;
+            return;
+        }
 
 
+        std::vector<unsigned char>& colIndices = DFEcalculator.colIndices;
+        DFEcalculator.determineNormalization(); 
 
-                DFEcalculator.initiateBatch(idx);
-                DFEcalculator.prepareDataForRepeatedMulti_DFE(idx);                            
+        PicVector<size_t>& batch_iterations = DFEcalculator.batch_iterations;
+        size_t batch_index_offset = 0;
+
+        for ( size_t jdx=0; jdx<batch_iterations.size(); jdx++ ) {
+
+            if ( DFEcalculator.reserveSpace( jdx ) ) {
+                out_of_memory = true;
+std::cout << "oooooooooooooooooooooooooooooooO Bad Alloc" << std::endl;
+                return;
+            }
+
+            //tbb::parallel_for( (size_t)0, batch_iterations[jdx], (size_t)1, [&](size_t idx) {
+            for (size_t idx=0; idx<batch_iterations[jdx]; idx++) {
+
+                size_t idx_loc =  idx + batch_index_offset;
+
+
+                DFEcalculator.initiateBatch(idx_loc);
+                DFEcalculator.prepareDataForRepeatedMulti_DFE(idx, batch_index_offset);  
 
        
 /*
                 // remove a photon from the input state
                 PicState_int64&& input_state_loc = current_input.copy();
-                input_state_loc[colIndices[idx]]--;  
+                input_state_loc[colIndices[idx_loc]]--;  
                 input_state_loc.number_of_photons--; 
 
                 matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
                 PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
                 PicState_int64 adapted_output_state = sample.filter(filterNonZero);
-                permanent_addends_tmp[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state); 
-//permanent_addends[idx] = permanent_addends_tmp[idx];  
+                permanent_addends_tmp[colIndices[idx_loc]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state); 
+//permanent_addends[colIndices[idx_loc]] = permanent_addends_tmp[colIndices[idx_loc]];  
 */
 
+            }
+            //});
 
-           }
-#endif
-
-        
-    //}
-    });
-
-/*
-if ( nonzero_output_elements >= nonzero_output_elements_threshold ) {
-    tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
-    t_DFE_prepare += (t1-t0).seconds(); ////////////////////////// 
-}
-*/
-
-    if ( nonzero_output_elements >= nonzero_output_elements_threshold ) {
 
 //tbb::tick_count t0 = tbb::tick_count::now();////////////////////////// 
-        matrix perms_batched = DFEcalculator.calculate();   
+            matrix perms_batched = DFEcalculator.calculate( jdx, batch_index_offset );   
 //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
 //t_DFE += (t1-t0).seconds(); ////////////////////////// 
 
-        for (size_t idx=0; idx<colIndices.size(); idx++) {
-            //permanent_addends[colIndices[idx]] = DFEcalculator.calculate(idx); 
-            permanent_addends[colIndices[idx]] = perms_batched[idx];
-/*
-            if ( std::norm( permanent_addends[colIndices[idx]] - permanent_addends_tmp[colIndices[idx]] )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
-                std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << permanent_addends_tmp[colIndices[idx]] << std::endl;
-            }  
-*/
-        }
-                
-    }
+            for (size_t idx=0; idx<batch_iterations[jdx]; idx++) {
 
+                size_t idx_loc =  idx + batch_index_offset;
+
+                //permanent_addends[colIndices[idx_loc]] = DFEcalculator.calculate(idx_loc); 
+                permanent_addends[colIndices[idx_loc]] = perms_batched[idx];
+/*
+                if ( std::norm( permanent_addends[colIndices[idx_loc]] - permanent_addends_tmp[colIndices[idx_loc]] )/std::norm( permanent_addends[colIndices[idx_loc]]) > 1e-3 ) {
+                    std::cout << "difference in idx=" << idx_loc << " " << permanent_addends[colIndices[idx_loc]] << " " << permanent_addends_tmp[colIndices[idx_loc]] << std::endl;
+                }  
+*/
+            }
+
+
+            batch_index_offset += batch_iterations[jdx];
+
+        }
+
+
+    }
+#endif
      
 
 //std::cout << "iteration done" << std::endl;

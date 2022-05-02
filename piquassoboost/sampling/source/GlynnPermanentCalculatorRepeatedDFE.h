@@ -60,7 +60,8 @@ public:
     std::vector<uint64_t> curmp;
     ///
     std::vector<uint64_t> inp;
-
+    ///
+    PicVector<size_t> batch_iterations;
     ///
     PicVector<uint64_t> mplicity;
     ///
@@ -109,13 +110,13 @@ void determineColIndices();
 /**
 @brief ????????????
 */
-void reserveSpace();
+int reserveSpace( size_t jdx );
 
 
 /**
 @brief ???????
 */
-void addInputState(size_t batch_idx, PicState_int64& input_state_in);
+void addInputState(size_t idx, PicState_int64& input_state_in);
 
 /**
 @brief ???????
@@ -126,7 +127,7 @@ void initiateBatch(size_t batch_idx);
 /**
 @brief ???????
 */
-void determineMultiplicitiesForRepeatedMulti_DFE();
+void determineMultiplicities();
 
 
 /**
@@ -137,23 +138,23 @@ void determineNormalization();
 /**
 @brief ???????
 */
-void prepareDataForRepeatedMulti_DFE(size_t batch_idx);
+void prepareDataForRepeatedMulti_DFE(size_t insideBatch_idx, size_t batch_idx_offset);
 
 
 
 /**
 @brief ???????
 */
-matrix calculate();
+matrix calculate(size_t batch_idx, size_t batch_index_offset);
+
+
 
 
 
 /**
 @brief ???????
 */
-Complex16 calculate(size_t batch_idx);
-
-
+int determineBatchIterations();
 
 
 }; // GlynnPermanentCalculatorRepeatedMulti_DFE
