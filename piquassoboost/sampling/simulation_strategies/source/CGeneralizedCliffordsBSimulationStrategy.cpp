@@ -204,7 +204,6 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
     
             sample = sample_new;
             
-    
         }
     
        
@@ -217,6 +216,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
             PicState_int64 sample_local( sample_gathered.get_data()+rank*sample.size(), sample.size() );
             samples.push_back( sample_local.copy() );
         }
+
 
 
 #else
