@@ -96,10 +96,12 @@ int test_extract_corner(const size_t dim, std::vector<size_t> modes_in){
     }
         
     // bool array with the logical indexes of the columns of the matrix
-    bool cols_logical[dim] = {0};
+    bool cols_logical[dim];
+    memset( &(cols_logical[0]), 0, dim*sizeof(bool));
     
     // expected bool array
-    bool cols_logical_expected[dim] = {0};
+    bool cols_logical_expected[dim];
+    memset( &(cols_logical_expected[0]), 0, dim*sizeof(bool));
     for ( size_t mode : modes_in ){
         cols_logical_expected[mode] = 1;
     }

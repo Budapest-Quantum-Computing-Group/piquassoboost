@@ -33,18 +33,35 @@ public:
     ///
     const size_t numinits=4;
     ///
-    //matrix_base<ComplexFix16>* mtxfix;
+    matrix_base<ComplexFix16>* mtxfix_batched;
     ///
-    PicVector<matrix_base<ComplexFix16>*> mtxfix_batches;
+    matrix_base<long double> renormalize_data;
     ///
-    PicVector<uint64_t> numPerms_batches;
+    matrix_base<long double> renormalize_data_batched;
     ///
-    matrix_base<long double> renormalize_data_all;
+    PicVector<PicState_int64> input_states;
     ///
     uint8_t onerows;
     /// The number of photons
     size_t photons;
-
+    ///
+    std::vector<uint8_t> mrows;
+    ///
+    std::vector<uint8_t> row_indices;
+    ///
+    PicState_int64 output_state_loc;
+    ///
+    std::vector<unsigned char> colIndices; 
+    ///
+    PicVector<std::vector<unsigned char>> colIndices_batched;
+    ///
+    const size_t max_dim = dfe_mtx_size;
+    ///
+    std::vector<uint64_t> curmp;
+    ///
+    std::vector<uint64_t> inp;
+    ///
+    PicVector<size_t> batch_iterations;
     ///
     PicVector<uint64_t> mplicity;
     ///
@@ -79,20 +96,65 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE( matrix& matrix_mtx_in, PicState_int6
 
 
 /**
-@brief ???????
+@brief Call to convert multiplicities of columns to indices
 */
-void prepareDataForRepeatedMulti_DFE();
+void determineColIndices( PicState_int64& input_state );
+
+
+/**
+@brief Call to convert multiplicities of columns to indices
+*/
+void determineColIndices();
+
+
+/**
+@brief ????????????
+*/
+int reserveSpace( size_t jdx );
+
 
 /**
 @brief ???????
 */
-Complex16 calculate();
+void addInputState(size_t idx, PicState_int64& input_state_in);
+
+/**
+@brief ???????
+*/
+void initiateBatch(size_t batch_idx);
 
 
 /**
 @brief ???????
 */
-void reset();
+void determineMultiplicities();
+
+
+/**
+@brief ???????
+*/
+void determineNormalization();
+
+/**
+@brief ???????
+*/
+void prepareDataForRepeatedMulti_DFE(size_t insideBatch_idx, size_t batch_idx_offset);
+
+
+
+/**
+@brief ???????
+*/
+matrix calculate(size_t batch_idx, size_t batch_index_offset);
+
+
+
+
+
+/**
+@brief ???????
+*/
+int determineBatchIterations();
 
 
 }; // GlynnPermanentCalculatorRepeatedMulti_DFE

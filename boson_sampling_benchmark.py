@@ -22,11 +22,19 @@ import numpy as np
 import piquasso as pq
 import piquassoboost as pqb
 
-from mpi4py import MPI
+try:
+    from mpi4py import MPI
+    MPI_imported = True
+except ModuleNotFoundError:
+    MPI_imported = False
+
+
 from scipy.stats import unitary_group
 import random
 
-
+if MPI_imported:
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
 
 def print_histogram(samples):
     hist = dict()
@@ -45,7 +53,7 @@ def print_histogram(samples):
 
 
 dim = 60
-photon_number = 30
+photon_number = 36
 
 # generate random matrix
 U = unitary_group.rvs(dim)#generate_random_unitary(dim)
@@ -57,9 +65,14 @@ for photon in range(photon_number):
     rand_int = random.randint(0, len(list_of_indices)-1)
     input_state[list_of_indices.pop(rand_int)] = 1
 
+if MPI_imported:
+    [input_state, U] = comm.bcast([input_state, U], root=0)
+
+
 print('input state:')
 print(input_state)
 
+print( sum(sum(U)))
 
 shots = 100
 
@@ -67,7 +80,7 @@ with pq.Program() as program:
     pq.Q() | pq.StateVector(input_state)
     pq.Q() | pq.Interferometer(U)
 
-    pq.Q() | pq.Sampling()
+    pq.Q() | pq.ParticleNumberMeasurement()
 
 simulator = pqb.BoostedSamplingSimulator(d=dim)
 

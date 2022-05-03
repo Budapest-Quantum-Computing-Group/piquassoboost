@@ -169,7 +169,14 @@ matrix_base( size_t rows_in, size_t cols_in) {
   // The column stride of the matrix
   stride = cols_in;
   // pointer to the stored data
-  data = (scalar*)scalable_aligned_malloc( rows*cols*sizeof(scalar), CACHELINE);
+  try {
+      data = (scalar*)scalable_aligned_malloc( rows*cols*sizeof(scalar), CACHELINE);
+  }
+  catch (std::bad_alloc & ba)
+  {
+     std::cerr << "bad_alloc caught: " << ba.what();
+     throw ba;
+  }
 #ifdef DEBUG
   if (rows > 0 && cols>0) assert(data);
 #endif
