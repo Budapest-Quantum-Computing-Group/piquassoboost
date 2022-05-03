@@ -19,7 +19,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "structmember.h"
-#include "CGeneralizedCliffordsSimulationStrategy.h"
+#include "CGeneralizedCliffordsBSimulationStrategy.h"
 #include "tbb/scalable_allocator.h"
 #include "numpy_interface.h"
 #ifdef _DFE_
@@ -28,17 +28,17 @@
 
 
 /**
-@brief Type definition of the GeneralizedCliffordsSimulationStrategy_wrapper Python class of the GeneralizedCliffordsSimulationStrategy_wrapper module
+@brief Type definition of the GeneralizedCliffordsBSimulationStrategy_wrapper Python class of the GeneralizedCliffordsBSimulationStrategy_wrapper module
 */
-typedef struct GeneralizedCliffordsSimulationStrategy_wrapper {
+typedef struct GeneralizedCliffordsBSimulationStrategy_wrapper {
     PyObject_HEAD
     int lib;
     /// pointer to numpy matrix to keep it alive
     PyObject *interferometer_matrix = NULL;
-    /// The C++ variant of class CGeneralizedCliffordsSimulationStrategy
-    pic::CGeneralizedCliffordsSimulationStrategy* simulation_strategy = NULL;
+    /// The C++ variant of class CGeneralizedCliffordsBSimulationStrategy
+    pic::CGeneralizedCliffordsBSimulationStrategy* simulation_strategy = NULL;
 
-} GeneralizedCliffordsSimulationStrategy_wrapper;
+} GeneralizedCliffordsBSimulationStrategy_wrapper;
 
 
 /**
@@ -46,10 +46,10 @@ typedef struct GeneralizedCliffordsSimulationStrategy_wrapper {
 @param interferometer_matrix
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
-pic::CGeneralizedCliffordsSimulationStrategy*
+pic::CGeneralizedCliffordsBSimulationStrategy*
 cerate_ChinHuhPermanentCalculator( pic::matrix &interferometer_matrix_mtx, int lib ) {
 
-    return new pic::CGeneralizedCliffordsSimulationStrategy(interferometer_matrix_mtx, lib);
+    return new pic::CGeneralizedCliffordsBSimulationStrategy(interferometer_matrix_mtx, lib);
 
 }
 
@@ -58,7 +58,7 @@ cerate_ChinHuhPermanentCalculator( pic::matrix &interferometer_matrix_mtx, int l
 @param ptr A pointer pointing to an instance of ChinHuhPermanentCalculator class.
 */
 void
-release_ChinHuhPermanentCalculator( pic::CGeneralizedCliffordsSimulationStrategy*  instance ) {
+release_ChinHuhPermanentCalculator( pic::CGeneralizedCliffordsBSimulationStrategy*  instance ) {
     if ( instance != NULL ) {
         delete instance;
     }
@@ -75,19 +75,18 @@ extern "C"
 
 
 /**
-@brief Method called when a python instance of the class GeneralizedCliffordsSimulationStrategy_wrapper is destroyed
-@param self A pointer pointing to an instance of class GeneralizedCliffordsSimulationStrategy_wrapper.
+@brief Method called when a python instance of the class GeneralizedCliffordsBSimulationStrategy_wrapper is destroyed
+@param self A pointer pointing to an instance of class GeneralizedCliffordsBSimulationStrategy_wrapper.
 */
 static void
-GeneralizedCliffordsSimulationStrategy_wrapper_dealloc(GeneralizedCliffordsSimulationStrategy_wrapper *self)
+GeneralizedCliffordsBSimulationStrategy_wrapper_dealloc(GeneralizedCliffordsBSimulationStrategy_wrapper *self)
 {
 
     // deallocate the instance of class N_Qubit_Decomposition
     release_ChinHuhPermanentCalculator( self->simulation_strategy );
 
 #ifdef _DFE_
-    if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
-        dec_dfe_lib_count();
+    dec_dfe_lib_count();
 #endif
 
     // release numpy arrays
@@ -98,14 +97,14 @@ GeneralizedCliffordsSimulationStrategy_wrapper_dealloc(GeneralizedCliffordsSimul
 }
 
 /**
-@brief Method called when a python instance of the class GeneralizedCliffordsSimulationStrategy_wrapper is allocated
-@param type A pointer pointing to a structure describing the type of the class GeneralizedCliffordsSimulationStrategy_wrapper.
+@brief Method called when a python instance of the class GeneralizedCliffordsBSimulationStrategy_wrapper is allocated
+@param type A pointer pointing to a structure describing the type of the class GeneralizedCliffordsBSimulationStrategy_wrapper.
 */
 static PyObject *
-GeneralizedCliffordsSimulationStrategy_wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+GeneralizedCliffordsBSimulationStrategy_wrapper_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    GeneralizedCliffordsSimulationStrategy_wrapper *self;
-    self = (GeneralizedCliffordsSimulationStrategy_wrapper *) type->tp_alloc(type, 0);
+    GeneralizedCliffordsBSimulationStrategy_wrapper *self;
+    self = (GeneralizedCliffordsBSimulationStrategy_wrapper *) type->tp_alloc(type, 0);
     if (self != NULL) {}
 
     self->interferometer_matrix = NULL;
@@ -116,14 +115,14 @@ GeneralizedCliffordsSimulationStrategy_wrapper_new(PyTypeObject *type, PyObject 
 
 
 /**
-@brief Method called when a python instance of the class GeneralizedCliffordsSimulationStrategy_wrapper is initialized
-@param self A pointer pointing to an instance of the class GeneralizedCliffordsSimulationStrategy_wrapper.
+@brief Method called when a python instance of the class GeneralizedCliffordsBSimulationStrategy_wrapper is initialized
+@param self A pointer pointing to an instance of the class GeneralizedCliffordsBSimulationStrategy_wrapper.
 @param args A tuple of the input arguments: qbit_num (integer)
 qbit_num: the number of qubits spanning the operations
 @param kwds A tuple of keywords
 */
 static int
-GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *args, PyObject *kwds)
+GeneralizedCliffordsBSimulationStrategy_wrapper_init(GeneralizedCliffordsBSimulationStrategy_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
     static char *kwlist[] = {(char*)"interferometer_matrix", (char*)"seed", (char*)"lib", NULL};
@@ -164,13 +163,12 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
     );
 
     // set custom seed for sampling
-    if ( seed != NULL ) {
+    if ( seed != NULL && seed != Py_None) {
         unsigned long long int seed_C = PyLong_AsUnsignedLongLong(seed);
         self->simulation_strategy->seed(seed_C);
     }
 
 #ifdef _DFE_
-    if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
         inc_dfe_lib_count();
 #endif
     
@@ -179,7 +177,7 @@ GeneralizedCliffordsSimulationStrategy_wrapper_init(GeneralizedCliffordsSimulati
 }
 
 static PyObject *
-GeneralizedCliffordsSimulationStrategy_wrapper_seed(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *args)
+GeneralizedCliffordsBSimulationStrategy_wrapper_seed(GeneralizedCliffordsBSimulationStrategy_wrapper *self, PyObject *args)
 {
     // initiate variables for input arguments
     unsigned long long seed = 0;
@@ -199,7 +197,7 @@ GeneralizedCliffordsSimulationStrategy_wrapper_seed(GeneralizedCliffordsSimulati
 @param args A tuple of the input arguments: ??????????????
 */
 static PyObject *
-GeneralizedCliffordsSimulationStrategy_wrapper_simulate(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *args)
+GeneralizedCliffordsBSimulationStrategy_wrapper_simulate(GeneralizedCliffordsBSimulationStrategy_wrapper *self, PyObject *args)
 {
 
     // initiate variables for input arguments
@@ -267,7 +265,7 @@ GeneralizedCliffordsSimulationStrategy_wrapper_simulate(GeneralizedCliffordsSimu
 @brief Method to get matrix interferometer_matrix
 */
 static PyObject *
-GeneralizedCliffordsSimulationStrategy_wrapper_getinterferometer_matrix(GeneralizedCliffordsSimulationStrategy_wrapper *self, void *closure)
+GeneralizedCliffordsBSimulationStrategy_wrapper_getinterferometer_matrix(GeneralizedCliffordsBSimulationStrategy_wrapper *self, void *closure)
 {
     Py_INCREF(self->interferometer_matrix);
     return self->interferometer_matrix;
@@ -277,7 +275,7 @@ GeneralizedCliffordsSimulationStrategy_wrapper_getinterferometer_matrix(Generali
 @brief Method to set matrix interferometer_matrix
 */
 static int
-GeneralizedCliffordsSimulationStrategy_wrapper_setinterferometer_matrix(GeneralizedCliffordsSimulationStrategy_wrapper *self, PyObject *interferometer_matrix_arg, void *closure)
+GeneralizedCliffordsBSimulationStrategy_wrapper_setinterferometer_matrix(GeneralizedCliffordsBSimulationStrategy_wrapper *self, PyObject *interferometer_matrix_arg, void *closure)
 {
     // set matrin on the Pyhon side
     Py_DECREF(self->interferometer_matrix);
@@ -303,25 +301,25 @@ GeneralizedCliffordsSimulationStrategy_wrapper_setinterferometer_matrix(Generali
 
 
 
-static PyGetSetDef GeneralizedCliffordsSimulationStrategy_wrapper_getsetters[] = {
-    {"interferometer_matrix", (getter) GeneralizedCliffordsSimulationStrategy_wrapper_getinterferometer_matrix, (setter) GeneralizedCliffordsSimulationStrategy_wrapper_setinterferometer_matrix,
+static PyGetSetDef GeneralizedCliffordsBSimulationStrategy_wrapper_getsetters[] = {
+    {"interferometer_matrix", (getter) GeneralizedCliffordsBSimulationStrategy_wrapper_getinterferometer_matrix, (setter) GeneralizedCliffordsBSimulationStrategy_wrapper_setinterferometer_matrix,
      "interferometer_matrix", NULL},
     {NULL}  /* Sentinel */
 };
 
 /**
-@brief Structure containing metadata about the members of class GeneralizedCliffordsSimulationStrategy_wrapper.
+@brief Structure containing metadata about the members of class GeneralizedCliffordsBSimulationStrategy_wrapper.
 */
-static PyMemberDef GeneralizedCliffordsSimulationStrategy_wrapper_Members[] = {
+static PyMemberDef GeneralizedCliffordsBSimulationStrategy_wrapper_Members[] = {
     {NULL}  /* Sentinel */
 };
 
 
-static PyMethodDef GeneralizedCliffordsSimulationStrategy_wrapper_Methods[] = {
-    {"seed", (PyCFunction) GeneralizedCliffordsSimulationStrategy_wrapper_seed, METH_VARARGS,
+static PyMethodDef GeneralizedCliffordsBSimulationStrategy_wrapper_Methods[] = {
+    {"seed", (PyCFunction) GeneralizedCliffordsBSimulationStrategy_wrapper_seed, METH_VARARGS,
      "Method to set random number generator seed for boson sampling"
     },
-    {"simulate", (PyCFunction) GeneralizedCliffordsSimulationStrategy_wrapper_simulate, METH_VARARGS,
+    {"simulate", (PyCFunction) GeneralizedCliffordsBSimulationStrategy_wrapper_simulate, METH_VARARGS,
      "Method to calculate boson sampling output samples"
     },
     {NULL}  /* Sentinel */
@@ -329,14 +327,14 @@ static PyMethodDef GeneralizedCliffordsSimulationStrategy_wrapper_Methods[] = {
 
 
 /**
-@brief A structure describing the type of the class GeneralizedCliffordsSimulationStrategy_wrapper.
+@brief A structure describing the type of the class GeneralizedCliffordsBSimulationStrategy_wrapper.
 */
-static PyTypeObject GeneralizedCliffordsSimulationStrategy_wrapper_Type = {
+static PyTypeObject GeneralizedCliffordsBSimulationStrategy_wrapper_Type = {
   PyVarObject_HEAD_INIT(NULL, 0)
-  "GeneralizedCliffordsSimulationStrategy_wrapper.GeneralizedCliffordsSimulationStrategy_wrapper", /*tp_name*/
-  sizeof(GeneralizedCliffordsSimulationStrategy_wrapper), /*tp_basicsize*/
+  "GeneralizedCliffordsBSimulationStrategy_wrapper.GeneralizedCliffordsBSimulationStrategy_wrapper", /*tp_name*/
+  sizeof(GeneralizedCliffordsBSimulationStrategy_wrapper), /*tp_basicsize*/
   0, /*tp_itemsize*/
-  (destructor) GeneralizedCliffordsSimulationStrategy_wrapper_dealloc, /*tp_dealloc*/
+  (destructor) GeneralizedCliffordsBSimulationStrategy_wrapper_dealloc, /*tp_dealloc*/
   #if PY_VERSION_HEX < 0x030800b4
   0, /*tp_print*/
   #endif
@@ -369,17 +367,17 @@ static PyTypeObject GeneralizedCliffordsSimulationStrategy_wrapper_Type = {
   0, /*tp_weaklistoffset*/
   0, /*tp_iter*/
   0, /*tp_iternext*/
-  GeneralizedCliffordsSimulationStrategy_wrapper_Methods, /*tp_methods*/
-  GeneralizedCliffordsSimulationStrategy_wrapper_Members, /*tp_members*/
-  GeneralizedCliffordsSimulationStrategy_wrapper_getsetters, /*tp_getset*/
+  GeneralizedCliffordsBSimulationStrategy_wrapper_Methods, /*tp_methods*/
+  GeneralizedCliffordsBSimulationStrategy_wrapper_Members, /*tp_members*/
+  GeneralizedCliffordsBSimulationStrategy_wrapper_getsetters, /*tp_getset*/
   0, /*tp_base*/
   0, /*tp_dict*/
   0, /*tp_descr_get*/
   0, /*tp_descr_set*/
   0, /*tp_dictoffset*/
-  (initproc) GeneralizedCliffordsSimulationStrategy_wrapper_init, /*tp_init*/
+  (initproc) GeneralizedCliffordsBSimulationStrategy_wrapper_init, /*tp_init*/
   0, /*tp_alloc*/
-  GeneralizedCliffordsSimulationStrategy_wrapper_new, /*tp_new*/
+  GeneralizedCliffordsBSimulationStrategy_wrapper_new, /*tp_new*/
   0, /*tp_free*/
   0, /*tp_is_gc*/
   0, /*tp_bases*/
@@ -403,9 +401,9 @@ static PyTypeObject GeneralizedCliffordsSimulationStrategy_wrapper_Type = {
 /**
 @brief Structure containing metadata about the module.
 */
-static PyModuleDef GeneralizedCliffordsSimulationStrategy_wrapper_Module = {
+static PyModuleDef GeneralizedCliffordsBSimulationStrategy_wrapper_Module = {
     PyModuleDef_HEAD_INIT,
-    .m_name = "GeneralizedCliffordsSimulationStrategy_wrapper",
+    .m_name = "GeneralizedCliffordsBSimulationStrategy_wrapper",
     .m_doc = "Python binding for class ChinHuhPermanentCalculator",
     .m_size = -1,
 };
@@ -414,22 +412,22 @@ static PyModuleDef GeneralizedCliffordsSimulationStrategy_wrapper_Module = {
 @brief Method called when the Python module is initialized
 */
 PyMODINIT_FUNC
-PyInit_GeneralizedCliffordsSimulationStrategy_wrapper(void)
+PyInit_GeneralizedCliffordsBSimulationStrategy_wrapper(void)
 {
     // initialize Numpy API
     import_array();
 
     PyObject *m;
-    if (PyType_Ready(&GeneralizedCliffordsSimulationStrategy_wrapper_Type) < 0)
+    if (PyType_Ready(&GeneralizedCliffordsBSimulationStrategy_wrapper_Type) < 0)
         return NULL;
 
-    m = PyModule_Create(&GeneralizedCliffordsSimulationStrategy_wrapper_Module);
+    m = PyModule_Create(&GeneralizedCliffordsBSimulationStrategy_wrapper_Module);
     if (m == NULL)
         return NULL;
 
-    Py_INCREF(&GeneralizedCliffordsSimulationStrategy_wrapper_Type);
-    if (PyModule_AddObject(m, "GeneralizedCliffordsSimulationStrategy_wrapper", (PyObject *) &GeneralizedCliffordsSimulationStrategy_wrapper_Type) < 0) {
-        Py_DECREF(&GeneralizedCliffordsSimulationStrategy_wrapper_Type);
+    Py_INCREF(&GeneralizedCliffordsBSimulationStrategy_wrapper_Type);
+    if (PyModule_AddObject(m, "GeneralizedCliffordsBSimulationStrategy_wrapper", (PyObject *) &GeneralizedCliffordsBSimulationStrategy_wrapper_Type) < 0) {
+        Py_DECREF(&GeneralizedCliffordsBSimulationStrategy_wrapper_Type);
         Py_DECREF(m);
         return NULL;
     }

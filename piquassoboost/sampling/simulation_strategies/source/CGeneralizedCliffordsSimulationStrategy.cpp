@@ -18,12 +18,18 @@
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculatorDFE.h"
 #include "GlynnPermanentCalculatorRepeated.h"
+#include "GlynnPermanentCalculatorRepeatedDFE.h"
+#include "CChinHuhPermanentCalculator.h"
 #include "common_functionalities.h"
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif // MPI
 
 namespace pic {
 /*
@@ -33,24 +39,9 @@ namespace pic {
 */
 
 
-
-/**
-@brief Call to calculate sum of integers stored in a PicState
-@param vec a container if integers
-@return Returns with the sum of the elements of the container
-*/
-static inline int64_t
-sum( PicState_int64 &vec) {
-
-    int64_t ret=0;
-
-    size_t element_num = vec.cols;
-    int64_t* data = vec.get_data();
-    for (size_t idx=0; idx<element_num; idx++ ) {
-        ret = ret + data[idx];
-    }
-    return ret;
-}
+static double t_perm_accumulator=0.0;
+static double t_single_thread=0.0;
+static double t_CPU=0.0;
 
 
 
@@ -60,7 +51,16 @@ sum( PicState_int64 &vec) {
 */
 CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy() {
    // seed the random generator
-    seed(time(NULL));
+   seed(time(NULL));
+  
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+#endif
 }
 
 
@@ -69,12 +69,21 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 @param interferometer_matrix_in The matrix describing the interferometer
 @return Returns with the instance of the class.
 */
-CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in ) {
-
+CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in, int lib ) {
+    this->lib = lib;
     Update_interferometer_matrix( interferometer_matrix_in );
 
     // seed the random generator
     seed(time(NULL));
+
+#ifdef __MPI__
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+#endif
 }
 
 
@@ -82,6 +91,7 @@ CGeneralizedCliffordsSimulationStrategy::CGeneralizedCliffordsSimulationStrategy
 @brief Destructor of the class
 */
 CGeneralizedCliffordsSimulationStrategy::~CGeneralizedCliffordsSimulationStrategy() {
+
 }
 
 /**
@@ -101,6 +111,7 @@ void
 CGeneralizedCliffordsSimulationStrategy::Update_interferometer_matrix( matrix &interferometer_matrix_in ) {
 
     interferometer_matrix = interferometer_matrix_in;
+    perm_accumulator = BatchednPermanentCalculator( interferometer_matrix );
 
 }
 
@@ -119,22 +130,87 @@ CGeneralizedCliffordsSimulationStrategy::simulate( PicState_int64 &input_state_i
     // get the possible substates of the input state and their weight for the probability calculations
     get_sorted_possible_states();
 
-
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
-    samples.reserve( samples_number );
-    for (int idx=0; idx<samples_number; idx++) {
+    if ( samples_number > 0 ) {    
+        samples.reserve( samples_number );
+#ifdef __MPI__
 
+        int samples_number_per_process = samples_number/world_size;
+    
+        // calculate the first iteration of the sampling process
         PicState_int64 sample(input_state_in.cols, 0);
         sample.number_of_photons = 0;
-        samples.push_back(sample);
+        fill_r_sample( sample );
+        
+        
+        // calculate the individual outputs for the shots and send the calculated outputs to other MPI processes in parallel
+        PicState_int64 sample_new;
+        for (int idx=1; idx<samples_number_per_process; idx++) {
+    
+            tbb::parallel_invoke(
+    
+                [&]{
+                    sample_new = PicState_int64(input_state_in.cols, 0);
+                    sample_new.number_of_photons = 0;
+                    fill_r_sample( sample_new );
+                },
+                [&]{
+        
+                    // gather the samples over the MPI processes
+                    PicState_int64 sample_gathered( sample.size()*world_size );
+                    int bytes = sample.size()*sizeof(int64_t);
+      
+                    MPI_Allgather(sample.get_data(), bytes, MPI_BYTE, sample_gathered.get_data(), bytes, MPI_BYTE, MPI_COMM_WORLD);
+            
+                    for( int rank=0; rank<world_size; rank++) {
+                        PicState_int64 sample_local( sample_gathered.get_data()+rank*sample.size(), sample.size() );
+                        samples.push_back( sample_local.copy() );
+                    }
+    
+                }
+    
+            ); // parallel invoke     
+    
+            sample = sample_new;
+            
+    
+        }
+    
+       
+        // gather the samples over the MPI processes of the last iteration
+        PicState_int64 sample_gathered( sample.size()*world_size );
+        int bytes = sample.size()*sizeof(int64_t);
+        MPI_Allgather(sample.get_data(), bytes, MPI_BYTE, sample_gathered.get_data(), bytes, MPI_BYTE, MPI_COMM_WORLD);
+            
+        for( int rank=0; rank<world_size; rank++) {
+            PicState_int64 sample_local( sample_gathered.get_data()+rank*sample.size(), sample.size() );
+            samples.push_back( sample_local.copy() );
+        }
+
+
+#else
+
+        // calculate the individual outputs for the shots
+        for (int idx=0; idx<samples_number; idx++) {
+            PicState_int64 sample(input_state_in.cols, 0);
+            sample.number_of_photons = 0;
+            fill_r_sample( sample );
+            samples.push_back( sample );
+        }
+
+
+#endif
     }
 
-    // calculate the individual outputs for the shots
-    for (auto it=samples.begin(); it!=samples.end(); it++) {
-        fill_r_sample( *it );
-    }
+    // clear the dictionaries
+    pmfs.clear();
+    possible_output_states.clear();
+    labeled_states.clear();
+    input_state_inidices.clear();
 
+std::cout << "perm accumulator time: " << t_perm_accumulator << std::endl;
+std::cout << "CPU time: " << t_CPU << std::endl;
 
     return samples;
 }
@@ -162,7 +238,6 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
         }
     }
 
-
     // preallocate elements for labeled states
     labeled_states.reserve(number_of_input_photons+1);
     for (int64_t idx=0; idx<=number_of_input_photons; idx++) {
@@ -170,6 +245,7 @@ CGeneralizedCliffordsSimulationStrategy::get_sorted_possible_states() {
         labeled_states.push_back(tmp);
     }
 
+    if (input_state_inidices.size() == 0) return;
     // creaint recursively possible output states
     tbb::parallel_for ((int64_t)0, input_state[input_state_inidices[0]]+1, (int64_t)1, [&](int64_t idx){
 
@@ -236,7 +312,7 @@ CGeneralizedCliffordsSimulationStrategy::fill_r_sample( PicState_int64& sample )
 
 
     while (number_of_input_photons > sample.number_of_photons) {
-
+//tbb::tick_count t0 = tbb::tick_count::now();
         if ( pmfs.count(sample) == 0) {
 
             // preallocate states for possible output states
@@ -244,19 +320,22 @@ CGeneralizedCliffordsSimulationStrategy::fill_r_sample( PicState_int64& sample )
             possible_outputs.reserve(sample.size());
             for (size_t idx=0; idx<sample.size();idx++) {
                 PicState_int64 possible_output(sample.size(),0);
-                    possible_outputs.push_back( possible_output );
+                possible_outputs.push_back( possible_output );
             }
 
             // create a new key for the hash table
             PicState_int64 key = sample.copy();
+
+            // calculate new layer of probabilities
             calculate_new_layer_of_pmfs( key, possible_outputs );
-            possible_output_states[key] = possible_outputs; // TODO: reserve space for possible_output_states
+            possible_output_states[key] = possible_outputs;
 
         }
 
         // pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs
         sample_from_latest_pmf(sample);
-
+//tbb::tick_count t1 = tbb::tick_count::now();
+//std::cout << sample.number_of_photons << " photons in " << (t1-t0).seconds() << std::endl;
 
     }
 
@@ -303,39 +382,91 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
 
     // container to store the new layer of output probabilities
     matrix_base<double> pmf(1, possible_outputs.size());
-    tbb::combinable<double> probability_sum{0.0};
-    tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_outputs.size()), [&](tbb::blocked_range<size_t> r ) {
+    memset( pmf.get_data(), 0.0, pmf.size()*sizeof(double) );
 
-        // thread local storage for probability sum
-        double &probability_sum_priv = probability_sum.local();
-
-        // Generate output states
-        generate_output_states( r, sample, possible_outputs );
-
-        // calculate the individual probabilities associated with the output states
-        for ( auto idx=r.begin(); idx!=r.end(); idx++) {
-            pmf[idx] = 0;
-
-            // calculate the individual probabilities
-            for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
-                double probability = calculate_outputs_probability(interferometer_matrix, possible_input_states[jdx], possible_outputs[idx]);
-                probability = probability*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
-                pmf[idx] = pmf[idx] + probability;
-            }
-
-            probability_sum_priv = probability_sum_priv + pmf[idx];
-
-
-        }
-
-
-    }); //parallel for
+    // Generate output states
+    generate_output_states( sample, possible_outputs );
 
     // normalize the probabilities:
     double probability_sum_total = 0;
-    probability_sum.combine_each([&](double a) {  // combine thread local data into a total one
-        probability_sum_total = probability_sum_total + a;
+
+    // clear the permanent accumulator
+    perm_accumulator.clear();
+    perm_accumulator.reserve_space( possible_outputs.size() * possible_input_states.size());
+
+
+tbb::tick_count t0cpu = tbb::tick_count::now();
+    // Accumulate matrices and other metada for which output probabilites are then calculated
+    //for ( int idx=0; idx<possible_outputs.size(); idx++) {
+    tbb::parallel_for( (size_t)0, possible_outputs.size(), (size_t)1, [&](size_t idx ) {
+
+        size_t index_offset = idx*possible_input_states.size();
+
+        // calculate the individual probabilities
+        //for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
+        tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_input_states.size()), [&](tbb::blocked_range<size_t> r ) {
+            for( size_t jdx=r.begin(); jdx!=r.end(); jdx++) {
+         
+                // accumulate input/output states for permanent calculations
+                perm_accumulator.add(&possible_input_states[jdx], &possible_outputs[idx], index_offset+jdx);
+
+            }
+
+        });
+
     });
+tbb::tick_count t1cpu = tbb::tick_count::now();
+t_CPU += (t1cpu-t0cpu).seconds();
+
+tbb::tick_count t0 = tbb::tick_count::now();
+    // calculate the permanents
+    matrix&& permanents = perm_accumulator.calculate(lib);
+tbb::tick_count t1 = tbb::tick_count::now();
+t_perm_accumulator += (t1-t0).seconds();
+
+t0cpu = tbb::tick_count::now();
+    // calculate the individual probabilities associated with the output states
+    tbb::parallel_for( (size_t)0, possible_outputs.size(), (size_t)1, [&](size_t idx ) {
+
+        pmf[idx] = 0;
+
+        size_t offset = idx*possible_input_states.size();
+
+        // calculate the individual probabilities
+
+        tbb::combinable<double> pmf_addend{[](){return 0.0;}};
+
+        //for ( size_t jdx=0; jdx<possible_input_states.size(); jdx++ ) {
+        tbb::parallel_for( tbb::blocked_range<size_t>( 0, possible_input_states.size()), [&](tbb::blocked_range<size_t> r ) {
+            for( size_t jdx=r.begin(); jdx!=r.end(); jdx++) {
+
+
+                //double probability_tmp = calculate_outputs_probability(interferometer_matrix, possible_input_states[jdx], possible_outputs[idx], lib);
+                //probability_tmp = probability_tmp*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
+
+                double probability = calculate_outputs_probability(permanents[offset+jdx], possible_input_states[jdx], possible_outputs[idx]);
+                probability = probability*multinomial_coefficients[jdx]*multinomial_coefficients[jdx];
+
+                // thread local probability
+                double& pmf_priv = pmf_addend.local();
+
+                pmf_priv = pmf_priv + probability;
+//std::cout << "probabilities: " << probability << " " << probability_tmp << " " << permanents[offset] << std::endl;
+
+
+            }
+
+        });
+
+        pmf_addend.combine_each([&](double &a) {
+             pmf[idx] = pmf[idx] + a;
+        });
+
+        probability_sum_total = probability_sum_total + pmf[idx];           
+
+
+    });
+    
 
     for (size_t idx=0;idx<pmf.size(); idx++) {
         pmf[idx] = pmf[idx]/probability_sum_total;
@@ -344,7 +475,8 @@ CGeneralizedCliffordsSimulationStrategy::calculate_new_layer_of_pmfs( PicState_i
     // store the calculated probability layer
     PicState_int64 key = sample.copy();
     pmfs[key] = pmf;
-
+t1cpu = tbb::tick_count::now();
+t_CPU += (t1cpu-t0cpu).seconds();
 
 }
 
@@ -369,18 +501,18 @@ CGeneralizedCliffordsSimulationStrategy::sample_from_latest_pmf( PicState_int64&
     matrix_base<double> pmf = pmfs[sample];
 
     // determine the random index according to the distribution described by pmf
-    size_t random_index=0;
+    int sampled_index=0;
     double prob_sum = 0.0;
-    for (size_t idx=0; idx<pmf.size(); idx++) {
+    for (int idx=0; idx<pmf.size(); idx++) {
         prob_sum = prob_sum + pmf[idx];
         if ( prob_sum >= rand_num) {
-            random_index = idx;
+            sampled_index = idx;
             break;
         }
     }
 
     // copy the new key
-    PicState_int64 &new_key = possible_output_states[sample][random_index];
+    PicState_int64 &new_key = possible_output_states[sample][sampled_index];
     int64_t* sample_data = sample.get_data();
     int64_t* new_key_data = new_key.get_data();
 
@@ -437,15 +569,14 @@ void calculate_weights( tbb::blocked_range<size_t> &r, PicState_int64 &input_sta
 
 /**
 @brief Call to generate possible output state
-@param r Range containing the indexes labeling the output samples;
 @param sample The current output sample for which the probabilities are calculated
 @param possible_outputs Vector of possible output states
 */
 void
-generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, PicStates &possible_outputs ) {
+generate_output_states(PicState_int64& sample, PicStates &possible_outputs ) {
 
     int64_t* sample_data = sample.get_data();
-    for ( auto idx=r.begin(); idx!=r.end(); idx++) {
+    for ( size_t idx=0; idx<possible_outputs.size(); idx++) {
         int64_t* output_data = possible_outputs[idx].get_data();
         memcpy( output_data, sample_data, sample.size()*sizeof(int64_t) );
         output_data[idx] = output_data[idx]+1;
@@ -455,23 +586,18 @@ generate_output_states( tbb::blocked_range<size_t> &r, PicState_int64& sample, P
 
 
 /**
-@brief Call to determine the output probability of associated with the input and output states
+@brief Call to determine the output probability of associated with the input and output states ---- OBSOLETE, will be deleted
 @param interferometer_mtx The matrix of the interferometer.
 @param input_state The input state.
 @param output_state The output state.
 */
 double
-calculate_outputs_probability(
-    matrix &interferometer_mtx,
-    PicState_int64 &input_state,
-    PicState_int64 &output_state
-) {
+calculate_outputs_probability( matrix &interferometer_mtx, PicState_int64 &input_state, PicState_int64 &output_state, int lib ) {
 
-    matrix modifiedInterferometerMatrix = adaptInterferometer(
-        interferometer_mtx,
-        input_state,
-        output_state
-    );
+
+    Complex16 permanent;
+
+    matrix modifiedInterferometerMatrix = adaptInterferometer( interferometer_mtx, input_state, output_state );
 
     std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
         return elem > 0;
@@ -479,18 +605,13 @@ calculate_outputs_probability(
 
     PicState_int64 adapted_input_state = input_state.filter(filterNonZero);
     PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
-
+    
+        
     GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
+    permanent = permanentCalculatorRecursive.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state );
 
-    Complex16 permanent = permanentCalculatorRecursive.calculate(
-        modifiedInterferometerMatrix,
-        adapted_input_state,
-        adapted_output_state
-    );
-
-    double probability =
-        permanent.real()*permanent.real() + permanent.imag()*permanent.imag();
-        // squared magnitude norm(a+ib) = a^2 + b^2 !!!
+    double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag();
+    // squared magnitude norm(a+ib) = a^2 + b^2 !!!
 
     int64_t photon_num = 0;
     for (size_t idx=0; idx<input_state.size(); idx++) {
@@ -507,102 +628,36 @@ calculate_outputs_probability(
 }
 
 
-/** @brief Creates a matrix from the `interferometerMatrix` corresponding to the parameters `input_state` and `output_state`.
- *         Corresponding rows and columns are multipled based on output and input states.
- *  @param interferometerMatrix Unitary matrix describing a quantum circuit
- *  @param input_state_in The input state
- *  @param output_state_in The output state
- *  @return Returns with the created matrix
- */
-matrix
-adaptInterferometerGlynnMultiplied(
-    matrix& interferometerMatrix,
-    PicState_int64 &input_state,
-    PicState_int64 &output_state
-) {
-    int n = interferometerMatrix.rows;
 
-    int64_t sum = 0;
-    for (size_t i = 0; i < input_state.size(); i++){
-        sum += input_state[i];
-    }
-    matrix mtx(sum, sum);
+/**
+@brief Call to determine the output probability of associated with the input and output states
+@param permanent The previously calculated permanent
+@param input_state The input state.
+@param output_state The output state.
+*/
+double
+calculate_outputs_probability( Complex16& permanent, PicState_int64 &input_state, PicState_int64 &output_state ) {
 
-    int row_idx = 0;
-    for (int i = 0; i < n; i++){
-        for (int db_row = 0; db_row < output_state[i]; db_row++){
-            int col_idx = 0;
-            for (int j = 0; j < n; j++){
-                for (int db_col = 0; db_col < input_state[j]; db_col++){
-                    mtx[row_idx * mtx.stride + col_idx] =
-                        interferometerMatrix[i * interferometerMatrix.stride + j];
 
-                    col_idx++;
-                }
-            }
 
-            row_idx++;
-        }
+    double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag();
+        // squared magnitude norm(a+ib) = a^2 + b^2 !!!
+
+    int64_t photon_num = sum(input_state);
+    probability = probability/factorial( photon_num );
+
+
+    for (size_t idx=0; idx<input_state.size(); idx++) {
+        probability = probability/factorial( input_state[idx] );
     }
 
-    return mtx;
-
+    return probability;
 }
 
 
-/** @brief Creates a matrix from the `interferometerMatrix` corresponding to 
- *         the parameters `input_state` and `output_state`.
- *         Does not adapt input and ouput states. They have to be adapted explicitly.
- *         Those matrix rows and columns remain in the adapted matrix where the multiplicity
- *         given by the input and ouput states is nonzero.
- *  @param interferometerMatrix Unitary matrix describing a quantum circuit
- *  @param input_state_in The input state
- *  @param output_state_in The output state
- *  @return Returns with the created matrix
- */
-matrix
-adaptInterferometer(
-    matrix& interferometerMatrix,
-    PicState_int64 &input_state,
-    PicState_int64 &output_state
-) {
-    int sumInput = 0;
-    for (int i = 0; i < input_state.size(); i++){
-        if (input_state[i] > 0){
-            sumInput++;
-        }
-    }
-    int sumOutput = 0;
-    for (int i = 0; i < output_state.size(); i++){
-        if (output_state[i] > 0){
-            sumOutput++;
-        }
-    }
 
-    matrix new_mtx(sumOutput, sumInput);    
 
-    int n = interferometerMatrix.rows;
 
-    int row_idx = 0;
-    for (int i = 0; i < n; i++){
-        if (output_state[i] > 0){
-            int col_idx = 0;
-            for (int j = 0; j < n; j++){
-                if (input_state[j] > 0){
-                    new_mtx[row_idx * new_mtx.stride + col_idx] =
-                        interferometerMatrix[i * interferometerMatrix.stride + j];
-                    col_idx++;
-                }
-            }
-
-            row_idx++;
-        }
-    }
-    
-
-    return new_mtx;
-
-}
 
 
 

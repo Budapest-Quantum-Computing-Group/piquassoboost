@@ -28,10 +28,6 @@ void print_state( Container state );
 */
 class GlynnPermanentCalculator {
 
-protected:
-    /// Unitary describing a quantum circuit
-    matrix mtx;
-
 public:
 
 /**
@@ -67,8 +63,6 @@ class GlynnPermanentCalculatorTask {
 
 public:
 
-    /// Unitary describing a quantum circuit
-    matrix mtx;
     /// 2*mtx used in the recursive calls (The storing of thos matrix spare many repeating multiplications)
     matrix32 mtx2;
     /// thread local storage for partial permanents

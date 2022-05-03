@@ -59,6 +59,7 @@ CChinHuhPermanentCalculator::calculate(matrix &mtx, PicState_int64 &input_state,
             v_vectors_num = v_vectors_num*(input_state[idx]+1);
         }
     }
+    if (input_state_inidices.size() == 0) return Complex16(1.0, 0.0);
 
     // calculate the permanent
     tbb::task_group tg;

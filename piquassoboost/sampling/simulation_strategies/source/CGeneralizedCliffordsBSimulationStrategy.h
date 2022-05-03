@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef CGeneralizedCliffordsSimulationStrategy_H
-#define CGeneralizedCliffordsSimulationStrategy_H
+#ifndef CGeneralizedCliffordsBSimulationStrategy_H
+#define CGeneralizedCliffordsBSimulationStrategy_H
 
 #include "matrix.h"
+#include "matrix_real.h"
 #include "PicVector.hpp"
 #include "PicState.h"
 #include "PicStateHash.h"
@@ -36,32 +37,27 @@ namespace pic {
 /**
 @brief Class representing a generalized Cliffords simulation strategy
 */
-class CGeneralizedCliffordsSimulationStrategy {
+class CGeneralizedCliffordsBSimulationStrategy {
 
 protected:
 
     /// The number of photons
     int64_t number_of_input_photons;
-    /// The individual probability layers of the possible output states
-    std::unordered_map<PicState_int64, matrix_base<double>, PicStateHash_int64> pmfs;
-    /// The possible output sates organized by keys of the inducing input states
-    std::unordered_map<PicState_int64, PicStates, PicStateHash_int64> possible_output_states;
     /// The matrix describing the interferometer
     matrix interferometer_matrix;
     /// The input state entering the interferometer
-    PicState_int64 input_state; // can be aligned?
-    /// Map of all the possible substates of input_state (including 0 and the input state), labeled with number of particles in this state
-    /// the number of particles is given by the ordinal number of the vector element, i.e. labeled_states[n] gives the substates with n occupied particles.
-    std::vector<concurrent_PicStates> labeled_states;
+    PicState_int64 input_state;
+    /// ????
+    PicState_int64 current_input;
+    /// ????
+    PicState_int64 working_input_state;
+    ///
+    matrix_real pmf;
     /// The vector of indices corresponding to values greater than 0 in the input state
     PicVector<int64_t> input_state_inidices;
-
-    /// class to accumulate more matrices and calculate the permanents for them in one shot. (Developed for DFE usage)
-    BatchednPermanentCalculator perm_accumulator;
-
-
-
+    ///
     int lib;
+
 #ifdef __MPI__
     /// The number of processes
     int world_size;
@@ -72,25 +68,30 @@ protected:
     int MPI_end_index;
 #endif
 
+#ifdef __DFE__
+    const int useDual = 0;
+    bool out_of_memory;
+#endif
+
 public:
 
 /**
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-CGeneralizedCliffordsSimulationStrategy();
+CGeneralizedCliffordsBSimulationStrategy();
 
 /**
 @brief Constructor of the class.
 @param interferometer_matrix_in The matrix describing the interferometer
 @return Returns with the instance of the class.
 */
-CGeneralizedCliffordsSimulationStrategy( matrix &interferometer_matrix_in, int lib );
+CGeneralizedCliffordsBSimulationStrategy( matrix &interferometer_matrix_in, int lib );
 
 /**
 @brief Destructor of the class
 */
-~CGeneralizedCliffordsSimulationStrategy();
+~CGeneralizedCliffordsBSimulationStrategy();
 
 
 /**
@@ -116,16 +117,20 @@ std::vector<PicState_int64> simulate( PicState_int64 &input_state_in, int sample
 protected:
 
 /**
-@brief Call to determine and sort all the substates of the input. They will later be used to calculate output probabilities.
+@brief Call to randomly increase the current input state by a single photon
 */
-void get_sorted_possible_states();
+void update_current_input();
 
+
+/**
+@brief Call to calculate new layer of probabilities from which an intermediate (or final) output state is sampled
+*/
+void compute_pmf(PicState_int64& sample);
 
 /**
 @brief Call to recursively add substates to the hashmap of labeled states.
 */
-void
-append_substate_to_labeled_states( PicState_int64& iter_value);
+//void append_substate_to_labeled_states( PicState_int64& iter_value);
 
 
 /**
@@ -140,7 +145,7 @@ void fill_r_sample( PicState_int64& sample );
 @param sample A preallocated PicState_int64 for one output
 @param possible_outputs A preallocated vector of possible output states
 */
-void calculate_new_layer_of_pmfs( PicState_int64& sample, PicStates &possible_outputs );
+//void calculate_new_layer_of_pmfs( PicState_int64& sample, PicStates &possible_outputs );
 
 
 
@@ -148,34 +153,18 @@ void calculate_new_layer_of_pmfs( PicState_int64& sample, PicStates &possible_ou
 @brief Call to pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs.
 @param sample The current sample represanted by a PicState_int64 class that would be replaced by the new sample.
 */
-void sample_from_latest_pmf( PicState_int64& sample );
+void sample_from_pmf( PicState_int64& sample );
 
 
-}; //CGeneralizedCliffordsSimulationStrategy
-
-
-
-
-/**
-@brief Call to calculate weigths for the possible input states
-@param input_state The input state entering the interferometer
-@param input_state_inidices The vector of indices corresponding to values greater than 0 in the input state
-@param possible_input_state Other possible input states
-@param multinomial_coefficients The multinomial coefficients associated with the possible k vectors (referenced for output)
-@param wieght_norm The squared sum of the calculated weigts (referenced for output)
-*/
-void calculate_weights( tbb::blocked_range<size_t> &r, PicState_int64 &input_state, PicVector<int64_t> &input_state_inidices, concurrent_PicStates& possible_input_states, matrix_base<double> &multinomial_coefficients, double& wieght_norm );
-
-
+}; //CGeneralizedCliffordsBSimulationStrategy
 
 
 
 /**
-@brief Call to generate possible output state
-@param sample The current output sample for which the probabilities are calculated
-@param possible_outputs Vector of possible output states
+@brief Call to ????????????????
 */
-void generate_output_states( PicState_int64& sample, PicStates &possible_outputs );
+PicState_int64 modes_state_to_particle_state( const PicState_int64& mode_state );
+
 
 
 /**

@@ -1,33 +1,42 @@
 #
-#  Copyright 2021 Budapest Quantum Computing Group
+# Copyright 2021-2022 Budapest Quantum Computing Group
 #
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import numpy as np
+
+from functools import partial
 
 from theboss.boson_sampling_utilities.boson_sampling_utilities import (
     prepare_interferometer_matrix_in_expanded_space
 )
 from .BosonSamplingSimulator import BosonSamplingSimulator
 from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
+    GeneralizedCliffordsBSimulationStrategy,
     GeneralizedCliffordsSimulationStrategy,
+    GeneralizedCliffordsSimulationStrategyChinHuh,
+    GeneralizedCliffordsSimulationStrategyChinHuh,
+    GeneralizedCliffordsSimulationStrategySingleDFE,
+    GeneralizedCliffordsSimulationStrategyDualDFE,
+    GeneralizedCliffordsSimulationStrategyMultiSingleDFE,
+    GeneralizedCliffordsSimulationStrategyMultiDualDFE,
 )
 
 from piquasso.api.result import Result
 
 
 
-def sampling(state, instruction, shots) -> Result:
+def _particle_number_measurement(state, instruction, shots, strategy_class) -> Result:
     """Simulates a boson sampling using generalized Clifford&Clifford algorithm
     from [Brod, Oszmaniec 2020].
 
@@ -54,7 +63,7 @@ def sampling(state, instruction, shots) -> Result:
         for _ in initial_state:
             initial_state = np.append(initial_state, 0)
 
-    simulation_strategy = GeneralizedCliffordsSimulationStrategy(
+    simulation_strategy = strategy_class(
         interferometer, state._config.seed_sequence
     )
     sampling_simulator = BosonSamplingSimulator(simulation_strategy)
@@ -71,3 +80,13 @@ def sampling(state, instruction, shots) -> Result:
         samples = trimmed_samples  # We want to return trimmed samples.
 
     return Result(state=state, samples=samples)
+
+
+particle_number_measurement = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsBSimulationStrategy)
+
+sampling_GeneralizedCliffords = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategy)
+sampling_GeneralizedCliffords_chinhuh = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh)
+sampling_GeneralizedCliffords_single_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE)
+sampling_GeneralizedCliffords_dual_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE)
+sampling_GeneralizedCliffords_multi_single_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE)
+sampling_GeneralizedCliffords_multi_dual_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE)

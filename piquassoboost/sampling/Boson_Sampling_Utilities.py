@@ -15,6 +15,8 @@
 
 __author__ = 'Tomasz Rybotycki', 'Peter Rakyta'
 
+from typing import List, Optional
+
 import numpy as np
 
 from .Boson_Sampling_Utilities_wrapper import ChinHuhPermanentCalculator_wrapper
@@ -25,39 +27,44 @@ from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnian_wrapper
 from .Boson_Sampling_Utilities_wrapper import PowerTraceLoopHafnianRecursive_wrapper
 
 
-class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
+class RepeatedPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
     """
-    This class is designed to calculate permanent of effective scattering matrix of a
-    boson sampling instance. Note, that it can be used to calculate permanent of given
-    matrix. All that is required that input and output states are set to [1, 1, ..., 1]
-    with proper dimensions.
-
-    Assuming that input state, output state and the matrix are defined correctly (that
-    is we've got m x m matrix, and vectors of with length m) this calculates the
-    permanent of an effective scattering matrix related to probability of obtaining
-    output state from given input state.
+        This class is designed to calculate permanent of effective scattering matrix of a boson sampling instance.
+        Note, that it can be used to calculate permanent of given matrix. All that is required that input and output
+        states are set to [1, 1, ..., 1] with proper dimensions.
     """
+    
 
-    # NOTE: This is needed because we use different names in `piquassoboost` and
-    # in `theboss`.
-    compute_permanent = ChinHuhPermanentCalculator_wrapper.calculate
+    def __init__(self, lib, matrix, input_state, output_state):
 
-    def __init__(self, matrix, input_state, output_state):
+        if not (type(input_state) is np.ndarray):
+            input_state = np.array(input_state, dtype=np.int64)
 
-        # input/output states should be numpy arrays
-        input_state = np.asarray(input_state)
-        output_state = np.asarray(output_state)
+        if not (type(output_state) is np.ndarray):
+            output_state = np.array(output_state, dtype=np.int64)
 
-        # input/output states should be  of type int64
-        input_state = input_state.astype(np.int64)
-        output_state = output_state.astype(np.int64)
 
         # call the constructor of the wrapper class
-        super().__init__(
-            matrix=matrix,
-            input_state=input_state,
-            output_state=output_state
-        )
+        super(RepeatedPermanentCalculator, self).__init__(lib=lib, matrix=matrix, input_state=input_state, output_state=output_state)
+        pass
+
+       
+    def calculate(self):
+        """
+            This is the main method of the calculator. Assuming that input state, output state and the matrix are
+            defined correctly (that is we've got m x m matrix, and vectors of with length m) this calculates the
+            permanent of an effective scattering matrix related to probability of obtaining output state from given
+            input state.
+            :return: Permanent of effective scattering matrix.
+        """
+
+#        if not self.__can_calculation_be_performed():
+#            raise AttributeError
+
+
+        # call the permanent calculator of the parent class
+        return super(RepeatedPermanentCalculator, self).calculate()
+
 
     def __can_calculation_be_performed(self) -> bool:
         """
@@ -70,24 +77,131 @@ class ChinHuhPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
                and len(self.output_state) == self.matrix.shape[0]
 
 
+
+
+
+
+class ChinHuhPermanentCalculator(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        super(ChinHuhPermanentCalculator, self).__init__(0, matrix, input_state, output_state)
+        pass
+
+
+
+
+
+class GlynnRepeatedPermanentCalculator(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        super(GlynnRepeatedPermanentCalculator, self).__init__(1, matrix, input_state, output_state)
+        pass
+
+
+
+
+
+
+
+class GlynnRepeatedSingleDFEPermanentCalculator(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        super(GlynnRepeatedSingleDFEPermanentCalculator, self).__init__(2, matrix, input_state, output_state)
+        pass
+
+
+
+
+
+
+
+class GlynnRepeatedDualDFEPermanentCalculator(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        super(GlynnRepeatedDualDFEPermanentCalculator, self).__init__(3, matrix, input_state, output_state)
+        pass
+
+
+
+
+
+
+class GlynnRepeatedMultiSingleDFEPermanentCalculator(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        super(GlynnRepeatedMultiSingleDFEPermanentCalculator, self).__init__(4, matrix, input_state, output_state)
+        pass
+
+
+
+
+
+
+
+class GlynnRepeatedMultiDualDFEPermanentCalculator(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        super(GlynnRepeatedMultiDualDFEPermanentCalculator, self).__init__(5, matrix, input_state, output_state)
+        pass
+
+
+
+
+
+
 class GlynnPermanent(GlynnPermanentCalculator_wrapper):
     """
-        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin
-Glynn (BBFG) formula)
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
     """
+    
+
     def __init__(self, matrix):
+
         # call the constructor of the wrapper class
-        super().__init__(matrix=matrix)
+        super(GlynnPermanent, self).__init__(matrix, 0)
+        pass
 
-    def calculate(self):
-        """
-            ?????????????????.
-            :return: The permanent of the matrix.
-        """
-        # call the permanent calculator of the parent class
-        return super().calculate()
+class GlynnPermanentInf(GlynnPermanentCalculator_wrapper):
+    """
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        super(GlynnPermanentInf, self).__init__(matrix, 1)
+        pass
 
 
+
+
+
+
+class GlynnPermanentSingleDFE(GlynnPermanentCalculator_wrapper):
+    """
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        super(GlynnPermanentSingleDFE, self).__init__(matrix, 2)
+        pass
+
+
+
+
+
+
+class GlynnPermanentDualDFE(GlynnPermanentCalculator_wrapper):
+    """
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        super(GlynnPermanentDualDFE, self).__init__(matrix, 3)
+        pass
+
+       
 
 class PowerTraceHafnian(PowerTraceHafnian_wrapper):
     """
@@ -192,3 +306,4 @@ class PowerTraceLoopHafnianRecursive(PowerTraceLoopHafnianRecursive_wrapper):
 
         # call the permanent calculator of the parent class
         return super(PowerTraceLoopHafnianRecursive, self).calculate()
+

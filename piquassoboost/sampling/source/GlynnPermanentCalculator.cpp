@@ -5,6 +5,7 @@
 #include "common_functionalities.h"
 #include <math.h>
 
+
 namespace pic {
 
 
@@ -24,8 +25,10 @@ GlynnPermanentCalculator::GlynnPermanentCalculator() {}
 */
 Complex16
 GlynnPermanentCalculator::calculate(matrix &mtx) {
-    if (mtx.rows == 0)
+    if (mtx.rows == 0 || mtx.cols == 0)
         return Complex16(1.0, 0.0);
+    if (mtx.rows >= mtx.cols + 2)
+        return Complex16(0.0, 0.0);
 
     GlynnPermanentCalculatorTask calculator;
     return calculator.calculate( mtx );
@@ -58,7 +61,7 @@ GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
 
             size_t row_offset   = row_idx*mtx.stride;
             size_t row_offset_2 = row_idx*mtx2.stride;
-            for (size_t col_idx=0; col_idx<mtx.rows; ++col_idx) {
+            for (size_t col_idx=0; col_idx<mtx.cols; ++col_idx) {
                 mtx2_data[row_offset_2+col_idx] = 2*mtx_data[ row_offset + col_idx ];
             }
 
@@ -67,13 +70,13 @@ GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
 
 
     // calulate the initial sum of the columns
-    matrix32 colSum( mtx.rows, 1);
+    matrix32 colSum( mtx.cols, 1);
     Complex32* colSum_data = colSum.get_data();
     memset( colSum_data, 0.0, colSum.size()*sizeof(Complex32));
 
 
 
-    tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.rows), [&](tbb::blocked_range<size_t> r) {
+    tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.cols), [&](tbb::blocked_range<size_t> r) {
         for (size_t col_idx=r.begin(); col_idx<r.end(); ++col_idx){
 
             size_t row_offset = 0;
@@ -134,7 +137,7 @@ GlynnPermanentCalculatorTask::IterateOverDeltas( matrix32& colSum, int sign, int
     permanent_priv += sign*colSumProd;
 
 
-    tbb::parallel_for( tbb::blocked_range<int>(index_min,colSum.rows), [&](tbb::blocked_range<int> r) {
+    tbb::parallel_for( tbb::blocked_range<int>(index_min,mtx2.rows), [&](tbb::blocked_range<int> r) {
         for (int idx=r.begin(); idx<r.end(); ++idx){
 
             // create an altered vector from the current delta
@@ -157,19 +160,14 @@ GlynnPermanentCalculatorTask::IterateOverDeltas( matrix32& colSum, int sign, int
 
 /*
     for (int idx=index_min; idx<colSum.size(); ++idx){
-
         // create an altered vector from the current delta
         matrix32 colSum_new = colSum.copy();
-
         Complex32* mtx2_data = mtx2.get_data();
         Complex32* colSum_new_data = colSum_new.get_data();
-
         size_t row_offset = idx*mtx2.stride;
-
         for (int jdx=0; jdx<mtx2.cols; jdx++) {
             colSum_new_data[jdx] = colSum_new_data[jdx] - mtx2_data[row_offset+jdx];
         }
-
         // spawn new iteration            
         IterateOverDeltas( colSum_new, -sign, idx+1 );
     }

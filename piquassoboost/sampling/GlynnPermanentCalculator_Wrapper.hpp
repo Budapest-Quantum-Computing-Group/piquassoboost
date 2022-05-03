@@ -6,9 +6,34 @@
 #include <numpy/arrayobject.h>
 #include "structmember.h"
 #include "GlynnPermanentCalculator.h"
+
+#ifdef __MPFR__
+#include "GlynnPermanentCalculatorInf.h"
+#endif
+
+#ifdef __DFE__
+#include "GlynnPermanentCalculatorDFE.h"
+#endif
+
 #include "numpy_interface.h"
 
 
+#define GlynnCPP 0
+#define GlynnInf 1
+#define GlynnSingleDFE 2
+#define GlynnDualDFE 3
+#define GlynnSingleDFEF 4
+#define GlynnDualDFEF 5
+
+/// The C++ variants of class CGlynnPermanentCalculator
+union CPU_glynn {
+    /// long double precision calculator
+    pic::GlynnPermanentCalculator* cpu_long_double;
+#ifdef __MPFR__
+    /// infinite precision calculator
+    pic::GlynnPermanentCalculatorInf* cpu_inf;
+#endif
+};
 
 /**
 @brief Type definition of the GlynnPermanentCalculator_wrapper Python class of the GlynnPermanentCalculator_wrapper module
@@ -17,8 +42,10 @@ typedef struct GlynnPermanentCalculator_wrapper {
     PyObject_HEAD
     /// pointer to numpy matrix to keep it alive
     PyObject *matrix = NULL;
-    /// The C++ variant of class CGlynnPermanentCalculator
-    pic::GlynnPermanentCalculator* calculator;
+    /// set 0 to use CPU implementation, set 1 to use infinite computational precision using the GNU MPFR library, set 2 to use single DFE implementation, set 3 to use dual DFE implementation
+    int lib;
+    /// CPU permanent calculator
+    CPU_glynn calculator;
 } GlynnPermanentCalculator_wrapper;
 
 
@@ -44,14 +71,35 @@ release_GlynnPermanentCalculator( pic::GlynnPermanentCalculator*  instance ) {
     return;
 }
 
+#ifdef __MPFR__
+
+/**
+@brief Creates an instance of class GlynnPermanentCalculatorInf and return with a pointer pointing to the class instance (C++ linking is needed)
+@return Return with a void pointer pointing to an instance of GlynnPermanentCalculatorInf.
+*/
+pic::GlynnPermanentCalculatorInf*
+create_GlynnPermanentCalculatorInf() {
+
+    return new pic::GlynnPermanentCalculatorInf();
+}
+
+/**
+@brief Call to deallocate an instance of GlynnPermanentCalculatorInf class
+@param ptr A pointer pointing to an instance of GlynnPermanentCalculatorInf class.
+*/
+void
+release_GlynnPermanentCalculatorInf ( pic::GlynnPermanentCalculatorInf*  instance ) {
+    if ( instance != NULL ) {
+        delete instance;
+    }
+    return;
+}
 
 
-
+#endif
 
 extern "C"
 {
-
-
 
 
 /**
@@ -61,13 +109,21 @@ extern "C"
 static void
 GlynnPermanentCalculator_wrapper_dealloc(GlynnPermanentCalculator_wrapper *self)
 {
-
+    // unload DFE
+#ifdef __DFE__    
+    if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF)
+        dec_dfe_lib_count();
+    else
+#endif
     // deallocate the instance of class N_Qubit_Decomposition
-    release_GlynnPermanentCalculator( self->calculator );
+    if (self->lib == GlynnCPP && self->calculator.cpu_long_double != NULL) release_GlynnPermanentCalculator( self->calculator.cpu_long_double );
+#ifdef __MPFR__
+    else if (self->lib == GlynnInf && self->calculator.cpu_inf != NULL) release_GlynnPermanentCalculatorInf( self->calculator.cpu_inf );
+#endif
 
     // release numpy arrays
     Py_DECREF(self->matrix);
-
+   
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
@@ -81,9 +137,8 @@ GlynnPermanentCalculator_wrapper_new(PyTypeObject *type, PyObject *args, PyObjec
     GlynnPermanentCalculator_wrapper *self;
     self = (GlynnPermanentCalculator_wrapper *) type->tp_alloc(type, 0);
     if (self != NULL) {}
-
     self->matrix = NULL;
-
+    
     return (PyObject *) self;
 }
 
@@ -98,33 +153,49 @@ qbit_num: the number of qubits spanning the operations
 static int
 GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, PyObject *args, PyObject *kwds)
 {
+
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"matrix", NULL};
-
+    static char *kwlist[] = {(char*)"matrix", (char*)"lib", NULL};
+    
     // initiate variables for input arguments
-    PyObject *matrix_arg = NULL;
-
+    PyObject *matrix_arg = NULL;    
+    self->lib = GlynnCPP;
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,
-                                     &matrix_arg))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oi", kwlist, &matrix_arg, 
+                                     &self->lib))
         return -1;
 
     // convert python object array to numpy C API array
     if ( matrix_arg == NULL ) return -1;
 
     // establish memory contiguous arrays for C calculations
-    if ( PyArray_IS_C_CONTIGUOUS(matrix_arg) ) {
+    if ( PyList_Check(matrix_arg) || PyArray_IS_C_CONTIGUOUS(matrix_arg) ) {
         self->matrix = matrix_arg;
         Py_INCREF(self->matrix);
     }
     else {
         self->matrix = PyArray_FROM_OTF(matrix_arg, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
     }
-
-  
-
+    
     // create instance of class GlynnPermanentCalculator
-    self->calculator = create_GlynnPermanentCalculator();
+    if (self->lib == GlynnCPP) {
+        self->calculator.cpu_long_double = create_GlynnPermanentCalculator();
+    }
+#ifdef __MPFR__    
+    else if (self->lib == GlynnInf) {
+        self->calculator.cpu_inf = new pic::GlynnPermanentCalculatorInf();
+    }
+#endif
+#ifdef __DFE__
+    else if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF) {
+        inc_dfe_lib_count();
+    }
+#endif
+    else {
+        PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
+        return -1;
+    }
+
 
     return 0;
 }
@@ -138,19 +209,94 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
 @param kwds A tuple of keywords
 */
 static PyObject *
-GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *self)
+GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *self, PyObject *args, PyObject *kwds)
 {
 
-    // create PIC version of the input matrices
-    pic::matrix matrix_mtx = numpy2matrix(self->matrix);
+    if (PyList_Check(self->matrix)) {
+        // convert list of input numpy arrays into a vector of matices
+        Py_ssize_t sz = PyList_Size(self->matrix);
+        std::vector<pic::matrix> matrices;
+        matrices.reserve(sz);
+        for (Py_ssize_t i = 0; i < sz; i++) {
+            PyObject *o = PyList_GetItem(self->matrix, i);            
+            if ( PyArray_IS_C_CONTIGUOUS(o) ) {
+                Py_INCREF(o);
+            } else {
+                o = PyArray_FROM_OTF(o, NPY_COMPLEX128, NPY_ARRAY_IN_ARRAY);
+            }
+            PyList_SetItem(self->matrix, i, o);
+            matrices.push_back(numpy2matrix(o));
+        }
+ 
+        // allocate space for the resulted permanents
+        pic::matrix ret(1, sz);
 
-    // start the calculation of the permanent
-    pic::Complex16 ret = self->calculator->calculate(matrix_mtx);
+#ifdef __DFE__        
+        if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF)
+            GlynnPermanentCalculatorBatch_DFE( matrices, ret, self->lib == GlynnDualDFE || self->lib == GlynnDualDFEF, self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF);
+        else
+#endif
+        {
+            for (size_t i = 0; i < matrices.size(); i++) {
+                if (self->lib == GlynnCPP) {
+                    try {
+                        ret[i] = self->calculator.cpu_long_double->calculate(matrices[i]);
+                    }
+                    catch (std::string err) {
+                        PyErr_SetString(PyExc_Exception, err.c_str());
+                        return NULL;        
+                    }
+                }
+#ifdef __MPFR__
+                else if (self->lib == GlynnInf) {
+                    ret[i] = self->calculator.cpu_inf->calculate(matrices[i]);
+                }
+#endif
+            }
+        }    
+        
+        PyObject* list = PyList_New(0);
+        for (size_t i = 0; i < ret.size(); i++) {
+            PyObject* o = Py_BuildValue("D", &ret[i]);
+            PyList_Append(list, o);
+            Py_DECREF(o);
+        }
+        return list;
 
-    return Py_BuildValue("D", &ret);
+
+    } 
+    else {
+
+        // create PIC version of the input matrices
+        pic::matrix matrix_mtx = numpy2matrix(self->matrix);
+    
+        // start the calculation of the permanent
+    
+        pic::Complex16 ret;
+
+        if (self->lib == GlynnCPP) {
+            try {
+                ret = self->calculator.cpu_long_double->calculate(matrix_mtx);
+            }
+            catch (std::string err) {
+                PyErr_SetString(PyExc_Exception, err.c_str());
+                return NULL;         
+            }
+        }
+#ifdef __DFE__        
+        else if (self->lib == GlynnSingleDFE || self->lib == GlynnDualDFE || self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF) {
+            GlynnPermanentCalculator_DFE( matrix_mtx, ret, self->lib == GlynnDualDFE || self->lib == GlynnDualDFEF, self->lib == GlynnSingleDFEF || self->lib == GlynnDualDFEF);
+        }
+#endif
+#ifdef __MPFR__
+        else if (self->lib == GlynnInf) {
+            ret = self->calculator.cpu_inf->calculate(matrix_mtx);
+        }
+#endif
+    
+        return Py_BuildValue("D", &ret);
+    }
 }
-
-
 
 
 /**
@@ -173,7 +319,7 @@ GlynnPermanentCalculator_wrapper_setmatrix(GlynnPermanentCalculator_wrapper *sel
     Py_DECREF(self->matrix);
 
     // establish memory contiguous arrays for C calculations
-    if ( PyArray_IS_C_CONTIGUOUS(matrix_arg) ) {
+    if ( PyList_Check(matrix_arg) || PyArray_IS_C_CONTIGUOUS(matrix_arg) ) {
         self->matrix = matrix_arg;
         Py_INCREF(self->matrix);
     }
@@ -183,10 +329,6 @@ GlynnPermanentCalculator_wrapper_setmatrix(GlynnPermanentCalculator_wrapper *sel
 
     return 0;
 }
-
-
-
-
 
 static PyGetSetDef GlynnPermanentCalculator_wrapper_getsetters[] = {
     {"matrix", (getter) GlynnPermanentCalculator_wrapper_getmatrix, (setter) GlynnPermanentCalculator_wrapper_setmatrix,
