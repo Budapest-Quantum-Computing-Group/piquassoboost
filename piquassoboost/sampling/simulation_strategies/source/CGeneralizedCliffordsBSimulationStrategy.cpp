@@ -242,7 +242,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 #endif
 
             samples.push_back( sample );
-std::cout << "sample: " << idx+1 << std::endl;
+//std::cout << "sample: " << idx+1 << std::endl;
 //sample.print_matrix();
 //tbb::tick_count t1cpu = tbb::tick_count::now();
 //t_CPU += (t1cpu-t0cpu).seconds();            
@@ -336,15 +336,8 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 //#ifdef __DFE__
 
     // determine the number of nonzero elements in the current input/output
-    size_t nonzero_input_elements = 0;
     size_t nonzero_output_elements = 0;
-    PicVector<size_t> nonzero_indices;
-    nonzero_indices.reserve(current_input.size());
-    for (size_t jdx=0; jdx<current_input.size(); jdx++) {
-        if ( current_input[jdx] > 0 ) {
-            nonzero_input_elements++;
-            nonzero_indices.push_back(jdx);
-        }        
+    for (size_t jdx=0; jdx<sample.size(); jdx++) {      
 
         if ( sample[jdx] > 0 ) {
             nonzero_output_elements++;
@@ -352,19 +345,26 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
     }
 
 
+    std::vector<unsigned char> colIndices;
+    colIndices.reserve(current_input.size());
+    for (size_t i = 0; i < current_input.size(); i++) {
+        if ( current_input[i] > 0 ) {
+            colIndices.push_back(i);        
+        }
+    }
 
 #ifdef __DFE__
     const size_t nonzero_output_elements_threshold = 10;
-//////////////////////////////////
-GlynnPermanentCalculatorRepeated permanentCalculator;
-        cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(interferometer_matrix, current_input, sample, useDual );
-        DFEcalculator.determineColIndices( current_input );
-std::vector<unsigned char>& colIndices = DFEcalculator.colIndices;
-///////////////////////////////////
+    cGlynnPermanentCalculatorRepeatedMulti_DFE DFEcalculator(interferometer_matrix, current_input, sample, useDual );
+    DFEcalculator.determineColIndices( current_input );
 
 
     if ( nonzero_output_elements < nonzero_output_elements_threshold ) {
 #endif
+
+
+        GlynnPermanentCalculatorRepeated permanentCalculator;
+
         tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
         //for (size_t idx=0; idx<colIndices.size(); idx++) {
 
@@ -397,7 +397,6 @@ std::vector<unsigned char>& colIndices = DFEcalculator.colIndices;
         DFEcalculator.determineMultiplicities();
         if ( DFEcalculator.determineBatchIterations() )  {
             out_of_memory = true;
-std::cout << "oooooooooooooooooooooooooooooooO determineBatchIterations" << std::endl;
             return;
         }
 
@@ -412,7 +411,6 @@ std::cout << "oooooooooooooooooooooooooooooooO determineBatchIterations" << std:
 
             if ( DFEcalculator.reserveSpace( jdx ) ) {
                 out_of_memory = true;
-std::cout << "oooooooooooooooooooooooooooooooO Bad Alloc" << std::endl;
                 return;
             }
 
