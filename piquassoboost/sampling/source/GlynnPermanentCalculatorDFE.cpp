@@ -100,10 +100,10 @@ int init_dfe_lib(int choice, int dual) {
         lib = dual ? DFE_REP_LIBDUAL : DFE_REP_LIB;
     }
     // dynamic-loading the correct DFE permanent calculator (Simulator/DFE/single or dual) from shared libararies
-    handle = dlopen(getenv("SLIC_CONF") ? simLib : lib, RTLD_NOW); //"MAXELEROSDIR"
+    handle = dlopen(getenv("USE_DFE_SIMULATOR") ? simLib : lib, RTLD_NOW); //"MAXELEROSDIR"
     if (handle == NULL) {
         char* pwd = getcwd(NULL, 0);
-        fprintf(stderr, "%s\n'%s' (in %s mode) failed to load from working directory '%s' use export LD_LIBRARY_PATH\n", dlerror(), getenv("SLIC_CONF") ? simLib : lib, getenv("SLIC_CONF") ? "simulator" : "DFE", pwd);
+        fprintf(stderr, "%s\n'%s' (in %s mode) failed to load from working directory '%s' use export LD_LIBRARY_PATH\n", dlerror(), getenv("USE_DFE_SIMULATOR") ? simLib : lib, getenv("USE_DFE_SIMULATOR") ? "simulator" : "DFE", pwd);
         free(pwd);
     } else {
       // in case the DFE libraries were loaded successfully the function pointers are set to initialize/releive DFE engine and run DFE calculations

@@ -86,8 +86,7 @@ GeneralizedCliffordsBSimulationStrategy_wrapper_dealloc(GeneralizedCliffordsBSim
     release_ChinHuhPermanentCalculator( self->simulation_strategy );
 
 #ifdef _DFE_
-    if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
-        dec_dfe_lib_count();
+    dec_dfe_lib_count();
 #endif
 
     // release numpy arrays
@@ -164,13 +163,12 @@ GeneralizedCliffordsBSimulationStrategy_wrapper_init(GeneralizedCliffordsBSimula
     );
 
     // set custom seed for sampling
-    if ( seed != NULL ) {
+    if ( seed != NULL && seed != Py_None) {
         unsigned long long int seed_C = PyLong_AsUnsignedLongLong(seed);
         self->simulation_strategy->seed(seed_C);
     }
 
 #ifdef _DFE_
-    if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
         inc_dfe_lib_count();
 #endif
     
