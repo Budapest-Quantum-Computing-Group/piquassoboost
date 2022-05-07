@@ -82,7 +82,7 @@ void testCase(std::vector<int> input, std::vector<int> output, int iterationNumb
     std::vector<pic::matrix> adaptedMatricesForNormalGlynn;
     for (int i = 0; i < iterationNumber; i++){
         adaptedMatricesForNormalGlynn.push_back(
-            pic::adaptInterferometerGlynnMultiplied(normalMatrices[i], inputState, outputState)
+            pic::adaptInterferometerGlynnMultiplied(normalMatrices[i], &inputState, &outputState)
         );
     }
 

@@ -134,9 +134,9 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::~cGlynnPermanentCalculatorRepeatedMu
         for (int idx=0; idx<numinits; idx++ ) {
             mtxfix_batched[idx] = matrix_base<ComplexFix16>(0,0);
         }
-       
+  
         delete[] mtxfix_batched;
-        mtxfix_batched = NULL;
+        mtxfix_batched = NULL;  
     }
 
 }
@@ -186,7 +186,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::determineBatchIterations() {
 
     batch_iterations.clear();
     
-    const int64_t memory_limit = 0.5e11; //50 GB
+    const int64_t memory_limit = 0.25e11; //25 GB
     const size_t max_fpga_cols = max_dim / numinits;
     
     int64_t total_memory_needed = numinits*onerows * totalPerms * colIndices.size()*max_fpga_cols*sizeof(ComplexFix16);
@@ -557,7 +557,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE(size
             memcpy(mtxfix[i].get_data()+offset_small, mtxprefix[i].get_data(), sizeof(ComplexFix16) * onerows * max_fpga_cols);
         }
 
-        if ( batch_idx==0 ) {
+        if ( insideBatch_idx==0 ) {
             mplicity.push_back(cur_multiplicity);   
         }
 
@@ -575,7 +575,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::prepareDataForRepeatedMulti_DFE(size
         size_t i = __builtin_ctzll(skipidx); //count of trailing zeros to compute next change index
         bool curdir = (gcodeidx & (1ULL << i)) == 0;
 
-        if ( batch_idx==0 ) {
+        if ( insideBatch_idx==0 ) {
             cur_multiplicity = binomial_gcode(cur_multiplicity, curdir, inp[i], (curmp_loc[i] + inp[i]) / 2);
         }
 
