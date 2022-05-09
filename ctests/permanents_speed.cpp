@@ -1,7 +1,7 @@
 // The aim of this script is to compare runtimes of each implementation of permanent calculator.
 
 
-#include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculator.hpp"
 #include "GlynnPermanentCalculatorRepeated.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "CGeneralizedCliffordsSimulationStrategy.h"
@@ -82,7 +82,7 @@ void testCase(std::vector<int> input, std::vector<int> output, int iterationNumb
     std::vector<pic::matrix> adaptedMatricesForNormalGlynn;
     for (int i = 0; i < iterationNumber; i++){
         adaptedMatricesForNormalGlynn.push_back(
-            pic::adaptInterferometerGlynnMultiplied(normalMatrices[i], inputState, outputState)
+            pic::adaptInterferometerGlynnMultiplied(normalMatrices[i], &inputState, &outputState)
         );
     }
 
@@ -107,7 +107,7 @@ void testCase(std::vector<int> input, std::vector<int> output, int iterationNumb
 
     for (int i = 0; i < iterationNumber; i++){
         pic::matrix& adaptedMatrix = adaptedMatricesForNormalGlynn[i];
-        pic::GlynnPermanentCalculator bbfg_calculator;
+        pic::GlynnPermanentCalculatorLongDouble bbfg_calculator;
 
         tbb::tick_count t0 = tbb::tick_count::now();
         auto bbfg_permanent = bbfg_calculator.calculate(adaptedMatrix);

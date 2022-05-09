@@ -22,7 +22,7 @@ from thewalrus import perm as sf_perm
 from scipy.stats import unitary_group
 
 from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator
-from piquassoboost.sampling.Boson_Sampling_Utilities import GlynnPermanent, GlynnRepeatedPermanentCalculator
+from piquassoboost.sampling.Boson_Sampling_Utilities import GlynnPermanent, GlynnRepeatedPermanentCalculator, GlynnPermanentDoubleCPU
 
 class TestPermanentCalculators:
     """bechmark tests for permanent calculator algorithms
@@ -30,7 +30,7 @@ class TestPermanentCalculators:
 
     def test_repeated_input(self):
         """Check input data handling in repeated Glynn calculator"""
-
+        
         dim = 20
         A = unitary_group.rvs(dim)
 
@@ -65,7 +65,7 @@ class TestPermanentCalculators:
 
     def test_value_repeated(self):
         """Check permanent value calculated by C++ Glynn permanent calculator"""
-
+        
         d = 15
         n = 10
 
@@ -126,7 +126,7 @@ class TestPermanentCalculators:
 
     def test_value_two_dimensional(self):
         """Check permanent value calculated by C++ Glynn permanent calculator"""
-
+        
         d = 15
         n = 10
 
@@ -193,3 +193,37 @@ class TestPermanentCalculators:
         print("time elapsed in PQ (Glynn)  :", pq_glynn_time)
         print("time elapsed in PQ (Chinhuh):", pq_chinhuh_time)
         
+
+
+
+    """performance test for measuring the calculation precision
+    """
+
+    def test_calculator_value(self):
+        """Check input data handling in Glynn calculators"""
+
+        dim = 2
+        A = unitary_group.rvs(dim)
+
+        print("Matrix input:")
+        print(A)
+        
+
+        value_from_double = 1.0 - 1.0j
+
+        # Glynn permanent calculator with double precision
+        permanent_calculator_Glynn_double_precision = GlynnPermanentDoubleCPU( A )
+        value_from_double = permanent_calculator_Glynn_double_precision.calculate()
+
+
+
+        value_from_long_double = 1.0 - 1.0j
+
+        # Glynn permanent calculator with long double precision
+        permanent_calculator_Glynn_long_double_precision = GlynnPermanent( A )
+        value_from_long_double = permanent_calculator_Glynn_long_double_precision.calculate()
+
+        print("value_from_double     :", value_from_double)
+        print("value_from_long_double:", value_from_long_double)
+
+

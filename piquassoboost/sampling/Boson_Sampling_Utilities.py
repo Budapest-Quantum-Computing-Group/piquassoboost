@@ -202,6 +202,19 @@ class GlynnPermanentDualDFE(GlynnPermanentCalculator_wrapper):
         pass
 
        
+class GlynnPermanentDoubleCPU(GlynnPermanentCalculator_wrapper):
+    """
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula) with double precision
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        # 6 shall mean macro GlynnDoubleCPU
+        super(GlynnPermanentDoubleCPU, self).__init__(matrix, 6)
+        pass
+
 
 class PowerTraceHafnian(PowerTraceHafnian_wrapper):
     """

@@ -5,7 +5,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "structmember.h"
-#include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculator.hpp"
 
 #ifdef __MPFR__
 #include "GlynnPermanentCalculatorInf.h"
@@ -24,11 +24,14 @@
 #define GlynnDualDFE 3
 #define GlynnSingleDFEF 4
 #define GlynnDualDFEF 5
+#define GlynnDoubleCPU 6
 
 /// The C++ variants of class CGlynnPermanentCalculator
 union CPU_glynn {
     /// long double precision calculator
-    pic::GlynnPermanentCalculator* cpu_long_double;
+    pic::GlynnPermanentCalculatorLongDouble *cpu_long_double;
+    /// double precision calculator
+    pic::GlynnPermanentCalculatorDouble *cpu_double;
 #ifdef __MPFR__
     /// infinite precision calculator
     pic::GlynnPermanentCalculatorInf* cpu_inf;
@@ -50,26 +53,52 @@ typedef struct GlynnPermanentCalculator_wrapper {
 
 
 /**
-@brief Creates an instance of class GlynnPermanentCalculator and return with a pointer pointing to the class instance (C++ linking is needed)
-@return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
-*/
-pic::GlynnPermanentCalculator*
-create_GlynnPermanentCalculator() {
+ * @brief Creates an instance of class GlynnPermanentCalculatorLongDouble (long double precision) and returns with a pointer pointing to the class instance (C++ linking is needed)
+ * @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
+ */
+pic::GlynnPermanentCalculatorLongDouble*
+create_GlynnPermanentCalculatorLongDouble() {
 
-    return new pic::GlynnPermanentCalculator();
+    return new pic::GlynnPermanentCalculatorLongDouble();
 }
 
+
 /**
-@brief Call to deallocate an instance of GlynnPermanentCalculator class
-@param ptr A pointer pointing to an instance of GlynnPermanentCalculator class.
+ * @brief Creates an instance of class GlynnPermanentCalculatorDouble (double precision) and returns with a pointer pointing to the class instance (C++ linking is needed)
+ * @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
+ */
+pic::GlynnPermanentCalculatorDouble*
+create_GlynnPermanentCalculatorDouble() {
+
+    return new pic::GlynnPermanentCalculatorDouble();
+}
+
+
+/**
+@brief Call to deallocate an instance of GlynnPermanentCalculatorLongDouble class
+@param ptr A pointer pointing to an instance of GlynnPermanentCalculatorLongDouble class.
 */
 void
-release_GlynnPermanentCalculator( pic::GlynnPermanentCalculator*  instance ) {
+release_GlynnPermanentCalculatorLongDouble( pic::GlynnPermanentCalculatorLongDouble* instance ) {
     if ( instance != NULL ) {
         delete instance;
     }
     return;
 }
+
+
+/**
+@brief Call to deallocate an instance of GlynnPermanentCalculatorDouble class
+@param ptr A pointer pointing to an instance of GlynnPermanentCalculatorDouble class.
+*/
+void
+release_GlynnPermanentCalculatorDouble( pic::GlynnPermanentCalculatorDouble* instance ) {
+    if ( instance != NULL ) {
+        delete instance;
+    }
+    return;
+}
+
 
 #ifdef __MPFR__
 
@@ -116,10 +145,16 @@ GlynnPermanentCalculator_wrapper_dealloc(GlynnPermanentCalculator_wrapper *self)
     else
 #endif
     // deallocate the instance of class N_Qubit_Decomposition
-    if (self->lib == GlynnCPP && self->calculator.cpu_long_double != NULL) release_GlynnPermanentCalculator( self->calculator.cpu_long_double );
+    if (self->lib == GlynnCPP && self->calculator.cpu_long_double != NULL) release_GlynnPermanentCalculatorLongDouble( self->calculator.cpu_long_double );
 #ifdef __MPFR__
     else if (self->lib == GlynnInf && self->calculator.cpu_inf != NULL) release_GlynnPermanentCalculatorInf( self->calculator.cpu_inf );
 #endif
+    else if (
+        self->lib == GlynnDoubleCPU
+        && self->calculator.cpu_double != NULL
+    ) {
+        release_GlynnPermanentCalculatorDouble( self->calculator.cpu_double );
+    }
 
     // release numpy arrays
     Py_DECREF(self->matrix);
@@ -179,7 +214,7 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
     
     // create instance of class GlynnPermanentCalculator
     if (self->lib == GlynnCPP) {
-        self->calculator.cpu_long_double = create_GlynnPermanentCalculator();
+        self->calculator.cpu_long_double = create_GlynnPermanentCalculatorLongDouble();
     }
 #ifdef __MPFR__    
     else if (self->lib == GlynnInf) {
@@ -191,6 +226,9 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
         inc_dfe_lib_count();
     }
 #endif
+    else if (self->lib == GlynnDoubleCPU) {
+        self->calculator.cpu_double = create_GlynnPermanentCalculatorDouble();
+    }
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
         return -1;
@@ -293,6 +331,15 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
             ret = self->calculator.cpu_inf->calculate(matrix_mtx);
         }
 #endif
+        else if (self->lib == GlynnDoubleCPU) {
+            try {
+                ret = self->calculator.cpu_double->calculate(matrix_mtx);
+            }
+            catch (std::string err) {
+                PyErr_SetString(PyExc_Exception, err.c_str());
+                return NULL;
+            }
+        }
     
         return Py_BuildValue("D", &ret);
     }

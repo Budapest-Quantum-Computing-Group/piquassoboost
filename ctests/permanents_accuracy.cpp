@@ -1,7 +1,7 @@
 // The aim of this script is to ensure every implementation of permanent calculator give concise results.
 
 
-#include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculator.hpp"
 #include "GlynnPermanentCalculatorRepeated.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "matrix_helper.hpp"
@@ -34,7 +34,7 @@ void testOfSameValuesForRandomMatrix(int matrix_dimension, int mul){
 
 
     // First just check if I can get any results from BBFG formula.
-    pic::GlynnPermanentCalculator bbfg_calculator;
+    pic::GlynnPermanentCalculatorLongDouble bbfg_calculator;
 
     auto bbfg_permanent = bbfg_calculator.calculate(matrixMultipled);
 
@@ -99,7 +99,7 @@ int main() {
 
 
     // First just check if I can get any results from BBFG formula.
-    pic::GlynnPermanentCalculator bbfg_calculator;
+    pic::GlynnPermanentCalculatorLongDouble bbfg_calculator;
 
     tbb::tick_count t0 = tbb::tick_count::now();
     auto bbfg_permanent = bbfg_calculator.calculate(matrixMultipled);

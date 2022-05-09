@@ -15,7 +15,8 @@ namespace pic {
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-GlynnPermanentCalculator::GlynnPermanentCalculator() {}
+template<typename matrix_type, typename precision_type>
+GlynnPermanentCalculator<matrix_type, precision_type>::GlynnPermanentCalculator() {}
 
 
 /**
@@ -23,14 +24,18 @@ GlynnPermanentCalculator::GlynnPermanentCalculator() {}
 @param mtx Unitary describing a quantum circuit
 @return Returns with the calculated permanent
 */
+template<typename matrix_type, typename precision_type>
 Complex16
-GlynnPermanentCalculator::calculate(matrix &mtx) {
+GlynnPermanentCalculator<matrix_type, precision_type>::calculate(matrix &mtx) {
     if (mtx.rows == 0 || mtx.cols == 0)
         return Complex16(1.0, 0.0);
     if (mtx.rows >= mtx.cols + 2)
         return Complex16(0.0, 0.0);
 
-    GlynnPermanentCalculatorTask calculator;
+    std::cout << "matrix:"<<std::endl;
+    mtx.print_matrix();
+
+    GlynnPermanentCalculatorTask<matrix_type, precision_type> calculator;
     return calculator.calculate( mtx );
 }
 
@@ -40,21 +45,23 @@ GlynnPermanentCalculator::calculate(matrix &mtx) {
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-GlynnPermanentCalculatorTask::GlynnPermanentCalculatorTask() {}
+template<typename matrix_type, typename precision_type>
+GlynnPermanentCalculatorTask<matrix_type, precision_type>::GlynnPermanentCalculatorTask() {}
 
 /**
 @brief Call to calculate the permanent via Glynn formula. scales with n*2^n
 @param mtx Unitary describing a quantum circuit
 @return Returns with the calculated permanent
 */
+template<typename matrix_type, typename precision_type>
 Complex16
-GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
+GlynnPermanentCalculatorTask<matrix_type, precision_type>::calculate(matrix &mtx) {
 
     Complex16* mtx_data = mtx.get_data();
     
     // calculate and store 2*mtx being used later in the recursive calls
-    mtx2 = matrix32( mtx.rows, mtx.cols);
-    Complex32* mtx2_data = mtx2.get_data();
+    mtx2 = matrix_type( mtx.rows, mtx.cols);
+    Complex_base<precision_type>* mtx2_data = mtx2.get_data();
 
     tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.rows), [&](tbb::blocked_range<size_t> r) {
         for (size_t row_idx=r.begin(); row_idx<r.end(); ++row_idx){
@@ -70,9 +77,9 @@ GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
 
 
     // calulate the initial sum of the columns
-    matrix32 colSum( mtx.cols, 1);
-    Complex32* colSum_data = colSum.get_data();
-    memset( colSum_data, 0.0, colSum.size()*sizeof(Complex32));
+    matrix_type colSum( mtx.cols, 1);
+    Complex_base<precision_type>* colSum_data = colSum.get_data();
+    memset( colSum_data, 0.0, colSum.size()*sizeof(Complex_base<precision_type>));
 
 
 
@@ -89,7 +96,7 @@ GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
     });
 
     // thread local storage for partial permanent
-    priv_addend = tbb::combinable<ComplexM<long double>> {[](){return ComplexM<long double>();}};
+    priv_addend = tbb::combinable<ComplexM<precision_type>> {[](){return ComplexM<precision_type>();}};
 
 
     // start the iterations over vectors of deltas
@@ -97,13 +104,13 @@ GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
 
 
     // sum up partial permanents
-    Complex32 permanent( 0.0, 0.0 );
+    Complex_base<precision_type> permanent( 0.0, 0.0 );
 
-    priv_addend.combine_each([&](ComplexM<long double> &a) {
+    priv_addend.combine_each([&](ComplexM<precision_type> &a) {
         permanent = permanent + a.get();
     });
 
-    permanent = permanent / (long double)power_of_2( (unsigned long long) (mtx.rows-1) );
+    permanent = permanent / (precision_type)power_of_2( (unsigned long long) (mtx.rows-1) );
 
   
 
@@ -121,19 +128,20 @@ GlynnPermanentCalculatorTask::calculate(matrix &mtx) {
 @param index_min \f$ \delta_j a_{ij} $\f with \f$ 0<i<index_min $\f are kept constant, while the signs of \f$ \delta_i \f$  with \f$ i>=idx_min $\f are changed.
 @param sign The current product \f$ \prod\delta_i $\f
 */
+template<typename matrix_type, typename precision_type>
 void 
-GlynnPermanentCalculatorTask::IterateOverDeltas( matrix32& colSum, int sign, int index_min ) {
+GlynnPermanentCalculatorTask<matrix_type, precision_type>::IterateOverDeltas( matrix_type& colSum, int sign, int index_min ) {
 
-    Complex32* colSum_data = colSum.get_data();
+    Complex_base<precision_type>* colSum_data = colSum.get_data();
 
     // Calculate the partial permanent
-    Complex32 colSumProd(1.0,0.0);
+    Complex_base<precision_type> colSumProd(1.0,0.0);
     for (int idx=0; idx<colSum.rows; idx++) {
         colSumProd = colSumProd * colSum_data[idx];
     }
 
     // add partial permanent to the local value
-    ComplexM<long double> &permanent_priv = priv_addend.local();
+    ComplexM<precision_type> &permanent_priv = this->priv_addend.local();
     permanent_priv += sign*colSumProd;
 
 
@@ -141,10 +149,10 @@ GlynnPermanentCalculatorTask::IterateOverDeltas( matrix32& colSum, int sign, int
         for (int idx=r.begin(); idx<r.end(); ++idx){
 
             // create an altered vector from the current delta
-            matrix32 colSum_new = colSum.copy();
+            matrix_type colSum_new = colSum.copy();
 
-            Complex32* mtx2_data = mtx2.get_data();
-            Complex32* colSum_new_data = colSum_new.get_data();
+            Complex_base<precision_type>* mtx2_data = mtx2.get_data();
+            Complex_base<precision_type>* colSum_new_data = colSum_new.get_data();
 
             size_t row_offset = idx*mtx2.stride;
 

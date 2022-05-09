@@ -3,7 +3,7 @@
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
 #include "common_functionalities.h"
-#include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculator.hpp"
 #include "GlynnPermanentCalculatorRepeated.h"
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
@@ -182,7 +182,7 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
                     matrix ret_batched(ret.get_data()+start_index, 1, matrices->size());
 
                     if (matrices->begin()->rows < 4) { //compute with other method
-                        GlynnPermanentCalculator gpc;
+                        GlynnPermanentCalculatorLongDouble gpc;
                         for (size_t i = 0; i < matrices->size(); i++) {
                             ret_batched[i] = gpc.calculate((*matrices)[i]);
                         }
