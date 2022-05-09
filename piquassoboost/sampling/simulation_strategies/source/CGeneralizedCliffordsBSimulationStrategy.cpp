@@ -17,8 +17,7 @@
 #include <iostream>
 #include "CGeneralizedCliffordsBSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
-#include "GlynnPermanentCalculator.h"
-#include "GlynnPermanentCalculatorRepeated.h"
+#include "GlynnPermanentCalculatorRepeated.hpp"
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
 #include "GlynnPermanentCalculatorRepeatedDFE.h"
@@ -363,7 +362,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 #endif
 
 
-        GlynnPermanentCalculatorRepeated permanentCalculator;
+        GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
 
         tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
         //for (size_t idx=0; idx<colIndices.size(); idx++) {
@@ -487,7 +486,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
         PicState_int64&& output_state = sample.copy();
         output_state[mdx]++;
 
-        GlynnPermanentCalculatorRepeated permanentCalculator;
+        GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
 
         matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, current_input, output_state );
         PicState_int64 adapted_input_state = current_input.filter(filterNonZero);

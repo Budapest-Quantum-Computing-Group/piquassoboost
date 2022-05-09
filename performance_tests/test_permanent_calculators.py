@@ -21,8 +21,18 @@ from thewalrus import perm as sf_perm
 
 from scipy.stats import unitary_group
 
-from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator
-from piquassoboost.sampling.Boson_Sampling_Utilities import GlynnPermanent, GlynnRepeatedPermanentCalculator, GlynnPermanentDoubleCPU
+from piquassoboost.sampling.Boson_Sampling_Utilities import (
+    ChinHuhPermanentCalculator,
+    GlynnPermanent,
+    GlynnRepeatedPermanentCalculator,
+    GlynnRepeatedPermanentCalculatorDouble,
+    GlynnPermanentDoubleCPU
+)
+
+from piquassoboost.sampling.permanent_calculators import (
+    permanent_CPU_repeated_double,
+    permanent_CPU_repeated_long_double
+)
 
 class TestPermanentCalculators:
     """bechmark tests for permanent calculator algorithms
@@ -30,7 +40,7 @@ class TestPermanentCalculators:
 
     def test_repeated_input(self):
         """Check input data handling in repeated Glynn calculator"""
-        
+
         dim = 20
         A = unitary_group.rvs(dim)
 
@@ -65,7 +75,7 @@ class TestPermanentCalculators:
 
     def test_value_repeated(self):
         """Check permanent value calculated by C++ Glynn permanent calculator"""
-        
+
         d = 15
         n = 10
 
@@ -126,7 +136,7 @@ class TestPermanentCalculators:
 
     def test_value_two_dimensional(self):
         """Check permanent value calculated by C++ Glynn permanent calculator"""
-        
+
         d = 15
         n = 10
 
@@ -196,13 +206,14 @@ class TestPermanentCalculators:
 
 
 
-    """performance test for measuring the calculation precision
+    """
+        performance test for measuring the calculation precision
     """
 
     def test_calculator_value(self):
         """Check input data handling in Glynn calculators"""
 
-        dim = 2
+        dim = 4
         A = unitary_group.rvs(dim)
 
         print("Matrix input:")
@@ -223,7 +234,25 @@ class TestPermanentCalculators:
         permanent_calculator_Glynn_long_double_precision = GlynnPermanent( A )
         value_from_long_double = permanent_calculator_Glynn_long_double_precision.calculate()
 
-        print("value_from_double     :", value_from_double)
-        print("value_from_long_double:", value_from_long_double)
 
 
+        # multiplicities of input/output states
+        input_state = np.ones(dim, np.int64)
+        output_state = np.ones(dim, np.int64)
+        # repeated Glynn permanent calculator with double precision
+        RepeatedGlynnDouble = GlynnRepeatedPermanentCalculatorDouble( A, input_state=input_state, output_state=output_state )
+        rep_value_from_double = RepeatedGlynnDouble.calculate()
+        rep_value_from_double2 = permanent_CPU_repeated_double( A, input_state, output_state )
+
+        # repeated Glynn permanent calculator with long double precision
+        RepeatedGlynnLongDouble = GlynnRepeatedPermanentCalculator( A, input_state=input_state, output_state=output_state )
+        rep_value_from_long_double = RepeatedGlynnLongDouble.calculate()
+        rep_value_from_long_double2 = permanent_CPU_repeated_long_double( A, input_state, output_state )
+
+
+        print("value_from_double          :", value_from_double)
+        print("value_from_long_double     :", value_from_long_double)
+        print("rep_value_from_double      :", rep_value_from_double)
+        print("rep_value_from_double2     :", rep_value_from_double2)
+        print("rep_value_from_long_double :", rep_value_from_long_double)
+        print("rep_value_from_long_double2:", rep_value_from_long_double2)

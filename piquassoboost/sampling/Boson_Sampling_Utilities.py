@@ -92,6 +92,14 @@ class ChinHuhPermanentCalculator(RepeatedPermanentCalculator):
 
 class GlynnRepeatedPermanentCalculator(RepeatedPermanentCalculator):
     def __init__(self, matrix, input_state, output_state):
+        """
+            This class is designed to calculate the permanent of
+            matrix using Glynn's algorithm
+            (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
+            with long double precision and multipled rows or columns
+
+            1 shall be equal to GlynnRep
+        """
         super(GlynnRepeatedPermanentCalculator, self).__init__(1, matrix, input_state, output_state)
         pass
 
@@ -137,6 +145,21 @@ class GlynnRepeatedMultiDualDFEPermanentCalculator(RepeatedPermanentCalculator):
     def __init__(self, matrix, input_state, output_state):
         super(GlynnRepeatedMultiDualDFEPermanentCalculator, self).__init__(5, matrix, input_state, output_state)
         pass
+
+
+class GlynnRepeatedPermanentCalculatorDouble(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        """
+            This class is designed to calculate the permanent of
+            matrix using Glynn's algorithm
+            (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
+            with double precision and multipled rows or columns
+
+            5 shall be equal to GlynnRepCPUDouble
+        """
+        super(GlynnRepeatedPermanentCalculatorDouble, self).__init__(5, matrix, input_state, output_state)
+        pass
+
 
 
 

@@ -2,7 +2,7 @@
 
 
 #include "GlynnPermanentCalculator.hpp"
-#include "GlynnPermanentCalculatorRepeated.h"
+#include "GlynnPermanentCalculatorRepeated.hpp"
 #include "CChinHuhPermanentCalculator.h"
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "matrix_helper.hpp"
@@ -122,7 +122,7 @@ void testCase(std::vector<int> input, std::vector<int> output, int iterationNumb
         pic::matrix adaptedMatrix = adaptedMatricesForRecursiveGlynn[i];
         pic::PicState_int64 inState = inputState;
         pic::PicState_int64 outState = outputState;
-        pic::GlynnPermanentCalculatorRepeated bbfgrec_calculator;
+        pic::GlynnPermanentCalculatorRepeatedLongDouble bbfgrec_calculator;
 
         tbb::tick_count t0 = tbb::tick_count::now();
         auto bbfgrec_permanent = bbfgrec_calculator.calculate(adaptedMatrix, adaptedInputState, adaptedOutputState);

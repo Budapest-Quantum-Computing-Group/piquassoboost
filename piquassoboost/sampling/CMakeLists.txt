@@ -82,4 +82,4 @@ set_target_properties( permanent_calculators PROPERTIES
 
 install(TARGETS Boson_Sampling_Utilities_wrapper LIBRARY DESTINATION piquassoboost/sampling)
 install(TARGETS permanent_calculators LIBRARY 
-         DESTINATION piquassoboost/gaussian)
+         DESTINATION piquassoboost/sampling)

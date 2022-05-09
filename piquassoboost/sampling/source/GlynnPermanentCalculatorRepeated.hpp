@@ -13,7 +13,8 @@ namespace pic {
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-GlynnPermanentCalculatorRepeated::GlynnPermanentCalculatorRepeated() {}
+template <typename matrix_type, typename precision_type>
+GlynnPermanentCalculatorRepeated<matrix_type, precision_type>::GlynnPermanentCalculatorRepeated() {}
 
 
 
@@ -24,12 +25,12 @@ GlynnPermanentCalculatorRepeated::GlynnPermanentCalculatorRepeated() {}
 @param output_state The output state
 @return Returns with the calculated permanent
 */
-Complex16 GlynnPermanentCalculatorRepeated::calculate(
+template <typename matrix_type, typename precision_type>
+Complex16 GlynnPermanentCalculatorRepeated<matrix_type, precision_type>::calculate(
     matrix &mtx,
     PicState_int64& input_state,
     PicState_int64& output_state
 ) {
-
 
     int sum_input_states = sum(input_state);
     int sum_output_states = sum(output_state);
@@ -48,9 +49,8 @@ Complex16 GlynnPermanentCalculatorRepeated::calculate(
     // row multiplicities are determined by the output state
         convert_PicState_int64_to_PicState_int(output_state);
 
-    GlynnPermanentCalculatorRepeatedTask calculator(mtx, row_multiplicities, col_multiplicities);
+    GlynnPermanentCalculatorRepeatedTask<matrix_type, precision_type> calculator(mtx, row_multiplicities, col_multiplicities);
     return calculator.calculate( );
-    
 }
 
 
@@ -61,7 +61,8 @@ Complex16 GlynnPermanentCalculatorRepeated::calculate(
 @param col_multiplicities vector describing the column multiplicity
 @return Returns with the instance of the class.
 */
-GlynnPermanentCalculatorRepeatedTask::GlynnPermanentCalculatorRepeatedTask(
+template <typename matrix_type, typename precision_type>
+GlynnPermanentCalculatorRepeatedTask<matrix_type, precision_type>::GlynnPermanentCalculatorRepeatedTask(
     matrix &mtx,
     PicState_int& row_multiplicities,
     PicState_int& col_multiplicities
@@ -73,8 +74,8 @@ GlynnPermanentCalculatorRepeatedTask::GlynnPermanentCalculatorRepeatedTask(
     Complex16* mtx_data = mtx.get_data();
     
     // calculate and store 2*mtx being used later in the recursive calls
-    mtx2 = matrix32( mtx.rows, mtx.cols);
-    Complex32* mtx2_data = mtx2.get_data();
+    mtx2 = matrix_type( mtx.rows, mtx.cols);
+    Complex_base<precision_type>* mtx2_data = mtx2.get_data();
 
     tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.rows), [&](tbb::blocked_range<size_t> r) {
         for (size_t row_idx=r.begin(); row_idx<r.end(); ++row_idx){
@@ -113,8 +114,9 @@ GlynnPermanentCalculatorRepeatedTask::GlynnPermanentCalculatorRepeatedTask(
 @brief Call to calculate the permanent via Glynn formula. scales with n*2^n
 @return Returns with the calculated permanent
 */
+template <typename matrix_type, typename precision_type>
 Complex16
-GlynnPermanentCalculatorRepeatedTask::calculate() {
+GlynnPermanentCalculatorRepeatedTask<matrix_type, precision_type>::calculate() {
 
     // if all the elements in row multiplicities are zero, returning default value
     if (minimalIndex == row_multiplicities.size()){
@@ -124,9 +126,9 @@ GlynnPermanentCalculatorRepeatedTask::calculate() {
     Complex16* mtx_data = mtx.get_data();
 
     // calculate the initial sum of the columns
-    matrix32 colSum( mtx.cols, 1);
-    Complex32* colSum_data = colSum.get_data();
-    memset( colSum_data, 0.0, colSum.size()*sizeof(Complex32));
+    matrix_type colSum( mtx.cols, 1);
+    Complex_base<precision_type>* colSum_data = colSum.get_data();
+    memset( colSum_data, 0.0, colSum.size()*sizeof(Complex_base<precision_type>));
 
     tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.cols), [&](tbb::blocked_range<size_t> r) {
         for (size_t col_idx=r.begin(); col_idx<r.end(); ++col_idx){
@@ -141,7 +143,7 @@ GlynnPermanentCalculatorRepeatedTask::calculate() {
     });
 
     // thread local storage for partial permanent
-    priv_addend = tbb::combinable<ComplexM<long double>> {[](){return ComplexM<long double>();}};
+    priv_addend = tbb::combinable<ComplexM<precision_type>> {[](){return ComplexM<precision_type>();}};
 
 
     // start the iterations over vectors of deltas
@@ -154,9 +156,9 @@ GlynnPermanentCalculatorRepeatedTask::calculate() {
 
 
     // sum up partial permanents
-    Complex32 permanent( 0.0, 0.0 );
+    Complex_base<precision_type> permanent( 0.0, 0.0 );
 
-    priv_addend.combine_each([&](ComplexM<long double> &a) {
+    priv_addend.combine_each([&](ComplexM<precision_type> &a) {
         permanent = permanent + a.get();
     });
 
@@ -165,7 +167,7 @@ GlynnPermanentCalculatorRepeatedTask::calculate() {
         sumMultiplicities += row_multiplicities[idx];
     }
 
-    permanent = permanent / (long double)power_of_2( (unsigned long long) (sumMultiplicities-1) );
+    permanent = permanent / (precision_type)power_of_2( (unsigned long long) (sumMultiplicities-1) );
 
     return Complex16(permanent.real(), permanent.imag());
 }
@@ -178,17 +180,18 @@ GlynnPermanentCalculatorRepeatedTask::calculate() {
 @param index_min \f$ \delta_j a_{ij} $\f with \f$ 0<i<index_min $\f are kept constant, while the signs of \f$ \delta_i \f$  with \f$ i>=idx_min $\f are changed.
 @param currentMultiplicity multiplicity of the current delta vector
 */
+template <typename matrix_type, typename precision_type>
 void 
-GlynnPermanentCalculatorRepeatedTask::IterateOverDeltas(
-    matrix32& colSum,
+GlynnPermanentCalculatorRepeatedTask<matrix_type, precision_type>::IterateOverDeltas(
+    matrix_type& colSum,
     int sign,
     size_t index_min,
     int currentMultiplicity
 ) {
-    Complex32* colSum_data = colSum.get_data();
+    Complex_base<precision_type>* colSum_data = colSum.get_data();
 
     // Calculate the partial permanent
-    Complex32 colSumProd(1.0,0.0);
+    Complex_base<precision_type> colSumProd(1.0,0.0);
     for (unsigned int idx=0; idx<colSum.rows; idx++) {
         for (int jdx = 0; jdx < col_multiplicities[idx]; jdx++){
             colSumProd = colSumProd * colSum_data[idx];
@@ -197,17 +200,17 @@ GlynnPermanentCalculatorRepeatedTask::IterateOverDeltas(
 
     // add partial permanent to the local value
     // multiplicity is given by the binomial formula of multiplicity over sign
-    ComplexM<long double> &permanent_priv = priv_addend.local();
+    ComplexM<precision_type> &permanent_priv = priv_addend.local();
     permanent_priv += currentMultiplicity * sign * colSumProd;
 
     tbb::parallel_for( tbb::blocked_range<int>(index_min, mtx.rows), [&](tbb::blocked_range<int> r) {
         for (int idx=r.begin(); idx<r.end(); ++idx){
             int localSign = sign;
             // create an altered vector from the current delta
-            matrix32 colSum_new = colSum.copy();
+            matrix_type colSum_new = colSum.copy();
 
-            Complex32* mtx2_data = mtx2.get_data();
-            Complex32* colSum_new_data = colSum_new.get_data();
+            Complex_base<precision_type>* mtx2_data = mtx2.get_data();
+            Complex_base<precision_type>* colSum_new_data = colSum_new.get_data();
 
             size_t row_offset = idx*mtx2.stride;
 

@@ -32,9 +32,6 @@ GlynnPermanentCalculator<matrix_type, precision_type>::calculate(matrix &mtx) {
     if (mtx.rows >= mtx.cols + 2)
         return Complex16(0.0, 0.0);
 
-    std::cout << "matrix:"<<std::endl;
-    mtx.print_matrix();
-
     GlynnPermanentCalculatorTask<matrix_type, precision_type> calculator;
     return calculator.calculate( mtx );
 }
@@ -111,8 +108,6 @@ GlynnPermanentCalculatorTask<matrix_type, precision_type>::calculate(matrix &mtx
     });
 
     permanent = permanent / (precision_type)power_of_2( (unsigned long long) (mtx.rows-1) );
-
-  
 
 
     return Complex16(permanent.real(), permanent.imag());

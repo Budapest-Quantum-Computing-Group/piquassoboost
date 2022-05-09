@@ -4,7 +4,7 @@
 #include "tbb/tbb.h"
 #include "common_functionalities.h"
 #include "GlynnPermanentCalculator.hpp"
-#include "GlynnPermanentCalculatorRepeated.h"
+#include "GlynnPermanentCalculatorRepeated.hpp"
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
 #endif
@@ -103,7 +103,7 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
     if ( lib == GlynnRep ) {
 
         //GlynnPermanentCalculator permanentCalculator;
-        GlynnPermanentCalculatorRepeated permanentCalculator;
+        GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
 
         // define function to filter out nonzero elements
         std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 

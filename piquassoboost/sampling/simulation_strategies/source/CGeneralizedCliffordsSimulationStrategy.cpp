@@ -19,7 +19,7 @@
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculator.h"
 #include "GlynnPermanentCalculatorDFE.h"
-#include "GlynnPermanentCalculatorRepeated.h"
+#include "GlynnPermanentCalculatorRepeated.hpp"
 #include "GlynnPermanentCalculatorRepeatedDFE.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "common_functionalities.h"
@@ -607,7 +607,7 @@ calculate_outputs_probability( matrix &interferometer_mtx, PicState_int64 &input
     PicState_int64 adapted_output_state = output_state.filter(filterNonZero);
     
         
-    GlynnPermanentCalculatorRepeated permanentCalculatorRecursive;
+    GlynnPermanentCalculatorRepeatedLongDouble permanentCalculatorRecursive;
     permanent = permanentCalculatorRecursive.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state );
 
     double probability = permanent.real()*permanent.real() + permanent.imag()*permanent.imag();
