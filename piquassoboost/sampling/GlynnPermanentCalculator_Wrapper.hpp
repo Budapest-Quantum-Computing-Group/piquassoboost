@@ -5,7 +5,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "structmember.h"
-#include "GlynnPermanentCalculator.hpp"
+#include "GlynnPermanentCalculator.h"
 
 #ifdef __MPFR__
 #include "GlynnPermanentCalculatorInf.h"

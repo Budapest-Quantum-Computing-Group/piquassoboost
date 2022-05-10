@@ -6,7 +6,11 @@
 #include "PicState.h"
 #include <vector>
 #include "PicVector.hpp"
+
+// avoid tbb usage at python interface
+#ifndef CPYTHON
 #include <tbb/tbb.h>
+#endif
 
 
 namespace pic {
@@ -51,8 +55,8 @@ Complex16 calculate(matrix &mtx);
 }; //GlynnPermanentCalculator
 
 
-
-
+// avoid tbb usage at python interface
+#ifndef CPYTHON
 
 
 /**
@@ -99,6 +103,9 @@ void IterateOverDeltas( matrix_type& colSum, int sign, int index_min );
 
 
 }; // partial permanent_Task
+
+#endif // CPYTHON
+
 
 
 /** alias for glynn permanent calculator with long double precision

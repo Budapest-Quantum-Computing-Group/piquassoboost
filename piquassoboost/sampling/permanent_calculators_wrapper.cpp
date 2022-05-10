@@ -19,7 +19,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "numpy_interface.h"
-#include "GlynnPermanentCalculatorRepeated.hpp"
+#include "GlynnPermanentCalculatorRepeated.h"
 
 
 /** Python interface method for calculating the permanent of a matrix based on 

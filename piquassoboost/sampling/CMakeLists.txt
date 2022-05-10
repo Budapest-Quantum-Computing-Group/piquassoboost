@@ -48,6 +48,7 @@ target_compile_options(permanent_calculators PRIVATE
     ${CXX_FLAGS}
     "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+    "-DCPYTHON"
 )
 
 

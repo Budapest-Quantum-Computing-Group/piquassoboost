@@ -22,7 +22,7 @@
 #include <numpy/arrayobject.h>
 #include "structmember.h"
 #include "CChinHuhPermanentCalculator.h"
-#include "GlynnPermanentCalculatorRepeated.hpp"
+#include "GlynnPermanentCalculatorRepeated.h"
 
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"

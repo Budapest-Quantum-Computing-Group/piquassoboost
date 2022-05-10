@@ -7,7 +7,11 @@
 #include "PicState.h"
 #include <vector>
 #include "PicVector.hpp"
+
+// avoid tbb usage at python interface
+#ifndef CPYTHON
 #include <tbb/tbb.h>
+#endif
 
 
 namespace pic {
@@ -58,6 +62,8 @@ Complex16 calculate(
 }; //GlynnPermanentCalculatorRepeated
 
 
+// avoid tbb usage at python interface
+#ifndef CPYTHON
 
 /**
 @brief Class to calculate a partial permanent via Glynn's formula scaling with n*2^n.
@@ -127,6 +133,7 @@ void IterateOverDeltas(
 
 }; // partial permanent_Task
 
+#endif // CPYTHON
 
 
 /** alias for glynn repeated permanent calculator with double precision
