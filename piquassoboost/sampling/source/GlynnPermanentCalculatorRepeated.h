@@ -127,7 +127,7 @@ void IterateOverDeltas(
     matrix_type& colSum,
     int sign,
     size_t index_min,
-    int currentMultiplicity
+    int64_t currentMultiplicity
 );
 
 

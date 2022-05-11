@@ -186,7 +186,7 @@ GlynnPermanentCalculatorRepeatedTask<matrix_type, precision_type>::IterateOverDe
     matrix_type& colSum,
     int sign,
     size_t index_min,
-    int currentMultiplicity
+    int64_t currentMultiplicity
 ) {
     Complex_base<precision_type>* colSum_data = colSum.get_data();
 
@@ -225,7 +225,7 @@ GlynnPermanentCalculatorRepeatedTask<matrix_type, precision_type>::IterateOverDe
                     colSum_new, 
                     localSign,
                     idx+1,
-                    currentMultiplicity*binomialCoeff(deltaLimits[idx], indexOfMultiplicity)
+                    currentMultiplicity*binomialCoeffInt64(deltaLimits[idx], indexOfMultiplicity)
                 );
             }
         }

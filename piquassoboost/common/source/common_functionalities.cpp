@@ -103,13 +103,14 @@ sum( const PicState_int64& vec) {
 
 
 /**
-@brief Call to calculate the Binomial Coefficient C(n, k)
+@brief Call to calculate the Binomial Coefficient C(n, k) templated version
 @param n The integer n
 @param k The integer k
 @return Returns with the Binomial Coefficient C(n, k).
 */
-int binomialCoeff(int n, int k) {
-   int C[k+1];
+template <typename int_type>
+int_type binomialCoeffTemplated(int n, int k) {
+   int_type C[k+1];
    memset(C, 0, sizeof(C));
    C[0] = 1;
    for (int i = 1; i <= n; i++) {
@@ -117,9 +118,17 @@ int binomialCoeff(int n, int k) {
          C[j] = C[j] + C[j-1];
    }
    return C[k];
-
 }
 
+
+inline int binomialCoeff(int n, int k){
+    return binomialCoeffTemplated<int>(n, k);
+}
+
+
+inline int64_t binomialCoeffInt64(int n, int k){
+    return binomialCoeffTemplated<int64_t>(n, k);
+}
 
 
 /**
