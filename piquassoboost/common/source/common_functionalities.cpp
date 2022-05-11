@@ -121,12 +121,12 @@ int_type binomialCoeffTemplated(int n, int k) {
 }
 
 
-inline int binomialCoeff(int n, int k){
+int binomialCoeff(int n, int k){
     return binomialCoeffTemplated<int>(n, k);
 }
 
 
-inline int64_t binomialCoeffInt64(int n, int k){
+int64_t binomialCoeffInt64(int n, int k){
     return binomialCoeffTemplated<int64_t>(n, k);
 }
 

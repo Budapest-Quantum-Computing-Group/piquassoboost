@@ -19,7 +19,7 @@
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculator.h"
 #include "GlynnPermanentCalculatorDFE.h"
-#include "GlynnPermanentCalculatorRepeated.hpp"
+#include "GlynnPermanentCalculatorRepeated.h"
 #include "GlynnPermanentCalculatorRepeatedDFE.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "common_functionalities.h"

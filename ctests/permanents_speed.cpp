@@ -1,8 +1,8 @@
 // The aim of this script is to compare runtimes of each implementation of permanent calculator.
 
 
-#include "GlynnPermanentCalculator.hpp"
-#include "GlynnPermanentCalculatorRepeated.hpp"
+#include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculatorRepeated.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "CGeneralizedCliffordsSimulationStrategy.h"
 #include "matrix_helper.hpp"

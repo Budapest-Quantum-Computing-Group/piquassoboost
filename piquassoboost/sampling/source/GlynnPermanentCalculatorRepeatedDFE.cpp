@@ -1,5 +1,5 @@
 #include "GlynnPermanentCalculatorRepeatedDFE.h"
-#include "GlynnPermanentCalculatorRepeated.hpp"
+#include "GlynnPermanentCalculatorRepeated.h"
 #include "BatchedPermanentCalculator.h"
 #include <fstream>
 #include <iostream>

@@ -1,5 +1,5 @@
 #include "GlynnPermanentCalculatorDFE.h"
-#include "GlynnPermanentCalculator.hpp"
+#include "GlynnPermanentCalculator.h"
 
 #ifndef CPYTHON
 #include <tbb/tbb.h>

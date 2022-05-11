@@ -3,8 +3,8 @@
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
 #include "common_functionalities.h"
-#include "GlynnPermanentCalculator.hpp"
-#include "GlynnPermanentCalculatorRepeated.hpp"
+#include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculatorRepeated.h"
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
 #endif

@@ -17,7 +17,7 @@
 #include <iostream>
 #include "CGeneralizedCliffordsBSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
-#include "GlynnPermanentCalculatorRepeated.hpp"
+#include "GlynnPermanentCalculatorRepeated.h"
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
 #include "GlynnPermanentCalculatorRepeatedDFE.h"

@@ -1,8 +1,8 @@
 // The aim of this script is to ensure every implementation of permanent calculator give concise results.
 
 
-#include "GlynnPermanentCalculator.hpp"
-#include "GlynnPermanentCalculatorRepeated.hpp"
+#include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculatorRepeated.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "matrix_helper.hpp"
 #include "matrix32.h"
