@@ -53,7 +53,7 @@ def print_histogram(samples):
 
 
 dim = 60
-photon_number = 40
+photon_number = 30
 
 # generate random matrix
 U = unitary_group.rvs(dim)#generate_random_unitary(dim)
@@ -65,8 +65,10 @@ for photon in range(photon_number):
     rand_int = random.randint(0, len(list_of_indices)-1)
     input_state[list_of_indices.pop(rand_int)] = 1
 
+shots = 120
+
 if MPI_imported:
-    [input_state, U] = comm.bcast([input_state, U], root=0)
+    [input_state, U, shots] = comm.bcast([input_state, U, shots], root=0)
 
 
 print('input state:')
@@ -74,7 +76,7 @@ print(input_state)
 
 print( sum(sum(U)))
 
-shots = 100
+
 
 with pq.Program() as program:
     pq.Q() | pq.StateVector(input_state)
