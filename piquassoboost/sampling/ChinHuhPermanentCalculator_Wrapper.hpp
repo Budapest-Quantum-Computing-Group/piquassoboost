@@ -38,7 +38,7 @@
 #define GlynnRepDualDFE 3
 #define GlynnRepMultiSingleDFE 4
 #define GlynnRepMultiDualDFE 5
-#define GlynnRepCPUDouble 5
+#define GlynnRepCPUDouble 6
 
 
 

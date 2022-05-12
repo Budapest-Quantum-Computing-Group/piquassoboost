@@ -1,6 +1,6 @@
 import numpy as np
 from thewalrus.libwalrus import perm_complex, perm_real, perm_BBFG_real, perm_BBFG_complex
-from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent, GlynnRepeatedPermanentCalculator, GlynnPermanentSingleDFE, GlynnPermanentDualDFE, GlynnPermanentInf
+from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent, GlynnPermanentDoubleCPU, GlynnRepeatedPermanentCalculator, GlynnPermanentSingleDFE, GlynnPermanentDualDFE, GlynnPermanentInf, GlynnRepeatedPermanentCalculatorDouble
 import piquasso as pq
 import random
 from scipy.stats import unitary_group
@@ -111,6 +111,23 @@ for idx in range(iter_loops):
         time_Glynn_Cpp_repeated = time_loc
 
 
+GlynnRepeatedPermanentCalculatorDouble
+
+# Glynn repeated permanent calculator
+permanent_Glynn_calculator_repeated = GlynnRepeatedPermanentCalculatorDouble( Arep, input_state=input_state, output_state=output_state )
+time_Glynn_Cpp_repeated_double = 1000000000
+for idx in range(iter_loops):
+    start = time.time()   
+
+    permanent_Glynn_Cpp_repeated_double = permanent_Glynn_calculator_repeated.calculate()
+
+    time_loc = time.time() - start
+    start = time.time()   
+       
+    if time_Glynn_Cpp_repeated_double > time_loc:
+        time_Glynn_Cpp_repeated_double = time_loc
+
+
 # Glynn permanent calculator
 permanent_Glynn_calculator = GlynnPermanent( Arep )
 time_Glynn_Cpp = 1000000000
@@ -126,12 +143,30 @@ for idx in range(iter_loops):
         time_Glynn_Cpp = time_loc
 
 
+
+# Glynn permanent calculator double
+permanent_Glynn_calculator = GlynnPermanentDoubleCPU( Arep )
+time_Glynn_Cpp_double = 1000000000
+for idx in range(iter_loops):
+    start = time.time()   
+
+    permanent_Glynn_Cpp_double = permanent_Glynn_calculator.calculate()
+
+    time_loc = time.time() - start
+    start = time.time()   
+       
+    if time_Glynn_Cpp_double > time_loc:
+        time_Glynn_Cpp_double = time_loc
+
+
 print(' ')
 print( permanent_walrus_quad_Ryser )
 print( permanent_walrus_quad_BBFG )
 print( permanent_ChinHuh_Cpp )
 print( permanent_Glynn_Cpp_repeated )
+print( permanent_Glynn_Cpp_repeated_double )
 print( permanent_Glynn_Cpp )
+print( permanent_Glynn_Cpp_double )
 
 # Glynn DFE permanent calculator
 permanent_Glynn_calculator = GlynnPermanentSingleDFE( Arep )
@@ -193,7 +228,9 @@ print('Time elapsed with walrus: ' + str(time_walrus))
 print('Time elapsed with walrus BBFG : ' + str(time_walrus_BBFG))
 print('Time elapsed with piquasso Chin-Huh: ' + str(time_Cpp))
 print('Time elapsed with piquasso Glynn: ' + str(time_Glynn_Cpp))
+print('Time elapsed with piquasso Glynn_double: ' + str(time_Glynn_Cpp_double))
 print('Time elapsed with piquasso Glynn repeated: ' + str(time_Glynn_Cpp_repeated))
+print('Time elapsed with piquasso Glynn repeated double: ' + str(time_Glynn_Cpp_repeated_double))
 print('Time elapsed with DFE Glynn: ' + str(time_Glynn_DFE))
 print('Time elapsed with dual DFE Glynn: ' + str(time_Glynn_dual_DFE))
 if (dim<=24):

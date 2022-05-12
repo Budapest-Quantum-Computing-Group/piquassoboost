@@ -147,6 +147,8 @@ class GlynnRepeatedMultiDualDFEPermanentCalculator(RepeatedPermanentCalculator):
         pass
 
 
+
+
 class GlynnRepeatedPermanentCalculatorDouble(RepeatedPermanentCalculator):
     def __init__(self, matrix, input_state, output_state):
         """
@@ -157,7 +159,7 @@ class GlynnRepeatedPermanentCalculatorDouble(RepeatedPermanentCalculator):
 
             5 shall be equal to GlynnRepCPUDouble
         """
-        super(GlynnRepeatedPermanentCalculatorDouble, self).__init__(5, matrix, input_state, output_state)
+        super(GlynnRepeatedPermanentCalculatorDouble, self).__init__(6, matrix, input_state, output_state)
         pass
 
 
