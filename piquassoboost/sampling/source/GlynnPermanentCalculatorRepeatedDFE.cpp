@@ -185,17 +185,18 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::determineBatchIterations() {
 
 
     batch_iterations.clear();
-    
-    const int64_t memory_limit = 0.25e11; //25 GB
+    const int64_t memory_limit_max = 0.6e11; //60 GB
+    int64_t memory_limit = 0.05e11; //5 GB
     const size_t max_fpga_cols = max_dim / numinits;
     
     int64_t total_memory_needed = numinits*onerows * totalPerms * colIndices.size()*max_fpga_cols*sizeof(ComplexFix16);
     int64_t batches_num = ceil( (double)total_memory_needed/memory_limit );
-/*
-    if (batches_num>1) {
-        std::cout << "number of batches: " << batches_num  << ", colIndices: " << colIndices.size() << std::endl;
-    }    
-  */  
+
+    while ( batches_num > colIndices.size() && memory_limit <  memory_limit_max ) {
+        memory_limit += 0.05e11;
+        batches_num = ceil( (double)total_memory_needed/memory_limit );
+    }
+  
     if ( batches_num > colIndices.size() ) {
         std::cout << "cGlynnPermanentCalculatorRepeatedMulti_DFE::determineIterations(): Not enough memory for further processing" << std::endl;
         return 1;

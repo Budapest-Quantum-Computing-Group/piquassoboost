@@ -420,7 +420,6 @@ tbb::tick_count t0b = tbb::tick_count::now();//////////////////////////
                 DFEcalculator_a->determineColIndices( current_input );
                 DFEcalculator_a->determineMultiplicities();
                 if ( DFEcalculator_a->determineBatchIterations() )  {
-std::cout << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl;
                     out_of_memory = true;
                     return;
                 }
@@ -432,7 +431,6 @@ std::cout << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl;
                 DFEcalculator_a->determineNormalization();    
 
                 if ( DFEcalculator_a->reserveSpace( jdx ) ) {
-std::cout << "eeeeeeeeeeeeeeeeeeeeeeeeee" << std::endl;
                     out_of_memory = true;
                     return;
                 }
