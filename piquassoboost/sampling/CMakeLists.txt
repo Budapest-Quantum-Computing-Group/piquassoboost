@@ -48,6 +48,7 @@ target_compile_options(permanent_calculators PRIVATE
     ${CXX_FLAGS}
     "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+    "-DCPYTHON"
 )
 
 
@@ -82,4 +83,4 @@ set_target_properties( permanent_calculators PROPERTIES
 
 install(TARGETS Boson_Sampling_Utilities_wrapper LIBRARY DESTINATION piquassoboost/sampling)
 install(TARGETS permanent_calculators LIBRARY 
-         DESTINATION piquassoboost/gaussian)
+         DESTINATION piquassoboost/sampling)

@@ -107,7 +107,7 @@ void testCase(std::vector<int> input, std::vector<int> output, int iterationNumb
 
     for (int i = 0; i < iterationNumber; i++){
         pic::matrix& adaptedMatrix = adaptedMatricesForNormalGlynn[i];
-        pic::GlynnPermanentCalculator bbfg_calculator;
+        pic::GlynnPermanentCalculatorLongDouble bbfg_calculator;
 
         tbb::tick_count t0 = tbb::tick_count::now();
         auto bbfg_permanent = bbfg_calculator.calculate(adaptedMatrix);
@@ -122,7 +122,7 @@ void testCase(std::vector<int> input, std::vector<int> output, int iterationNumb
         pic::matrix adaptedMatrix = adaptedMatricesForRecursiveGlynn[i];
         pic::PicState_int64 inState = inputState;
         pic::PicState_int64 outState = outputState;
-        pic::GlynnPermanentCalculatorRepeated bbfgrec_calculator;
+        pic::GlynnPermanentCalculatorRepeatedLongDouble bbfgrec_calculator;
 
         tbb::tick_count t0 = tbb::tick_count::now();
         auto bbfgrec_permanent = bbfgrec_calculator.calculate(adaptedMatrix, adaptedInputState, adaptedOutputState);

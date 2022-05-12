@@ -103,7 +103,7 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
     if ( lib == GlynnRep ) {
 
         //GlynnPermanentCalculator permanentCalculator;
-        GlynnPermanentCalculatorRepeated permanentCalculator;
+        GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
 
         // define function to filter out nonzero elements
         std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
@@ -182,7 +182,7 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
                     matrix ret_batched(ret.get_data()+start_index, 1, matrices->size());
 
                     if (matrices->begin()->rows < 4) { //compute with other method
-                        GlynnPermanentCalculator gpc;
+                        GlynnPermanentCalculatorLongDouble gpc;
                         for (size_t i = 0; i < matrices->size(); i++) {
                             ret_batched[i] = gpc.calculate((*matrices)[i]);
                         }

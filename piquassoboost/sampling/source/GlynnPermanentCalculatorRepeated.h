@@ -8,6 +8,7 @@
 #include <vector>
 #include "PicVector.hpp"
 
+// avoid tbb usage at python interface
 #ifndef CPYTHON
 #include <tbb/tbb.h>
 #endif
@@ -27,6 +28,7 @@ void print_state( Container state );
 /**
 @brief Interface class representing a Glynn permanent calculator
 */
+template <typename matrix_type, typename precision_type>
 class GlynnPermanentCalculatorRepeated {
 
 protected:
@@ -60,17 +62,14 @@ Complex16 calculate(
 }; //GlynnPermanentCalculatorRepeated
 
 
-
-
-
-// relieve Python extension from TBB functionalities
+// avoid tbb usage at python interface
 #ifndef CPYTHON
-
 
 /**
 @brief Class to calculate a partial permanent via Glynn's formula scaling with n*2^n.
 (Does not use gray coding, but does the calculation is similar but scalable fashion) 
 */
+template <typename matrix_type, typename precision_type>
 class GlynnPermanentCalculatorRepeatedTask {
 
 public:
@@ -79,9 +78,9 @@ public:
     matrix mtx;
     /// 2*mtx used in the recursive calls (The storing of thos matrix
     /// spare many repeating multiplications)
-    matrix32 mtx2;
+    matrix_type mtx2;
     /// thread local storage for partial permanents
-    tbb::combinable<ComplexM<long double>> priv_addend;
+    tbb::combinable<ComplexM<precision_type>> priv_addend;
 
     /// numbers describing the row multiplicity
     PicState_int& row_multiplicities;
@@ -125,19 +124,26 @@ Complex16 calculate();
 @param currentMultiplicity multiplicity of the current delta vector
 */
 void IterateOverDeltas(
-    matrix32& colSum,
+    matrix_type& colSum,
     int sign,
     size_t index_min,
-    int currentMultiplicity
+    int64_t currentMultiplicity
 );
 
 
 }; // partial permanent_Task
 
-
 #endif // CPYTHON
 
 
+/** alias for glynn repeated permanent calculator with double precision
+ */
+using GlynnPermanentCalculatorRepeatedDouble = GlynnPermanentCalculatorRepeated<pic::matrix, double>;
+
+
+/** alias for glynn repeated permanent calculator with long double precision
+ */
+using GlynnPermanentCalculatorRepeatedLongDouble = GlynnPermanentCalculatorRepeated<pic::matrix32, long double>;
 
 
 } // PIC

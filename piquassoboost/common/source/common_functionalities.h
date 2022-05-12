@@ -73,6 +73,15 @@ int binomialCoeff(int n, int k);
 
 
 /**
+@brief Call to calculate the Binomial Coefficient C(n, k) in int64_t
+@param n The integer n
+@param k The integer k
+@return Returns with the Binomial Coefficient C(n, k).
+*/
+int64_t binomialCoeffInt64(int n, int k);
+
+
+/**
 @brief Function which checks whether the given matrix is symmetric or not.
 @param mtx_in The given matrix.
 @param tolerance The tolerance value for being 2 different values equal.

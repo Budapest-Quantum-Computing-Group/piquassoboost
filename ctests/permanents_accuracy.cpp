@@ -34,7 +34,7 @@ void testOfSameValuesForRandomMatrix(int matrix_dimension, int mul){
 
 
     // First just check if I can get any results from BBFG formula.
-    pic::GlynnPermanentCalculator bbfg_calculator;
+    pic::GlynnPermanentCalculatorLongDouble bbfg_calculator;
 
     auto bbfg_permanent = bbfg_calculator.calculate(matrixMultipled);
 
@@ -53,7 +53,7 @@ void testOfSameValuesForRandomMatrix(int matrix_dimension, int mul){
         rowMultiplicities[i] = mul;
         colMultiplicities[i] = mul;
     }
-    pic::GlynnPermanentCalculatorRepeated bbfgrec_calculator;
+    pic::GlynnPermanentCalculatorRepeatedLongDouble bbfgrec_calculator;
     auto bbfgrec_permanent = bbfgrec_calculator.calculate(matrix, rowMultiplicities, colMultiplicities);
     
     if (AreClose(bbfgrec_permanent, bbfg_permanent) && AreClose(bbfgrec_permanent, ch_permanent)){
@@ -99,7 +99,7 @@ int main() {
 
 
     // First just check if I can get any results from BBFG formula.
-    pic::GlynnPermanentCalculator bbfg_calculator;
+    pic::GlynnPermanentCalculatorLongDouble bbfg_calculator;
 
     tbb::tick_count t0 = tbb::tick_count::now();
     auto bbfg_permanent = bbfg_calculator.calculate(matrixMultipled);
@@ -124,7 +124,7 @@ int main() {
         rowMultiplicities[i] = mul;
         colMultiplicities[i] = mul;
     }
-    pic::GlynnPermanentCalculatorRepeated bbfgrec_calculator;
+    pic::GlynnPermanentCalculatorRepeatedLongDouble bbfgrec_calculator;
 
     tbb::tick_count t4 = tbb::tick_count::now();
     auto bbfgrec_permanent = bbfgrec_calculator.calculate(matrix, rowMultiplicities, colMultiplicities);

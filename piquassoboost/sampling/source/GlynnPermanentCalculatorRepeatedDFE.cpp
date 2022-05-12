@@ -620,7 +620,7 @@ cGlynnPermanentCalculatorRepeatedMulti_DFE::calculate(size_t batch_idx, size_t b
     matrix perms(1, batch_iterations[batch_idx]);
 
     if (doCPU) { //compute with other method
-        GlynnPermanentCalculatorRepeated gpc;
+        GlynnPermanentCalculatorRepeatedLongDouble gpc;
         for ( size_t idx=0; idx<batch_iterations[batch_idx]; idx++) {
             perms[idx] = gpc.calculate(matrix_init, input_states[idx+batch_index_offset], output_state);
         }
@@ -738,7 +738,7 @@ GlynnPermanentCalculatorRepeatedMulti_DFE(matrix& matrix_init, PicState_int64& i
     }
     if (!((!useFloat && calcPermanentGlynnDFE) || (useFloat && calcPermanentGlynnDFEF)) ||
         photons < 1+dfe_basekernpow2) { //compute with other method
-      GlynnPermanentCalculatorRepeated gpc;
+      GlynnPermanentCalculatorRepeatedLongDouble gpc;
       perm = gpc.calculate(matrix_init, input_state, output_state);
       unlock_lib();
       return;
@@ -782,7 +782,7 @@ GlynnPermanentCalculatorRepeatedMulti_DFE(matrix& matrix_init, PicState_int64& i
         totalPerms *= (adj_input_state[mrows[i]] + 1);
     }
     if (onerows < 1+dfe_basekernpow2) { //compute with other method
-      GlynnPermanentCalculatorRepeated gpc;
+      GlynnPermanentCalculatorRepeatedLongDouble gpc;
       perm = gpc.calculate(matrix_init, input_state, output_state);
       unlock_lib();
       return;
@@ -1097,7 +1097,7 @@ GlynnPermanentCalculatorRepeated_DFE(matrix& matrix_init, PicState_int64& input_
         t1 *= (input_state[i]+1); t2 *= (output_state[i]+1);
     }
     if (!calcPermanentGlynnRepDFE || photons < 1+dfe_basekernpow2) { //compute with other method
-      GlynnPermanentCalculatorRepeated gpc;
+      GlynnPermanentCalculatorRepeatedLongDouble gpc;
       perm = gpc.calculate(matrix_init, input_state, output_state);
       unlock_lib();
       return;
