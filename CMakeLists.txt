@@ -383,6 +383,7 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dependency_graph.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix32.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix8.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicState.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dot.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/common_functionalities.cpp
@@ -510,6 +511,7 @@ set_target_properties(piquassoboost PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dependency_graph.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix32.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix8.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix_real.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix_real16.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicState.h

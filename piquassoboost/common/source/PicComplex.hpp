@@ -340,6 +340,9 @@ inline long double mult_a_bconj( long double &a, long double &b) {
 }
 
 
+/// aliasing the representation 8 byte Complex numbers
+using Complex8 = Complex_base<float>;
+
 /// aliasing the representation 16 byte Complex numbers
 using Complex16 = Complex_base<double>;
 
