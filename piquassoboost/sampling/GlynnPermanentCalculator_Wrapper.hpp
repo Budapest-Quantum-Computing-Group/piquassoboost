@@ -25,6 +25,7 @@
 #define GlynnSingleDFEF 4
 #define GlynnDualDFEF 5
 #define GlynnDoubleCPU 6
+#define GlynnFloatCPU 7
 
 /// The C++ variants of class CGlynnPermanentCalculator
 union CPU_glynn {
@@ -32,6 +33,8 @@ union CPU_glynn {
     pic::GlynnPermanentCalculatorLongDouble *cpu_long_double;
     /// double precision calculator
     pic::GlynnPermanentCalculatorDouble *cpu_double;
+    /// float precision calculator
+    pic::GlynnPermanentCalculatorFloat *cpu_float;
 #ifdef __MPFR__
     /// infinite precision calculator
     pic::GlynnPermanentCalculatorInf* cpu_inf;
@@ -54,7 +57,7 @@ typedef struct GlynnPermanentCalculator_wrapper {
 
 /**
  * @brief Creates an instance of class GlynnPermanentCalculatorLongDouble (long double precision) and returns with a pointer pointing to the class instance (C++ linking is needed)
- * @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
+ * @return Return with a void pointer pointing to an instance of create_GlynnPermanentCalculatorLongDouble class.
  */
 pic::GlynnPermanentCalculatorLongDouble*
 create_GlynnPermanentCalculatorLongDouble() {
@@ -65,12 +68,23 @@ create_GlynnPermanentCalculatorLongDouble() {
 
 /**
  * @brief Creates an instance of class GlynnPermanentCalculatorDouble (double precision) and returns with a pointer pointing to the class instance (C++ linking is needed)
- * @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
+ * @return Return with a void pointer pointing to an instance of GlynnPermanentCalculatorDouble class.
  */
 pic::GlynnPermanentCalculatorDouble*
 create_GlynnPermanentCalculatorDouble() {
 
     return new pic::GlynnPermanentCalculatorDouble();
+}
+
+
+/**
+ * @brief Creates an instance of class GlynnPermanentCalculatorFloat (float precision) and returns with a pointer pointing to the class instance (C++ linking is needed)
+ * @return Return with a void pointer pointing to an instance of GlynnPermanentCalculatorFloat class.
+ */
+pic::GlynnPermanentCalculatorFloat*
+create_GlynnPermanentCalculatorFloat() {
+
+    return new pic::GlynnPermanentCalculatorFloat();
 }
 
 
@@ -93,6 +107,19 @@ release_GlynnPermanentCalculatorLongDouble( pic::GlynnPermanentCalculatorLongDou
 */
 void
 release_GlynnPermanentCalculatorDouble( pic::GlynnPermanentCalculatorDouble* instance ) {
+    if ( instance != NULL ) {
+        delete instance;
+    }
+    return;
+}
+
+
+/**
+@brief Call to deallocate an instance of GlynnPermanentCalculatorFloat class
+@param ptr A pointer pointing to an instance of GlynnPermanentCalculatorFloat class.
+*/
+void
+release_GlynnPermanentCalculatorFloat( pic::GlynnPermanentCalculatorFloat* instance ) {
     if ( instance != NULL ) {
         delete instance;
     }
@@ -149,11 +176,11 @@ GlynnPermanentCalculator_wrapper_dealloc(GlynnPermanentCalculator_wrapper *self)
 #ifdef __MPFR__
     else if (self->lib == GlynnInf && self->calculator.cpu_inf != NULL) release_GlynnPermanentCalculatorInf( self->calculator.cpu_inf );
 #endif
-    else if (
-        self->lib == GlynnDoubleCPU
-        && self->calculator.cpu_double != NULL
-    ) {
+    else if ( self->lib == GlynnDoubleCPU && self->calculator.cpu_double != NULL ) {
         release_GlynnPermanentCalculatorDouble( self->calculator.cpu_double );
+    }
+    else if ( self->lib == GlynnFloatCPU && self->calculator.cpu_float != NULL ) {
+        release_GlynnPermanentCalculatorFloat( self->calculator.cpu_float );
     }
 
     // release numpy arrays
@@ -228,6 +255,9 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
 #endif
     else if (self->lib == GlynnDoubleCPU) {
         self->calculator.cpu_double = create_GlynnPermanentCalculatorDouble();
+    }
+    else if (self->lib == GlynnFloatCPU) {
+        self->calculator.cpu_float = create_GlynnPermanentCalculatorFloat();
     }
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
@@ -334,6 +364,15 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
         else if (self->lib == GlynnDoubleCPU) {
             try {
                 ret = self->calculator.cpu_double->calculate(matrix_mtx);
+            }
+            catch (std::string err) {
+                PyErr_SetString(PyExc_Exception, err.c_str());
+                return NULL;
+            }
+        }
+        else if (self->lib == GlynnFloatCPU) {
+            try {
+                ret = self->calculator.cpu_float->calculate(matrix_mtx);
             }
             catch (std::string err) {
                 PyErr_SetString(PyExc_Exception, err.c_str());

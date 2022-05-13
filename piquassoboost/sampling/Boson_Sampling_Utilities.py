@@ -157,13 +157,24 @@ class GlynnRepeatedPermanentCalculatorDouble(RepeatedPermanentCalculator):
             (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
             with double precision and multipled rows or columns
 
-            5 shall be equal to GlynnRepCPUDouble
+            6 shall be equal to GlynnRepCPUDouble
         """
         super(GlynnRepeatedPermanentCalculatorDouble, self).__init__(6, matrix, input_state, output_state)
         pass
 
 
+class GlynnRepeatedPermanentCalculatorFloat(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        """
+            This class is designed to calculate the permanent of
+            matrix using Glynn's algorithm
+            (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
+            with float precision and multipled rows or columns
 
+            7 shall be equal to GlynnRepCPUFloat
+        """
+        super(GlynnRepeatedPermanentCalculatorFloat, self).__init__(7, matrix, input_state, output_state)
+        pass
 
 
 
@@ -238,6 +249,19 @@ class GlynnPermanentDoubleCPU(GlynnPermanentCalculator_wrapper):
         # call the constructor of the wrapper class
         # 6 shall mean macro GlynnDoubleCPU
         super(GlynnPermanentDoubleCPU, self).__init__(matrix, 6)
+        pass
+
+
+class GlynnPermanentFloatCPU(GlynnPermanentCalculator_wrapper):
+    """
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula) with float precision
+    """
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        # 7 shall mean macro GlynnFloatCPU
+        super(GlynnPermanentFloatCPU, self).__init__(matrix, 7)
         pass
 
 

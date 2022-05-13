@@ -107,6 +107,16 @@ int main() {
     
     printf("BBFG Permanent: %4.6f + %4.6f i\n", bbfg_permanent.real(), bbfg_permanent.imag());
 
+
+    // Glynn with float
+    pic::GlynnPermanentCalculatorFloat bbfgCalculatorFloat;
+
+    tbb::tick_count t100 = tbb::tick_count::now();
+    auto glynnPermanentFloat = bbfgCalculatorFloat.calculate(matrixMultipled);
+    tbb::tick_count t101 = tbb::tick_count::now();
+    
+    printf("GlynnPermFloat: %4.6f + %4.6f i\n", glynnPermanentFloat.real(), glynnPermanentFloat.imag());
+
     pic::CChinHuhPermanentCalculator cChinHuhPermanentCalculator;
     pic::PicState_int64 in_out_state(matrix_dimension, 1);
 
@@ -125,15 +135,23 @@ int main() {
         colMultiplicities[i] = mul;
     }
     pic::GlynnPermanentCalculatorRepeatedLongDouble bbfgrec_calculator;
+    pic::GlynnPermanentCalculatorRepeatedFloat bbfgrec_calculator_float;
 
     tbb::tick_count t4 = tbb::tick_count::now();
     auto bbfgrec_permanent = bbfgrec_calculator.calculate(matrix, rowMultiplicities, colMultiplicities);
     tbb::tick_count t5 = tbb::tick_count::now();
     printf("GlRe Permanent: %4.6f + %4.6f i\n", bbfgrec_permanent.real(), bbfgrec_permanent.imag());
     
+
+    tbb::tick_count t401 = tbb::tick_count::now();
+    auto bbfgrec_permanent_float = bbfgrec_calculator_float.calculate(matrix, rowMultiplicities, colMultiplicities);
+    tbb::tick_count t402 = tbb::tick_count::now();
+    printf("GRFl Permanent: %4.6f + %4.6f i\n", bbfgrec_permanent_float.real(), bbfgrec_permanent_float.imag());
+
     std::cout << "BBFG time: " << (t1-t0).seconds() << std::endl;
     std::cout << "ChHu time: " << (t3-t2).seconds() << std::endl;
     std::cout << "GlRe time: " << (t5-t4).seconds() << std::endl;
+    std::cout << "GRFl time: " << (t402-t401).seconds() << std::endl;
 
     std::cout << "All test cases were passed." << std::endl;
 

@@ -39,6 +39,7 @@
 #define GlynnRepMultiSingleDFE 4
 #define GlynnRepMultiDualDFE 5
 #define GlynnRepCPUDouble 6
+#define GlynnRepCPUFloat 7
 
 
 
@@ -59,6 +60,7 @@ typedef struct ChinHuhPermanentCalculator_wrapper {
         pic::CChinHuhPermanentCalculator* calculator;
         pic::GlynnPermanentCalculatorRepeatedDouble* calculatorRepDouble;
         pic::GlynnPermanentCalculatorRepeatedLongDouble* calculatorRepLongDouble;
+        pic::GlynnPermanentCalculatorRepeatedFloat* calculatorRepFloat;
     };
 } ChinHuhPermanentCalculator_wrapper;
 
@@ -112,6 +114,7 @@ ChinHuhPermanentCalculator_wrapper_dealloc(ChinHuhPermanentCalculator_wrapper *s
     if (self->lib == ChinHuh) release_ChinHuhPermanentCalculator( self->calculator );
     else if (self->lib == GlynnRep && self->calculatorRepLongDouble != NULL) delete self->calculatorRepLongDouble;
     else if (self->lib == GlynnRepCPUDouble && self->calculatorRepDouble != NULL) delete self->calculatorRepDouble;
+    else if (self->lib == GlynnRepCPUFloat && self->calculatorRepFloat != NULL) delete self->calculatorRepFloat;
 
     // release numpy arrays
     if (self->matrix) Py_DECREF(self->matrix);
@@ -208,6 +211,8 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
 #endif
     else if (self->lib == GlynnRepCPUDouble)
         self->calculatorRepDouble = new pic::GlynnPermanentCalculatorRepeatedDouble();
+    else if (self->lib == GlynnRepCPUFloat)
+        self->calculatorRepFloat = new pic::GlynnPermanentCalculatorRepeatedFloat();
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
         return -1;
@@ -263,6 +268,15 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
     else if (self->lib == GlynnRepCPUDouble) {
         try {
             ret = self->calculatorRepDouble->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
+        }
+        catch (std::string err) {
+            PyErr_SetString(PyExc_Exception, err.c_str());
+            return NULL;
+        }
+    }
+    else if (self->lib == GlynnRepCPUFloat) {
+        try {
+            ret = self->calculatorRepFloat->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
         }
         catch (std::string err) {
             PyErr_SetString(PyExc_Exception, err.c_str());

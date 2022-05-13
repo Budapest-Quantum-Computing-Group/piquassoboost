@@ -14,16 +14,23 @@
  * limitations under the License.
  */
 
-#include "GlynnPermanentCalculator.hpp"
 #include "GlynnPermanentCalculatorRepeated.hpp"
 
-namespace pic{
 
-template class GlynnPermanentCalculator<pic::matrix32, long double>;
-template class GlynnPermanentCalculator<pic::matrix, double>;
-template class GlynnPermanentCalculatorRepeated<pic::matrix, double>;
+namespace pic {
+
+
+/** Explicit specialization of template classes GlynnPermanentCalculatorRepeated
+ */
+
+/// Specialization based on pic::matrix32, pic::Complex_base<long double> and long double
 template class GlynnPermanentCalculatorRepeated<pic::matrix32, long double>;
 
+/// Specialization based on pic::matrix, pic::Complex_base<double> and double
+template class GlynnPermanentCalculatorRepeated<pic::matrix, double>;
 
-} // namespace pic
+/// Specialization based on pic::matrix8, pic::Complex_base<float> and float
+template class GlynnPermanentCalculatorRepeated<pic::matrix8, float>;
 
+
+} // PIC

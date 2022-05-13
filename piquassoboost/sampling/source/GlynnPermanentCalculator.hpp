@@ -85,7 +85,8 @@ GlynnPermanentCalculatorTask<matrix_type, precision_type>::calculate(matrix &mtx
             size_t row_offset   = row_idx*mtx.stride;
             size_t row_offset_2 = row_idx*mtx2.stride;
             for (size_t col_idx=0; col_idx<mtx.cols; ++col_idx) {
-                mtx2_data[row_offset_2+col_idx] = 2*mtx_data[ row_offset + col_idx ];
+                Complex16 atm = 2*mtx_data[ row_offset + col_idx ];
+                mtx2_data[row_offset_2+col_idx] = Complex_base<precision_type>(atm.real(), atm.imag());
             }
 
         }

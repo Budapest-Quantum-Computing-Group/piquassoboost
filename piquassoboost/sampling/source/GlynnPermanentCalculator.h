@@ -3,6 +3,7 @@
 
 #include "matrix.h"
 #include "matrix32.h"
+#include "matrix8.h"
 #include "PicState.h"
 #include <vector>
 #include "PicVector.hpp"
@@ -115,6 +116,10 @@ using GlynnPermanentCalculatorLongDouble = GlynnPermanentCalculator<pic::matrix3
 /** alias for glynn permanent calculator with double precision
  */
 using GlynnPermanentCalculatorDouble = GlynnPermanentCalculator<pic::matrix, double>;
+
+/** alias for glynn permanent calculator with double precision
+ */
+using GlynnPermanentCalculatorFloat = GlynnPermanentCalculator<pic::matrix8, float>;
 
 } // PIC
 

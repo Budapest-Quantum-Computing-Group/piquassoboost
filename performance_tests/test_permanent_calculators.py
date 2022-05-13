@@ -26,12 +26,15 @@ from piquassoboost.sampling.Boson_Sampling_Utilities import (
     GlynnPermanent,
     GlynnRepeatedPermanentCalculator,
     GlynnRepeatedPermanentCalculatorDouble,
-    GlynnPermanentDoubleCPU
+    GlynnRepeatedPermanentCalculatorFloat,
+    GlynnPermanentDoubleCPU,
+    GlynnPermanentFloatCPU,
 )
 
 from piquassoboost.sampling.permanent_calculators import (
     permanent_CPU_repeated_double,
-    permanent_CPU_repeated_long_double
+    permanent_CPU_repeated_long_double,
+    permanent_CPU_repeated_float,
 )
 
 class TestPermanentCalculators:
@@ -220,25 +223,29 @@ class TestPermanentCalculators:
         print(A)
         
 
-        value_from_double = 1.0 - 1.0j
+        # Glynn permanent calculator with float precision
+        permanent_calculator_Glynn_float_precision = GlynnPermanentFloatCPU( A )
+        value_from_float = permanent_calculator_Glynn_float_precision.calculate()
 
         # Glynn permanent calculator with double precision
         permanent_calculator_Glynn_double_precision = GlynnPermanentDoubleCPU( A )
         value_from_double = permanent_calculator_Glynn_double_precision.calculate()
-
-
-
-        value_from_long_double = 1.0 - 1.0j
 
         # Glynn permanent calculator with long double precision
         permanent_calculator_Glynn_long_double_precision = GlynnPermanent( A )
         value_from_long_double = permanent_calculator_Glynn_long_double_precision.calculate()
 
 
-
         # multiplicities of input/output states
         input_state = np.ones(dim, np.int64)
         output_state = np.ones(dim, np.int64)
+
+
+        # repeated Glynn permanent calculator with float precision
+        RepeatedGlynnFloat = GlynnRepeatedPermanentCalculatorFloat( A, input_state=input_state, output_state=output_state )
+        rep_value_from_float = RepeatedGlynnFloat.calculate()
+        rep_value_from_float2 = permanent_CPU_repeated_float( A, input_state, output_state )
+
         # repeated Glynn permanent calculator with double precision
         RepeatedGlynnDouble = GlynnRepeatedPermanentCalculatorDouble( A, input_state=input_state, output_state=output_state )
         rep_value_from_double = RepeatedGlynnDouble.calculate()
@@ -250,8 +257,11 @@ class TestPermanentCalculators:
         rep_value_from_long_double2 = permanent_CPU_repeated_long_double( A, input_state, output_state )
 
 
+        print("value_from_float           :", value_from_float)
         print("value_from_double          :", value_from_double)
         print("value_from_long_double     :", value_from_long_double)
+        print("rep_value_from_float       :", rep_value_from_float)
+        print("rep_value_from_float2      :", rep_value_from_float2)
         print("rep_value_from_double      :", rep_value_from_double)
         print("rep_value_from_double2     :", rep_value_from_double2)
         print("rep_value_from_long_double :", rep_value_from_long_double)
