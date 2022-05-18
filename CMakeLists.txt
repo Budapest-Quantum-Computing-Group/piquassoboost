@@ -407,6 +407,7 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceLoopHafnian.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculators_implementation.cpp
+        ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BBFGPermanentCalculatorRepeated.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsBSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/ThresholdBosonSampling.cpp

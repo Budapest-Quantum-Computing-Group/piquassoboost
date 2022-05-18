@@ -164,6 +164,18 @@ class GlynnRepeatedPermanentCalculatorDouble(RepeatedPermanentCalculator):
 
 
 
+class BBFGRepeatedPermanentCalculatorDouble(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        """
+            This class is designed to calculate the permanent of
+            matrix using Glynn's algorithm
+            (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
+            with double precision and multipled rows or columns
+
+            5 shall be equal to GlynnRepCPUDouble
+        """
+        super(BBFGRepeatedPermanentCalculatorDouble, self).__init__(7, matrix, input_state, output_state)
+        pass
 
 
 
