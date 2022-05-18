@@ -102,6 +102,19 @@ void operator +=( const Complex_base<scalar> &value) {
 
 
 
+/**
+@brief Define operator += for the multiprecision complex number representation
+@param value A Complex_base<scalar> valued input.
+*/
+void operator -=( const Complex_base<scalar> &value) {
+
+    subtract( value, 0);
+
+    return;
+};
+
+
+
 private:
 
 /**
@@ -127,6 +140,36 @@ void add( const Complex_base<scalar> &value, size_t index) {
     }
     else {
         addends[index] += value;
+    }
+
+
+    return;
+};
+
+
+/**
+@brief Add a complex number to the stored multiprecision number
+@param value A Complex_base<scalar> valued input.
+@param index
+*/
+void subtract( const Complex_base<scalar> &value, size_t index) {
+
+    if ( addends.size() <= index) {
+        addends.push_back(value);
+        return;
+    }
+
+    Complex_base<scalar> tmp = addends[index];
+
+    if ( tmp*ORDER_CUTOFF > value ) {
+        addends[index] = value;
+        add( tmp, index+1);
+    }
+    else if ( tmp < value*ORDER_CUTOFF ) {
+        add( value, index+1);
+    }
+    else {
+        addends[index] -= value;
     }
 
 
