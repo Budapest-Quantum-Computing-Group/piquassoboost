@@ -277,7 +277,6 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
     }
     else if (self->lib == BBFGPermanentCalculatorRepeatedDouble) {
         try {
-        printf("ttttttttttttttttttttttttttttttttttt\n");
             ret = self->BBFGcalculatorRep->calculate(matrix_mtx, false);
         }
         catch (std::string err) {

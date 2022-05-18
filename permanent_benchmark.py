@@ -38,9 +38,11 @@ def generate_random_unitary( dim ):
 
 
 # generate the random matrix
-dim = 4
+dim = 26
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
 Arep = A
+
+iter_loops = 20
 
 #np.save("mtx", A )
 #A = np.load("mtx.npy")
@@ -49,43 +51,6 @@ Arep = A
 #Arep = np.zeros((dim,dim), dtype=np.complex128)
 #for idx in range(dim):
 #    Arep[:,idx] = A[:,0]
-        
-# calculate the permanent using walrus library
-iter_loops = 1
-time_walrus = 1000000000        
-for idx in range(iter_loops):
-    start = time.time()   
-    permanent_walrus_quad_Ryser = perm(Arep, quad=True, method="ryser")
-    time_loc = time.time() - start
-    start = time.time()   
-       
-    if time_walrus > time_loc:
-        time_walrus = time_loc
-
-time_walrus_BBFG = 1000000        
-for idx in range(iter_loops):
-    start = time.time()   
-    permanent_walrus_quad_BBFG = 0#perm(Arep, quad=True, method="bbfg")
-    time_loc = time.time() - start
-    start = time.time()   
-       
-    if time_walrus_BBFG > time_loc:
-        time_walrus_BBFG = time_loc
-
-
-# calculate the permanent using walrus library
-iter_loops = 2
-time_walrus_double = 1000000000        
-for idx in range(iter_loops):
-    start = time.time()   
-    permanent_walrus_Ryser = perm(Arep, quad=False, method="ryser")
-    time_loc = time.time() - start
-    start = time.time()   
-       
-    if time_walrus_double > time_loc:
-        time_walrus_double = time_loc
-
-
 
 
 # multiplicities of input/output states
@@ -125,6 +90,44 @@ for idx in range(iter_loops):
        
     if time_BBFG_Cpp_repeated_double > time_loc:
         time_BBFG_Cpp_repeated_double = time_loc
+        
+# calculate the permanent using walrus library
+time_walrus = 1000000000        
+for idx in range(iter_loops):
+    start = time.time()   
+    permanent_walrus_quad_Ryser = perm(Arep, quad=True, method="ryser")
+    time_loc = time.time() - start
+    start = time.time()   
+       
+    if time_walrus > time_loc:
+        time_walrus = time_loc
+
+time_walrus_BBFG = 1000000        
+for idx in range(iter_loops):
+    start = time.time()   
+    permanent_walrus_quad_BBFG = 0#perm(Arep, quad=True, method="bbfg")
+    time_loc = time.time() - start
+    start = time.time()   
+       
+    if time_walrus_BBFG > time_loc:
+        time_walrus_BBFG = time_loc
+
+
+# calculate the permanent using walrus library
+time_walrus_double = 1000000000        
+for idx in range(iter_loops):
+    start = time.time()   
+    permanent_walrus_Ryser = perm(Arep, quad=False, method="ryser")
+    time_loc = time.time() - start
+    start = time.time()   
+       
+    if time_walrus_double > time_loc:
+        time_walrus_double = time_loc
+
+
+
+
+
 
 
 # Glynn repeated permanent calculator
@@ -235,7 +238,7 @@ print( permanent_Glynn_DFE )
 print( permanent_Glynn_dual_DFE )
 '''
 # Glynn Inf permanent calculator
-if (dim<=24):
+if (dim<=4):
     permanent_Glynn_calculator = GlynnPermanentInf( Arep )
     time_Glynn_InfinitePrecision = 1000000000
     for idx in range(iter_loops):
@@ -260,6 +263,7 @@ print('*******************************************')
 print('Time elapsed with walrus: ' + str(time_walrus))
 print('Time elapsed with walrus double: ' + str(time_walrus_double))
 print('Time elapsed with walrus BBFG : ' + str(time_walrus_BBFG))
+print('Time elapsed with BBFG double : ' + str(time_BBFG_Cpp_repeated_double))
 print('Time elapsed with piquasso Chin-Huh: ' + str(time_Cpp))
 print('Time elapsed with piquasso Glynn: ' + str(time_Glynn_Cpp))
 print('Time elapsed with piquasso Glynn_double: ' + str(time_Glynn_Cpp_double))
@@ -267,7 +271,7 @@ print('Time elapsed with piquasso Glynn repeated: ' + str(time_Glynn_Cpp_repeate
 print('Time elapsed with piquasso Glynn repeated double: ' + str(time_Glynn_Cpp_repeated_double))
 #print('Time elapsed with DFE Glynn: ' + str(time_Glynn_DFE))
 #print('Time elapsed with dual DFE Glynn: ' + str(time_Glynn_dual_DFE))
-if (dim<=24):
+if (dim<=4):
     print('Time elapsed with infinite precision Glynn: ' + str(time_Glynn_InfinitePrecision))
 #print( "speedup: " + str(time_walrus/time_Cpp) )
 print( "speedup Glynn: " + str(time_walrus/time_Glynn_Cpp) )
