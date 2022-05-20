@@ -39,9 +39,9 @@ protected:
     /// The incremental counter chain associated to the gray code
     PicState_int counter_chain;
     /// the maximal offset in the counter offset = prod( n_ary_limits[i] )
-    int offset_max;
+    int64_t offset_max;
     /// the current offset in the counter 0<= offset <= offset_max
-    int offset;
+    int64_t offset;
 
 public:
 
@@ -110,7 +110,12 @@ int next( int& changed_index);
 int next( int& changed_index, int& value_prev, int& value);
 
 
+void set_offset_max( const int64_t& value );
+
+
 }; //n_aryGrayCodeCounter
+
+
 
 
 

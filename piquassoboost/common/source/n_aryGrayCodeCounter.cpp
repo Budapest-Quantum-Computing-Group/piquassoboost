@@ -130,7 +130,7 @@ n_aryGrayCodeCounter::initialize( int64_t initial_offset ) {
     // determine the initial gray code corresponding to the given offset
     gray_code = PicState_int( n_ary_limits.size() );
     int parity = 0;
-    for (size_t jdx = n_ary_limits.size()-1; jdx != ~0ULL; jdx--) {
+    for (unsigned long long jdx = n_ary_limits.size()-1; jdx != ~0ULL; jdx--) {
         gray_code[jdx] = parity ? n_ary_limits[jdx] - 1 - counter_chain[jdx] : counter_chain[jdx];
         parity = parity ^ (gray_code[jdx] & 1);
     }
@@ -236,6 +236,16 @@ n_aryGrayCodeCounter::next( int& changed_index, int& value_prev, int& value) {
     offset++;
 
     return 0;
+
+}
+
+
+
+void  
+n_aryGrayCodeCounter::set_offset_max( const int64_t& value ) {
+
+
+    offset_max = value;
 
 }
 
