@@ -233,7 +233,7 @@ Complex16 calculate() {
             int row_mult_current = row_mult[idx+1];
 
             for( size_t col_idx=0; col_idx<col_mult.size(); col_idx++) {
-                colsum[col_idx] += (row_mult_current-2*minus_signs)*mtx_data[col_idx];
+                colsum[col_idx] = colsum[col_idx] + (row_mult_current-2*minus_signs)*mtx_data[col_idx];
             }
 
             minus_signs_all += minus_signs;
@@ -252,7 +252,7 @@ Complex16 calculate() {
         scalar_type colsum_prod((precision_type)parity, 0.0);
         for( size_t idx=0; idx<col_mult.size(); idx++ ) {
             for (size_t jdx=0; jdx<col_mult[idx]; jdx++) {
-                colsum_prod *= colsum[idx];
+                colsum_prod = colsum_prod * colsum[idx];
             }
         }
 
@@ -263,7 +263,7 @@ Complex16 calculate() {
 
         // add the initial addend to the permanent
         scalar_type& addend_loc = priv_addend.local();
-        addend_loc += colsum_prod*(precision_type)binomial_coeff;
+        addend_loc = addend_loc + colsum_prod*(precision_type)binomial_coeff;
 
 
 
@@ -286,17 +286,18 @@ Complex16 calculate() {
             scalar_type colsum_prod((precision_type)parity, 0.0);
             for( size_t col_idx=0; col_idx<col_mult.size(); col_idx++) {
                 if ( value_prev < value ) {
-                    colsum[col_idx] -= mtx_data[col_idx]*2.0;
+                    colsum[col_idx] = colsum[col_idx] - mtx_data[col_idx]*2.0;
                 }
                 else {
-                    colsum[col_idx] += mtx_data[col_idx]*2.0;
+                    colsum[col_idx] = colsum[col_idx] + mtx_data[col_idx]*2.0;
                 }
 
                 for (size_t jdx=0; jdx<col_mult[col_idx]; jdx++) {
-                    colsum_prod *= colsum[col_idx];
+                    colsum_prod = colsum_prod*colsum[col_idx];
                 }
 
             }
+
 
             // update binomial factor
             int row_mult_current = row_mult[changed_index+1];
@@ -304,7 +305,7 @@ Complex16 calculate() {
             binomial_coeff *= binomialCoeffInt64(row_mult_current, value);
 
 
-            addend_loc += colsum_prod*(precision_type)binomial_coeff;
+            addend_loc = addend_loc + colsum_prod*(precision_type)binomial_coeff;
 
     
 

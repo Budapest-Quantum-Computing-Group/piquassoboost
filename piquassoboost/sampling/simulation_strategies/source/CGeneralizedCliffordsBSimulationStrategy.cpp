@@ -361,7 +361,8 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 #endif
 
 
-        GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
+        //GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
+        GlynnPermanentCalculatorRepeatedDouble permanentCalculator;
         BBFGPermanentCalculatorRepeated BBFGpermanentCalculator;
 
         //tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
@@ -380,17 +381,17 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
             matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
             PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
             PicState_int64 adapted_output_state = sample.filter(filterNonZero);
-            permanent_addends[colIndices[idx]] = BBFGpermanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
+            permanent_addends[colIndices[idx]] = BBFGpermanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state, false);
 
             tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
             t_CPU_permanent += (t1-t0).seconds();    //////////////////////////             
 
-/*            
+            
             tbb::tick_count t0b = tbb::tick_count::now();////////////////////////// 
             Complex16 perm = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
             tbb::tick_count t1b = tbb::tick_count::now();////////////////////////// 
             t_CPU_permanent_Glynn += (t1b-t0b).seconds();    //////////////////////////             
-*/
+
 /*
             if ( std::norm( permanent_addends[colIndices[idx]] - perm )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
                 std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << perm << std::endl;
