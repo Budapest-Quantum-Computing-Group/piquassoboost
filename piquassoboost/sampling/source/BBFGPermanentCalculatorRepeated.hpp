@@ -55,7 +55,6 @@ protected:
     ///
     PicState_int col_mult;
 
-
     // thread local storage for partial hafnian
     tbb::combinable<scalar_type> priv_addend;
 
@@ -80,7 +79,29 @@ BBFGPermanentCalculatorRepeated_Tasks() {
 BBFGPermanentCalculatorRepeated_Tasks( matrix_type &mtx_in, PicState_int& col_mult_in, PicState_int& row_mult_in ) {
 
     Update_mtx( mtx_in );
-    row_mult = row_mult_in;
+
+    //in the case when the first row multiplicity is zero, we need to find a nonzero multiplicity for the first row
+    if (row_mult_in.size() > 0 && row_mult_in[0]==0) { 
+        std::string error("BBFGPermanentCalculatorRepeated_Tasks:  The first element in row_mult dhould not be zero");
+        throw error;   
+    }
+
+    // the first eleemnt is delta_vec is always 1, so we separate a roe with single multiplicity
+    if ( row_mult_in.size() > 0 && row_mult_in[0]>1 ) {
+        row_mult = PicState_int( row_mult_in.size() + 1);
+        row_mult[0] = 1;
+        row_mult[1] = row_mult_in[0]-1;
+        memcpy( row_mult.get_data()+2, row_mult_in.get_data()+1, (row_mult_in.size()-1)*sizeof(int) );
+        mtx = matrix_type( mtx_in.rows+1, mtx_in.cols );
+        memcpy( mtx.get_data(), mtx_in.get_data(), mtx_in.cols*sizeof(scalar_type) );
+        memcpy( mtx.get_data()+mtx.stride, mtx_in.get_data(), mtx_in.cols*mtx_in.rows*sizeof(scalar_type) );
+//row_mult_in.print_matrix();
+//row_mult.print_matrix();
+    }
+    else {
+        row_mult = row_mult_in;
+    }
+
     col_mult = col_mult_in;
 
 }
@@ -112,11 +133,29 @@ virtual ~BBFGPermanentCalculatorRepeated_Tasks() {
 */
 Complex16 calculate() {
 
-
-    if (mtx.rows == 0) {
-        // the hafnian of an empty matrix is 1 by definition
-        return 1.0;
+    int sum_row_mult = sum(row_mult);
+    int sum_col_mult = sum(col_mult);
+    if ( sum_row_mult != sum_col_mult) {
+        std::string error("BBFGPermanentCalculatorRepeated_Tasks::calculate:  Number of input and output states should be equal");
+        throw error;
     }
+
+    if (mtx.rows == 0 || sum_row_mult == 0 || sum_col_mult == 0)
+        // the permanent of an empty matrix is 1 by definition
+        return Complex16(1.0, 0.0);
+
+    if (mtx.rows == 1) {
+
+        Complex16 ret(1.0, 0.0);
+        for (size_t idx=0; idx<col_mult.size(); idx++) {
+            for (size_t jdx=0; jdx<col_mult[idx]; jdx++) {
+                ret *= mtx[idx];
+            }
+        }
+
+        return ret;
+    }
+
 
 #if BLAS==0 // undefined BLAS
     int NumThreads = omp_get_max_threads();
@@ -128,63 +167,142 @@ Complex16 calculate() {
     int NumThreads = openblas_get_num_threads();
     openblas_set_num_threads(1);
 #endif
-row_mult.print_matrix();
-    PicState_int n_ary_limits( row_mult.size() );
+
+//row_mult.print_matrix();
+    PicState_int n_ary_limits( row_mult.size()-1 );
     for (size_t idx=0; idx<row_mult.size(); idx++) {
-        n_ary_limits[idx] = row_mult[idx]+1;
+        n_ary_limits[idx] = row_mult[idx+1]+1;
     }
 
 
-    uint64_t Idx_max = n_ary_limits[0];
+    uint64_t Idx_max = n_ary_limits[0]; 
     for (size_t idx=1; idx<n_ary_limits.size(); idx++) {
         Idx_max *= n_ary_limits[idx];
     }
    
-std::cout << Idx_max << std::endl;
-std::cout << "      ";
+    // thread local storage for partial hafnian
+    priv_addend = tbb::combinable<scalar_type>{[](){return scalar_type(0.0,0.0);}};
+
+//std::cout << Idx_max << std::endl;
+//std::cout << "      ";
     n_aryGrayCodeCounter gcode_counter(n_ary_limits, 0);
-    for (int64_t idx=0; idx<Idx_max; idx++ ) { 
+    PicState_int&& gcode = gcode_counter.get();
 
-        PicState_int&& gcode = gcode_counter.get();
+    // calculate the initial column sum and binomial coefficient
+    int64_t binomial_coeff = 1;
+        
+    matrix_type colsum( 1, mtx.cols);
+    memcpy( colsum.get_data(), mtx.get_data(), colsum.size()*sizeof( scalar_type ) ); // the first eleemnt in detla_vec is always 1     
+    scalar_type* mtx_data = mtx.get_data() + mtx.stride;
 
-        for( size_t jdx=0; jdx<gcode.size(); jdx++ ) {
-            std::cout << gcode[jdx] << ", ";
+    // variable to refer to the parity of the delta vector (+1 if the number of -1 elements in delta vector is even, -1 otherwise)
+    char parity = 1;
+
+    for( size_t idx=0; idx<gcode.size(); idx++ ) {
+
+        // the value of the element of the gray code stand for the number of \delta_i=-1 elements in the subset of multiplicated rows
+        const int& minus_signs = gcode[idx];
+        int row_mult_current = row_mult[idx+1];
+
+        for( size_t col_idx=0; col_idx<mtx.cols; col_idx++) {
+            colsum[col_idx] += (row_mult_current-minus_signs)*mtx_data[col_idx];
+            if (  minus_signs & 1 ) {
+                parity = -parity;
+            }
         }
 
-        int changed_index;
-        if ( gcode_counter.next(changed_index) ) {
-            std::cout << std::endl;
-            break;
-        }
+        // update the binomial coefficient
+        binomial_coeff *= binomialCoeffInt64(row_mult_current, minus_signs);
 
-        std::cout << std::endl << changed_index << "     ";
-
+        mtx_data += mtx.stride;
 
     }
 
 
-/////////////////////////////////
+    scalar_type colsum_prod = colsum[0];
+    for( size_t idx=1; idx<col_mult[0]; idx++ ) {
+        colsum_prod *= colsum[0];
+    }
 
-    mtx2 = matrix_type(mtx.rows, mtx.cols);
-    for(size_t idx=0; idx<mtx.size(); idx++) {
-        mtx2[idx] = mtx[idx]*2.0;
-    } 
-
-
-    // thread local storage for partial hafnian
-    priv_addend = tbb::combinable<scalar_type>{[](){return scalar_type(0.0,0.0);}};
-
-/////////////////////////////
-    mtx_mult = mtx.copy();
-    mtx2_mult = mtx2.copy();
-
-    size_t start_index = 0;
-    recursive_iteration( start_index );
-
-///////////////////////////////    
+    for( size_t idx=1; idx<col_mult.size(); idx++ ) {
+        for (size_t jdx=0; jdx<col_mult[idx]; jdx++) {
+            colsum_prod *= colsum[idx];
+        }
+    }
+//colsum.print_matrix();
+//std::cout << colsum_prod << std::endl;
 
 
+    // add the initial addend to the permanent
+    scalar_type& addend_loc = priv_addend.local();
+    if ( parity == 1 ) {
+        addend_loc += colsum_prod*(precision_type)binomial_coeff;
+    }
+    else{
+        addend_loc -= colsum_prod*(precision_type)binomial_coeff;
+    }
+
+
+
+
+    // iterate over gray codes to calculate permanent addends
+    for (int64_t idx=1; idx<Idx_max; idx++ ) { 
+
+        int changed_index, value_prev, value;
+        if ( gcode_counter.next(changed_index, value_prev, value) ) {
+            std::cout << std::endl;
+            break;
+        }
+
+
+        parity = -parity;
+
+//std::cout << value_prev << " " << value << std::endl;
+        // update column sum and calculate the product of the elements
+        int row_offset = (changed_index+1)*mtx.stride;
+        scalar_type* mtx_data = mtx.get_data() + row_offset;
+        scalar_type colsum_prod((precision_type)parity, 0.0);
+        for( size_t col_idx=0; col_idx<col_mult.size(); col_idx++) {
+            if ( value_prev < value ) {
+                colsum[col_idx] -= mtx_data[col_idx]*2.0;
+            }
+            else {
+                colsum[col_idx] += mtx_data[col_idx]*2.0;
+            }
+
+            for (size_t jdx=0; jdx<col_mult[col_idx]; jdx++) {
+                colsum_prod *= colsum[col_idx];
+            }
+
+        }
+
+        // update binomial factor
+        int row_mult_current = row_mult[changed_index+1];
+        binomial_coeff /= binomialCoeffInt64(row_mult_current, value_prev);
+        binomial_coeff *= binomialCoeffInt64(row_mult_current, value);
+
+
+        addend_loc += colsum_prod*(precision_type)binomial_coeff;
+
+
+//std::cout << colsum_prod << " " << binomial_coeff << std::endl;
     
+
+//////////////////
+/*
+        std::cout << changed_index << "     ";
+        PicState_int&& gcode = gcode_counter.get();
+        for( size_t jdx=0; jdx<gcode.size(); jdx++ ) {
+            std::cout << gcode[jdx] << ", ";
+        }
+        std::cout << std::endl;
+*/
+///////////////////
+    }
+
+
+
+//std::cout << "opoooooooooooooooOO" << std::endl;    
 
 
 
@@ -193,159 +311,12 @@ std::cout << "      ";
         permanent = permanent + a;
     });
 
-    permanent = permanent / (precision_type)(1ULL << (mtx.rows-1));
+    permanent = permanent / (precision_type)(1ULL << (sum_row_mult-1));
 
     return Complex16(permanent.real(), permanent.imag());
 }
 
-/**
-@brief ???
-@param ???
-*/
-void recursive_iteration( size_t& start_index) {
 
-
-    // determine the concurrency of the calculation
-    unsigned int nthreads = std::thread::hardware_concurrency();
-    size_t fixed_delta_elements = 0;
-    while ( nthreads ) {
-        nthreads = nthreads >> 1;
-        fixed_delta_elements++;
-    }
-
-
-    fixed_delta_elements = fixed_delta_elements < mtx.rows ? fixed_delta_elements : mtx.rows-1;
-
-
-    size_t concurrent_delta_vectors = 1 << fixed_delta_elements;
-
-//concurrent_delta_vectors = 16;
-//fixed_delta_elements = 4;
-//std::cout << mtx.rows << " " << fixed_delta_elements << " " << concurrent_delta_vectors << std::endl;
-    
-
-
-    calc_subpermanent(concurrent_delta_vectors, fixed_delta_elements);
-
-
-
-}
-
-/**
-@brief ???
-@param ???
-*/
-void calc_subpermanent(size_t& concurrent_delta_vectors, const size_t& fixed_delta_elements) {
-
-    tbb::parallel_for( (size_t)0, concurrent_delta_vectors, (size_t)1, [&](size_t delta_vec_idx){
-//    for( size_t delta_vec_idx=0; delta_vec_idx<concurrent_delta_vectors; delta_vec_idx++ ) {
-
-        // variable to refer to the parity of the delta vector (+1 if the number of changed elements in delta vector is even, 0 otherwise)
-        char parity = 1;
-    
-        // determine initial columsn sum corresponding to the given delta vector set. 
-        // (the leading "concurrent_delta_vectors" elements of the delta vectors are kept fixed
-        // during the iterations
-        matrix_type colsum( 1, mtx_mult.cols);
-        memcpy( colsum.get_data(), mtx_mult.get_data(), colsum.size()*sizeof( scalar_type ) );
-
-        size_t delta_vec_idx_loc = delta_vec_idx;
-
-        scalar_type* mtx_data = mtx_mult.get_data() + mtx_mult.stride; 
-
-        for ( size_t row_idx=1; row_idx<mtx_mult.rows; row_idx++) {
-             
-            if ( delta_vec_idx_loc & 1 ) {
-                for( size_t col_idx=0; col_idx<mtx_mult.cols; col_idx++) {
-                    colsum[col_idx] -= mtx_data[col_idx];
-                }
-                parity = parity ? 0 : 1;
-            }
-            else {
-                for( size_t col_idx=0; col_idx<mtx_mult.cols; col_idx++) {
-                    colsum[col_idx] += mtx_data[col_idx];
-                }
-            }
-            mtx_data += mtx_mult.stride;
-            delta_vec_idx_loc = delta_vec_idx_loc >> 1;
-        }
-    
-    
-
-        scalar_type& addend_loc = priv_addend.local();
-
-        if ( parity ) {
-            addend_loc += product_reduction( colsum );
-        }
-        else {
-            addend_loc -= product_reduction( colsum );        
-        }
-
-
-
-
-        // array storing the actual delta vector
-        PicState_int delta_vec( mtx_mult.rows-fixed_delta_elements, 0 );
-//delta_vec.print_matrix();
-
-
-        // the number of variable delta vector elements
-        size_t variable_delta_elements = mtx_mult.rows-1-fixed_delta_elements;      
-
-        // launch the gray code counter
-        uint64_t Idx_max = 1ULL << variable_delta_elements;
-
-
-        for( uint64_t idx=1; idx<Idx_max; idx++) {
-
-            // find the index of the changed bit:
-            // If you number the bits starting with 0 for least significant, the position of the bit to change to increase
-            // a binary-reflected Gray code is the position of the lowest bit set in an increasing binary number 
-            // to get the numbering you presented, subtract from the number of bit positions.
-
-            uint64_t idx_loc = idx;
-            char change_idx = variable_delta_elements;
-            while ( (idx_loc & 1ULL) == 0 ) {
-                idx_loc = idx_loc >> 1;
-                change_idx--;
-            }
-
-            // update gray code
-            int& changed_delta_element = delta_vec[change_idx];
-            changed_delta_element = changed_delta_element ? 0 : 1;
-    
-
-       
-            // update the column sum
-            size_t row_offset = (fixed_delta_elements+change_idx)*mtx2_mult.stride;
-            scalar_type* mtx2_data = mtx2_mult.get_data() + row_offset;
-
-            parity = parity ? 0 : 1;
-            scalar_type colsum_prod(parity ? 1.0 : -1.0 ,0.0);
-
-
-            if ( changed_delta_element ) {
-                for( size_t col_idx=0; col_idx<mtx2_mult.cols; col_idx++) {
-                    colsum[col_idx] -= mtx2_data[col_idx];  
-                    colsum_prod *= colsum[col_idx];
-                }
-            }
-            else {
-                for( size_t col_idx=0; col_idx<mtx2_mult.cols; col_idx++) {
-                    colsum[col_idx] += mtx2_data[col_idx];            
-                    colsum_prod *= colsum[col_idx];
-                }                
-            }
-
-            addend_loc += colsum_prod;
-
-
-        }
-  
-//    }
-    });
-
-};
 
 /**
 @brief Call to update the memory address of the matrix mtx and reorder the matrix elements into a_1^*,a_1^*,a_2,a_2^*, ... a_N,a_N^* order.

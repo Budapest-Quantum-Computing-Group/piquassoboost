@@ -38,7 +38,7 @@ def generate_random_unitary( dim ):
 
 
 # generate the random matrix
-dim = 4
+dim = 3
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
 Arep = A
 
@@ -77,7 +77,8 @@ for idx in range(iter_loops):
 input_state = np.ones(dim, np.int64)
 output_state = np.ones(dim, np.int64)
 output_state[0] = 2
-output_state[2] = 3
+output_state[1] = 3
+input_state[2] = 4
 
 # Glynn repeated permanent calculator
 permanent_BBFG_calculator_repeated = BBFGRepeatedPermanentCalculatorDouble( Arep, input_state=input_state, output_state=output_state )
@@ -128,10 +129,6 @@ for idx in range(iter_loops):
 
 
 
-
-# multiplicities of input/output states
-input_state = np.ones(dim, np.int64)
-output_state = np.ones(dim, np.int64)
 
 
 # Glynn repeated permanent calculator
@@ -198,12 +195,13 @@ for idx in range(iter_loops):
 
 print(' ')
 print( permanent_BBFG_Cpp_repeated_double )
+print( permanent_Glynn_Cpp_repeated )
+print( permanent_Glynn_Cpp_repeated_double )
+print( permanent_ChinHuh_Cpp )
+
 print( permanent_walrus_quad_Ryser )
 print( permanent_walrus_Ryser )
 print( permanent_walrus_quad_BBFG )
-print( permanent_ChinHuh_Cpp )
-print( permanent_Glynn_Cpp_repeated )
-print( permanent_Glynn_Cpp_repeated_double )
 print( permanent_Glynn_Cpp )
 print( permanent_Glynn_Cpp_double )
 
