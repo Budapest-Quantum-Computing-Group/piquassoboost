@@ -22,6 +22,7 @@
 #include "PicState.h"
 #include "PicVector.hpp"
 #include "common_functionalities.h"
+#include "n_aryGrayCodeCounter.h"
 
 
 namespace pic {
@@ -43,9 +44,20 @@ class BBFGPermanentCalculatorRepeated_Tasks  {
 protected:
     /// The input matrix. Must be selfadjoint positive definite matrix with eigenvalues between 0 and 1.
     matrix_type mtx;
+    /// The input matrix. Must be selfadjoint positive definite matrix with eigenvalues between 0 and 1.
+    matrix_type mtx_mult;
     ///
     matrix_type mtx2;
+    ///
+    matrix_type mtx2_mult;
+    ///
+    PicState_int row_mult;
+    ///
+    PicState_int col_mult;
 
+
+    // thread local storage for partial hafnian
+    tbb::combinable<scalar_type> priv_addend;
 
 
 public:
@@ -65,9 +77,11 @@ BBFGPermanentCalculatorRepeated_Tasks() {
 @param mtx_in A selfadjoint matrix for which the permanent is calculated. This matrix has to be positive definite matrix with eigenvalues between 0 and 1 (for example a covariance matrix of the Gaussian state.) matrix. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @return Returns with the instance of the class.
 */
-BBFGPermanentCalculatorRepeated_Tasks( matrix_type &mtx_in ) {
+BBFGPermanentCalculatorRepeated_Tasks( matrix_type &mtx_in, PicState_int& col_mult_in, PicState_int& row_mult_in ) {
 
     Update_mtx( mtx_in );
+    row_mult = row_mult_in;
+    col_mult = col_mult_in;
 
 }
 
@@ -114,16 +128,83 @@ Complex16 calculate() {
     int NumThreads = openblas_get_num_threads();
     openblas_set_num_threads(1);
 #endif
+row_mult.print_matrix();
+    PicState_int n_ary_limits( row_mult.size() );
+    for (size_t idx=0; idx<row_mult.size(); idx++) {
+        n_ary_limits[idx] = row_mult[idx]+1;
+    }
 
+
+    uint64_t Idx_max = n_ary_limits[0];
+    for (size_t idx=1; idx<n_ary_limits.size(); idx++) {
+        Idx_max *= n_ary_limits[idx];
+    }
+   
+std::cout << Idx_max << std::endl;
+std::cout << "      ";
+    n_aryGrayCodeCounter gcode_counter(n_ary_limits, 0);
+    for (int64_t idx=0; idx<Idx_max; idx++ ) { 
+
+        PicState_int&& gcode = gcode_counter.get();
+
+        for( size_t jdx=0; jdx<gcode.size(); jdx++ ) {
+            std::cout << gcode[jdx] << ", ";
+        }
+
+        int changed_index;
+        if ( gcode_counter.next(changed_index) ) {
+            std::cout << std::endl;
+            break;
+        }
+
+        std::cout << std::endl << changed_index << "     ";
+
+
+    }
+
+
+/////////////////////////////////
 
     mtx2 = matrix_type(mtx.rows, mtx.cols);
     for(size_t idx=0; idx<mtx.size(); idx++) {
         mtx2[idx] = mtx[idx]*2.0;
-    }     
+    } 
+
 
     // thread local storage for partial hafnian
-    tbb::combinable<scalar_type> priv_addend{[](){return scalar_type(0.0,0.0);}};
+    priv_addend = tbb::combinable<scalar_type>{[](){return scalar_type(0.0,0.0);}};
+
+/////////////////////////////
+    mtx_mult = mtx.copy();
+    mtx2_mult = mtx2.copy();
+
+    size_t start_index = 0;
+    recursive_iteration( start_index );
+
+///////////////////////////////    
+
+
     
+
+
+
+    scalar_type permanent(0.0, 0.0);
+    priv_addend.combine_each([&](scalar_type &a) {
+        permanent = permanent + a;
+    });
+
+    permanent = permanent / (precision_type)(1ULL << (mtx.rows-1));
+
+    return Complex16(permanent.real(), permanent.imag());
+}
+
+/**
+@brief ???
+@param ???
+*/
+void recursive_iteration( size_t& start_index) {
+
+
     // determine the concurrency of the calculation
     unsigned int nthreads = std::thread::hardware_concurrency();
     size_t fixed_delta_elements = 0;
@@ -142,6 +223,20 @@ Complex16 calculate() {
 //fixed_delta_elements = 4;
 //std::cout << mtx.rows << " " << fixed_delta_elements << " " << concurrent_delta_vectors << std::endl;
     
+
+
+    calc_subpermanent(concurrent_delta_vectors, fixed_delta_elements);
+
+
+
+}
+
+/**
+@brief ???
+@param ???
+*/
+void calc_subpermanent(size_t& concurrent_delta_vectors, const size_t& fixed_delta_elements) {
+
     tbb::parallel_for( (size_t)0, concurrent_delta_vectors, (size_t)1, [&](size_t delta_vec_idx){
 //    for( size_t delta_vec_idx=0; delta_vec_idx<concurrent_delta_vectors; delta_vec_idx++ ) {
 
@@ -151,27 +246,27 @@ Complex16 calculate() {
         // determine initial columsn sum corresponding to the given delta vector set. 
         // (the leading "concurrent_delta_vectors" elements of the delta vectors are kept fixed
         // during the iterations
-        matrix_type colsum( 1, mtx.cols);
-        memcpy( colsum.get_data(), mtx.get_data(), colsum.size()*sizeof( scalar_type ) );
+        matrix_type colsum( 1, mtx_mult.cols);
+        memcpy( colsum.get_data(), mtx_mult.get_data(), colsum.size()*sizeof( scalar_type ) );
 
         size_t delta_vec_idx_loc = delta_vec_idx;
 
-        scalar_type* mtx_data = mtx.get_data() + mtx.stride; 
+        scalar_type* mtx_data = mtx_mult.get_data() + mtx_mult.stride; 
 
-        for ( size_t row_idx=1; row_idx<mtx.rows; row_idx++) {
+        for ( size_t row_idx=1; row_idx<mtx_mult.rows; row_idx++) {
              
             if ( delta_vec_idx_loc & 1 ) {
-                for( size_t col_idx=0; col_idx<mtx.cols; col_idx++) {
+                for( size_t col_idx=0; col_idx<mtx_mult.cols; col_idx++) {
                     colsum[col_idx] -= mtx_data[col_idx];
                 }
                 parity = parity ? 0 : 1;
             }
             else {
-                for( size_t col_idx=0; col_idx<mtx.cols; col_idx++) {
+                for( size_t col_idx=0; col_idx<mtx_mult.cols; col_idx++) {
                     colsum[col_idx] += mtx_data[col_idx];
                 }
             }
-            mtx_data += mtx.stride;
+            mtx_data += mtx_mult.stride;
             delta_vec_idx_loc = delta_vec_idx_loc >> 1;
         }
     
@@ -190,12 +285,12 @@ Complex16 calculate() {
 
 
         // array storing the actual delta vector
-        PicState_int delta_vec( mtx.rows-fixed_delta_elements, 0 );
+        PicState_int delta_vec( mtx_mult.rows-fixed_delta_elements, 0 );
 //delta_vec.print_matrix();
 
 
         // the number of variable delta vector elements
-        size_t variable_delta_elements = mtx.rows-1-fixed_delta_elements;      
+        size_t variable_delta_elements = mtx_mult.rows-1-fixed_delta_elements;      
 
         // launch the gray code counter
         uint64_t Idx_max = 1ULL << variable_delta_elements;
@@ -222,21 +317,21 @@ Complex16 calculate() {
 
        
             // update the column sum
-            size_t row_offset = (fixed_delta_elements+change_idx)*mtx2.stride;
-            scalar_type* mtx2_data = mtx2.get_data() + row_offset;
+            size_t row_offset = (fixed_delta_elements+change_idx)*mtx2_mult.stride;
+            scalar_type* mtx2_data = mtx2_mult.get_data() + row_offset;
 
             parity = parity ? 0 : 1;
             scalar_type colsum_prod(parity ? 1.0 : -1.0 ,0.0);
 
 
             if ( changed_delta_element ) {
-                for( size_t col_idx=0; col_idx<mtx2.cols; col_idx++) {
+                for( size_t col_idx=0; col_idx<mtx2_mult.cols; col_idx++) {
                     colsum[col_idx] -= mtx2_data[col_idx];  
                     colsum_prod *= colsum[col_idx];
                 }
             }
             else {
-                for( size_t col_idx=0; col_idx<mtx2.cols; col_idx++) {
+                for( size_t col_idx=0; col_idx<mtx2_mult.cols; col_idx++) {
                     colsum[col_idx] += mtx2_data[col_idx];            
                     colsum_prod *= colsum[col_idx];
                 }                
@@ -247,23 +342,10 @@ Complex16 calculate() {
 
         }
   
-
 //    }
     });
-//std::cout << "ppppppppppppp" << std::endl;
-    scalar_type permanent(0.0, 0.0);
-    priv_addend.combine_each([&](scalar_type &a) {
-//std::cout << a.get() << std::endl;
-        permanent = permanent + a;
-    });
-    
-//std::cout << permanent << std::endl;
-    permanent = permanent / (precision_type)(1ULL << (mtx.rows-1));
-//std::cout << " " << std::endl;
-    return Complex16(permanent.real(), permanent.imag());
-}
 
-
+};
 
 /**
 @brief Call to update the memory address of the matrix mtx and reorder the matrix elements into a_1^*,a_1^*,a_2,a_2^*, ... a_N,a_N^* order.

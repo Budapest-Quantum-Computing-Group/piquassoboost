@@ -385,6 +385,7 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/matrix32.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicState.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dot.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/n_aryGrayCodeCounter.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/common_functionalities.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/CalculationHelpers.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/GaussianState_Cov.cpp
@@ -516,6 +517,7 @@ set_target_properties(piquassoboost PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicState.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/PicStateHash.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/dot.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/n_aryGrayCodeCounter.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/common/source/common_functionalities.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/CalculationHelpers.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/GaussianState_Cov.h

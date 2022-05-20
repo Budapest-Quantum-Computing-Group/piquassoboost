@@ -38,11 +38,11 @@ def generate_random_unitary( dim ):
 
 
 # generate the random matrix
-dim = 26
+dim = 4
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
 Arep = A
 
-iter_loops = 20
+iter_loops = 1
 
 #np.save("mtx", A )
 #A = np.load("mtx.npy")
@@ -56,6 +56,7 @@ iter_loops = 20
 # multiplicities of input/output states
 input_state = np.ones(dim, np.int64)
 output_state = np.ones(dim, np.int64)
+
 
 # ChinHuh permanent calculator
 permanent_ChinHuh_calculator = ChinHuhPermanentCalculator( A, input_state, output_state )
@@ -75,7 +76,8 @@ for idx in range(iter_loops):
 # multiplicities of input/output states
 input_state = np.ones(dim, np.int64)
 output_state = np.ones(dim, np.int64)
-
+output_state[0] = 2
+output_state[2] = 3
 
 # Glynn repeated permanent calculator
 permanent_BBFG_calculator_repeated = BBFGRepeatedPermanentCalculatorDouble( Arep, input_state=input_state, output_state=output_state )
@@ -127,7 +129,9 @@ for idx in range(iter_loops):
 
 
 
-
+# multiplicities of input/output states
+input_state = np.ones(dim, np.int64)
+output_state = np.ones(dim, np.int64)
 
 
 # Glynn repeated permanent calculator
@@ -238,7 +242,7 @@ print( permanent_Glynn_DFE )
 print( permanent_Glynn_dual_DFE )
 '''
 # Glynn Inf permanent calculator
-if (dim<=4):
+if (dim<=1):
     permanent_Glynn_calculator = GlynnPermanentInf( Arep )
     time_Glynn_InfinitePrecision = 1000000000
     for idx in range(iter_loops):
@@ -271,7 +275,7 @@ print('Time elapsed with piquasso Glynn repeated: ' + str(time_Glynn_Cpp_repeate
 print('Time elapsed with piquasso Glynn repeated double: ' + str(time_Glynn_Cpp_repeated_double))
 #print('Time elapsed with DFE Glynn: ' + str(time_Glynn_DFE))
 #print('Time elapsed with dual DFE Glynn: ' + str(time_Glynn_dual_DFE))
-if (dim<=4):
+if (dim<=1):
     print('Time elapsed with infinite precision Glynn: ' + str(time_Glynn_InfinitePrecision))
 #print( "speedup: " + str(time_walrus/time_Cpp) )
 print( "speedup Glynn: " + str(time_walrus/time_Glynn_Cpp) )
