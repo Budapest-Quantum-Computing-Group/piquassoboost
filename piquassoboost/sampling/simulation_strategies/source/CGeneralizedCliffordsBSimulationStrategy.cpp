@@ -247,7 +247,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 //sample.print_matrix();
 //tbb::tick_count t1cpu = tbb::tick_count::now();
 //t_CPU += (t1cpu-t0cpu).seconds();            
-std::cout << "DFE all time: " << t_DFE << ", cpu permanent: " << t_CPU_permanent << " " << t_CPU_permanent_Glynn << std::endl;
+//std::cout << "DFE all time: " << t_DFE << ", cpu permanent: " << t_CPU_permanent << " " << t_CPU_permanent_Glynn << std::endl;
 //std::cout << "DFE_pure time: " << t_DFE_pure << std::endl;
 //std::cout << "DFE_prepare time: " << t_DFE_prepare << std::endl;
 //std::cout << "total sampling time: " << t_CPU << std::endl;
@@ -362,7 +362,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 
 
         //GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
-        GlynnPermanentCalculatorRepeatedDouble permanentCalculator;
+        //GlynnPermanentCalculatorRepeatedDouble permanentCalculator;
         BBFGPermanentCalculatorRepeated BBFGpermanentCalculator;
 
         //tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
@@ -373,7 +373,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
             input_state_loc[colIndices[idx]]--;  
             input_state_loc.number_of_photons--; 
 
-            tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
+            //tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
             //matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, &input_state_loc, &sample );
             //permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
                
@@ -383,15 +383,15 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
             PicState_int64 adapted_output_state = sample.filter(filterNonZero);
             permanent_addends[colIndices[idx]] = BBFGpermanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state, false);
 
-            tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
-            t_CPU_permanent += (t1-t0).seconds();    //////////////////////////             
+            //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
+            //t_CPU_permanent += (t1-t0).seconds();    //////////////////////////             
 
-            
+/*            
             tbb::tick_count t0b = tbb::tick_count::now();////////////////////////// 
             Complex16 perm = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
             tbb::tick_count t1b = tbb::tick_count::now();////////////////////////// 
             t_CPU_permanent_Glynn += (t1b-t0b).seconds();    //////////////////////////             
-
+*/
 /*
             if ( std::norm( permanent_addends[colIndices[idx]] - perm )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
                 std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << perm << std::endl;

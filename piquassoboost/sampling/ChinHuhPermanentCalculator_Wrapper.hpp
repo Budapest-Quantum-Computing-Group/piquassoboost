@@ -41,6 +41,7 @@
 #define GlynnRepMultiDualDFE 5
 #define GlynnRepCPUDouble 6
 #define BBFGPermanentCalculatorRepeatedDouble 7
+#define BBFGPermanentCalculatorRepeatedLongDouble 8
 
 
 
@@ -116,6 +117,7 @@ ChinHuhPermanentCalculator_wrapper_dealloc(ChinHuhPermanentCalculator_wrapper *s
     else if (self->lib == GlynnRep && self->calculatorRepLongDouble != NULL) delete self->calculatorRepLongDouble;
     else if (self->lib == GlynnRepCPUDouble && self->calculatorRepDouble != NULL) delete self->calculatorRepDouble;
     else if (self->lib == BBFGPermanentCalculatorRepeatedDouble && self->BBFGcalculatorRep != NULL) delete self->BBFGcalculatorRep;
+    else if (self->lib == BBFGPermanentCalculatorRepeatedLongDouble && self->BBFGcalculatorRep != NULL) delete self->BBFGcalculatorRep;
 
     // release numpy arrays
     if (self->matrix) Py_DECREF(self->matrix);
@@ -213,6 +215,8 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
     else if (self->lib == GlynnRepCPUDouble)
         self->calculatorRepDouble = new pic::GlynnPermanentCalculatorRepeatedDouble();
     else if (self->lib == BBFGPermanentCalculatorRepeatedDouble)
+        self->BBFGcalculatorRep = new pic::BBFGPermanentCalculatorRepeated(); 
+    else if (self->lib == BBFGPermanentCalculatorRepeatedLongDouble)
         self->BBFGcalculatorRep = new pic::BBFGPermanentCalculatorRepeated();        
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
@@ -278,6 +282,15 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
     else if (self->lib == BBFGPermanentCalculatorRepeatedDouble) {
         try {
             ret = self->BBFGcalculatorRep->calculate(matrix_mtx, input_state_mtx, output_state_mtx, false);
+        }
+        catch (std::string err) {
+            PyErr_SetString(PyExc_Exception, err.c_str());
+            return NULL;
+        }
+    }
+    else if (self->lib == BBFGPermanentCalculatorRepeatedLongDouble) {
+        try {
+            ret = self->BBFGcalculatorRep->calculate(matrix_mtx, input_state_mtx, output_state_mtx, true);
         }
         catch (std::string err) {
             PyErr_SetString(PyExc_Exception, err.c_str());

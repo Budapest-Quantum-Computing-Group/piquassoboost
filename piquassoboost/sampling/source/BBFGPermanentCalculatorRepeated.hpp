@@ -55,8 +55,6 @@ protected:
     ///
     PicState_int col_mult;
 
-    // thread local storage for partial hafnian
-    tbb::combinable<scalar_type> priv_addend;
 
 
 public:
@@ -95,8 +93,6 @@ BBFGPermanentCalculatorRepeated_Tasks( matrix_type &mtx_in, PicState_int& col_mu
         mtx = matrix_type( mtx_in.rows+1, mtx_in.cols );
         memcpy( mtx.get_data(), mtx_in.get_data(), mtx_in.cols*sizeof(scalar_type) );
         memcpy( mtx.get_data()+mtx.stride, mtx_in.get_data(), mtx_in.cols*mtx_in.rows*sizeof(scalar_type) );
-//row_mult_in.print_matrix();
-//row_mult.print_matrix();
     }
     else {
         row_mult = row_mult_in;
@@ -133,9 +129,6 @@ virtual ~BBFGPermanentCalculatorRepeated_Tasks() {
 */
 Complex16 calculate() {
 
-//mtx.print_matrix();
-//row_mult.print_matrix();
-//col_mult.print_matrix();
 
     int sum_row_mult = sum(row_mult);
     int sum_col_mult = sum(col_mult);
@@ -178,16 +171,15 @@ Complex16 calculate() {
         n_ary_limits[idx] = row_mult[idx+1]+1;
     }
 
-//std::cout << "iiiiiiii 0" << std::endl;
+
     uint64_t Idx_max = n_ary_limits[0]; 
     for (size_t idx=1; idx<n_ary_limits.size(); idx++) {
         Idx_max *= n_ary_limits[idx];
     }
    
     // thread local storage for partial hafnian
-    priv_addend = tbb::combinable<scalar_type>{[](){return scalar_type(0.0,0.0);}};
+    tbb::combinable<scalar_type> priv_addend{[](){return scalar_type(0.0,0.0);}};
 
-//std::cout << "iiiiiiii 1" << std::endl;
     // determine the concurrency of the calculation
     unsigned int nthreads = std::thread::hardware_concurrency();
     int64_t concurrency = (int64_t)nthreads * 4;
@@ -204,17 +196,15 @@ Complex16 calculate() {
         if ( job_idx == concurrency-1) {
             offset_max = Idx_max-1;
         } 
-//std::cout << "iiiiiiii 2" << std::endl;
 
-//std::cout << "work batch started: " << work_batch << " " << initial_offset << " " << offset_max << " " << Idx_max << std::endl;
+
+
 
         n_aryGrayCodeCounter gcode_counter(n_ary_limits, initial_offset);
 
-//std::cout << "iiiiiiii 3" << std::endl;
+
         gcode_counter.set_offset_max( offset_max );
-//std::cout << "iiiiiiii 4" << std::endl;
         PicState_int gcode = gcode_counter.get();
-//std::cout << "iiiiiiii 5" << std::endl;
 
         // calculate the initial column sum and binomial coefficient
         int64_t binomial_coeff = 1;
@@ -222,7 +212,7 @@ Complex16 calculate() {
         matrix_type colsum( 1, col_mult.size());
         memcpy( colsum.get_data(), mtx.get_data(), colsum.size()*sizeof( scalar_type ) ); // the first eleemnt in detla_vec is always 1     
         scalar_type* mtx_data = mtx.get_data() + mtx.stride;
-//std::cout << "iiiiiiii 6" << std::endl;
+
         // variable to count all the -1 elements in the delta vector
         int minus_signs_all = 0;
 
@@ -244,7 +234,7 @@ Complex16 calculate() {
             mtx_data += mtx.stride;
 
         }
-//std::cout << "iiiiiiii 7" << std::endl;
+
 
         // variable to refer to the parity of the delta vector (+1 if the number of -1 elements in delta vector is even, -1 otherwise)
         char parity = (minus_signs_all % 2 == 0) ? 1 : -1; 
@@ -256,9 +246,6 @@ Complex16 calculate() {
             }
         }
 
-        
-//colsum.print_matrix();
-//std::cout << colsum_prod << " " << binomial_coeff << std::endl;
 
 
         // add the initial addend to the permanent
@@ -269,7 +256,7 @@ Complex16 calculate() {
 
         // iterate over gray codes to calculate permanent addends
         for (int64_t idx=initial_offset+1; idx<offset_max+1; idx++ ) { 
-// std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl; 
+
             int changed_index, value_prev, value;
             if ( gcode_counter.next(changed_index, value_prev, value) ) {
                 std::cout << std::endl;
@@ -279,7 +266,7 @@ Complex16 calculate() {
 
             parity = -parity;
 
-//std::cout << value_prev << " " << value << std::endl;
+
             // update column sum and calculate the product of the elements
             int row_offset = (changed_index+1)*mtx.stride;
             scalar_type* mtx_data = mtx.get_data() + row_offset;
@@ -308,19 +295,6 @@ Complex16 calculate() {
             addend_loc = addend_loc + colsum_prod*(precision_type)binomial_coeff;
 
     
-
-//////////////////
-
-        //std::cout << changed_index << "     ";
-        //PicState_int gcode = gcode_counter.get();
-        //for( size_t jdx=0; jdx<gcode.size(); jdx++ ) {
-        //    std::cout << gcode[jdx] << ", ";
-        //}
-        //std::cout << std::endl;
-
-//std::cout << colsum_prod << " " << binomial_coeff << std::endl;
-
-///////////////////
         }
 
 
@@ -328,9 +302,6 @@ Complex16 calculate() {
 //    }
     });
 
-//std::cout << "opoooooooooooooooOO" << std::endl;    
-
-//std::cout << "iiiiiiii 10" << std::endl;
 
     scalar_type permanent(0.0, 0.0);
     priv_addend.combine_each([&](scalar_type &a) {
