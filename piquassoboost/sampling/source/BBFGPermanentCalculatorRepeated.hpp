@@ -44,12 +44,8 @@ class BBFGPermanentCalculatorRepeated_Tasks  {
 protected:
     /// The input matrix. Must be selfadjoint positive definite matrix with eigenvalues between 0 and 1.
     matrix_type mtx;
-    /// The input matrix. Must be selfadjoint positive definite matrix with eigenvalues between 0 and 1.
-    matrix_type mtx_mult;
     ///
     matrix_type mtx2;
-    ///
-    matrix_type mtx2_mult;
     ///
     PicState_int row_mult;
     ///
@@ -103,18 +99,6 @@ BBFGPermanentCalculatorRepeated_Tasks( matrix_type &mtx_in, PicState_int& col_mu
 }
 
 
-inline long double convertToDouble(Complex16& complex){
-    return complex.real();
-}
-inline long double convertToDouble(Complex32& complex){
-    return complex.real();
-}
-inline long double convertToDouble(double& complex){
-    return complex;
-}
-inline long double convertToDouble(long double& complex){
-    return complex;
-}
 
 /**
 @brief Default destructor of the class.
@@ -152,6 +136,12 @@ Complex16 calculate() {
 
         return ret;
     }
+
+
+    mtx2 = matrix_type(mtx.rows, mtx.cols);
+    for(size_t idx=0; idx<mtx.size(); idx++) {
+        mtx2[idx] = mtx[idx]*2.0;
+    }     
 
 
 #if BLAS==0 // undefined BLAS
@@ -269,14 +259,14 @@ Complex16 calculate() {
 
             // update column sum and calculate the product of the elements
             int row_offset = (changed_index+1)*mtx.stride;
-            scalar_type* mtx_data = mtx.get_data() + row_offset;
+            scalar_type* mtx_data = mtx2.get_data() + row_offset;
             scalar_type colsum_prod((precision_type)parity, 0.0);
             for( size_t col_idx=0; col_idx<col_mult.size(); col_idx++) {
                 if ( value_prev < value ) {
-                    colsum[col_idx] = colsum[col_idx] - mtx_data[col_idx]*2.0;
+                    colsum[col_idx] = colsum[col_idx] - mtx_data[col_idx];
                 }
                 else {
-                    colsum[col_idx] = colsum[col_idx] + mtx_data[col_idx]*2.0;
+                    colsum[col_idx] = colsum[col_idx] + mtx_data[col_idx];
                 }
 
                 for (size_t jdx=0; jdx<col_mult[col_idx]; jdx++) {

@@ -362,7 +362,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 
 
         //GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
-        //GlynnPermanentCalculatorRepeatedDouble permanentCalculator;
+        GlynnPermanentCalculatorRepeatedDouble permanentCalculator;
         BBFGPermanentCalculatorRepeated BBFGpermanentCalculator;
 
         //tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
@@ -386,7 +386,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
             //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
             //t_CPU_permanent += (t1-t0).seconds();    //////////////////////////             
 
-/*            
+/*
             tbb::tick_count t0b = tbb::tick_count::now();////////////////////////// 
             Complex16 perm = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
             tbb::tick_count t1b = tbb::tick_count::now();////////////////////////// 
