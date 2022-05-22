@@ -23,6 +23,7 @@
 #include "structmember.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculatorRepeated.h"
+#include "BBFGPermanentCalculatorRepeated.h"
 
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
@@ -32,13 +33,15 @@
 #include "numpy_interface.h"
 
 
-#define ChinHuh 0
+#define ChinHuhDouble 0
 #define GlynnRep 1
 #define GlynnRepSingleDFE 2
 #define GlynnRepDualDFE 3
 #define GlynnRepMultiSingleDFE 4
 #define GlynnRepMultiDualDFE 5
 #define GlynnRepCPUDouble 6
+#define BBFGPermanentCalculatorRepeatedDouble 7
+#define BBFGPermanentCalculatorRepeatedLongDouble 8
 
 
 
@@ -59,31 +62,12 @@ typedef struct ChinHuhPermanentCalculator_wrapper {
         pic::CChinHuhPermanentCalculator* calculator;
         pic::GlynnPermanentCalculatorRepeatedDouble* calculatorRepDouble;
         pic::GlynnPermanentCalculatorRepeatedLongDouble* calculatorRepLongDouble;
+        pic::BBFGPermanentCalculatorRepeated* BBFGcalculatorRep;
     };
 } ChinHuhPermanentCalculator_wrapper;
 
 
-/**
-@brief Creates an instance of class ChinHuhPermanentCalculator and return with a pointer pointing to the class instance (C++ linking is needed)
-@return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
-*/
-pic::CChinHuhPermanentCalculator*
-create_ChinHuhPermanentCalculator() {
 
-    return new pic::CChinHuhPermanentCalculator();
-}
-
-/**
-@brief Call to deallocate an instance of ChinHuhPermanentCalculator class
-@param ptr A pointer pointing to an instance of ChinHuhPermanentCalculator class.
-*/
-void
-release_ChinHuhPermanentCalculator( pic::CChinHuhPermanentCalculator*  instance ) {
-    if ( instance != NULL ) {
-        delete instance;
-    }
-    return;
-}
 
 
 
@@ -109,9 +93,11 @@ ChinHuhPermanentCalculator_wrapper_dealloc(ChinHuhPermanentCalculator_wrapper *s
 #endif
 
     // deallocate the instance of class N_Qubit_Decomposition
-    if (self->lib == ChinHuh) release_ChinHuhPermanentCalculator( self->calculator );
+    if (self->lib == ChinHuhDouble) delete self->calculator;
     else if (self->lib == GlynnRep && self->calculatorRepLongDouble != NULL) delete self->calculatorRepLongDouble;
     else if (self->lib == GlynnRepCPUDouble && self->calculatorRepDouble != NULL) delete self->calculatorRepDouble;
+    else if (self->lib == BBFGPermanentCalculatorRepeatedDouble && self->BBFGcalculatorRep != NULL) delete self->BBFGcalculatorRep;
+    else if (self->lib == BBFGPermanentCalculatorRepeatedLongDouble && self->BBFGcalculatorRep != NULL) delete self->BBFGcalculatorRep;
 
     // release numpy arrays
     if (self->matrix) Py_DECREF(self->matrix);
@@ -158,7 +144,7 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
     PyObject *input_state_arg = NULL;
     PyObject *output_state_arg = NULL;
 
-    self->lib = ChinHuh;
+    self->lib = BBFGPermanentCalculatorRepeatedDouble;
     // parsing input arguments
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iOOO", kwlist,
                                      &self->lib, &matrix_arg, &input_state_arg, &output_state_arg))
@@ -196,9 +182,8 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
 
   
     // create instance of class ChinHuhPermanentCalculator
-    if (self->lib == ChinHuh) {
-        self->calculator = create_ChinHuhPermanentCalculator();
-    }
+    if (self->lib == ChinHuhDouble) 
+        self->calculator = new pic::CChinHuhPermanentCalculator();
     else if (self->lib == GlynnRep) {
         self->calculatorRepLongDouble = new pic::GlynnPermanentCalculatorRepeatedLongDouble();
     }
@@ -208,6 +193,10 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
 #endif
     else if (self->lib == GlynnRepCPUDouble)
         self->calculatorRepDouble = new pic::GlynnPermanentCalculatorRepeatedDouble();
+    else if (self->lib == BBFGPermanentCalculatorRepeatedDouble)
+        self->BBFGcalculatorRep = new pic::BBFGPermanentCalculatorRepeated(); 
+    else if (self->lib == BBFGPermanentCalculatorRepeatedLongDouble)
+        self->BBFGcalculatorRep = new pic::BBFGPermanentCalculatorRepeated();        
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
         return -1;
@@ -236,7 +225,7 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
     // start the calculation of the permanent
     pic::Complex16 ret;
     
-    if (self->lib == ChinHuh) {
+    if (self->lib == ChinHuhDouble) {
         try {
             ret = self->calculator->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
         }
@@ -263,6 +252,24 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
     else if (self->lib == GlynnRepCPUDouble) {
         try {
             ret = self->calculatorRepDouble->calculate(matrix_mtx, input_state_mtx, output_state_mtx);
+        }
+        catch (std::string err) {
+            PyErr_SetString(PyExc_Exception, err.c_str());
+            return NULL;
+        }
+    }
+    else if (self->lib == BBFGPermanentCalculatorRepeatedDouble) {
+        try {
+            ret = self->BBFGcalculatorRep->calculate(matrix_mtx, input_state_mtx, output_state_mtx, false);
+        }
+        catch (std::string err) {
+            PyErr_SetString(PyExc_Exception, err.c_str());
+            return NULL;
+        }
+    }
+    else if (self->lib == BBFGPermanentCalculatorRepeatedLongDouble) {
+        try {
+            ret = self->BBFGcalculatorRep->calculate(matrix_mtx, input_state_mtx, output_state_mtx, true);
         }
         catch (std::string err) {
             PyErr_SetString(PyExc_Exception, err.c_str());

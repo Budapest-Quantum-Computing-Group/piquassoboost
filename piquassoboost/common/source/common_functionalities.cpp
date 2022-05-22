@@ -87,8 +87,28 @@ int sum( PicVector<int> vec) {
 @param vec a PicState_int64 instance
 @return Returns with the sum of the elements of the container
 */
-int
+int64_t
 sum( const PicState_int64& vec) {
+
+    int ret = 0;
+    for (size_t idx=0; idx<vec.size(); idx++) {
+        if ( vec[idx] == 0) {
+            continue;
+        }
+        ret = ret + vec[idx];
+    }
+    return ret;
+}
+
+
+
+/**
+@brief Call to calculate sum of integers stored in a container
+@param vec a PicState_int64 instance
+@return Returns with the sum of the elements of the container
+*/
+int
+sum( const PicState_int& vec) {
 
     int ret = 0;
     for (size_t idx=0; idx<vec.size(); idx++) {

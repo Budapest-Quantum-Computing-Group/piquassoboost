@@ -18,6 +18,7 @@
 #include "CGeneralizedCliffordsBSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculatorRepeated.h"
+#include "BBFGPermanentCalculatorRepeated.h"
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
 #include "GlynnPermanentCalculatorRepeatedDFE.h"
@@ -44,8 +45,9 @@ static double t_perm_accumulator=0.0;
 static double t_DFE=0.0;
 static double t_DFE_pure=0.0;
 static double t_DFE_prepare=0.0;
-static double t_CPU_permanent;
+static double t_CPU_permanent=0.0;
 static double t_CPU=0.0;
+static double t_CPU_permanent_Glynn=0.0;
 
 
 
@@ -245,9 +247,9 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 //sample.print_matrix();
 //tbb::tick_count t1cpu = tbb::tick_count::now();
 //t_CPU += (t1cpu-t0cpu).seconds();            
-std::cout << "DFE all time: " << t_DFE << ", cpu permanent: " << t_CPU_permanent << std::endl;
+//std::cout << "DFE all time: " << t_DFE << ", cpu permanent: " << t_CPU_permanent << " " << t_CPU_permanent_Glynn << std::endl;
 //std::cout << "DFE_pure time: " << t_DFE_pure << std::endl;
-std::cout << "DFE_prepare time: " << t_DFE_prepare << std::endl;
+//std::cout << "DFE_prepare time: " << t_DFE_prepare << std::endl;
 //std::cout << "total sampling time: " << t_CPU << std::endl;
 
         }
@@ -359,10 +361,12 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 #endif
 
 
-        GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
+        //GlynnPermanentCalculatorRepeatedLongDouble permanentCalculator;
+        GlynnPermanentCalculatorRepeatedDouble permanentCalculator;
+        BBFGPermanentCalculatorRepeated BBFGpermanentCalculator;
 
-        tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
-        //for (size_t idx=0; idx<colIndices.size(); idx++) {
+        //tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
+        for (size_t idx=0; idx<colIndices.size(); idx++) {
 
             // remove a photon from the input state
             PicState_int64&& input_state_loc = current_input.copy();
@@ -377,13 +381,26 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
             matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
             PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
             PicState_int64 adapted_output_state = sample.filter(filterNonZero);
-            permanent_addends[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
+            permanent_addends[colIndices[idx]] = BBFGpermanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state, false);
 
             //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
             //t_CPU_permanent += (t1-t0).seconds();    //////////////////////////             
 
-        //}
-        });
+/*
+            tbb::tick_count t0b = tbb::tick_count::now();////////////////////////// 
+            Complex16 perm = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
+            tbb::tick_count t1b = tbb::tick_count::now();////////////////////////// 
+            t_CPU_permanent_Glynn += (t1b-t0b).seconds();    //////////////////////////             
+*/
+/*
+            if ( std::norm( permanent_addends[colIndices[idx]] - perm )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
+                std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << perm << std::endl;
+            }  
+*/
+
+
+        }
+        //});
 #ifdef __DFE__
     }
     else {
@@ -448,7 +465,7 @@ tbb::tick_count t0b = tbb::tick_count::now();//////////////////////////
                     input_state_loc[colIndices[idx_loc]]--;  
                     input_state_loc.number_of_photons--; 
 
-                    GlynnPermanentCalculatorRepeated permanentCalculator;
+                    BBFGPermanentCalculatorRepeated permanentCalculator;
                     matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
                     PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
                     PicState_int64 adapted_output_state = sample.filter(filterNonZero);
