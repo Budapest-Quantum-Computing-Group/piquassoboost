@@ -222,6 +222,9 @@ GlynnPermanentCalculatorRepeatedTask<matrix_type, precision_type>::IterateOverDe
     ComplexM<precision_type> &permanent_priv = priv_addend.local();
     permanent_priv += currentMultiplicity * sign * colSumProd;
 
+//std::cout << sign * colSumProd << " " << currentMultiplicity << std::endl;
+
+
     tbb::parallel_for( tbb::blocked_range<int>(index_min, mtx.rows), [&](tbb::blocked_range<int> r) {
         for (int idx=r.begin(); idx<r.end(); ++idx){
             int localSign = sign;

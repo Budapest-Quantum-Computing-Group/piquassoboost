@@ -408,7 +408,8 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceHafnian.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BruteForceLoopHafnian.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculators_implementation.cpp
-        ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BBFGPermanentCalculatorRepeated.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BBFGPermanentCalculator.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BBFGPermanentCalculatorRepeated.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsBSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/ThresholdBosonSampling.cpp
@@ -529,6 +530,8 @@ set_target_properties(piquassoboost PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/gaussian/source/tasks_apply_to_C_and_G/insert_transformed_rows.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/CChinHuhPermanentCalculator.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculator.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BBFGPermanentCalculator.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/BBFGPermanentCalculatorRepeated.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorRepeated.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/Torontonian.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/TorontonianUtilities.hpp

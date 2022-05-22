@@ -1,6 +1,6 @@
 import numpy as np
 from thewalrus import perm
-from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent, GlynnPermanentDoubleCPU, GlynnRepeatedPermanentCalculator, GlynnPermanentSingleDFE, GlynnPermanentDualDFE, GlynnPermanentInf, GlynnRepeatedPermanentCalculatorDouble, BBFGRepeatedPermanentCalculatorDouble, BBFGRepeatedPermanentCalculatorLongDouble
+from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent, GlynnPermanentDouble, GlynnRepeatedPermanentCalculator, GlynnPermanentSingleDFE, GlynnPermanentDualDFE, GlynnPermanentInf, GlynnRepeatedPermanentCalculatorDouble, BBFGRepeatedPermanentCalculatorDouble, BBFGRepeatedPermanentCalculatorLongDouble, BBFGPermanentLongDouble, BBFGPermanentDouble
 import piquasso as pq
 import random
 from scipy.stats import unitary_group
@@ -79,64 +79,64 @@ for idx in range(iter_loops):
 
 # Glynn repeated permanent calculator
 permanent_BBFG_calculator_repeated = BBFGRepeatedPermanentCalculatorDouble( Arep, input_state=input_state, output_state=output_state )
-time_BBFG_Cpp_repeated_double = 1000000000
+time_BBFG_repeated_double = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_BBFG_Cpp_repeated_double = permanent_BBFG_calculator_repeated.calculate()
+    permanent_BBFG_repeated_double = permanent_BBFG_calculator_repeated.calculate()
 
     time_loc = time.time() - start
     start = time.time()   
        
-    if time_BBFG_Cpp_repeated_double > time_loc:
-        time_BBFG_Cpp_repeated_double = time_loc
+    if time_BBFG_repeated_double > time_loc:
+        time_BBFG_repeated_double = time_loc
 
 
 # Glynn repeated permanent calculator
 permanent_BBFG_calculator_repeated = BBFGRepeatedPermanentCalculatorLongDouble( Arep, input_state=input_state, output_state=output_state )
-time_BBFG_Cpp_repeated_long_double = 1000000000
+time_BBFG_repeated_long_double = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_BBFG_Cpp_repeated_long_double = permanent_BBFG_calculator_repeated.calculate()
+    permanent_BBFG_repeated_long_double = permanent_BBFG_calculator_repeated.calculate()
 
     time_loc = time.time() - start
     start = time.time()   
        
-    if time_BBFG_Cpp_repeated_long_double > time_loc:
-        time_BBFG_Cpp_repeated_long_double = time_loc
+    if time_BBFG_repeated_long_double > time_loc:
+        time_BBFG_repeated_long_double = time_loc
 
 
 
 # Glynn repeated permanent calculator
 permanent_Glynn_calculator_repeated = GlynnRepeatedPermanentCalculator( Arep, input_state=input_state, output_state=output_state )
-time_Glynn_Cpp_repeated = 1000000000
+time_Glynn_repeated = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_Glynn_Cpp_repeated = permanent_Glynn_calculator_repeated.calculate()
+    permanent_Glynn_repeated = permanent_Glynn_calculator_repeated.calculate()
 
     time_loc = time.time() - start
     start = time.time()   
        
-    if time_Glynn_Cpp_repeated > time_loc:
-        time_Glynn_Cpp_repeated = time_loc
+    if time_Glynn_repeated > time_loc:
+        time_Glynn_repeated = time_loc
 
 
 
 # Glynn repeated permanent calculator
 permanent_Glynn_calculator_repeated = GlynnRepeatedPermanentCalculatorDouble( Arep, input_state=input_state, output_state=output_state )
-time_Glynn_Cpp_repeated_double = 1000000000
+time_Glynn_repeated_double = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_Glynn_Cpp_repeated_double = permanent_Glynn_calculator_repeated.calculate()
+    permanent_Glynn_repeated_double = permanent_Glynn_calculator_repeated.calculate()
 
     time_loc = time.time() - start
     start = time.time()   
        
-    if time_Glynn_Cpp_repeated_double > time_loc:
-        time_Glynn_Cpp_repeated_double = time_loc
+    if time_Glynn_repeated_double > time_loc:
+        time_Glynn_repeated_double = time_loc
 
 
         
@@ -179,49 +179,84 @@ for idx in range(iter_loops):
 
 
 
-# Glynn permanent calculator
+# recursive Glynn permanent calculator
 permanent_Glynn_calculator = GlynnPermanent( Arep )
-time_Glynn_Cpp = 1000000000
+time_Glynn_longdouble = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_Glynn_Cpp = permanent_Glynn_calculator.calculate()
+    permanent_Glynn_longdouble = permanent_Glynn_calculator.calculate()
 
     time_loc = time.time() - start
     start = time.time()   
        
-    if time_Glynn_Cpp > time_loc:
-        time_Glynn_Cpp = time_loc
+    if time_Glynn_longdouble > time_loc:
+        time_Glynn_longdouble = time_loc
 
 
 
-# Glynn permanent calculator double
-permanent_Glynn_calculator = GlynnPermanentDoubleCPU( Arep )
-time_Glynn_Cpp_double = 1000000000
+# recursive Glynn permanent calculator double
+permanent_Glynn_calculator = GlynnPermanentDouble( Arep )
+time_Glynn_double = 1000000000
 for idx in range(iter_loops):
     start = time.time()   
 
-    permanent_Glynn_Cpp_double = permanent_Glynn_calculator.calculate()
+    permanent_Glynn_double = permanent_Glynn_calculator.calculate()
 
     time_loc = time.time() - start
     start = time.time()   
        
-    if time_Glynn_Cpp_double > time_loc:
-        time_Glynn_Cpp_double = time_loc
+    if time_Glynn_double > time_loc:
+        time_Glynn_double = time_loc
+
+
+
+
+# BBFG permanent calculator
+permanent_BBFG_calculator = BBFGPermanentDouble( Arep )
+time_BBFG_double = 1000000000
+for idx in  range(iter_loops):
+    start = time.time()   
+
+    permanent_BBFG_double = permanent_BBFG_calculator.calculate()
+
+    time_loc = time.time() - start
+    start = time.time()   
+       
+    if time_BBFG_double > time_loc:
+        time_BBFG_double = time_loc
+
+
+
+# BBFG permanent calculator double
+permanent_BBFG_calculator = BBFGPermanentLongDouble( Arep )
+time_BBFG_longdouble = 1000000000
+for idx in range(iter_loops):
+    start = time.time()   
+
+    permanent_BBFG_longdouble = permanent_BBFG_calculator.calculate()
+
+    time_loc = time.time() - start
+    start = time.time()   
+       
+    if time_BBFG_longdouble > time_loc:
+        time_BBFG_longdouble = time_loc
 
 
 print(' ')
-print( permanent_BBFG_Cpp_repeated_double )
-print( permanent_BBFG_Cpp_repeated_long_double )
-print( permanent_Glynn_Cpp_repeated )
-print( permanent_Glynn_Cpp_repeated_double )
+print( permanent_BBFG_repeated_double )
+print( permanent_BBFG_repeated_long_double )
+print( permanent_Glynn_repeated )
+print( permanent_Glynn_repeated_double )
 print( permanent_ChinHuh_Cpp )
 
 print( permanent_walrus_quad_Ryser )
 print( permanent_walrus_Ryser )
 print( permanent_walrus_quad_BBFG )
-print( permanent_Glynn_Cpp )
-print( permanent_Glynn_Cpp_double )
+print( permanent_Glynn_longdouble )
+print( permanent_Glynn_double )
+print( permanent_BBFG_double )
+print( permanent_BBFG_longdouble )
 
 '''
 # Glynn DFE permanent calculator
@@ -258,7 +293,7 @@ print( permanent_Glynn_DFE )
 print( permanent_Glynn_dual_DFE )
 '''
 # Glynn Inf permanent calculator
-if (dim<=1):
+if (dim<=20):
     permanent_Glynn_calculator = GlynnPermanentInf( Arep )
     time_Glynn_InfinitePrecision = 1000000000
     for idx in range(iter_loops):
@@ -280,28 +315,30 @@ if (dim<=1):
 
 print(' ')
 print('*******************************************')
-print('Time elapsed with BBFG double : ' + str(time_BBFG_Cpp_repeated_double))
-print('Time elapsed with BBFG long double : ' + str(time_BBFG_Cpp_repeated_long_double))
-print('Time elapsed with piquasso Glynn repeated double: ' + str(time_Glynn_Cpp_repeated_double))
-print('Time elapsed with piquasso Glynn repeated long double: ' + str(time_Glynn_Cpp_repeated))
+print('Time elapsed with BBFG double : ' + str(time_BBFG_repeated_double))
+print('Time elapsed with BBFG long double : ' + str(time_BBFG_repeated_long_double))
+print('Time elapsed with piquasso Glynn repeated double: ' + str(time_Glynn_repeated_double))
+print('Time elapsed with piquasso Glynn repeated long double: ' + str(time_Glynn_repeated))
 print('Time elapsed with piquasso Chin-Huh: ' + str(time_Cpp))
 
 print('Time elapsed with walrus: ' + str(time_walrus))
 print('Time elapsed with walrus double: ' + str(time_walrus_double))
 print('Time elapsed with walrus BBFG : ' + str(time_walrus_BBFG))
-print('Time elapsed with piquasso Glynn: ' + str(time_Glynn_Cpp))
-print('Time elapsed with piquasso Glynn_double: ' + str(time_Glynn_Cpp_double))
+print('Time elapsed with piquasso Glynn_longdouble: ' + str(time_Glynn_longdouble))
+print('Time elapsed with piquasso Glynn_double: ' + str(time_Glynn_double))
+print('Time elapsed with piquasso BBFG_longduble: ' + str(time_BBFG_longdouble))
+print('Time elapsed with piquasso BBFG_double: ' + str(time_BBFG_double))
 #print('Time elapsed with DFE Glynn: ' + str(time_Glynn_DFE))
 #print('Time elapsed with dual DFE Glynn: ' + str(time_Glynn_dual_DFE))
-if (dim<=1):
+if (dim<=20):
     print('Time elapsed with infinite precision Glynn: ' + str(time_Glynn_InfinitePrecision))
 #print( "speedup: " + str(time_walrus/time_Cpp) )
-print( "speedup Glynn: " + str(time_walrus/time_Glynn_Cpp) )
+print( "speedup Glynn: " + str(time_walrus/time_Glynn_longdouble) )
 print(' ')
 print(' ')
 
 
 #print( 'Relative difference between quad walrus and piquasso result: ' + str(abs(permanent_walrus_quad_Ryser-permanent_ChinHuh_Cpp)/abs(permanent_ChinHuh_Cpp)*100) + '%')
-print( 'Relative difference between quad walrus and piquasso Glynn result: ' + str(abs(permanent_walrus_quad_Ryser-permanent_Glynn_Cpp)/abs(permanent_Glynn_Cpp)*100) + '%')
+print( 'Relative difference between quad walrus and piquasso Glynn result: ' + str(abs(permanent_walrus_quad_Ryser-permanent_Glynn_longdouble)/abs(permanent_Glynn_longdouble)*100) + '%')
 
 

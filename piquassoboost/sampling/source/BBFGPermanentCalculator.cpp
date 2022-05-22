@@ -19,8 +19,8 @@
 #endif // LONG_DOUBLE_CUTOFF
 
 #include <iostream>
-#include "BBFGPermanentCalculatorRepeated.h"
-#include "BBFGPermanentCalculatorRepeated.hpp"
+#include "BBFGPermanentCalculator.h"
+#include "BBFGPermanentCalculator.hpp"
 
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
@@ -40,6 +40,30 @@ double time_nevezo = 0.0;
 
 namespace pic {
 
+Complex16 product_reduction( const matrix& mtx ) {
+
+    Complex16 ret = mtx[0];
+    for (size_t idx=1; idx<mtx.size(); idx++) {
+        ret *= mtx[idx];
+    }
+    
+    return ret;
+
+}
+
+
+
+Complex32 product_reduction( const matrix32& mtx ) {
+
+    Complex32 ret = mtx[0];
+    for (size_t idx=1; idx<mtx.size(); idx++) {
+        ret *= mtx[idx];
+    }
+    
+    return ret;
+
+
+}
 
 
 /**
@@ -48,7 +72,7 @@ namespace pic {
 @param mtx_in ?????????????,,
 @return Returns with the instance of the class.
 */
-BBFGPermanentCalculatorRepeated::BBFGPermanentCalculatorRepeated(  ) {
+BBFGPermanentCalculator::BBFGPermanentCalculator(  ) {
 
 
     //mtx = mtx_in;
@@ -58,7 +82,7 @@ BBFGPermanentCalculatorRepeated::BBFGPermanentCalculatorRepeated(  ) {
 /**
 @brief Destructor of the class.
 */
-BBFGPermanentCalculatorRepeated::~BBFGPermanentCalculatorRepeated() {
+BBFGPermanentCalculator::~BBFGPermanentCalculator() {
 
 
 }
@@ -70,46 +94,17 @@ BBFGPermanentCalculatorRepeated::~BBFGPermanentCalculatorRepeated() {
 @return Returns with the calculated hafnian
 */
 Complex16
-BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int64& col_mult64, PicState_int64& row_mult64, bool use_extended) {
+BBFGPermanentCalculator::calculate(matrix& mtx_in, bool use_extended) {
 
 
-    if (mtx.rows == 0) {
+    if (mtx_in.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return 1.0;
     }
     
-    PicState_int row_mult( row_mult64.size() );
-    for (size_t idx=0; idx<row_mult.size(); idx++) {
-        row_mult[idx] = (int)row_mult64[idx];
-    }
-
-
-    PicState_int col_mult( col_mult64.size() );
-    for (size_t idx=0; idx<col_mult.size(); idx++) {
-        col_mult[idx] = (int)col_mult64[idx];
-    }
-
-
-    Complex16&& ret = calculate( mtx, col_mult, row_mult, use_extended );
-    return ret;
-
-}
-
-/**
-@brief Call to calculate the hafnian of a complex matrix
-@param use_extended Logical variable to indicate whether use extended precision for cholesky decomposition (default), or not.
-@return Returns with the calculated hafnian
-*/
-Complex16
-BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int& col_mult, PicState_int& row_mult, bool use_extended) {
-
-
-    if (mtx.rows == 0) {
-        // the hafnian of an empty matrix is 1 by definition
-        return 1.0;
-    }
     
-     
+    Update_mtx(mtx_in);    
+  
 
     if (use_extended) {
         matrix32 mtx32(mtx.rows, mtx.cols);
@@ -117,11 +112,11 @@ BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int& col_mult, 
             mtx32[idx].real( mtx[idx].real() );
             mtx32[idx].imag( mtx[idx].imag() );
         }
-        BBFGPermanentCalculatorRepeated_Tasks<matrix32, Complex32, long double> permanent_calculator(mtx32, col_mult, row_mult);
+        BBFGPermanentCalculator_Tasks<matrix32, Complex32, long double> permanent_calculator(mtx32);
         return permanent_calculator.calculate();
     }
     else {
-        BBFGPermanentCalculatorRepeated_Tasks<matrix, Complex16, double> permanent_calculator(mtx, col_mult, row_mult);
+        BBFGPermanentCalculator_Tasks<matrix, Complex16, double> permanent_calculator(mtx);
         return permanent_calculator.calculate();
     }
 
@@ -131,6 +126,15 @@ BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int& col_mult, 
 }
 
 
+/**
+@brief Call to update the memory address of the matrix mtx
+@param mtx_in Input matrix defined by
+*/
+void
+BBFGPermanentCalculator::Update_mtx( matrix &mtx_in ){
+
+    mtx = mtx_in;
+}
 
 
 

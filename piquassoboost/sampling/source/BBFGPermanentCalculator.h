@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef BBFGPermanentCalculatorRepeated_H
-#define BBFGPermanentCalculatorRepeated_H
+#ifndef BBFGPermanentCalculator_H
+#define BBFGPermanentCalculator_H
 
 #include "PicState.h"
 #include "PicVector.hpp"
@@ -27,11 +27,22 @@
 namespace pic {
 
 
+/**
+@brief Constructor of the class.
+@return Returns with the instance of the class.
+*/
+Complex16 product_reduction( const matrix& mtx );
+Complex32 product_reduction( const matrix32& mtx );
 
-class BBFGPermanentCalculatorRepeated  {
+
+
+class BBFGPermanentCalculator  {
 
 
 protected:
+
+    /// The input matrix. 
+    matrix mtx;
 
 public:
 
@@ -39,32 +50,29 @@ public:
 @brief Constructor of the class.
 @return Returns with the instance of the class.
 */
-BBFGPermanentCalculatorRepeated( );
+BBFGPermanentCalculator( );
 
 
 /**
 @brief Default destructor of the class.
 */
-virtual ~BBFGPermanentCalculatorRepeated();
-
-
-/**
-@brief Call to calculate the hafnian of a complex matrix
-@param use_extended Logical variable to indicate whether use extended precision for cholesky decomposition (default), or not.
-@return Returns with the calculated hafnian
-*/
-virtual Complex16 calculate(matrix& mtx, PicState_int64& col_mult64, PicState_int64& row_mult64, bool use_extended=false);
+virtual ~BBFGPermanentCalculator();
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
 @param use_extended Logical variable to indicate whether use extended precision for cholesky decomposition (default), or not.
 @return Returns with the calculated hafnian
 */
-virtual Complex16 calculate(matrix& mtx, PicState_int& col_mult, PicState_int& row_mult, bool use_extended=false);
+virtual Complex16 calculate(matrix& mtx_in, bool use_extended=false);
+
+/**
+@brief Call to update the memory address of the matrix mtx
+@param mtx_in Input matrix defined by
+*/
+virtual void Update_mtx( matrix &mtx_in);
 
 
-
-}; //BBFGPermanentCalculatorRepeated
+}; //BBFGPermanentCalculator
 
 
 
