@@ -111,81 +111,72 @@ Complex16 calculate() {
 
     // thread local storage for partial hafnian
     tbb::combinable<scalar_type> priv_addend{[](){return scalar_type(0.0,0.0);}};
+
     
+    uint64_t Idx_max = 1ULL << mtx.rows-1; 
+    
+
     // determine the concurrency of the calculation
     unsigned int nthreads = std::thread::hardware_concurrency();
-    size_t fixed_delta_elements = 0;
-    while ( nthreads ) {
-        nthreads = nthreads >> 1;
-        fixed_delta_elements++;
-    }
-
-
-    fixed_delta_elements = fixed_delta_elements < mtx.rows ? fixed_delta_elements : mtx.rows-1;
-
-
-    size_t concurrent_delta_vectors = 1 << fixed_delta_elements;
-
+    int64_t concurrency = (int64_t)nthreads * 4;
+    concurrency = concurrency < Idx_max ? concurrency : (int64_t)Idx_max;
     
-    tbb::parallel_for( (size_t)0, concurrent_delta_vectors, (size_t)1, [&](size_t delta_vec_idx){
-//    for( size_t delta_vec_idx=0; delta_vec_idx<concurrent_delta_vectors; delta_vec_idx++ ) {
+    tbb::parallel_for( (int64_t)0, concurrency, (int64_t)1, [&](int64_t job_idx) {
+//    for( int64_t job_idx=0; job_idx<concurrency; job_idx++) {
+
+
+        // initial offset and upper boundary of the gray code counter
+        int64_t work_batch = Idx_max/concurrency;
+        int64_t initial_offset = job_idx*work_batch;
+        int64_t offset_max = (job_idx+1)*work_batch;
+        if ( job_idx == concurrency-1) {
+            offset_max = Idx_max;
+        } 
+
+        // array storing the actual delta vector
+        PicState_int delta_vec( mtx.rows, 0 );
 
         // variable to refer to the parity of the delta vector (+1 if the number of changed elements in delta vector is even, 0 otherwise)
         char parity = 1;
     
-        // determine initial columsn sum corresponding to the given delta vector set. 
-        // (the leading "concurrent_delta_vectors" elements of the delta vectors are kept fixed
-        // during the iterations
+        // determine initial columsn sum corresponding to the given intial delta vector. 
         matrix_type colsum( 1, mtx.cols);
         memcpy( colsum.get_data(), mtx.get_data(), colsum.size()*sizeof( scalar_type ) );
 
-        size_t delta_vec_idx_loc = delta_vec_idx;
+        size_t initial_offset_gray_code = initial_offset ^ (initial_offset >> 1);
 
-        scalar_type* mtx_data = mtx.get_data() + mtx.stride; 
+        scalar_type* mtx_data = mtx.get_data();// + mtx.stride; 
 
-        for ( size_t row_idx=1; row_idx<mtx.rows; row_idx++) {
+        for ( size_t row_idx=mtx.rows-1; row_idx>0; row_idx--) {
              
-            if ( delta_vec_idx_loc & 1 ) {
+            if ( initial_offset_gray_code & 1 ) {
                 for( size_t col_idx=0; col_idx<mtx.cols; col_idx++) {
-                    colsum[col_idx] = colsum[col_idx] - mtx_data[col_idx];
+                    colsum[col_idx] = colsum[col_idx] - mtx_data[row_idx*mtx.stride+col_idx];
                 }
-                parity = parity ? 0 : 1;
+                parity = -parity;
+                delta_vec[row_idx] = 1;
             }
             else {
                 for( size_t col_idx=0; col_idx<mtx.cols; col_idx++) {
-                    colsum[col_idx] = colsum[col_idx] + mtx_data[col_idx];
+                    colsum[col_idx] = colsum[col_idx] + mtx_data[row_idx*mtx.stride+col_idx];
                 }
+                delta_vec[row_idx] = 0;
             }
-            mtx_data += mtx.stride;
-            delta_vec_idx_loc = delta_vec_idx_loc >> 1;
-        }
-    
-    
+            //mtx_data += mtx.stride;
+            initial_offset_gray_code = initial_offset_gray_code >> 1;
+        }     
 
         scalar_type& addend_loc = priv_addend.local();
 
-        if ( parity ) {
+        if ( parity==1 ) {
             addend_loc = addend_loc + product_reduction( colsum );
         }
         else {
             addend_loc = addend_loc - product_reduction( colsum );        
         }
+   
 
-
-
-
-        // array storing the actual delta vector
-        PicState_int delta_vec( mtx.rows-fixed_delta_elements, 0 );
-
-
-        // the number of variable delta vector elements
-        size_t variable_delta_elements = mtx.rows-1-fixed_delta_elements;      
-
-        // launch the gray code counter
-        uint64_t Idx_max = 1ULL << variable_delta_elements;
-
-
-        for( uint64_t idx=1; idx<Idx_max; idx++) {
+        for( uint64_t idx=initial_offset+1; idx<offset_max; idx++) {
 
             // find the index of the changed bit:
             // If you number the bits starting with 0 for least significant, the position of the bit to change to increase
@@ -193,7 +184,7 @@ Complex16 calculate() {
             // to get the numbering you presented, subtract from the number of bit positions.
 
             uint64_t idx_loc = idx;
-            char change_idx = variable_delta_elements;
+            char change_idx = mtx.rows-1;
             while ( (idx_loc & 1ULL) == 0 ) {
                 idx_loc = idx_loc >> 1;
                 change_idx--;
@@ -202,15 +193,13 @@ Complex16 calculate() {
             // update gray code
             int& changed_delta_element = delta_vec[change_idx];
             changed_delta_element = changed_delta_element ? 0 : 1;
-    
-
        
             // update the column sum
-            size_t row_offset = (fixed_delta_elements+change_idx)*mtx2.stride;
+            size_t row_offset = change_idx*mtx2.stride;
             scalar_type* mtx2_data = mtx2.get_data() + row_offset;
 
-            parity = parity ? 0 : 1;
-            scalar_type colsum_prod(parity ? 1.0 : -1.0 ,0.0);
+            parity = -parity;
+            scalar_type colsum_prod(parity, 0.0);
 
 
             if ( changed_delta_element ) {
