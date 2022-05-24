@@ -127,14 +127,14 @@ Complex16 calculate() {
 
     if (mtx.rows == 1) {
 
-        Complex16 ret(1.0, 0.0);
+        scalar_type ret(1.0, 0.0);
         for (size_t idx=0; idx<col_mult.size(); idx++) {
             for (size_t jdx=0; jdx<col_mult[idx]; jdx++) {
                 ret *= mtx[idx];
             }
         }
 
-        return ret;
+        return Complex16(ret.real(), ret.imag() );
     }
 
 

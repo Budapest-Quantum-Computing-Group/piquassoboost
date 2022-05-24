@@ -235,7 +235,7 @@ getRandomComplexMatrix(size_t n, pic::RandomMatrixType type){
 
         for (size_t i = 0; i < n; i++){
             for (size_t j = 0; j < n; j++){
-                mtx[i * n + j] /= n;
+                mtx[i * n + j] /= (double)n;
             }    
             mtx[i * n + i] += complex_type(1.0,0.0);
         }

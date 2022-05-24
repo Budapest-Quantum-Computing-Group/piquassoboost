@@ -38,7 +38,7 @@ def generate_random_unitary( dim ):
 
 
 # generate the random matrix
-dim = 24
+dim = 4
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
 Arep = A
 
@@ -315,8 +315,8 @@ if (dim<=20):
 
 print(' ')
 print('*******************************************')
-print('Time elapsed with BBFG double : ' + str(time_BBFG_repeated_double))
-print('Time elapsed with BBFG long double : ' + str(time_BBFG_repeated_long_double))
+print('Time elapsed with BBFG repeated double : ' + str(time_BBFG_repeated_double))
+print('Time elapsed with BBFG repeated long double : ' + str(time_BBFG_repeated_long_double))
 print('Time elapsed with piquasso Glynn repeated double: ' + str(time_Glynn_repeated_double))
 print('Time elapsed with piquasso Glynn repeated long double: ' + str(time_Glynn_repeated))
 print('Time elapsed with piquasso Chin-Huh: ' + str(time_Cpp))
