@@ -365,8 +365,8 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
         GlynnPermanentCalculatorRepeatedDouble permanentCalculator;
         BBFGPermanentCalculatorRepeated BBFGpermanentCalculator;
 
-        //tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
-        for (size_t idx=0; idx<colIndices.size(); idx++) {
+        tbb::parallel_for( (size_t)0, colIndices.size(), (size_t)1, [&](size_t idx) {
+        //for (size_t idx=0; idx<colIndices.size(); idx++) {
 
             // remove a photon from the input state
             PicState_int64&& input_state_loc = current_input.copy();
@@ -399,8 +399,8 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 */
 
 
-        }
-        //});
+        //}
+        });
 #ifdef __DFE__
     }
     else {
