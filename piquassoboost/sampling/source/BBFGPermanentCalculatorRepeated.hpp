@@ -127,14 +127,14 @@ Complex16 calculate() {
 
     if (mtx.rows == 1) {
 
-        Complex16 ret(1.0, 0.0);
+        scalar_type ret(1.0, 0.0);
         for (size_t idx=0; idx<col_mult.size(); idx++) {
             for (size_t jdx=0; jdx<col_mult[idx]; jdx++) {
                 ret *= mtx[idx];
             }
         }
 
-        return ret;
+        return Complex16(ret.real(), ret.imag() );
     }
 
 
@@ -278,8 +278,9 @@ Complex16 calculate() {
 
             // update binomial factor
             int row_mult_current = row_mult[changed_index+1];
-            binomial_coeff /= binomialCoeffInt64(row_mult_current, value_prev);
-            binomial_coeff *= binomialCoeffInt64(row_mult_current, value);
+            binomial_coeff = value < value_prev ? binomial_coeff*value_prev/(row_mult_current-value) : binomial_coeff*(row_mult_current-value_prev)/value;
+            //binomial_coeff /= binomialCoeffInt64(row_mult_current, value_prev);
+            //binomial_coeff *= binomialCoeffInt64(row_mult_current, value);
 
 
             addend_loc = addend_loc + colsum_prod*(precision_type)binomial_coeff;
