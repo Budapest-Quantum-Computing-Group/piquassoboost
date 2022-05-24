@@ -38,7 +38,7 @@ def generate_random_unitary( dim ):
 
 
 # generate the random matrix
-dim = 30
+dim = 24
 A = unitary_group.rvs(dim)#generate_random_unitary(dim)
 Arep = A
 
