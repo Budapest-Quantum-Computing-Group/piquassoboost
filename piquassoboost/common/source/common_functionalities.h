@@ -94,7 +94,10 @@ int64_t binomialCoeffInt64(int n, int k);
 @param tolerance The tolerance value for being 2 different values equal.
 @return True if the @p mtx_in is symmetric and false otherwise.
 */
-bool isSymmetric( matrix mtx_in, double tolerance );
+template<typename scalar>
+bool isSymmetric( matrix_base<scalar> mtx_in);
+template<typename scalar>
+bool isSymmetric( matrix_base<scalar> mtx_in, double tolerance );
 
 
 /**
