@@ -42,6 +42,12 @@
 #define GlynnRepCPUDouble 6
 #define BBFGPermanentCalculatorRepeatedDouble 7
 #define BBFGPermanentCalculatorRepeatedLongDouble 8
+#define GlynnRepInf 9
+#define GlynnRepSingleDFEF 10
+#define GlynnRepDualDFEF 11
+
+
+
 
 
 
@@ -244,8 +250,8 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
         }
     }
 #ifdef __DFE__    
-    else if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE)
-        GlynnPermanentCalculatorRepeated_DFE( matrix_mtx, input_state_mtx, output_state_mtx, ret, self->lib == GlynnRepDualDFE);
+    else if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepSingleDFEF || self->lib == GlynnRepDualDFEF)
+            GlynnPermanentCalculatorRepeated_DFE( matrix_mtx, input_state_mtx, output_state_mtx, ret, self->lib == GlynnRepDualDFE || self->lib == GlynnRepDualDFEF, self->lib == GlynnRepSingleDFEF || self->lib == GlynnRepDualDFEF);
     else if (self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE) 
         GlynnPermanentCalculatorRepeatedMulti_DFE( matrix_mtx, input_state_mtx, output_state_mtx, ret, self->lib == GlynnRepMultiDualDFE);
 #endif

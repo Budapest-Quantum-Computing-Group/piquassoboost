@@ -51,6 +51,7 @@ void GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDu
 #define DFE_MAIN 0
 #define DFE_FLOAT 1
 #define DFE_REP 2
+#define DFE_REP_FLOAT 3
 
 void inc_dfe_lib_count();
 void dec_dfe_lib_count();

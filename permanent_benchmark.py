@@ -1,6 +1,6 @@
 import numpy as np
 from thewalrus import perm
-from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent, GlynnPermanentDouble, GlynnRepeatedPermanentCalculator, GlynnPermanentSingleDFE, GlynnPermanentDualDFE, GlynnPermanentInf, GlynnRepeatedPermanentCalculatorDouble, BBFGRepeatedPermanentCalculatorDouble, BBFGRepeatedPermanentCalculatorLongDouble, BBFGPermanentLongDouble, BBFGPermanentDouble
+from piquassoboost.sampling.Boson_Sampling_Utilities import ChinHuhPermanentCalculator, GlynnPermanent, GlynnPermanentDouble, GlynnRepeatedPermanentCalculator, GlynnPermanentSingleDFE, GlynnPermanentDualDFE, GlynnPermanentInf, GlynnRepeatedPermanentCalculatorDouble, BBFGRepeatedPermanentCalculatorDouble, BBFGRepeatedPermanentCalculatorLongDouble, BBFGPermanentLongDouble, BBFGPermanentDouble, GlynnRepeatedSingleDFEPermanentCalculator
 import piquasso as pq
 import random
 from scipy.stats import unitary_group
@@ -137,6 +137,21 @@ for idx in range(iter_loops):
        
     if time_Glynn_repeated_double > time_loc:
         time_Glynn_repeated_double = time_loc
+        
+        
+# GlynnRepeatedSingleDFEPermanentCalculator
+permanent_Glynn_DFE_calculator_repeated = GlynnRepeatedSingleDFEPermanentCalculator( Arep, input_state=input_state, output_state=output_state )
+time_Glynn_repeated_singleDFE = 1000000000
+for idx in range(iter_loops):
+    start = time.time()   
+
+    permanent_Glynn_repeated_singleDFE = permanent_Glynn_DFE_calculator_repeated.calculate()
+
+    time_loc = time.time() - start
+    start = time.time()   
+       
+    if time_Glynn_repeated_singleDFE > time_loc:
+        time_Glynn_repeated_singleDFE = time_loc
 
 
         
@@ -249,6 +264,7 @@ print( permanent_BBFG_repeated_long_double )
 print( permanent_Glynn_repeated )
 print( permanent_Glynn_repeated_double )
 print( permanent_ChinHuh_Cpp )
+print( permanent_Glynn_repeated_singleDFE )
 
 print( permanent_walrus_quad_Ryser )
 print( permanent_walrus_Ryser )
@@ -320,6 +336,7 @@ print('Time elapsed with BBFG repeated long double : ' + str(time_BBFG_repeated_
 print('Time elapsed with piquasso Glynn repeated double: ' + str(time_Glynn_repeated_double))
 print('Time elapsed with piquasso Glynn repeated long double: ' + str(time_Glynn_repeated))
 print('Time elapsed with piquasso Chin-Huh: ' + str(time_Cpp))
+print('Time elapsed with DFE repeated Glynn: ' + str(time_Glynn_repeated_singleDFE))
 
 print('Time elapsed with walrus: ' + str(time_walrus))
 print('Time elapsed with walrus double: ' + str(time_walrus_double))

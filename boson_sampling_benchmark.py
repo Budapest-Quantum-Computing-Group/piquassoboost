@@ -52,8 +52,8 @@ def print_histogram(samples):
     return
 
 
-dim = 60
-photon_number = 20
+dim = 72
+photon_number = 36
 
 # generate random matrix
 U = unitary_group.rvs(dim)#generate_random_unitary(dim)
@@ -65,7 +65,7 @@ for photon in range(photon_number):
     rand_int = random.randint(0, len(list_of_indices)-1)
     input_state[list_of_indices.pop(rand_int)] = 1
 
-shots = 20
+shots = 100
 
 if MPI_imported:
     [input_state, U, shots] = comm.bcast([input_state, U, shots], root=0)
