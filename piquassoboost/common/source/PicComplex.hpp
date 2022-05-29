@@ -193,6 +193,67 @@ Complex_base<scalar> operator-( const std::complex<scalar> &value) {
 
 };
 
+/**
+@brief Override operator += of the STL complex class.
+@param value A Complex_base<scalar> valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
+*/
+Complex_base<scalar>& operator+=( const Complex_base<scalar> &value) {
+
+    this->real(this->real()+value.real());
+    this->imag(this->imag()+value.imag());
+    return *this;
+};
+
+/**
+@brief Override operator += of the STL complex class.
+@param value A Complex_base<scalar> valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
+*/
+Complex_base<scalar>& operator+=( const std::complex<scalar> &value) {
+
+    this->real(this->real()+value.real());
+    this->imag(this->imag()+value.imag());
+    return *this;
+};
+
+/**
+@brief Override operator -= of the STL complex class.
+@param value A Complex_base<scalar> valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
+*/
+Complex_base<scalar>& operator-=( const Complex_base<scalar> &value) {
+
+    this->real(this->real()-value.real());
+    this->imag(this->imag()-value.imag());
+    return *this;
+};
+
+/**
+@brief Override operator -= of the STL complex class.
+@param value A Complex_base<scalar> valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
+*/
+Complex_base<scalar>& operator-=( const std::complex<scalar> &value) {
+
+    this->real(this->real()-value.real());
+    this->imag(this->imag()-value.imag());
+    return *this;
+};
+
+/**
+@brief Override operator *= of the STL complex class.
+@param value A Complex_base<scalar> valued input.
+@return Returns with the calculated value represented by an instance of the Complex_base<scalar> class.
+*/
+Complex_base<scalar>& operator*=( const Complex_base<scalar> &value) {
+
+    scalar real = this->real()*value.real() - this->imag()*value.imag();
+    this->imag(this->real()*value.imag() + this->imag()*value.real());
+    this->real(real);
+    return *this;
+};
+
 
 /**
 @brief Override operator = of the STL complex class.
