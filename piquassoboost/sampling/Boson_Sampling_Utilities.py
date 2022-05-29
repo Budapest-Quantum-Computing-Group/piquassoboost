@@ -37,10 +37,10 @@ class RepeatedPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
 
     def __init__(self, lib, matrix, input_state, output_state):
 
-        if not (type(input_state) is np.ndarray):
+        if ((not (type(input_state) is np.ndarray)) and (not isinstance(input_state, list))):
             input_state = np.array(input_state, dtype=np.int64)
 
-        if not (type(output_state) is np.ndarray):
+        if ((not (type(output_state) is np.ndarray)) and (not isinstance(output_state, list))):
             output_state = np.array(output_state, dtype=np.int64)
 
 
@@ -156,8 +156,6 @@ class GlynnRepeatedPermanentCalculatorDouble(RepeatedPermanentCalculator):
             matrix using Glynn's algorithm
             (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
             with double precision and multipled rows or columns
-
-            5 shall be equal to GlynnRepCPUDouble
         """
         super(GlynnRepeatedPermanentCalculatorDouble, self).__init__(6, matrix, input_state, output_state)
         pass
@@ -171,8 +169,6 @@ class BBFGRepeatedPermanentCalculatorDouble(RepeatedPermanentCalculator):
             matrix using Glynn's algorithm
             (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
             with double precision and multipled rows or columns
-
-            5 shall be equal to GlynnRepCPUDouble
         """
         super(BBFGRepeatedPermanentCalculatorDouble, self).__init__(7, matrix, input_state, output_state)
         pass
@@ -186,8 +182,6 @@ class BBFGRepeatedPermanentCalculatorLongDouble(RepeatedPermanentCalculator):
             matrix using Glynn's algorithm
             (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula)
             with double precision and multipled rows or columns
-
-            5 shall be equal to GlynnRepCPUDouble
         """
         super(BBFGRepeatedPermanentCalculatorLongDouble, self).__init__(8, matrix, input_state, output_state)
         pass
