@@ -52,7 +52,7 @@ def print_histogram(samples):
     return
 
 
-dim = 72
+dim = 60
 photon_number = 36
 
 # generate random matrix

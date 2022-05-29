@@ -336,6 +336,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 
 //#ifdef __DFE__
 
+
     // determine the number of nonzero elements in the current input/output
     size_t nonzero_output_elements = 0;
     for (size_t jdx=0; jdx<sample.size(); jdx++) {      
@@ -345,6 +346,8 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
         }
     }
 
+
+    
 
     std::vector<unsigned char> colIndices;
     colIndices.reserve(current_input.size());
@@ -356,6 +359,8 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 
 #ifdef __DFE__
     const size_t nonzero_output_elements_threshold = 10; 
+//double photon_density = (double)(sample.number_of_photons)/nonzero_output_elements;
+//std::cout << nonzero_output_elements << " " << photon_density << " " << effective_dim <<std::endl;
 
     if ( nonzero_output_elements < nonzero_output_elements_threshold || input_state.number_of_photons > 36 ) {
 #endif
@@ -406,101 +411,125 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
     else {
 
 
-        const int useDual = 0;
-        const int useFloat = 0;
+        
+        // split the work between CPU and DFE
+        size_t idx_max_CPU = colIndices.size()/6;
+        
+        tbb::parallel_invoke( 
+        
+            [&](){
+            
+                tbb::parallel_for( (size_t)0, idx_max_CPU, (size_t)1, [&](size_t idx) {            
+                    PicState_int64&& input_state_loc = current_input.copy();
+                    input_state_loc[colIndices[idx]]--;  
+                    input_state_loc.number_of_photons--; 
 
-tbb::tick_count t0c = tbb::tick_count::now();////////////////////////// 
+                    BBFGPermanentCalculatorRepeated permanentCalculator;
+                    matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
+                    PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
+                    PicState_int64 adapted_output_state = sample.filter(filterNonZero);
 
-        // reduce the columns of the interferometer matrix according to the input states
-        matrix column_reduced_matrix(interferometer_matrix.rows, colIndices.size());
-        PicState_int64 reduced_input_state(colIndices.size());
-        for( size_t row_idx=0; row_idx<interferometer_matrix.rows; row_idx++) {
+                    permanent_addends_tmp[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);     
+                    
+                });     
+            
+            },
+            [&](){
+        
 
-            size_t row_offset_reduced = row_idx*column_reduced_matrix.stride;
-            size_t row_offset = row_idx*interferometer_matrix.stride;
-
-            for( size_t idx=0; idx<colIndices.size(); idx++) {
-                column_reduced_matrix[ row_offset_reduced + idx ] = interferometer_matrix[row_offset+colIndices[idx]];
-            }
-        }
-
-        for( size_t idx=0; idx<colIndices.size(); idx++) {
-            reduced_input_state[idx] = input_state[colIndices[idx]];
-        }
-        reduced_input_state.number_of_photons = input_state.number_of_photons;
-
-
-        // create storage for batched input states
-        std::vector<std::vector<PicState_int64>> batched_input_states;
-        batched_input_states.resize(1);
-        std::vector<PicState_int64>& input_states_DFE = batched_input_states[0];
-        input_states_DFE.reserve(colIndices.size());
-
-        // create storage for the calculated permanents
-        std::vector<std::vector<Complex16>> batched_perms;
-        batched_perms.resize(1);
-        std::vector<Complex16>& perms_DFE = batched_perms[0];
-        perms_DFE.resize(colIndices.size());
-
-        //create storage for the batched output states
-        std::vector<PicState_int64> output_states_DFE;
-        output_states_DFE.push_back(sample);
-
-tbb::tick_count t1c = tbb::tick_count::now();////////////////////////// 
-t_DFE_prepare += (t1c-t0c).seconds(); //////////////////////////   
-
-        for (size_t idx=0; idx<colIndices.size(); idx++) {
-
-            // remove a photon from the input state
+                const int useDual = 0;
+                const int useFloat = 0;
 
 
+                // reduce the columns of the interferometer matrix according to the input states
+                matrix column_reduced_matrix(interferometer_matrix.rows, colIndices.size());
+                PicState_int64 reduced_input_state(colIndices.size());
+                for( size_t row_idx=0; row_idx<interferometer_matrix.rows; row_idx++) {
 
-tbb::tick_count t0c = tbb::tick_count::now();////////////////////////// 
-            PicState_int64&& input_state_loc_tmp = reduced_input_state.copy();
-            input_state_loc_tmp[idx]--;  
-            input_state_loc_tmp.number_of_photons--; 
-            input_states_DFE.push_back(input_state_loc_tmp);
+                    size_t row_offset_reduced = row_idx*column_reduced_matrix.stride;
+                    size_t row_offset = row_idx*interferometer_matrix.stride;
 
-tbb::tick_count t1c = tbb::tick_count::now();////////////////////////// 
-t_DFE_prepare += (t1c-t0c).seconds(); //////////////////////////   
+                    for( size_t idx=0; idx<colIndices.size(); idx++) {
+                        column_reduced_matrix[ row_offset_reduced + idx ] = interferometer_matrix[row_offset+colIndices[idx]];
+                    }
+                }
+
+                for( size_t idx=0; idx<colIndices.size(); idx++) {
+                    reduced_input_state[idx] = input_state[colIndices[idx]];
+                }
+                reduced_input_state.number_of_photons = input_state.number_of_photons;
+
+
+                // create storage for batched input states
+                std::vector<std::vector<PicState_int64>> batched_input_states;
+                batched_input_states.resize(1);
+                std::vector<PicState_int64>& input_states_DFE = batched_input_states[0];
+                input_states_DFE.reserve(colIndices.size()-idx_max_CPU);
+
+                // create storage for the calculated permanents
+                std::vector<std::vector<Complex16>> batched_perms;
+                batched_perms.resize(1);
+                std::vector<Complex16>& perms_DFE = batched_perms[0];
+                perms_DFE.resize(colIndices.size()-idx_max_CPU);
+
+                //create storage for the batched output states
+                std::vector<PicState_int64> output_states_DFE;
+                output_states_DFE.push_back(sample);        
+
+                for (size_t idx=idx_max_CPU; idx<colIndices.size(); idx++) {
+
+                    // remove a photon from the input state
+
+
+
+                    tbb::tick_count t0c = tbb::tick_count::now();////////////////////////// 
+                    PicState_int64&& input_state_loc_tmp = reduced_input_state.copy();
+                    input_state_loc_tmp[idx]--;  
+                    input_state_loc_tmp.number_of_photons--; 
+                    input_states_DFE.push_back(input_state_loc_tmp);
+
+                    tbb::tick_count t1c = tbb::tick_count::now();////////////////////////// 
+                    t_DFE_prepare += (t1c-t0c).seconds(); //////////////////////////   
 /*
-            Complex16& perm = permanent_addends[colIndices[idx]];
-            GlynnPermanentCalculatorRepeated_DFE(interferometer_matrix, input_state_loc, sample, perm, useDual, useFloat);
+                    Complex16& perm = permanent_addends[colIndices[idx]];
+                    GlynnPermanentCalculatorRepeated_DFE(interferometer_matrix, input_state_loc, sample, perm, useDual, useFloat);
 */
 /*
-            tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
-            PicState_int64&& input_state_loc = current_input.copy();
-            input_state_loc[colIndices[idx]]--;  
-            input_state_loc.number_of_photons--; 
+                    tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
+                    PicState_int64&& input_state_loc = current_input.copy();
+                    input_state_loc[colIndices[idx]]--;  
+                    input_state_loc.number_of_photons--; 
 
-            BBFGPermanentCalculatorRepeated permanentCalculator;
-            matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
-            PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
-            PicState_int64 adapted_output_state = sample.filter(filterNonZero);
+                    BBFGPermanentCalculatorRepeated permanentCalculator;
+                    matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
+                    PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
+                    PicState_int64 adapted_output_state = sample.filter(filterNonZero);
 
-            permanent_addends_tmp[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state); 
-            tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
-            t_CPU_permanent += (t1-t0).seconds();    ////////////////////////// 
+                    permanent_addends_tmp[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state); 
+                    tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
+                    t_CPU_permanent += (t1-t0).seconds();    ////////////////////////// 
 */
-        }
+                }
 
 
-tbb::tick_count t0b = tbb::tick_count::now();////////////////////////// 
+                tbb::tick_count t0b = tbb::tick_count::now();////////////////////////// 
 
-        GlynnPermanentCalculatorRepeatedInputBatch_DFE(column_reduced_matrix, batched_input_states, output_states_DFE, batched_perms, useDual, useFloat);
-        for (size_t idx=0; idx<colIndices.size(); idx++) {
+                GlynnPermanentCalculatorRepeatedInputBatch_DFE(column_reduced_matrix, batched_input_states, output_states_DFE, batched_perms, useDual, useFloat);
+                for (size_t idx=idx_max_CPU; idx<colIndices.size(); idx++) {
 
-            permanent_addends[colIndices[idx]] = perms_DFE[idx];
+                    permanent_addends[colIndices[idx]] = perms_DFE[idx-idx_max_CPU];
 /*
-            if ( std::norm( permanent_addends[colIndices[idx]] - permanent_addends_tmp[colIndices[idx]] )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
-                std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << permanent_addends_tmp[colIndices[idx]] <<  std::endl;
-            }  
+                    if ( std::norm( permanent_addends[colIndices[idx]] - permanent_addends_tmp[colIndices[idx]] )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
+                        std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << permanent_addends_tmp[colIndices[idx]] <<  std::endl;
+                    }  
 */
-        }
+                }
     
 
-tbb::tick_count t1b = tbb::tick_count::now();////////////////////////// 
-t_DFE += (t1b-t0b).seconds(); ////////////////////////// 
+                tbb::tick_count t1b = tbb::tick_count::now();////////////////////////// 
+                t_DFE += (t1b-t0b).seconds(); ////////////////////////// 
+
+        });
 
     }
 
