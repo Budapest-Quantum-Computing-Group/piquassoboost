@@ -22,6 +22,8 @@
 #include "BBFGPermanentCalculator.h"
 #include "BBFGPermanentCalculator.hpp"
 
+#include "InfinitePrecisionComplex.h"
+
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
 #include "common_functionalities.h"
@@ -40,22 +42,11 @@ double time_nevezo = 0.0;
 
 namespace pic {
 
-Complex16 product_reduction( const matrix& mtx ) {
 
-    Complex16 ret = mtx[0];
-    for (size_t idx=1; idx<mtx.size(); idx++) {
-        ret *= mtx[idx];
-    }
-    
-    return ret;
+template<typename T>
+T product_reduction( const matrix_base<T>& mtx ) {
 
-}
-
-
-
-Complex32 product_reduction( const matrix32& mtx ) {
-
-    Complex32 ret = mtx[0];
+    T ret = mtx[0];
     for (size_t idx=1; idx<mtx.size(); idx++) {
         ret *= mtx[idx];
     }
@@ -68,7 +59,6 @@ Complex32 product_reduction( const matrix32& mtx ) {
 
 /**
 @brief Constructor of the class.
-
 @param mtx_in ?????????????,,
 @return Returns with the instance of the class.
 */
@@ -94,7 +84,7 @@ BBFGPermanentCalculator::~BBFGPermanentCalculator() {
 @return Returns with the calculated hafnian
 */
 Complex16
-BBFGPermanentCalculator::calculate(matrix& mtx_in, bool use_extended) {
+BBFGPermanentCalculator::calculate(matrix& mtx_in, bool use_extended, bool use_inf) {
 
 
     if (mtx_in.rows == 0) {
@@ -105,7 +95,10 @@ BBFGPermanentCalculator::calculate(matrix& mtx_in, bool use_extended) {
     
     Update_mtx(mtx_in);    
   
-
+    if (use_inf) {
+        BBFGPermanentCalculator_Tasks<matrix, ComplexInf, FloatInf> permanent_calculator(mtx);
+        return permanent_calculator.calculate();
+    } else
     if (use_extended) {
         matrix32 mtx32(mtx.rows, mtx.cols);
         for( size_t idx=0; idx<mtx.size(); idx++ ) {
