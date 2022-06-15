@@ -21,7 +21,9 @@
 #include <iostream>
 #include "BBFGPermanentCalculatorRepeated.h"
 #include "BBFGPermanentCalculatorRepeated.hpp"
+#ifdef __MPFR__
 #include "InfinitePrecisionComplex.h"
+#endif
 
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
@@ -111,8 +113,13 @@ BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int& col_mult, 
     
      
     if (use_inf) {
+#ifdef __MPFR__
         BBFGPermanentCalculatorRepeated_Tasks<matrix, ComplexInf, FloatInf> permanent_calculator(mtx, col_mult, row_mult);
-        return permanent_calculator.calculate();        
+        return permanent_calculator.calculate();
+#else
+    std::string error("BBFGPermanentCalculatorRepeated::calculate:  MPFR Infinite Precision not included");
+        throw error;
+#endif
     } else
     if (use_extended) {
         matrix32 mtx32(mtx.rows, mtx.cols);
