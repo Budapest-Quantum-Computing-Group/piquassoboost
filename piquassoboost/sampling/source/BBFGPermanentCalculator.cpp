@@ -22,7 +22,9 @@
 #include "BBFGPermanentCalculator.h"
 #include "BBFGPermanentCalculator.hpp"
 
+#ifdef __MPFR__
 #include "InfinitePrecisionComplex.h"
+#endif
 
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
@@ -96,8 +98,13 @@ BBFGPermanentCalculator::calculate(matrix& mtx_in, bool use_extended, bool use_i
     Update_mtx(mtx_in);    
   
     if (use_inf) {
+#ifdef __MPFR__
         BBFGPermanentCalculator_Tasks<matrix, ComplexInf, FloatInf> permanent_calculator(mtx);
         return permanent_calculator.calculate();
+#else
+    std::string error("BBFGPermanentCalculator::calculate:  MPFR Infinite Precision not included");
+        throw error;
+#endif
     } else
     if (use_extended) {
         matrix32 mtx32(mtx.rows, mtx.cols);
