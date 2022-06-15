@@ -21,6 +21,7 @@
 #include <iostream>
 #include "BBFGPermanentCalculatorRepeated.h"
 #include "BBFGPermanentCalculatorRepeated.hpp"
+#include "InfinitePrecisionComplex.h"
 
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
@@ -44,7 +45,6 @@ namespace pic {
 
 /**
 @brief Constructor of the class.
-
 @param mtx_in ?????????????,,
 @return Returns with the instance of the class.
 */
@@ -70,7 +70,7 @@ BBFGPermanentCalculatorRepeated::~BBFGPermanentCalculatorRepeated() {
 @return Returns with the calculated hafnian
 */
 Complex16
-BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int64& col_mult64, PicState_int64& row_mult64, bool use_extended) {
+BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int64& col_mult64, PicState_int64& row_mult64, bool use_extended, bool use_inf) {
 
 
     if (mtx.rows == 0) {
@@ -90,7 +90,7 @@ BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int64& col_mult
     }
 
 
-    Complex16&& ret = calculate( mtx, col_mult, row_mult, use_extended );
+    Complex16&& ret = calculate( mtx, col_mult, row_mult, use_extended, use_inf );
     return ret;
 
 }
@@ -101,7 +101,7 @@ BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int64& col_mult
 @return Returns with the calculated hafnian
 */
 Complex16
-BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int& col_mult, PicState_int& row_mult, bool use_extended) {
+BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int& col_mult, PicState_int& row_mult, bool use_extended, bool use_inf) {
 
 
     if (mtx.rows == 0) {
@@ -110,7 +110,10 @@ BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int& col_mult, 
     }
     
      
-
+    if (use_inf) {
+        BBFGPermanentCalculatorRepeated_Tasks<matrix, ComplexInf, FloatInf> permanent_calculator(mtx, col_mult, row_mult);
+        return permanent_calculator.calculate();        
+    } else
     if (use_extended) {
         matrix32 mtx32(mtx.rows, mtx.cols);
         for( size_t idx=0; idx<mtx.size(); idx++ ) {
