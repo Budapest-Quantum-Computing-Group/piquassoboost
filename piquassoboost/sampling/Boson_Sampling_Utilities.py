@@ -37,11 +37,24 @@ class RepeatedPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
 
     def __init__(self, lib, matrix, input_state, output_state):
 
-        if ((not (type(input_state) is np.ndarray)) and (not isinstance(input_state, list))):
-            input_state = np.array(input_state, dtype=np.int64)
+        if (not (type(input_state) is np.ndarray)) :
+            if (not isinstance(input_state, list)):
+                input_state = np.array(input_state, dtype=np.int64)
+            else:
+                for item in input_state:
+                    if (not (type(item) is np.ndarray)):
+                        raise Exception('The input state should be a numpy array, or a list of numpy arrays')
+                    
+                
+        if (not (type(output_state) is np.ndarray)) :
+            if (not isinstance(output_state, list)):
+                output_state = np.array(output_state, dtype=np.int64)
+            else:
+                for item in output_state:
+                    if (not (type(item) is np.ndarray)):
+                        raise Exception('The output state should be a numpy array, or a list of numpy arrays')
 
-        if ((not (type(output_state) is np.ndarray)) and (not isinstance(output_state, list))):
-            output_state = np.array(output_state, dtype=np.int64)
+
 
         # call the constructor of the wrapper class
         super(RepeatedPermanentCalculator, self).__init__(lib=lib, matrix=matrix, input_state=input_state, output_state=output_state)
