@@ -53,14 +53,14 @@ virtual ~BBFGPermanentCalculatorRepeated();
 @param use_extended Logical variable to indicate whether use extended precision for cholesky decomposition (default), or not.
 @return Returns with the calculated hafnian
 */
-virtual Complex16 calculate(matrix& mtx, PicState_int64& col_mult64, PicState_int64& row_mult64, bool use_extended=false);
+virtual Complex16 calculate(matrix& mtx, PicState_int64& col_mult64, PicState_int64& row_mult64, bool use_extended=false, bool use_inf=false);
 
 /**
 @brief Call to calculate the hafnian of a complex matrix
 @param use_extended Logical variable to indicate whether use extended precision for cholesky decomposition (default), or not.
 @return Returns with the calculated hafnian
 */
-virtual Complex16 calculate(matrix& mtx, PicState_int& col_mult, PicState_int& row_mult, bool use_extended=false);
+virtual Complex16 calculate(matrix& mtx, PicState_int& col_mult, PicState_int& row_mult, bool use_extended=false, bool use_inf=false);
 
 
 
