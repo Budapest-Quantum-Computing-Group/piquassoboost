@@ -26,7 +26,7 @@ from piquassoboost.sampling.Boson_Sampling_Utilities import (
     GlynnPermanent,
     GlynnRepeatedPermanentCalculator,
     GlynnRepeatedPermanentCalculatorDouble,
-    GlynnPermanentDoubleCPU
+    BBFGPermanentDouble
 )
 
 from piquassoboost.sampling.permanent_calculators import (
@@ -92,6 +92,7 @@ class TestPermanentCalculators:
             input_state[0] = 3
             input_state[4] = 2
             input_state[8] = 3
+            input_state = np.array(input_state, dtype=np.int64)
             output_state = input_state
 
             permanent_calculator_pq_glynn = GlynnRepeatedPermanentCalculator(matrix, input_state=input_state, output_state=output_state)
@@ -113,6 +114,7 @@ class TestPermanentCalculators:
             input_state[0] = 3
             input_state[4] = 2
             input_state[8] = 3
+            input_state = np.array(input_state, dtype=np.int64)
             output_state = input_state
 
             permanent_calculator_pq_chinhuh = ChinHuhPermanentCalculator(matrix, input_state, output_state)
@@ -156,7 +158,7 @@ class TestPermanentCalculators:
 
         #print("permanents by SF      :", sf_permanents)
         
-
+        
         pq_permanents_glynn = []
         pq_glynn_time = 0
         for i in range(n):
@@ -171,12 +173,13 @@ class TestPermanentCalculators:
 
         #print("permanent(matrix) by PQ Glynn:", pq_permanents_glynn)
 
-
+        
         pq_permanents_chinhuh = []
         pq_chinhuh_time = 0
         for i in range(n):
             matrix = matrices[i]
             input_state = [1] * d
+            input_state = np.array(input_state, dtype=np.int64)
             output_state = input_state
 
             permanent_calculator_pq_chinhuh = ChinHuhPermanentCalculator(matrix, input_state, output_state)
@@ -188,7 +191,7 @@ class TestPermanentCalculators:
             pq_permanents_chinhuh.append(pq_permanent_chinhuh)
 
         #print("permanent(matrix) by PQ ChinH:", pq_permanents_chinhuh)
-
+        
 
         for i in range(n):
             sf_value = sf_permanents[i]
@@ -221,10 +224,10 @@ class TestPermanentCalculators:
         
 
         value_from_double = 1.0 - 1.0j
-
-        # Glynn permanent calculator with double precision
-        permanent_calculator_Glynn_double_precision = GlynnPermanentDoubleCPU( A )
-        value_from_double = permanent_calculator_Glynn_double_precision.calculate()
+        
+        # BB/FG permanent calculator with double precision
+        permanent_calculator_BBFG_double_precision = BBFGPermanentDouble( A )
+        value_from_double = permanent_calculator_BBFG_double_precision.calculate()
 
 
 

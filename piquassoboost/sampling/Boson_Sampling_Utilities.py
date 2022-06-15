@@ -43,7 +43,6 @@ class RepeatedPermanentCalculator(ChinHuhPermanentCalculator_wrapper):
         if ((not (type(output_state) is np.ndarray)) and (not isinstance(output_state, list))):
             output_state = np.array(output_state, dtype=np.int64)
 
-
         # call the constructor of the wrapper class
         super(RepeatedPermanentCalculator, self).__init__(lib=lib, matrix=matrix, input_state=input_state, output_state=output_state)
         pass
@@ -261,18 +260,6 @@ class GlynnPermanentDouble(GlynnPermanentCalculator_wrapper):
         pass
 
 
-class BBFGPermanentDouble(GlynnPermanentCalculator_wrapper):
-    """
-        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula) with double precision
-    """
-    
-
-    def __init__(self, matrix):
-
-        # call the constructor of the wrapper class
-        # 6 shall mean macro GlynnDoubleCPU
-        super(GlynnPermanentDoubleCPU, self).__init__(matrix, 6)
-        pass
 
 
 
