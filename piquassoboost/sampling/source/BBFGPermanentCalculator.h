@@ -63,7 +63,7 @@ virtual ~BBFGPermanentCalculator();
 @param use_extended Logical variable to indicate whether use extended precision for cholesky decomposition (default), or not.
 @return Returns with the calculated hafnian
 */
-virtual Complex16 calculate(matrix& mtx_in, bool use_extended=false);
+virtual Complex16 calculate(matrix& mtx_in, bool use_extended=false, bool use_inf=false);
 
 /**
 @brief Call to update the memory address of the matrix mtx
