@@ -26,7 +26,9 @@ from piquassoboost.sampling.Boson_Sampling_Utilities import (
     GlynnPermanent,
     GlynnRepeatedPermanentCalculator,
     GlynnRepeatedPermanentCalculatorDouble,
-    BBFGPermanentDouble
+    BBFGPermanentDouble,
+    GlynnPermanentSimpleDouble,
+    GlynnPermanentSimpleLongDouble,
 )
 
 from piquassoboost.sampling.permanent_calculators import (
@@ -237,6 +239,14 @@ class TestPermanentCalculators:
         permanent_calculator_Glynn_long_double_precision = GlynnPermanent( A )
         value_from_long_double = permanent_calculator_Glynn_long_double_precision.calculate()
 
+        # Glynn simple permanent calculator with double precision
+        permanent_calculator_Glynn_simple_double_precision = GlynnPermanentSimpleDouble( A )
+        value_simple_double = permanent_calculator_Glynn_simple_double_precision.calculate()
+
+        # Glynn simple permanent calculator with long double precision
+        permanent_calculator_Glynn_simple_long_double_precision = GlynnPermanentSimpleLongDouble( A )
+        value_simple_long_double = permanent_calculator_Glynn_simple_long_double_precision.calculate()
+
 
 
         # multiplicities of input/output states
@@ -255,6 +265,8 @@ class TestPermanentCalculators:
 
         print("value_from_double          :", value_from_double)
         print("value_from_long_double     :", value_from_long_double)
+        print("value_simple_double        :", value_simple_double)
+        print("value_simple_long_double   :", value_simple_long_double)
         print("rep_value_from_double      :", rep_value_from_double)
         print("rep_value_from_double2     :", rep_value_from_double2)
         print("rep_value_from_long_double :", rep_value_from_long_double)

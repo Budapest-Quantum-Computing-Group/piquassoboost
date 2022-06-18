@@ -304,6 +304,34 @@ class BBFGPermanentLongDouble(GlynnPermanentCalculator_wrapper):
         pass
 
 
+class GlynnPermanentSimpleDouble(GlynnPermanentCalculator_wrapper):
+    """
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula) with double precision by simple algorithm
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        # 10 shall mean macro GlynnSimpleDouble
+        super(GlynnPermanentSimpleDouble, self).__init__(matrix, 10)
+        pass
+
+
+class GlynnPermanentSimpleLongDouble(GlynnPermanentCalculator_wrapper):
+    """
+        This class is designed to calculate the permanent of matrix using Glynn's algorithm (Balasubramanian-Bax-Franklin-Glynn (BBFG) formula) with long double precision by simple algorithm
+    """
+    
+
+    def __init__(self, matrix):
+
+        # call the constructor of the wrapper class
+        # 11 shall mean macro GlynnSimpleLongDouble
+        super(GlynnPermanentSimpleLongDouble, self).__init__(matrix, 11)
+        pass
+
+
 class PowerTraceHafnian(PowerTraceHafnian_wrapper):
     """
         This class is designed to calculate the hafnian of a symetrix matrix using the power trace method.

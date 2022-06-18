@@ -28,7 +28,7 @@ add_test(extract_rows extract_rows ...)
 add_test(extract_corner extract_corner ...)
 add_test(insert_transformed_cols insert_transformed_cols ...)
 add_test(insert_transformed_rows insert_transformed_rows ...)
-add_test(common_functionalities common_functionalities ...)
+add_test(ctest_common_functionalities ctest_common_functionalities ...)
 add_test(permanents_accuracy permanents_accuracy ...)
 add_test(permanents_speed permanents_speed ...)
 
@@ -44,7 +44,7 @@ add_executable (extract_rows extract_rows.cpp)
 add_executable (extract_corner extract_corner.cpp)
 add_executable (insert_transformed_cols insert_transformed_cols.cpp)
 add_executable (insert_transformed_rows insert_transformed_rows.cpp)
-add_executable (common_functionalities common_functionalities.cpp)
+add_executable (ctest_common_functionalities ctest_common_functionalities.cpp)
 add_executable (permanents_accuracy permanents_accuracy.cpp)
 add_executable (permanents_speed permanents_speed.cpp)
 
@@ -120,7 +120,7 @@ target_include_directories(insert_transformed_rows PRIVATE
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})
 
-target_include_directories(common_functionalities PRIVATE
+target_include_directories(ctest_common_functionalities PRIVATE
                             ../piquassoboost/common/source
                             ${TBB_HEADER}
                             ${EXTRA_INCLUDES})                            
@@ -256,7 +256,7 @@ target_link_libraries (insert_transformed_rows
                            ${MPI_C_LIBRARIES})
                            
                            
-target_link_libraries (common_functionalities
+target_link_libraries (ctest_common_functionalities
                            piquassoboost
                            ${TBBMALLOC_LIB}
                            ${TBBMALLOC_PROXY_LIB}
