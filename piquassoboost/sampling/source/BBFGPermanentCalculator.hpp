@@ -87,10 +87,12 @@ virtual ~BBFGPermanentCalculator_Tasks() {
 Complex16 calculate() {
 
 
-    if (mtx.rows == 0) {
+    if (mtx.rows == 0 || mtx.cols == 0) {
         // the permanent of an empty matrix is 1 by definition
         return 1.0;
     }
+    if (mtx.rows >= mtx.cols + 2)
+        return Complex16(0.0, 0.0);    
 
 #if BLAS==0 // undefined BLAS
     int NumThreads = omp_get_max_threads();
@@ -140,25 +142,25 @@ Complex16 calculate() {
         char parity = 1;
     
         // determine initial columsn sum corresponding to the given intial delta vector. 
-        matrix_type colsum( 1, mtx.cols);
-        memcpy( colsum.get_data(), mtx.get_data(), colsum.size()*sizeof( scalar_type ) );
+        matrix_base<scalar_type> colsum( 1, mtx.cols);
+        std::uninitialized_copy_n(mtx.get_data(), colsum.size(), colsum.get_data());
 
         size_t initial_offset_gray_code = initial_offset ^ (initial_offset >> 1);
 
-        scalar_type* mtx_data = mtx.get_data();// + mtx.stride; 
+        auto mtx_data = mtx.get_data();// + mtx.stride; 
 
         for ( size_t row_idx=mtx.rows-1; row_idx>0; row_idx--) {
              
             if ( initial_offset_gray_code & 1 ) {
                 for( size_t col_idx=0; col_idx<mtx.cols; col_idx++) {
-                    colsum[col_idx] = colsum[col_idx] - mtx_data[row_idx*mtx.stride+col_idx];
+                    colsum[col_idx] -= mtx_data[row_idx*mtx.stride+col_idx];
                 }
                 parity = -parity;
                 delta_vec[row_idx] = 1;
             }
             else {
                 for( size_t col_idx=0; col_idx<mtx.cols; col_idx++) {
-                    colsum[col_idx] = colsum[col_idx] + mtx_data[row_idx*mtx.stride+col_idx];
+                    colsum[col_idx] += mtx_data[row_idx*mtx.stride+col_idx];
                 }
                 delta_vec[row_idx] = 0;
             }
@@ -169,10 +171,10 @@ Complex16 calculate() {
         scalar_type& addend_loc = priv_addend.local();
 
         if ( parity==1 ) {
-            addend_loc = addend_loc + product_reduction( colsum );
+            addend_loc += product_reduction( colsum );
         }
         else {
-            addend_loc = addend_loc - product_reduction( colsum );        
+            addend_loc -= product_reduction( colsum );        
         }
    
 
@@ -196,7 +198,7 @@ Complex16 calculate() {
        
             // update the column sum
             size_t row_offset = change_idx*mtx2.stride;
-            scalar_type* mtx2_data = mtx2.get_data() + row_offset;
+            auto mtx2_data = mtx2.get_data() + row_offset;
 
             parity = -parity;
             scalar_type colsum_prod(parity, 0.0);
@@ -204,32 +206,32 @@ Complex16 calculate() {
 
             if ( changed_delta_element ) {
                 for( size_t col_idx=0; col_idx<mtx2.cols; col_idx++) {
-                    colsum[col_idx] = colsum[col_idx] - mtx2_data[col_idx];  
-                    colsum_prod = colsum_prod*colsum[col_idx];
+                    colsum[col_idx] -= mtx2_data[col_idx];  
+                    colsum_prod *= colsum[col_idx];
                 }
             }
             else {
                 for( size_t col_idx=0; col_idx<mtx2.cols; col_idx++) {
-                    colsum[col_idx] = colsum[col_idx] + mtx2_data[col_idx];            
-                    colsum_prod = colsum_prod*colsum[col_idx];
+                    colsum[col_idx] += mtx2_data[col_idx];            
+                    colsum_prod *= colsum[col_idx];
                 }                
             }
 
-            addend_loc = addend_loc + colsum_prod;
+            addend_loc += colsum_prod;
 
 
         }
-  
-
+        for (size_t n = colsum.size(); n > 0; --n)
+            colsum[n-1].~scalar_type();
 //    }
     });
 
     scalar_type permanent(0.0, 0.0);
     priv_addend.combine_each([&](scalar_type &a) {
-        permanent = permanent + a;
+        permanent += a;
     });
     
-    permanent = permanent / (precision_type)(1ULL << (mtx.rows-1));
+    permanent /= (precision_type)(1ULL << (mtx.rows-1));
 
     return Complex16(permanent.real(), permanent.imag());
 }

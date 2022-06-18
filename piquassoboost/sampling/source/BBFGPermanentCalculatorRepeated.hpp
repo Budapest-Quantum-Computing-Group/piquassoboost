@@ -73,22 +73,17 @@ BBFGPermanentCalculatorRepeated_Tasks() {
 BBFGPermanentCalculatorRepeated_Tasks( matrix_type &mtx_in, PicState_int& col_mult_in, PicState_int& row_mult_in ) {
 
     Update_mtx( mtx_in );
+    
+    int* minelem = std::min_element(&row_mult_in[0], &row_mult_in[0]+row_mult_in.size(), [](int a, int b) { return a==b ? false : (b==0 || (a!=0 && a < b)); });
 
-    //in the case when the first row multiplicity is zero, we need to find a nonzero multiplicity for the first row
-    if (row_mult_in.size() > 0 && row_mult_in[0]==0) { 
-        std::string error("BBFGPermanentCalculatorRepeated_Tasks:  The first element in row_mult dhould not be zero");
-        throw error;   
-    }
-
-    // the first eleemnt is delta_vec is always 1, so we separate a roe with single multiplicity
-    if ( row_mult_in.size() > 0 && row_mult_in[0]>1 ) {
+    if ( row_mult_in.size() > 0 && *minelem != 0) {
         row_mult = PicState_int( row_mult_in.size() + 1);
         row_mult[0] = 1;
-        row_mult[1] = row_mult_in[0]-1;
-        memcpy( row_mult.get_data()+2, row_mult_in.get_data()+1, (row_mult_in.size()-1)*sizeof(int) );
+        memcpy( row_mult.get_data()+1, row_mult_in.get_data(), row_mult_in.size()*sizeof(int) );
+        row_mult[1+(minelem - &row_mult_in[0])]--;
         mtx = matrix_type( mtx_in.rows+1, mtx_in.cols );
-        memcpy( mtx.get_data(), mtx_in.get_data(), mtx_in.cols*sizeof(scalar_type) );
-        memcpy( mtx.get_data()+mtx.stride, mtx_in.get_data(), mtx_in.cols*mtx_in.rows*sizeof(scalar_type) );
+        memcpy( mtx.get_data(), mtx_in.get_data()+mtx_in.stride*(minelem - &row_mult_in[0]), mtx_in.cols*sizeof(*mtx.get_data()) );
+        memcpy( mtx.get_data()+mtx.stride, mtx_in.get_data(), mtx_in.cols*mtx_in.rows*sizeof(*mtx.get_data()) );
     }
     else {
         row_mult = row_mult_in;
@@ -121,7 +116,7 @@ Complex16 calculate() {
         throw error;
     }
 
-    if (mtx.rows == 0 || sum_row_mult == 0 || sum_col_mult == 0)
+    if (mtx.rows == 0 || mtx.cols == 0 || sum_row_mult == 0 || sum_col_mult == 0)
         // the permanent of an empty matrix is 1 by definition
         return Complex16(1.0, 0.0);
 
@@ -199,9 +194,9 @@ Complex16 calculate() {
         // calculate the initial column sum and binomial coefficient
         int64_t binomial_coeff = 1;
 
-        matrix_type colsum( 1, col_mult.size());
-        memcpy( colsum.get_data(), mtx.get_data(), colsum.size()*sizeof( scalar_type ) ); // the first eleemnt in detla_vec is always 1     
-        scalar_type* mtx_data = mtx.get_data() + mtx.stride;
+        matrix_base<scalar_type> colsum( 1, col_mult.size());
+        std::uninitialized_copy_n(mtx.get_data(), colsum.size(), colsum.get_data());  
+        auto mtx_data = mtx.get_data() + mtx.stride;
 
         // variable to count all the -1 elements in the delta vector
         int minus_signs_all = 0;
@@ -213,7 +208,7 @@ Complex16 calculate() {
             int row_mult_current = row_mult[idx+1];
 
             for( size_t col_idx=0; col_idx<col_mult.size(); col_idx++) {
-                colsum[col_idx] = colsum[col_idx] + (row_mult_current-2*minus_signs)*mtx_data[col_idx];
+                colsum[col_idx] += (row_mult_current-2*minus_signs)*mtx_data[col_idx];
             }
 
             minus_signs_all += minus_signs;
@@ -229,10 +224,10 @@ Complex16 calculate() {
         // variable to refer to the parity of the delta vector (+1 if the number of -1 elements in delta vector is even, -1 otherwise)
         char parity = (minus_signs_all % 2 == 0) ? 1 : -1; 
 
-        scalar_type colsum_prod((precision_type)parity, 0.0);
+        scalar_type colsum_prod((precision_type)parity, (precision_type)0.0);
         for( size_t idx=0; idx<col_mult.size(); idx++ ) {
             for (size_t jdx=0; jdx<col_mult[idx]; jdx++) {
-                colsum_prod = colsum_prod * colsum[idx];
+                colsum_prod *= colsum[idx];
             }
         }
 
@@ -240,7 +235,7 @@ Complex16 calculate() {
 
         // add the initial addend to the permanent
         scalar_type& addend_loc = priv_addend.local();
-        addend_loc = addend_loc + colsum_prod*(precision_type)binomial_coeff;
+        addend_loc += colsum_prod*(precision_type)binomial_coeff;
 
 
 
@@ -249,7 +244,6 @@ Complex16 calculate() {
 
             int changed_index, value_prev, value;
             if ( gcode_counter.next(changed_index, value_prev, value) ) {
-                std::cout << std::endl;
                 break;
             }
 
@@ -259,18 +253,18 @@ Complex16 calculate() {
 
             // update column sum and calculate the product of the elements
             int row_offset = (changed_index+1)*mtx.stride;
-            scalar_type* mtx_data = mtx2.get_data() + row_offset;
-            scalar_type colsum_prod((precision_type)parity, 0.0);
+            auto mtx_data = mtx2.get_data() + row_offset;
+            scalar_type colsum_prod((precision_type)parity, (precision_type)0.0);
             for( size_t col_idx=0; col_idx<col_mult.size(); col_idx++) {
                 if ( value_prev < value ) {
-                    colsum[col_idx] = colsum[col_idx] - mtx_data[col_idx];
+                    colsum[col_idx] -= mtx_data[col_idx];
                 }
                 else {
-                    colsum[col_idx] = colsum[col_idx] + mtx_data[col_idx];
+                    colsum[col_idx] += mtx_data[col_idx];
                 }
 
                 for (size_t jdx=0; jdx<col_mult[col_idx]; jdx++) {
-                    colsum_prod = colsum_prod*colsum[col_idx];
+                    colsum_prod *= colsum[col_idx];
                 }
 
             }
@@ -283,10 +277,13 @@ Complex16 calculate() {
             //binomial_coeff *= binomialCoeffInt64(row_mult_current, value);
 
 
-            addend_loc = addend_loc + colsum_prod*(precision_type)binomial_coeff;
+            addend_loc += colsum_prod*(precision_type)binomial_coeff;
 
     
         }
+
+        for (size_t n = colsum.size(); n > 0; --n)
+            colsum[n-1].~scalar_type();
 
 
 
@@ -296,10 +293,10 @@ Complex16 calculate() {
 
     scalar_type permanent(0.0, 0.0);
     priv_addend.combine_each([&](scalar_type &a) {
-        permanent = permanent + a;
+        permanent += a;
     });
 
-    permanent = permanent / (precision_type)(1ULL << (sum_row_mult-1));
+    permanent /= (precision_type)(1ULL << (sum_row_mult-1));
 
     return Complex16(permanent.real(), permanent.imag());
 }

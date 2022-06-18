@@ -1,4 +1,5 @@
 #include "GlynnPermanentCalculatorDFE.h"
+#include "BBFGPermanentCalculator.h"
 #include "GlynnPermanentCalculator.h"
 
 #ifndef CPYTHON
@@ -22,6 +23,10 @@
 #define DFE_REP_LIB_SIMDUAL "libPermRepGlynnDualSIM.so"
 #define DFE_REP_LIB "libPermRepGlynnDFE.so"
 #define DFE_REP_LIBDUAL "libPermRepGlynnDualDFE.so"
+#define DFE_REP_LIB_SIMF "libPermRepGlynnSIMF.so"
+#define DFE_REP_LIB_SIMFDUAL "libPermRepGlynnDualSIMF.so"
+#define DFE_REP_LIBF "libPermRepGlynnDFEF.so"
+#define DFE_REP_LIBFDUAL "libPermRepGlynnDualDFEF.so"
 
 
 typedef void(*CALCPERMGLYNNDFE)(const pic::ComplexFix16**, const long double*, const uint64_t, const uint64_t, const uint64_t, pic::Complex16*);
@@ -31,32 +36,29 @@ typedef void(*FREEPERMGLYNNDFE)(void);
 CALCPERMGLYNNDFE calcPermanentGlynnDFE = NULL;
 INITPERMGLYNNDFE initialize_DFE = NULL;
 FREEPERMGLYNNDFE releive_DFE = NULL;
-CALCPERMGLYNNDFE calcPermanentGlynnDFEF = NULL;
-INITPERMGLYNNDFE initialize_DFEF = NULL;
-FREEPERMGLYNNDFE releive_DFEF = NULL;
 
 typedef void(*CALCPERMGLYNNREPDFE)(const pic::ComplexFix16**, const long double*, const uint64_t, const uint64_t, const unsigned char*,
-  const uint8_t*, const uint8_t, const uint8_t, const uint64_t*, const uint64_t, const uint8_t, pic::Complex16*);
-typedef int(*INITPERMGLYNNREPDFE)(int, size_t*, size_t*);
+  const uint8_t*, const uint8_t*, const uint8_t, const uint8_t, const uint64_t*, const uint64_t, const uint8_t, const int, const uint64_t, pic::Complex16*);
+typedef int(*INITPERMGLYNNREPDFE)(int, size_t*, size_t*, size_t*);
 typedef void(*FREEPERMGLYNNREPDFE)(void);
 
 extern "C" CALCPERMGLYNNREPDFE calcPermanentGlynnRepDFE;
 extern "C" INITPERMGLYNNREPDFE initializeRep_DFE;
 extern "C" FREEPERMGLYNNREPDFE releiveRep_DFE;
 
-size_t dfe_mtx_size;
-size_t dfe_basekernpow2;
+size_t dfe_mtx_size = 0;
+size_t dfe_basekernpow2 = 0;
+//size_t dfe_num_inits = 0;
+extern "C" size_t dfe_loop_length;
 
 void* handle = NULL;
 int isLastDual = 0;
+int isLastFloat = 0;
 std::atomic_size_t refcount(0);
 std::atomic_size_t read_count(0); //readers-writer problem semaphore
 std::recursive_mutex libmutex; //writing mutex
 std::mutex libreadmutex; //reader mutex
 
-/**
-@brief ???????
-*/
 void unload_dfe_lib()
 {
     const std::lock_guard<std::recursive_mutex> lock(libmutex);
@@ -64,10 +66,6 @@ void unload_dfe_lib()
         if (releive_DFE) {
             releive_DFE();
             initialize_DFE = NULL, releive_DFE = NULL, calcPermanentGlynnDFE = NULL;
-        }
-        if (releive_DFEF) {
-            releive_DFEF();
-            initialize_DFEF = NULL, releive_DFEF = NULL, calcPermanentGlynnDFEF = NULL;
         }
         if (releiveRep_DFE) {
             releiveRep_DFE();
@@ -78,15 +76,13 @@ void unload_dfe_lib()
     }
 }
 
-/**
-@brief ???????
-*/
 int init_dfe_lib(int choice, int dual) {
     const std::lock_guard<std::recursive_mutex> lock(libmutex);
-    if (choice == DFE_MAIN && initialize_DFE && dual == isLastDual) return initialize_DFE(0, &dfe_mtx_size, &dfe_basekernpow2);
-    if (choice == DFE_FLOAT && initialize_DFEF && dual == isLastDual) return initialize_DFEF(0, &dfe_mtx_size, &dfe_basekernpow2);
-    if (choice == DFE_REP && initializeRep_DFE && dual == isLastDual) return initializeRep_DFE(0, &dfe_mtx_size, &dfe_basekernpow2);
+    int useGroup = 0;
+    if ((choice == DFE_MAIN || choice == DFE_FLOAT) && initialize_DFE && dual == isLastDual && isLastFloat == (choice == DFE_FLOAT)) return initialize_DFE(useGroup, &dfe_mtx_size, &dfe_basekernpow2);
+    if ((choice == DFE_REP || choice == DFE_REP_FLOAT) && initializeRep_DFE && dual == isLastDual && isLastFloat == (choice == DFE_REP_FLOAT)) return initializeRep_DFE(useGroup, &dfe_mtx_size, &dfe_basekernpow2, &dfe_loop_length);
     isLastDual = dual;
+    isLastFloat = choice == DFE_FLOAT || choice == DFE_REP_FLOAT; 
     unload_dfe_lib();
     const char* simLib = NULL, *lib = NULL;
     if (choice == DFE_MAIN) {
@@ -98,12 +94,15 @@ int init_dfe_lib(int choice, int dual) {
     } else if (choice == DFE_REP) {
         simLib = dual ? DFE_REP_LIB_SIMDUAL : DFE_REP_LIB_SIM;
         lib = dual ? DFE_REP_LIBDUAL : DFE_REP_LIB;
+    } else if (choice == DFE_REP_FLOAT) {
+        simLib = dual ? DFE_REP_LIB_SIMFDUAL : DFE_REP_LIB_SIMF;
+        lib = dual ? DFE_REP_LIBFDUAL : DFE_REP_LIBF;
     }
     // dynamic-loading the correct DFE permanent calculator (Simulator/DFE/single or dual) from shared libararies
-    handle = dlopen(getenv("USE_DFE_SIMULATOR") ? simLib : lib, RTLD_NOW); //"MAXELEROSDIR"
+    handle = dlopen(getenv("SLIC_CONF") ? simLib : lib, RTLD_NOW); //"MAXELEROSDIR"
     if (handle == NULL) {
         char* pwd = getcwd(NULL, 0);
-        fprintf(stderr, "%s\n'%s' (in %s mode) failed to load from working directory '%s' use export LD_LIBRARY_PATH\n", dlerror(), getenv("USE_DFE_SIMULATOR") ? simLib : lib, getenv("USE_DFE_SIMULATOR") ? "simulator" : "DFE", pwd);
+        fprintf(stderr, "%s\n'%s' (in %s mode) failed to load from working directory '%s' use export LD_LIBRARY_PATH\n", dlerror(), getenv("SLIC_CONF") ? simLib : lib, getenv("SLIC_CONF") ? "simulator" : "DFE", pwd);
         free(pwd);
     } else {
       // in case the DFE libraries were loaded successfully the function pointers are set to initialize/releive DFE engine and run DFE calculations
@@ -111,46 +110,40 @@ int init_dfe_lib(int choice, int dual) {
           calcPermanentGlynnDFE = (CALCPERMGLYNNDFE)dlsym(handle, "calcPermanentGlynnDFE");
           initialize_DFE = (INITPERMGLYNNDFE)dlsym(handle, "initialize_DFE");
           releive_DFE = (FREEPERMGLYNNDFE)dlsym(handle, "releive_DFE");
-          if (initialize_DFE) return initialize_DFE(0, &dfe_mtx_size, &dfe_basekernpow2);
+          if (initialize_DFE) return initialize_DFE(useGroup, &dfe_mtx_size, &dfe_basekernpow2);
       } else if (choice == DFE_FLOAT) {
-          calcPermanentGlynnDFEF = (CALCPERMGLYNNDFE)dlsym(handle, "calcPermanentGlynnDFEF");
-          initialize_DFEF = (INITPERMGLYNNDFE)dlsym(handle, "initialize_DFEF");
-          releive_DFEF = (FREEPERMGLYNNDFE)dlsym(handle, "releive_DFEF");
-          if (initialize_DFEF) return initialize_DFEF(0, &dfe_mtx_size, &dfe_basekernpow2);
+          calcPermanentGlynnDFE = (CALCPERMGLYNNDFE)dlsym(handle, "calcPermanentGlynnDFEF");
+          initialize_DFE = (INITPERMGLYNNDFE)dlsym(handle, "initialize_DFEF");
+          releive_DFE = (FREEPERMGLYNNDFE)dlsym(handle, "releive_DFEF");
+          if (initialize_DFE) return initialize_DFE(useGroup, &dfe_mtx_size, &dfe_basekernpow2);
       } else if (choice == DFE_REP) {
           calcPermanentGlynnRepDFE = (CALCPERMGLYNNREPDFE)dlsym(handle, "calcPermanentGlynnRepDFE");
           initializeRep_DFE = (INITPERMGLYNNREPDFE)dlsym(handle, "initializeRep_DFE");
           releiveRep_DFE = (FREEPERMGLYNNREPDFE)dlsym(handle, "releiveRep_DFE");
-          if (initializeRep_DFE) return initializeRep_DFE(0, &dfe_mtx_size, &dfe_basekernpow2);
+          if (initializeRep_DFE) return initializeRep_DFE(useGroup, &dfe_mtx_size, &dfe_basekernpow2, &dfe_loop_length);
+      } else if (choice == DFE_REP_FLOAT) {
+          calcPermanentGlynnRepDFE = (CALCPERMGLYNNREPDFE)dlsym(handle, "calcPermanentGlynnRepDFEF");
+          initializeRep_DFE = (INITPERMGLYNNREPDFE)dlsym(handle, "initializeRep_DFEF");
+          releiveRep_DFE = (FREEPERMGLYNNREPDFE)dlsym(handle, "releiveRep_DFEF");
+          if (initializeRep_DFE) return initializeRep_DFE(useGroup, &dfe_mtx_size, &dfe_basekernpow2, &dfe_loop_length);
       }
     }
+    return 0;
 }
 
-/**
-@brief ???????
-*/
 void inc_dfe_lib_count() { refcount++; }
 
-/**
-@brief ???????
-*/
 void dec_dfe_lib_count()
 {
     if (--refcount == 0) unload_dfe_lib();
 }
 
-/**
-@brief ???????
-*/
 void lock_lib()
 {
     const std::lock_guard<std::mutex> lock(libreadmutex);
     if (++read_count == 1) libmutex.lock();
 }
 
-/**
-@brief ???????
-*/
 void unlock_lib()
 {
     const std::lock_guard<std::mutex> lock(libreadmutex);
@@ -161,23 +154,14 @@ void unlock_lib()
 
 namespace pic {
 
-/**
-@brief ???????
-*/
 inline Complex16 ToComplex16(Complex32 v) {
   return Complex16((double)v.real(), (double)v.imag());
 }
 
-/**
-@brief ???????
-*/
 inline Complex32 ToComplex32(Complex16 v) {
   return Complex32((long double)v.real(), (long double)v.imag());
 }
 
-/**
-@brief ???????
-*/
 inline long long doubleToLLRaw(double d)
 {
     double* pd = &d;
@@ -323,10 +307,7 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix_base<ComplexFix16>>* mtxfix
         mtx_fix_data[i] =(*mtxfix)[i].get_data();
     }
 
-    if (useFloat)
-        calcPermanentGlynnDFEF( (const ComplexFix16**)mtx_fix_data, renormalize_data->get_data(), row_num, col_num, perm_num, perm.get_data());
-    else
-        calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data->get_data(), row_num, col_num, perm_num, perm.get_data());
+    calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data->get_data(), row_num, col_num, perm_num, perm.get_data());
 
     unlock_lib();
 
@@ -345,7 +326,7 @@ GlynnPermanentCalculatorBatch_DFE(std::vector<matrix>& matrices, matrix& perm, i
     if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
     else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);
 
-    if (!((!useFloat && calcPermanentGlynnDFE) || (useFloat && calcPermanentGlynnDFEF)) ||
+    if (!((!useFloat && calcPermanentGlynnDFE)) ||
         matrices.begin()->rows < 1+dfe_basekernpow2) { //compute with other method
       GlynnPermanentCalculatorLongDouble gpc;
       for (size_t i = 0; i < matrices.size(); i++) {
@@ -390,7 +371,7 @@ GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, i
     if (!useFloat) init_dfe_lib(DFE_MAIN, useDual);
     else if (useFloat) init_dfe_lib(DFE_FLOAT, useDual);
 
-    if (!((!useFloat && calcPermanentGlynnDFE) || (useFloat && calcPermanentGlynnDFEF)) ||
+    if (!((!useFloat && calcPermanentGlynnDFE)) ||
         matrix_mtx.rows < 1+dfe_basekernpow2 || matrix_mtx.cols == 0 || matrix_mtx.rows >= matrix_mtx.cols + 2) { //compute with other method
       GlynnPermanentCalculatorLongDouble gpc;
       perm = gpc.calculate(matrix_mtx);
@@ -465,10 +446,7 @@ GlynnPermanentCalculator_DFE(matrix& matrix_mtx, Complex16& perm, int useDual, i
     //assert(matrix_mtx.rows == matrix_mtx.cols && matrix_mtx.rows <= dfe_mtx_size);
     for (size_t i = 0; i < numinits; i++) mtx_fix_data[i] = mtxfix[i].get_data();
    
-    if (useFloat)
-        calcPermanentGlynnDFEF( (const ComplexFix16**)mtx_fix_data, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, 1, &perm);
-    else
-        calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, 1, &perm);
+    calcPermanentGlynnDFE( (const ComplexFix16**)mtx_fix_data, renormalize_data.get_data(), matrix_mtx.rows, matrix_mtx.cols, 1, &perm);
 
     unlock_lib();
 
