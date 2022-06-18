@@ -2,6 +2,7 @@
 
 
 #include "GlynnPermanentCalculator.h"
+#include "GlynnPermanentCalculatorSimple.h"
 #include "GlynnPermanentCalculatorRepeated.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "matrix_helper.hpp"
@@ -137,6 +138,21 @@ int main() {
 
     std::cout << "All test cases were passed." << std::endl;
 
+    pic::GlynnPermanentCalculatorSimpleLongDouble simpleCalculatorLongDouble;
+    constexpr int permNumber = 0;
+    std::vector<pic::Complex16> perms;
+    for (int i = 0; i < permNumber; ++i){
+        perms.push_back(simpleCalculatorLongDouble.calculate(matrix));
+    }
+    tbb::tick_count t6 = tbb::tick_count::now();
+    auto permanentSimpleLongDouble = simpleCalculatorLongDouble.calculate(matrix);
+    tbb::tick_count t7 = tbb::tick_count::now();
+    std::cout << "SiLD time: " << (t7-t6).seconds() << std::endl;
+
+    printf("SiLD Permanent: %4.6f + %4.6f i\n", permanentSimpleLongDouble.real(), permanentSimpleLongDouble.imag());
+    for (int i = 0; i < permNumber; ++i){
+        printf("SiLD Permanent: %4.6f + %4.6f i\n", perms[i].real(), perms[i].imag());
+    }
 #ifdef __MPI__
     // Finalize the MPI environment.
     MPI_Finalize();

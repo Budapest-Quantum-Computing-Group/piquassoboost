@@ -180,6 +180,8 @@ bool isSymmetric( matrix_base<scalar> mtx_in, double tolerance ){
     return true;
 }
 
+template bool isSymmetric(matrix_base<Complex_base<double>> mtx_in, double tolerance);
+template bool isSymmetric(matrix_base<Complex_base<double>> mtx_in);
 
 /**
 @brief Function which checks whether the given matrix is hermitian or not.
