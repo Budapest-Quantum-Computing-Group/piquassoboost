@@ -422,10 +422,6 @@ list(APPEND piquassoboost_files
 
 # add infinite precision implementations if required
 if (DEFINED ENV{PIQUASSOBOOST_MPFR})
-  list(APPEND piquassoboost_files 
-    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/source/GlynnPermanentCalculatorInf.cpp
-  )
-
   list(APPEND CXX_FLAGS_DEBUG "-D__MPFR__=1")
   list(APPEND CXX_FLAGS_RELEASE "-D__MPFR__=1")
 

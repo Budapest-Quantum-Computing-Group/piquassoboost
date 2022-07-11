@@ -9,10 +9,6 @@
 #include "GlynnPermanentCalculatorSimple.h"
 #include "BBFGPermanentCalculator.h"
 
-#ifdef __MPFR__
-#include "GlynnPermanentCalculatorInf.h"
-#endif
-
 #ifdef __DFE__
 #include "GlynnPermanentCalculatorDFE.h"
 #endif
@@ -55,10 +51,6 @@ typedef struct GlynnPermanentCalculator_wrapper {
         pic::GlynnPermanentCalculatorSimpleDouble *cpu_simple_double;
         /// double precision Glynn calculator
         pic::GlynnPermanentCalculatorSimpleLongDouble *cpu_simple_long_double;
-#ifdef __MPFR__
-        /// infinite precision calculator
-        pic::GlynnPermanentCalculatorInf* cpu_inf;
-#endif
 };
 } GlynnPermanentCalculator_wrapper;
 
@@ -87,7 +79,7 @@ GlynnPermanentCalculator_wrapper_dealloc(GlynnPermanentCalculator_wrapper *self)
     else if (self->lib == BBFGPermanentCalculatorDouble && self->BBFGcalculator != NULL) delete self->BBFGcalculator;
     else if (self->lib == BBFGPermanentCalculatorLongDouble && self->BBFGcalculator != NULL) delete self->BBFGcalculator;
 #ifdef __MPFR__
-    else if (self->lib == GlynnInf && self->cpu_inf != NULL) delete self->cpu_inf;
+    else if (self->lib == GlynnInf && self->BBFGcalculator != NULL) delete self->BBFGcalculator;
 #endif
     else if ( self->lib == GlynnDouble && self->cpu_double != NULL ) delete self->cpu_double;
     else if ( self->lib == GlynnSimpleDouble && self->cpu_simple_double != NULL ) delete self->cpu_simple_double;
@@ -155,7 +147,7 @@ GlynnPermanentCalculator_wrapper_init(GlynnPermanentCalculator_wrapper *self, Py
     }
 #ifdef __MPFR__    
     else if (self->lib == GlynnInf) {
-        self->cpu_inf = new pic::GlynnPermanentCalculatorInf();
+        self->BBFGcalculator = new pic::BBFGPermanentCalculator();
     }
 #endif
 #ifdef __DFE__
@@ -267,7 +259,7 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
                 }
 #ifdef __MPFR__
                 else if (self->lib == GlynnInf) {
-                    ret[i] = self->cpu_inf->calculate(matrices[i]);
+                    ret[i] = self->BBFGcalculator->calculate(matrices[i], false, true);
                 }
 #endif
                 else {
@@ -312,7 +304,7 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
 #endif
 #ifdef __MPFR__
         else if (self->lib == GlynnInf) {
-            ret = self->cpu_inf->calculate(matrix_mtx);
+            ret = self->BBFGcalculator->calculate(matrix_mtx, false, true);
         }
 #endif
         else if (self->lib == GlynnDouble) {

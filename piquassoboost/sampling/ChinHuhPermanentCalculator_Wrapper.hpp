@@ -104,6 +104,7 @@ ChinHuhPermanentCalculator_wrapper_dealloc(ChinHuhPermanentCalculator_wrapper *s
     else if (self->lib == GlynnRepCPUDouble && self->calculatorRepDouble != NULL) delete self->calculatorRepDouble;
     else if (self->lib == BBFGPermanentCalculatorRepeatedDouble && self->BBFGcalculatorRep != NULL) delete self->BBFGcalculatorRep;
     else if (self->lib == BBFGPermanentCalculatorRepeatedLongDouble && self->BBFGcalculatorRep != NULL) delete self->BBFGcalculatorRep;
+    else if (self->lib == GlynnRepInf && self->BBFGcalculatorRep != NULL) delete self->BBFGcalculatorRep;
 
     // release numpy arrays
     if (self->matrix) Py_DECREF(self->matrix);
@@ -192,6 +193,9 @@ ChinHuhPermanentCalculator_wrapper_init(ChinHuhPermanentCalculator_wrapper *self
         self->calculator = new pic::CChinHuhPermanentCalculator();
     else if (self->lib == GlynnRep) {
         self->calculatorRepLongDouble = new pic::GlynnPermanentCalculatorRepeatedLongDouble();
+    }
+    else if (self->lib == GlynnRepInf) {
+        self->BBFGcalculatorRep = new pic::BBFGPermanentCalculatorRepeated();
     }
 #ifdef __DFE__
     else if (self->lib == GlynnRepSingleDFE || self->lib == GlynnRepDualDFE || self->lib == GlynnRepMultiSingleDFE || self->lib == GlynnRepMultiDualDFE)
@@ -285,12 +289,15 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
                             ret[i][j] = self->calculatorRepLongDouble->calculate(matrix_mtx, multiInput ? output_states[i][j] : input_states[i], multiInput ? input_states[i] : output_states[i][j]);
                         else if (self->lib == GlynnRepCPUDouble)
                             ret[i][j] = self->calculatorRepDouble->calculate(matrix_mtx, multiInput ? output_states[i][j] : input_states[i], multiInput ? input_states[i] : output_states[i][j]);
-                    
+                        else if (self->lib == BBFGPermanentCalculatorRepeatedDouble)
+                            ret[i][j] = self->BBFGcalculatorRep->calculate(matrix_mtx, multiInput ? output_states[i][j] : input_states[i], multiInput ? input_states[i] : output_states[i][j], false);
+                        else if (self->lib == BBFGPermanentCalculatorRepeatedLongDouble)
+                            ret[i][j] = self->BBFGcalculatorRep->calculate(matrix_mtx, multiInput ? output_states[i][j] : input_states[i], multiInput ? input_states[i] : output_states[i][j], true);
 #ifdef __MPFR__
-/*
+
                         else if (self->lib == GlynnRepInf)
-                            ret[i][j] = self->calculatorRepInf->calculate(matrix_mtx, multiInput ? output_states[i][j] : input_states[i], multiInput ? input_states[i] : output_states[i][j]);
-*/
+                            ret[i][j] = self->BBFGcalculatorRep->calculate(matrix_mtx, multiInput ? output_states[i][j] : input_states[i], multiInput ? input_states[i] : output_states[i][j], false, true);
+
 #endif
                     }
                     catch (std::string err) {
@@ -375,6 +382,17 @@ ChinHuhPermanentCalculator_Wrapper_calculate(ChinHuhPermanentCalculator_wrapper 
                 return NULL;
             }
         }
+#ifdef __MPFR__
+        else if (self->lib == GlynnRepInf) {
+            try {
+                ret = self->BBFGcalculatorRep->calculate(matrix_mtx, input_state_mtx, output_state_mtx, false, true);
+        }
+            catch (std::string err) {
+                PyErr_SetString(PyExc_Exception, err.c_str());
+                return NULL;
+            }
+        }
+#endif
         else {
             PyErr_SetString(PyExc_Exception, "Wrong value set for permanent library.");
             return NULL;

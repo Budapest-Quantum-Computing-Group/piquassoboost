@@ -53,7 +53,7 @@ def print_histogram(samples):
 
 
 dim = 60
-photon_number = 36
+photon_number = 20
 
 # generate random matrix
 U = unitary_group.rvs(dim)#generate_random_unitary(dim)
@@ -64,8 +64,11 @@ list_of_indices = [index for index in range(dim)]
 for photon in range(photon_number):
     rand_int = random.randint(0, len(list_of_indices)-1)
     input_state[list_of_indices.pop(rand_int)] = 1
+    #rand_int = random.randint(0, len(list_of_indices)-1)
+    #input_state[rand_int] += 1
 
-shots = 100
+#input_state = np.asarray([0, 3, 1, 2, 0, 2, 1, 0, 2, 2, 2, 0, 1, 1, 2, 2, 0, 1, 1, 1, 2, 4] )
+shots = 10
 
 if MPI_imported:
     [input_state, U, shots] = comm.bcast([input_state, U, shots], root=0)
@@ -91,6 +94,7 @@ t0 = time.time()
 result = simulator.execute(program=program, shots=shots)
 print("C++ time elapsed:", time.time() - t0, "s")
 
+#print( result.samples)
 #print_histogram(result.samples)
 
 

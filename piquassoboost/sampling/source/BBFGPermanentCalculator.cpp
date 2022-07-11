@@ -102,7 +102,7 @@ BBFGPermanentCalculator::calculate(matrix& mtx_in, bool use_extended, bool use_i
         BBFGPermanentCalculator_Tasks<matrix, ComplexInf, FloatInf> permanent_calculator(mtx);
         return permanent_calculator.calculate();
 #else
-    std::string error("BBFGPermanentCalculator::calculate:  MPFR Infinite Precision not included");
+        std::string error("BBFGPermanentCalculator::calculate:  MPFR Infinite Precision not included in the package");
         throw error;
 #endif
     } else
