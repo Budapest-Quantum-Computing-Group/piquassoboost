@@ -117,7 +117,7 @@ BBFGPermanentCalculatorRepeated::calculate(matrix& mtx, PicState_int& col_mult, 
         BBFGPermanentCalculatorRepeated_Tasks<matrix, ComplexInf, FloatInf> permanent_calculator(mtx, col_mult, row_mult);
         return permanent_calculator.calculate();
 #else
-    std::string error("BBFGPermanentCalculatorRepeated::calculate:  MPFR Infinite Precision not included");
+        std::string error("BBFGPermanentCalculatorRepeated::calculate:  MPFR Infinite Precision not included in the package");
         throw error;
 #endif
     } else

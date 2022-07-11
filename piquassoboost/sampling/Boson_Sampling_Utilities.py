@@ -117,7 +117,10 @@ class GlynnRepeatedPermanentCalculator(RepeatedPermanentCalculator):
 
 
 
-
+class GlynnRepeatedInfPermanentCalculator(RepeatedPermanentCalculator):
+    def __init__(self, matrix, input_state, output_state):
+        super(GlynnRepeatedInfPermanentCalculator, self).__init__(9, matrix, input_state, output_state)
+        pass
 
 
 
