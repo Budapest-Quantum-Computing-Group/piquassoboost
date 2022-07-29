@@ -587,7 +587,7 @@ PowerTraceLoopHafnianRecursive_Tasks<complex_type>::CreateDiagElements( const Pi
     return diag_elements;
 }
 
-
+template class PowerTraceLoopHafnianRecursive_Tasks<Complex32>;
 
 
 
