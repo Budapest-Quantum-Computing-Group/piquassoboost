@@ -156,7 +156,7 @@ PowerTraceLoopHafnianRecursive<complex_type>::calculate() {
 
 }
 
-
+template class PowerTraceLoopHafnianRecursive<Complex32>;
 
 
 
