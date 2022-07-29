@@ -51,10 +51,11 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-PowerTraceHafnianRecursive::PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in ) {
+template <class complex_type>
+PowerTraceHafnianRecursive<complex_type>::PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in ) {
     assert(isSymmetric(mtx_in));
 
-    mtx = mtx_in;
+    this->mtx = mtx_in;
     occupancy = occupancy_in;
 
 }
@@ -63,7 +64,8 @@ PowerTraceHafnianRecursive::PowerTraceHafnianRecursive( matrix &mtx_in, PicState
 /**
 @brief Destructor of the class.
 */
-PowerTraceHafnianRecursive::~PowerTraceHafnianRecursive() {
+template <class complex_type>
+PowerTraceHafnianRecursive<complex_type>::~PowerTraceHafnianRecursive() {
 
 
 }
@@ -72,10 +74,11 @@ PowerTraceHafnianRecursive::~PowerTraceHafnianRecursive() {
 @brief Call to calculate the hafnian of a complex matrix
 @return Returns with the calculated hafnian
 */
+template <class complex_type>
 Complex16
-PowerTraceHafnianRecursive::calculate() {
+PowerTraceHafnianRecursive<complex_type>::calculate() {
 
-    if (mtx.rows == 0) {
+    if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return Complex16(1,0);
     }
@@ -102,7 +105,7 @@ PowerTraceHafnianRecursive::calculate() {
 
     MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
 
-    hafnian = Complex16(0.0,0.0);
+    hafnian = complex_type(0.0,0.0);
     for (size_t idx=0; idx<world_size; idx++) {
         hafnian = hafnian + partial_hafnians[idx];
     }
@@ -117,7 +120,7 @@ PowerTraceHafnianRecursive::calculate() {
     unsigned long long current_rank = 0;
     unsigned long long world_size = 1;
 
-    PowerTraceHafnianRecursive_Tasks hafnian_calculator = PowerTraceHafnianRecursive_Tasks(mtx, occupancy);
+    PowerTraceHafnianRecursive_Tasks<complex_type> hafnian_calculator = PowerTraceHafnianRecursive_Tasks<complex_type>(this->mtx, occupancy);
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
 
     return hafnian;
@@ -140,7 +143,8 @@ PowerTraceHafnianRecursive::calculate() {
 @brief Nullary constructor of the class.
 @return Returns with the instance of the class.
 */
-PowerTraceHafnianRecursive_Tasks::PowerTraceHafnianRecursive_Tasks() {
+template <class complex_type>
+PowerTraceHafnianRecursive_Tasks<complex_type>::PowerTraceHafnianRecursive_Tasks() {
 
     // set the maximal number of spawned tasks living at the same time
     max_task_num = 300;
@@ -162,19 +166,20 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-PowerTraceHafnianRecursive_Tasks::PowerTraceHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in ) {
+template <class complex_type>
+PowerTraceHafnianRecursive_Tasks<complex_type>::PowerTraceHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in ) {
 
-    Update_mtx( mtx_in );
+    this->Update_mtx( mtx_in );
 
     occupancy = occupancy_in;
 
 
-    if (mtx.rows != 2*occupancy.size()) {
+    if (this->mtx.rows != 2*occupancy.size()) {
         std::cout << "The length of array occupancy should be equal to the half of the dimension of the input matrix mtx. Exiting" << std::endl;
         exit(-1);
     }
 
-    if (mtx.rows % 2 != 0) {
+    if (this->mtx.rows % 2 != 0) {
         // The dimensions of the matrix should be even
         std::cout << "In PowerTraceHafnianRecursive_Tasks algorithm the dimensions of the matrix should strictly be even. Exiting" << std::endl;
         exit(-1);
@@ -194,7 +199,8 @@ PowerTraceHafnianRecursive_Tasks::PowerTraceHafnianRecursive_Tasks( matrix &mtx_
 /**
 @brief Destructor of the class.
 */
-PowerTraceHafnianRecursive_Tasks::~PowerTraceHafnianRecursive_Tasks() {
+template <class complex_type>
+PowerTraceHafnianRecursive_Tasks<complex_type>::~PowerTraceHafnianRecursive_Tasks() {
     delete task_count_mutex;
 }
 
@@ -202,8 +208,9 @@ PowerTraceHafnianRecursive_Tasks::~PowerTraceHafnianRecursive_Tasks() {
 @brief Call to calculate the hafnian of a complex matrix
 @return Returns with the calculated hafnian
 */
+template <class complex_type>
 Complex16
-PowerTraceHafnianRecursive_Tasks::calculate() {
+PowerTraceHafnianRecursive_Tasks<complex_type>::calculate() {
 
     // number of modes spanning the gaussian state
     size_t num_of_modes = occupancy.size();
@@ -222,10 +229,11 @@ PowerTraceHafnianRecursive_Tasks::calculate() {
 @param max_idx The maximal indexe valuated in the exponentially large sum (used to divide calculations between MPI processes)
 @return Returns with the calculated hafnian
 */
+template <class complex_type>
 Complex16
-PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
+PowerTraceHafnianRecursive_Tasks<complex_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
 
-    if (mtx.rows == 0) {
+    if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return Complex16(1,0);
     }
@@ -305,7 +313,7 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
     tg.wait();
 
 
-    Complex32 hafnian( 0.0, 0.0 );
+    complex_type hafnian( 0.0, 0.0 );
     priv_addend.combine_each([&](ComplexM<long double> &a) {
         hafnian = hafnian + a.get();
     });
@@ -324,7 +332,7 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
 #endif
 
     // scale the result by the appropriate facto according to Eq (2.11) of in arXiv 1805.12498
-    hafnian = hafnian * pow(scale_factor, sum(occupancy));
+    hafnian = hafnian * pow(this->scale_factor, sum(occupancy));
 
     return Complex16(hafnian.real(), hafnian.imag());
 }
@@ -337,8 +345,9 @@ PowerTraceHafnianRecursive_Tasks::calculate(unsigned long long start_idx, unsign
 @param priv_addend Therad local storage for the partial hafnians
 @param tg Reference to a tbb::task_group
 */
+template <class complex_type>
 void
-PowerTraceHafnianRecursive_Tasks::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg ) {
+PowerTraceHafnianRecursive_Tasks<complex_type>::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg ) {
 
 
     // spawn iteration over the next mode if available
@@ -448,7 +457,7 @@ std::cout << std::endl;
 
 
     // calculate the partial hafnian for the given filling factors of the selected occupancy
-    Complex32 partial_hafnian = CalculatePartialHafnian( selected_modes, current_occupancy);
+    complex_type partial_hafnian = CalculatePartialHafnian( selected_modes, current_occupancy);
 
     // add partial hafnian to the sum including the combinatorial factors
     unsigned long long combinatorial_fact = 1;
@@ -476,8 +485,9 @@ std::cout << std::endl;
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated partial hafnian
 */
-Complex32
-PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
+template <class complex_type>
+complex_type
+PowerTraceHafnianRecursive_Tasks<complex_type>::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
 
 
     size_t num_of_modes = sum(current_occupancy);
@@ -494,13 +504,13 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
     matrix32 traces(total_num_of_modes, 1);
     if (num_of_modes != 0) {
-        //traces = calc_power_traces<matrix32, Complex32>(B, total_num_of_modes);
+        //traces = calc_power_traces<matrix32, complex_type>(B, total_num_of_modes);
         CalcPowerTraces(B, total_num_of_modes, traces);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
         // this occurs once during the calculations
-        memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(Complex32));
+        memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(complex_type));
     }
 
 
@@ -511,17 +521,17 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
     // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
     matrix32 aux0(total_num_of_modes + 1, 1);
     matrix32 aux1(total_num_of_modes + 1, 1);
-    memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex32));
-    memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(Complex32));
+    memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(complex_type));
+    memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(complex_type));
     aux0[0] = 1.0;
     // pointers to the auxiliary data arrays
-    Complex32 *p_aux0=NULL, *p_aux1=NULL;
+    complex_type *p_aux0=NULL, *p_aux1=NULL;
     double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
     for (size_t idx = 1; idx <= total_num_of_modes; idx++) {
 
 
-        Complex32 factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx);
-        Complex32 powfactor(1.0,0.0);
+        complex_type factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx);
+        complex_type powfactor(1.0,0.0);
 
         // refresh the scaling factor
         inverse_scale_factor = inverse_scale_factor/scale_factor_B;
@@ -537,7 +547,7 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
             p_aux1 = aux0.get_data();
         }
 
-        memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(Complex32) );
+        memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(complex_type) );
 
         for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
             powfactor = powfactor * factor / ((double)jdx);
@@ -578,8 +588,9 @@ PowerTraceHafnianRecursive_Tasks::CalculatePartialHafnian( const PicVector<char>
 @param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
+template <class complex_type>
 matrix
-PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
+PowerTraceHafnianRecursive_Tasks<complex_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
 
 
 //std::cout << "A" << std::endl;
@@ -588,8 +599,8 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
     size_t row_idx = 0;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
 
-        size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*mtx.stride;
-        size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*mtx.stride;
+        size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*this->mtx.stride;
+        size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*this->mtx.stride;
 
         for (size_t filling_factor_row=1; filling_factor_row<=current_occupancy[mode_idx]; filling_factor_row++) {
 
@@ -604,10 +615,10 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 
                 for (size_t filling_factor_col=1; filling_factor_col<=current_occupancy[mode_jdx]; filling_factor_col++) {
 
-                    A[row_offset_A_a + col_idx*2]   = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
-                    A[row_offset_A_aconj + col_idx*2+1] = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
-                    A[row_offset_A_a + col_idx*2+1] = mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2+1)];
-                    A[row_offset_A_aconj + col_idx*2]   = mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2)];
+                    A[row_offset_A_a + col_idx*2]   = this->mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
+                    A[row_offset_A_aconj + col_idx*2+1] = this->mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
+                    A[row_offset_A_a + col_idx*2+1] = this->mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2+1)];
+                    A[row_offset_A_aconj + col_idx*2]   = this->mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2)];
                     col_idx++;
                 }
             }
@@ -683,9 +694,10 @@ PowerTraceHafnianRecursive_Tasks::CreateAZ( const PicVector<char>& selected_mode
 /**
 @brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
 */
+template <class complex_type>
 void
-PowerTraceHafnianRecursive_Tasks::ScaleMatrix() {
-    PowerTraceHafnian::ScaleMatrix();
+PowerTraceHafnianRecursive_Tasks<complex_type>::ScaleMatrix() {
+    PowerTraceHafnian<complex_type>::ScaleMatrix();
 
 }
 
