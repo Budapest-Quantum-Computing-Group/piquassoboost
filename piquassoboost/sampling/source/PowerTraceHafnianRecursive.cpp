@@ -129,7 +129,7 @@ PowerTraceHafnianRecursive<complex_type>::calculate() {
 
 }
 
-
+template class PowerTraceHafnianRecursive<Complex32>;
 
 
 
