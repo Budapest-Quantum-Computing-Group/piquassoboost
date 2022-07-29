@@ -470,7 +470,7 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
     //calculate A = X (1-Qinv)    X=(0,1;1,0)
 
-/*
+#ifndef __AVX__
     // calculate -XQinv
     // multiply by -1 the elements of Qinv and store the result in the corresponding rows of A
     matrix A(Qinv.rows, Qinv.cols);
@@ -499,7 +499,7 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
 
     }
-*/
+#else
     // calculate -XQinv
     // multiply by -1 the elements of Qinv and store the result in the corresponding rows of A
     matrix A(Qinv.rows, Qinv.cols);
@@ -533,7 +533,7 @@ GaussianSimulationStrategy::calc_HamiltonMatrix( matrix& Qinv ) {
 
 
     }
-
+#endif
 
     // calculate X-XQinv
     // add X to the matrix elements of -XQinv
@@ -617,7 +617,7 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
             hafnian = hafnian_calculator.calculate();
         }
         else {
-            PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
+            PowerTraceHafnianLongDouble hafnian_calculator = PowerTraceHafnianLongDouble(A_S);
             hafnian = hafnian_calculator.calculate();
         }
     }
@@ -632,7 +632,7 @@ GaussianSimulationStrategy::calc_probability( matrix& Qinv, const double& Qdet, 
             hafnian = hafnian_calculator.calculate();
         }
         else {
-            PowerTraceLoopHafnian hafnian_calculator = PowerTraceLoopHafnian(A_S);
+            PowerTraceLoopHafnianLongDouble hafnian_calculator = PowerTraceLoopHafnianLongDouble(A_S);
             hafnian = hafnian_calculator.calculate();
         }
 
