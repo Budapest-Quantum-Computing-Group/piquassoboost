@@ -43,7 +43,8 @@ namespace pic {
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-PowerTraceLoopHafnian::PowerTraceLoopHafnian() : PowerTraceHafnian() {
+template <class complex_type>
+PowerTraceLoopHafnian<complex_type>::PowerTraceLoopHafnian() : PowerTraceHafnian<complex_type>() {
 
 }
 
@@ -52,7 +53,8 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian() : PowerTraceHafnian() {
 @param mtx_in A symmetric matrix for which the hafnian is calculated. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
 @return Returns with the instance of the class.
 */
-PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
+template <class complex_type>
+PowerTraceLoopHafnian<complex_type>::PowerTraceLoopHafnian( matrix &mtx_in ) {
 #ifdef DEBUG
     assert(isSymmetric(mtx_in));
 #endif
@@ -85,19 +87,20 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
 @brief Call to calculate the hafnian of a complex matrix stored in the instance of the class
 @return Returns with the calculated hafnian
 */
+template <class complex_type>
 Complex16
-PowerTraceLoopHafnian::calculate() {
+PowerTraceLoopHafnian<complex_type>::calculate() {
 
-    if (mtx.rows == 0) {
+    if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return Complex16(1,0);
     }
-    else if (mtx.rows % 2 != 0) {
+    else if (this->mtx.rows % 2 != 0) {
         // the hafnian of odd shaped matrix is 0 by definition
         return Complex16(0.0, 0.0);
     }
 
-    size_t dim_over_2 = mtx.rows / 2;
+    size_t dim_over_2 = this->mtx.rows / 2;
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
 #ifdef __MPI__
@@ -150,12 +153,13 @@ PowerTraceLoopHafnian::calculate() {
 @param max_idx The maximal indexe valuated in the exponentially large sum (used to divide calculations between MPI processes)
 @return Returns with the calculated hafnian
 */
+template <class complex_type>
 Complex16
-PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
+PowerTraceLoopHafnian<complex_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
 
 
-    if ( mtx.rows != mtx.cols) {
-        std::cout << "The input matrix should be square shaped, bu matrix with " << mtx.rows << " rows and with " << mtx.cols << " columns was given" << std::endl;
+    if ( this->mtx.rows != this->mtx.cols) {
+        std::cout << "The input matrix should be square shaped, bu matrix with " << this->mtx.rows << " rows and with " << this->mtx.cols << " columns was given" << std::endl;
         std::cout << "Returning zero" << std::endl;
         return Complex16(0,0);
     }
@@ -171,30 +175,30 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
     openblas_set_num_threads(1);
 #endif
 
-    size_t dim = mtx.rows;
+    size_t dim = this->mtx.rows;
 
 
-    if (mtx.rows == 0) {
+    if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return Complex16(1,0);
     }
-    else if (mtx.rows % 2 != 0) {
+    else if (this->mtx.rows % 2 != 0) {
         // the hafnian of odd shaped matrix is 0 by definition
         return Complex16(0.0, 0.0);
     }
 
-    size_t dim_over_2 = mtx.rows / 2;
+    size_t dim_over_2 = this->mtx.rows / 2;
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
-    tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
+    tbb::combinable<complex_type> summands{[](){return complex_type(0.0,0.0);}};
 
     tbb::parallel_for( start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
 
 
-        Complex32 &summand = summands.local();
+        complex_type &summand = summands.local();
 
 /*
-    Complex32 summand(0.0,0.0);
+    complex_type summand(0.0,0.0);
 
     for (unsigned long long permutation_idx = 0; permutation_idx < permutation_idx_max; permutation_idx++) {
 */
@@ -227,11 +231,11 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
         matrix AZ(number_of_ones, number_of_ones);
         matrix diag_elements(1, number_of_ones);
         for (size_t idx = 0; idx < number_of_ones; idx++) {
-            size_t row_offset = (positions_of_ones[idx] ^ 1)*mtx.stride;
+            size_t row_offset = (positions_of_ones[idx] ^ 1)*this->mtx.stride;
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                AZ[idx*AZ.stride + jdx] = mtx[row_offset + ((positions_of_ones[jdx]))];
+                AZ[idx*AZ.stride + jdx] = this->mtx[row_offset + ((positions_of_ones[jdx]))];
             }
-            diag_elements[idx] = mtx[(positions_of_ones[idx])*mtx.stride + positions_of_ones[idx]];
+            diag_elements[idx] = this->mtx[(positions_of_ones[idx])*this->mtx.stride + positions_of_ones[idx]];
 
         }
 
@@ -255,8 +259,8 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
             // this occurs once during the calculations
             traces = matrix32(dim_over_2, 1);
             loop_corrections = matrix32(dim_over_2, 1);
-            memset( traces.get_data(), 0.0, traces.size()*sizeof(Complex32));
-            memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(Complex32));
+            memset( traces.get_data(), 0.0, traces.size()*sizeof(complex_type));
+            memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(complex_type));
         }
 
 
@@ -267,16 +271,16 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
         // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
         matrix32 aux0(dim_over_2 + 1, 1);
         matrix32 aux1(dim_over_2 + 1, 1);
-        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
-        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
+        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
+        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
         aux0[0] = 1.0;
         // pointers to the auxiliary data arrays
-        Complex32 *p_aux0=NULL, *p_aux1=NULL;
+        complex_type *p_aux0=NULL, *p_aux1=NULL;
 
         for (size_t idx = 1; idx <= dim_over_2; idx++) {
 
 
-            Complex32 factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
+            complex_type factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
 /*
 {
       tbb::spin_mutex::scoped_lock my_lock{my_mutex};
@@ -284,7 +288,7 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
       std::cout << factor << " " << loop_corrections[idx-1]*0.5 << std::endl;
   }
 */
-            Complex32 powfactor(1.0,0.0);
+            complex_type powfactor(1.0,0.0);
 
             if (idx%2 == 1) {
                 p_aux0 = aux0.get_data();
@@ -295,7 +299,7 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
                 p_aux1 = aux0.get_data();
             }
 
-            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex32) );
+            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(complex_type) );
 
             for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
                 powfactor = powfactor * factor / ((double)jdx);
@@ -325,8 +329,8 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
     });
 
     // the resulting Hafnian of matrix mat
-    Complex32 res(0,0);
-    summands.combine_each([&res](Complex32 a) {
+    complex_type res(0,0);
+    summands.combine_each([&res](complex_type a) {
         res = res + a;
     });
 
@@ -342,7 +346,7 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
 #endif
 
     // scale the result by the appropriate facto according to Eq (2.11) of in arXiv 1805.12498
-    res = res * pow(scale_factor, dim_over_2);
+    res = res * pow(this->scale_factor, dim_over_2);
 
     return Complex16(res.real(), res.imag() );
 }
@@ -355,10 +359,11 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
 @brief Call to update the memory address of the matrix mtx
 @param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 */
+template <class complex_type>
 void
-PowerTraceLoopHafnian::Update_mtx( matrix &mtx_in) {
+PowerTraceLoopHafnian<complex_type>::Update_mtx( matrix &mtx_in) {
 
-    mtx_orig = mtx_in;
+    this->mtx_orig = mtx_in;
 
     // scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
     ScaleMatrix();
@@ -371,38 +376,39 @@ PowerTraceLoopHafnian::Update_mtx( matrix &mtx_in) {
 /**
 @brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
 */
+template <class complex_type>
 void
-PowerTraceLoopHafnian::ScaleMatrix() {
+PowerTraceLoopHafnian<complex_type>::ScaleMatrix() {
 
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
-    if ( mtx_orig.rows <= 10) {
-        mtx = mtx_orig;
-        scale_factor = 1.0;
+    if ( this->mtx_orig.rows <= 10) {
+        this->mtx = this->mtx_orig;
+        this->scale_factor = 1.0;
     }
     else {
 
         // determine the scale factor
-        scale_factor = 0.0;
-        for (size_t idx=0; idx<mtx_orig.size(); idx++) {
-            scale_factor = scale_factor + std::sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
+        this->scale_factor = 0.0;
+        for (size_t idx=0; idx<this->mtx_orig.size(); idx++) {
+            this->scale_factor = this->scale_factor + std::sqrt( this->mtx_orig[idx].real()*this->mtx_orig[idx].real() + this->mtx_orig[idx].imag()*this->mtx_orig[idx].imag() );
         }
-        scale_factor = scale_factor/mtx_orig.size()/std::sqrt(2);
+        this->scale_factor = this->scale_factor/this->mtx_orig.size()/std::sqrt(2);
 
-        mtx = mtx_orig.copy();
+        this->mtx = this->mtx_orig.copy();
 
-        double inverse_scale_factor = 1/scale_factor;
+        double inverse_scale_factor = 1/this->scale_factor;
 
         // scaling the matrix elements
-        for (size_t row_idx=0; row_idx<mtx_orig.rows; row_idx++) {
+        for (size_t row_idx=0; row_idx<this->mtx_orig.rows; row_idx++) {
 
-            size_t row_offset = row_idx*mtx.stride;
+            size_t row_offset = row_idx*this->mtx.stride;
 
-            for (size_t col_idx=0; col_idx<mtx_orig.cols; col_idx++) {
+            for (size_t col_idx=0; col_idx<this->mtx_orig.cols; col_idx++) {
                 if (col_idx == row_idx ) {
-                    mtx[row_offset+col_idx] = mtx[row_offset+col_idx]*sqrt(inverse_scale_factor);
+                    this->mtx[row_offset+col_idx] = this->mtx[row_offset+col_idx]*sqrt(inverse_scale_factor);
                 }
                 else {
-                    mtx[row_offset+col_idx] = mtx[row_offset+col_idx]*inverse_scale_factor;
+                    this->mtx[row_offset+col_idx] = this->mtx[row_offset+col_idx]*inverse_scale_factor;
                 }
 
             }
