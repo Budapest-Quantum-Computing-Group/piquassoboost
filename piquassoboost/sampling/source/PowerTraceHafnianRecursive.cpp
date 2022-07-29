@@ -701,7 +701,7 @@ PowerTraceHafnianRecursive_Tasks<complex_type>::ScaleMatrix() {
 
 }
 
-
+template class PowerTraceHafnianRecursive_Tasks<Complex32>;
 
 
 
