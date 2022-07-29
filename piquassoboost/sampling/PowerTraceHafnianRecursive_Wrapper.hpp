@@ -39,7 +39,7 @@ typedef struct PowerTraceHafnianRecursive_wrapper {
     /// pointer to numpy matrix to keep it alive (this stores the occupancy of the individual modes)
     PyObject *occupancy = NULL;
     /// The C++ variant of class CPowerTraceHafnianRecursive
-    pic::PowerTraceHafnianRecursive* calculator;
+    pic::PowerTraceHafnianRecursiveLongDouble* calculator;
 } PowerTraceHafnianRecursive_wrapper;
 
 
@@ -48,10 +48,10 @@ typedef struct PowerTraceHafnianRecursive_wrapper {
 @param matrix_mtx The matrix for which the hafnain should be calculated
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
-pic::PowerTraceHafnianRecursive*
+pic::PowerTraceHafnianRecursiveLongDouble*
 create_PowerTraceHafnianRecursive( pic::matrix &matrix_mtx,  pic::PicState_int64& occupancy) {
 
-    return new pic::PowerTraceHafnianRecursive(matrix_mtx, occupancy);
+    return new pic::PowerTraceHafnianRecursiveLongDouble(matrix_mtx, occupancy);
 }
 
 /**
@@ -59,7 +59,7 @@ create_PowerTraceHafnianRecursive( pic::matrix &matrix_mtx,  pic::PicState_int64
 @param ptr A pointer pointing to an instance of PowerTraceHafnianRecursive class.
 */
 void
-release_PowerTraceHafnianRecursive( pic::PowerTraceHafnianRecursive*  instance ) {
+release_PowerTraceHafnianRecursive( pic::PowerTraceHafnianRecursiveLongDouble*  instance ) {
     if ( instance != NULL ) {
         delete instance;
     }
