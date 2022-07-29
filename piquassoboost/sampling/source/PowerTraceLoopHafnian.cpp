@@ -418,6 +418,6 @@ PowerTraceLoopHafnian<complex_type>::ScaleMatrix() {
 
 }
 
-
+template class PowerTraceLoopHafnian<Complex32>;
 
 } // PIC
