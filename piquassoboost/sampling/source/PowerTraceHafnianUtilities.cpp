@@ -307,7 +307,31 @@ transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv ) {
 
 }
 
+template <class T> class complex_selector;
+template <> class complex_selector<double> {
+    typedef Complex16 cplx_type;
+};
+template <> class complex_selector<long double> {
+    typedef Complex32 cplx_type;
+};
+/*template <> class complex_selector<FloatInf> {
+    typedef ComplexInf cplx_type;
+};*/
+template <class T>
+using cplx_select_t = typename complex_selector<T>::cplx_type;
 
+template <class T> class matrix_selector;
+template <> class matrix_selector<Complex16> {
+    typedef matrix mat_type;
+};
+template <> class matrix_selector<Complex32> {
+    typedef matrix32 mat_type;
+};
+/*template <> class matrix_selector<ComplexInf> {
+    typedef matrix_base<ComplexInf> mat_type;
+};*/ 
+template <class T>
+using mtx_select_t = typename matrix_selector<T>::mtx_type;
 
 
 /**
@@ -316,9 +340,13 @@ and a loop corrections in Eq (3.26) of arXiv1805.12498
 @param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
 @return Returns with the calculated loop correction
 */
+template <class small_scalar_type, class scalar_type>
 void
-CalcPowerTraces( matrix& AZ, size_t pow_max, matrix32 &traces32) {
-
+CalcPowerTraces( mtx_select_t<small_scalar_type>& AZ, size_t pow_max, cplx_select_t<scalar_type> &traces32) {
+    using small_complex_type = cplx_select_t<small_scalar_type>;
+    using complex_type = cplx_select_t<scalar_type>;
+    using small_matrix_type = mtx_select_t<small_complex_type>;
+    using matrix_type = mtx_select_t<complex_type>;
 
     // for small matrices only the traces are casted into quad precision
     if (AZ.rows <= 10) {
@@ -326,15 +354,15 @@ CalcPowerTraces( matrix& AZ, size_t pow_max, matrix32 &traces32) {
         transform_matrix_to_hessenberg(AZ);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        matrix&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix, Complex16>(AZ, AZ.rows);
+        small_matrix_type&& coeffs_labudde = calc_characteristic_polynomial_coeffs<small_matrix_type, Complex16>(AZ, AZ.rows);
 
         // calculate the power traces of the matrix AZ using LeVerrier recursion relation
-        matrix&& traces = powtrace_from_charpoly<matrix>(coeffs_labudde, pow_max);
+        small_matrix_type&& traces = powtrace_from_charpoly<small_matrix_type>(coeffs_labudde, pow_max);
 
-        traces32 = matrix32(traces.rows, traces.cols);
+        traces32 = matrix_type(traces.rows, traces.cols);
         for (size_t idx=0; idx<traces.size(); idx++) {
-            traces32[idx].real( (long double)traces[idx].real() );
-            traces32[idx].imag( (long double)traces[idx].imag() );
+            traces32[idx].real( (scalar_type)traces[idx].real() );
+            traces32[idx].imag( (scalar_type)traces[idx].imag() );
         }
 
         return;
@@ -348,17 +376,17 @@ CalcPowerTraces( matrix& AZ, size_t pow_max, matrix32 &traces32) {
 
         transform_matrix_to_hessenberg(AZ);
 
-        matrix32 AZ32( AZ.rows, AZ.cols);
+        matrix_type AZ32( AZ.rows, AZ.cols);
         for (size_t idx=0; idx<AZ.size(); idx++) {
             AZ32[idx].real( AZ[idx].real() );
             AZ32[idx].imag( AZ[idx].imag() );
         }
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        matrix32&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix32, Complex32>(AZ32, AZ.rows);
+        matrix_type&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, complex_type>(AZ32, AZ.rows);
 
         // calculate the power traces of the matrix AZ using LeVerrier recursion relation
-        traces32 = powtrace_from_charpoly<matrix32>(coeffs_labudde, pow_max);
+        traces32 = powtrace_from_charpoly<matrix_type>(coeffs_labudde, pow_max);
 
         return;
 
@@ -370,20 +398,20 @@ CalcPowerTraces( matrix& AZ, size_t pow_max, matrix32 &traces32) {
 
         // matrix size for which quad precision is necessary
 
-        matrix32 AZ32( AZ.rows, AZ.cols);
+        matrix_type AZ32( AZ.rows, AZ.cols);
         for (size_t idx=0; idx<AZ.size(); idx++) {
             AZ32[idx].real( AZ[idx].real() );
             AZ32[idx].imag( AZ[idx].imag() );
         }
 
 
-        transform_matrix_to_hessenberg<matrix32, Complex32>(AZ32);
+        transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ32);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        matrix32 coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix32, Complex32>(AZ32, AZ.rows);
+        matrix_type coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, complex_type>(AZ32, AZ.rows);
 
         // calculate the power traces of the matrix AZ using LeVerrier recursion relation
-        traces32 = powtrace_from_charpoly<matrix32>(coeffs_labudde, pow_max);
+        traces32 = powtrace_from_charpoly<matrix_type>(coeffs_labudde, pow_max);
 
         return;
 
