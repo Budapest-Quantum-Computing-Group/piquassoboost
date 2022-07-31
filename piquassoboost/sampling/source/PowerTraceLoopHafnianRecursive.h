@@ -34,7 +34,8 @@ namespace pic {
 This class is an interface class betwwen the Python extension and the C++ implementation to relieve python extensions from TBB functionalities.
 (CPython does not support static objects with constructors/destructors)
 */
-class PowerTraceLoopHafnianRecursive : public PowerTraceLoopHafnian {
+template <class complex_type>
+class PowerTraceLoopHafnianRecursive : public PowerTraceLoopHafnian<complex_type> {
 
 
 protected:
@@ -82,7 +83,7 @@ virtual Complex16 calculate();
 
 }; //PowerTraceLoopHafnianRecursive
 
-
+using PowerTraceLoopHafnianRecursiveLongDouble = PowerTraceLoopHafnianRecursive<Complex32>;
 
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
@@ -91,7 +92,8 @@ virtual Complex16 calculate();
 @brief Class to calculate the loop hafnian of a complex matrix by a recursive power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
 purpose loop hafnian calculator. This algorithm accounts for the repeated occupancy in the covariance matrix.
 */
-class PowerTraceLoopHafnianRecursive_Tasks : public PowerTraceHafnianRecursive_Tasks {
+template <class complex_type>
+class PowerTraceLoopHafnianRecursive_Tasks : public PowerTraceHafnianRecursive_Tasks<complex_type> {
 
 protected:
     /// The diagonal elements of the input matrix
@@ -136,7 +138,7 @@ protected:
 @param current_occupancy Current occupancy of the selected column pairs for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
+complex_type CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
 
 
 /**

@@ -48,11 +48,11 @@ namespace pic {
 @param norm_v_sqr The squared norm of the created reflection matrix that is returned by reference
 @return Returns with the calculated reflection vector
  */
-template<class matrix_type, class complex_type>
+template<class matrix_type, class complex_type, class small_scalar_type>
 matrix_type
-get_reflection_vector(matrix_type &input, double &norm_v_sqr) {
+get_reflection_vector(matrix_type &input, small_scalar_type &norm_v_sqr) {
 
-  double sigma(0.0);
+  small_scalar_type sigma(0.0);
   norm_v_sqr = 0.0;
   matrix_type reflect_vector(input.rows,1);
   for (size_t idx = 0; idx < reflect_vector.size(); idx++) {
@@ -63,10 +63,10 @@ get_reflection_vector(matrix_type &input, double &norm_v_sqr) {
   sigma = sqrt(norm_v_sqr);
 
 
-  double abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
+  small_scalar_type abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
   norm_v_sqr = 2*(norm_v_sqr + abs_val*sigma);
   if (abs_val != 0.0){
-      //double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
+      //small_scalar_type angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
       auto addend = reflect_vector[0]/abs_val*sigma;
       reflect_vector[0].real( reflect_vector[0].real() + addend.real());
       reflect_vector[0].imag( reflect_vector[0].imag() + addend.imag());
@@ -79,7 +79,7 @@ get_reflection_vector(matrix_type &input, double &norm_v_sqr) {
       return reflect_vector;
 
   // normalize the reflection matrix
-  double norm_v = std::sqrt(norm_v_sqr);
+  small_scalar_type norm_v = std::sqrt(norm_v_sqr);
   for (size_t idx=0; idx<reflect_vector.size(); idx++) {
       reflect_vector[idx] = reflect_vector[idx]/norm_v;
   }
@@ -433,7 +433,7 @@ apply_householder_cols_req(matrix_type &A, matrix_type &v) {
 @brief Reduce a general matrix to upper Hessenberg form.
 @param matrix matrix to be reduced to upper Hessenberg form. The reduced matrix is returned via this input
 */
-template<class matrix_type, class complex_type>
+template<class matrix_type, class complex_type, class small_scalar_type>
 void
 transform_matrix_to_hessenberg(matrix_type &mtx) {
 
@@ -444,8 +444,8 @@ transform_matrix_to_hessenberg(matrix_type &mtx) {
       matrix_type ref_vector_input(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, 1, mtx.stride);
 
       // get reflection matrix and its norm
-      double norm_v_sqr(0.0);
-      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type>(ref_vector_input, norm_v_sqr);
+      small_scalar_type norm_v_sqr(0.0);
+      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type, small_scalar_type>(ref_vector_input, norm_v_sqr);
 
       if (norm_v_sqr == 0.0) continue;
 
@@ -475,7 +475,7 @@ transform_matrix_to_hessenberg(matrix_type &mtx) {
 @param Lv the left sided vector
 @param Rv the roght sided vector
 */
-template<class matrix_type, class complex_type>
+template<class matrix_type, class complex_type, class small_scalar_type>
 void
 transform_matrix_to_hessenberg(matrix_type &mtx, matrix_type Lv, matrix_type Rv ) {
 
@@ -486,8 +486,8 @@ transform_matrix_to_hessenberg(matrix_type &mtx, matrix_type Lv, matrix_type Rv 
       matrix_type ref_vector_input(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, 1, mtx.stride);
 
       // get reflection matrix and its norm
-      double norm_v_sqr(0.0);
-      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type>(ref_vector_input, norm_v_sqr);
+      small_scalar_type norm_v_sqr(0.0);
+      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type, small_scalar_type>(ref_vector_input, norm_v_sqr);
 
       if (norm_v_sqr == 0.0) continue;
 
@@ -740,25 +740,25 @@ powtrace_from_charpoly(matrix_type &coeffs, size_t pow) {
 @param pow_max maximum matrix power when calculating the power trace.
 @return a vector containing the power traces of matrix `z` to power \f$1\leq j \leq l\f$.
 */
-template<class matrix_type, class complex_type>
+template<class matrix_type, class complex_type, class scalar_type, class small_matrix_type, class small_complex_type, class small_scalar_type>
 matrix_type
 calc_power_traces(matrix &AZ, size_t pow_max) {
 
     // for small matrices only the traces are casted into quad precision
     if (AZ.rows <= 10) {
 
-        transform_matrix_to_hessenberg<matrix, Complex16>(AZ);
+        transform_matrix_to_hessenberg<small_matrix_type, small_complex_type, small_scalar_type>(AZ);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        matrix&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix, Complex16>(AZ, AZ.rows);
+        small_matrix_type&& coeffs_labudde = calc_characteristic_polynomial_coeffs<small_matrix_type, small_complex_type>(AZ, AZ.rows);
 
         // calculate the power traces of the matrix AZ using LeVerrier recursion relation
-        matrix&& traces = powtrace_from_charpoly<matrix>(coeffs_labudde, pow_max);
+        small_matrix_type&& traces = powtrace_from_charpoly<small_matrix_type>(coeffs_labudde, pow_max);
 
         matrix_type traces32(traces.rows, traces.cols);
         for (size_t idx=0; idx<traces.size(); idx++) {
-            traces32[idx].real( (long double)traces[idx].real() );
-            traces32[idx].imag( (long double)traces[idx].imag() );
+            traces32[idx].real( (scalar_type)traces[idx].real() );
+            traces32[idx].imag( (scalar_type)traces[idx].imag() );
         }
 
         return traces32;
@@ -803,7 +803,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
             AZ32[idx].imag( AZ[idx].imag() );
         }
 
-        transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ32);
+        transform_matrix_to_hessenberg<matrix_type, complex_type, small_scalar_type>(AZ32);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
         matrix_type coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, complex_type>(AZ32, AZ.rows);
@@ -933,7 +933,7 @@ matrix_type
 calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_elements, matrix_type& AZ, size_t num_of_modes) {
 
     matrix_type loop_correction(num_of_modes, 1);
-    //transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ, diag_elements, cx_diag_elements);
+    //transform_matrix_to_hessenberg<matrix_type, complex_type, small_scalar_type>(AZ, diag_elements, cx_diag_elements);
 
     size_t max_idx = cx_diag_elements.size();
     matrix_type tmp_vec(1, max_idx);

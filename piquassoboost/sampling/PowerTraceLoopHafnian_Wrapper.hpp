@@ -34,7 +34,7 @@ typedef struct PowerTraceLoopHafnian_wrapper {
     /// pointer to numpy matrix to keep it alive
     PyObject *matrix = NULL;
     /// The C++ variant of class CPowerTraceLoopHafnian
-    pic::PowerTraceLoopHafnian* calculator;
+    pic::PowerTraceLoopHafnianLongDouble* calculator;
 } PowerTraceLoopHafnian_wrapper;
 
 
@@ -45,10 +45,10 @@ typedef struct PowerTraceLoopHafnian_wrapper {
 @param mean
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
-pic::PowerTraceLoopHafnian*
+pic::PowerTraceLoopHafnianLongDouble*
 create_PowerTraceLoopHafnian( pic::matrix &matrix_mtx ) {
 
-    return new pic::PowerTraceLoopHafnian(matrix_mtx);
+    return new pic::PowerTraceLoopHafnianLongDouble(matrix_mtx);
 }
 
 /**
@@ -56,7 +56,7 @@ create_PowerTraceLoopHafnian( pic::matrix &matrix_mtx ) {
 @param ptr A pointer pointing to an instance of PowerTraceLoopHafnian class.
 */
 void
-release_PowerTraceLoopHafnian( pic::PowerTraceLoopHafnian*  instance ) {
+release_PowerTraceLoopHafnian( pic::PowerTraceLoopHafnianLongDouble*  instance ) {
     if ( instance != NULL ) {
         delete instance;
     }

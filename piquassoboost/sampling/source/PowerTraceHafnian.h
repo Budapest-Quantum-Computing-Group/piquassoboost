@@ -28,6 +28,7 @@ namespace pic {
 /**
 @brief Class to calculate the hafnian of a complex matrix by the power trace method
 */
+template <class complex_type>
 class PowerTraceHafnian {
 
 protected:
@@ -95,6 +96,8 @@ virtual void ScaleMatrix();
 
 }; //PowerTraceHafnian
 
+
+using PowerTraceHafnianLongDouble = PowerTraceHafnian<Complex32>;
 
 } // PIC
 
