@@ -19,7 +19,6 @@
 
 #include "matrix.h"
 #include "matrix32.h"
-#include "InfinitePrecisionComplex.h"
 
 namespace pic {
 
