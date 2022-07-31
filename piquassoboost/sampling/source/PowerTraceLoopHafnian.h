@@ -27,8 +27,8 @@ namespace pic {
 /**
 @brief Class to calculate the loop hafnian of a complex matrix by the power trace method
 */
-template <class complex_type>
-class PowerTraceLoopHafnian : public PowerTraceHafnian<complex_type>{
+template <class small_scalar_type, class scalar_type>
+class PowerTraceLoopHafnian : public PowerTraceHafnian<small_scalar_type, scalar_type>{
 
 
 public:
@@ -83,7 +83,7 @@ virtual void ScaleMatrix();
 
 }; //PowerTraceLoopHafnian
 
-using PowerTraceLoopHafnianLongDouble = PowerTraceLoopHafnian<Complex32>;
+using PowerTraceLoopHafnianLongDouble = PowerTraceLoopHafnian<double, long double>;
 
 } // PIC
 
