@@ -50,8 +50,8 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceLoopHafnianRecursive<complex_type>::PowerTraceLoopHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in ) {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnianRecursive<small_scalar_type, scalar_type>::PowerTraceLoopHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in ) {
     assert(isSymmetric(mtx_in));
 
     this->mtx = mtx_in;
@@ -74,8 +74,8 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceLoopHafnianRecursive<complex_type>::PowerTraceLoopHafnianRecursive( matrix &mtx_in, matrix &diag_in, PicState_int64& occupancy_in ) {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnianRecursive<small_scalar_type, scalar_type>::PowerTraceLoopHafnianRecursive( matrix &mtx_in, matrix &diag_in, PicState_int64& occupancy_in ) {
     assert(isSymmetric(mtx_in));
 
 
@@ -91,8 +91,8 @@ PowerTraceLoopHafnianRecursive<complex_type>::PowerTraceLoopHafnianRecursive( ma
 /**
 @brief Destructor of the class.
 */
-template <class complex_type>
-PowerTraceLoopHafnianRecursive<complex_type>::~PowerTraceLoopHafnianRecursive() {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnianRecursive<small_scalar_type, scalar_type>::~PowerTraceLoopHafnianRecursive() {
 
 
 }
@@ -101,9 +101,9 @@ PowerTraceLoopHafnianRecursive<complex_type>::~PowerTraceLoopHafnianRecursive() 
 @brief Call to calculate the hafnian of a complex matrix
 @return Returns with the calculated hafnian
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceLoopHafnianRecursive<complex_type>::calculate() {
+PowerTraceLoopHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
 
     if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
@@ -132,7 +132,7 @@ PowerTraceLoopHafnianRecursive<complex_type>::calculate() {
 
     MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
 
-    hafnian = complex_type(0.0,0.0);
+    hafnian = cpls_select_t<scalar_type>(0.0,0.0);
     for (size_t idx=0; idx<world_size; idx++) {
         hafnian = hafnian + partial_hafnians[idx];
     }
@@ -147,7 +147,7 @@ PowerTraceLoopHafnianRecursive<complex_type>::calculate() {
     unsigned long long current_rank = 0;
     unsigned long long world_size = 1;
 
-    PowerTraceLoopHafnianRecursive_Tasks<complex_type> hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks<complex_type>(this->mtx, diag, occupancy);
+    PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type> hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>(this->mtx, diag, occupancy);
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
 
     return hafnian;
@@ -156,7 +156,7 @@ PowerTraceLoopHafnianRecursive<complex_type>::calculate() {
 
 }
 
-template class PowerTraceLoopHafnianRecursive<Complex32>;
+template class PowerTraceLoopHafnianRecursive<double, long double>;
 
 
 
@@ -179,8 +179,8 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceLoopHafnianRecursive_Tasks<complex_type>::PowerTraceLoopHafnianRecursive_Tasks( matrix &mtx_in, matrix &diag_in, PicState_int64& occupancy_in ) {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::PowerTraceLoopHafnianRecursive_Tasks( matrix &mtx_in, matrix &diag_in, PicState_int64& occupancy_in ) {
 
     assert(isSymmetric(mtx_in));
 
@@ -220,8 +220,8 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceLoopHafnianRecursive_Tasks<complex_type>::PowerTraceLoopHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in ) {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::PowerTraceLoopHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in ) {
     assert(isSymmetric(mtx_in));
 
     this->Update_mtx( mtx_in );
@@ -257,8 +257,8 @@ PowerTraceLoopHafnianRecursive_Tasks<complex_type>::PowerTraceLoopHafnianRecursi
 /**
 @brief Destructor of the class.
 */
-template <class complex_type>
-PowerTraceLoopHafnianRecursive_Tasks<complex_type>::~PowerTraceLoopHafnianRecursive_Tasks() {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::~PowerTraceLoopHafnianRecursive_Tasks() {
 }
 
 
@@ -269,10 +269,10 @@ PowerTraceLoopHafnianRecursive_Tasks<complex_type>::~PowerTraceLoopHafnianRecurs
 @param current_occupancy Current occupancy of the selected column pairs for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-template <class complex_type>
-complex_type
-PowerTraceLoopHafnianRecursive_Tasks<complex_type>::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
-
+template <class small_scalar_type, class scalar_type>
+cplx_select_t<scalar_type>
+PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
+    using complex_type = cplx_select_t<scalar_type>;
 
 //return complex_type(0.0,0.0);
     size_t num_of_modes = sum(current_occupancy);
@@ -302,7 +302,7 @@ PowerTraceLoopHafnianRecursive_Tasks<complex_type>::CalculatePartialHafnian( con
     matrix32 traces;
     matrix32 loop_corrections;
     if (num_of_modes != 0) {
-        CalcPowerTracesAndLoopCorrections(cx_diag_elements, diag_elements, B, total_num_of_modes, traces, loop_corrections);
+        CalcPowerTracesAndLoopCorrections<double, long double>(cx_diag_elements, diag_elements, B, total_num_of_modes, traces, loop_corrections);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -381,9 +381,9 @@ PowerTraceLoopHafnianRecursive_Tasks<complex_type>::CalculatePartialHafnian( con
 @brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
 @param mtx_in Input matrix defined by
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 void
-PowerTraceLoopHafnianRecursive_Tasks<complex_type>::ScaleMatrix() {
+PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::ScaleMatrix() {
 
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
     if ( this->mtx_orig.rows <= 100000) {
@@ -449,9 +449,9 @@ PowerTraceLoopHafnianRecursive_Tasks<complex_type>::ScaleMatrix() {
 @param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 matrix
-PowerTraceLoopHafnianRecursive_Tasks<complex_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
+PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
 
 
     matrix A(num_of_modes*2, num_of_modes*2);
@@ -560,9 +560,9 @@ PowerTraceLoopHafnianRecursive_Tasks<complex_type>::CreateAZ( const PicVector<ch
 @param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 matrix
-PowerTraceLoopHafnianRecursive_Tasks<complex_type>::CreateDiagElements( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes ) {
+PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateDiagElements( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes ) {
 
 
     matrix diag_elements(1, num_of_modes*2);
@@ -587,7 +587,7 @@ PowerTraceLoopHafnianRecursive_Tasks<complex_type>::CreateDiagElements( const Pi
     return diag_elements;
 }
 
-template class PowerTraceLoopHafnianRecursive_Tasks<Complex32>;
+template class PowerTraceLoopHafnianRecursive_Tasks<double, long double>;
 
 
 
