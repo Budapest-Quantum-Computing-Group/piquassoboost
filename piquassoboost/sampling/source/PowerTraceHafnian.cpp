@@ -45,8 +45,8 @@ namespace pic {
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceHafnian<complex_type>::PowerTraceHafnian() {
+template <class small_scalar_type, class scalar_type>
+PowerTraceHafnian<small_scalar_type, scalar_type>::PowerTraceHafnian() {
 
 }
 
@@ -56,8 +56,8 @@ PowerTraceHafnian<complex_type>::PowerTraceHafnian() {
 @param mtx_in A symmetric matrix for which the hafnian is calculated. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state)
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceHafnian<complex_type>::PowerTraceHafnian( matrix &mtx_in ) {
+template <class small_scalar_type, class scalar_type>
+PowerTraceHafnian<small_scalar_type, scalar_type>::PowerTraceHafnian( matrix &mtx_in ) {
     assert(isSymmetric(mtx_in));
 
     Update_mtx( mtx_in);
@@ -67,8 +67,8 @@ PowerTraceHafnian<complex_type>::PowerTraceHafnian( matrix &mtx_in ) {
 /**
 @brief Default destructor of the class.
 */
-template <class complex_type>
-PowerTraceHafnian<complex_type>::~PowerTraceHafnian() {
+template <class small_scalar_type, class scalar_type>
+PowerTraceHafnian<small_scalar_type, scalar_type>::~PowerTraceHafnian() {
 
 }
 
@@ -76,9 +76,9 @@ PowerTraceHafnian<complex_type>::~PowerTraceHafnian() {
 @brief Call to calculate the hafnian of a complex matrix
 @return Returns with the calculated hafnian
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceHafnian<complex_type>::calculate() {
+PowerTraceHafnian<small_scalar_type, scalar_type>::calculate() {
 
     if (mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
@@ -109,7 +109,7 @@ PowerTraceHafnian<complex_type>::calculate() {
 
     MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
 
-    hafnian = complex_type(0.0,0.0);
+    hafnian = cplx_select_t<scalar_type>(0.0,0.0);
     for (size_t idx=0; idx<world_size; idx++) {
         hafnian = hafnian + partial_hafnians[idx];
     }
@@ -142,10 +142,10 @@ PowerTraceHafnian<complex_type>::calculate() {
 @param max_idx The maximal indexe valuated in the exponentially large sum (used to divide calculations between MPI processes)
 @return Returns with the calculated hafnian
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceHafnian<complex_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
-
+PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
+    using complex_type = cplx_select_t<scalar_type>;
     if ( mtx.rows != mtx.cols) {
         std::cout << "The input matrix should be square shaped, bu matrix with " << mtx.rows << " rows and with " << mtx.cols << " columns was given" << std::endl;
         std::cout << "Returning zero" << std::endl;
@@ -244,7 +244,7 @@ PowerTraceHafnian<complex_type>::calculate(unsigned long long start_idx, unsigne
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
         matrix32 traces(dim_over_2, 1);
         if (number_of_ones != 0) {
-            CalcPowerTraces(B, dim_over_2, traces);
+            CalcPowerTraces<double, long double>(B, dim_over_2, traces);
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -342,14 +342,13 @@ PowerTraceHafnian<complex_type>::calculate(unsigned long long start_idx, unsigne
 }
 
 
-
 /**
 @brief Call to update the memory address of the matrix mtx
 @param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 void
-PowerTraceHafnian<complex_type>::Update_mtx( matrix &mtx_in) {
+PowerTraceHafnian<small_scalar_type, scalar_type>::Update_mtx( matrix &mtx_in) {
 
     mtx_orig = mtx_in;
 
@@ -363,9 +362,9 @@ PowerTraceHafnian<complex_type>::Update_mtx( matrix &mtx_in) {
 /**
 @brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 void
-PowerTraceHafnian<complex_type>::ScaleMatrix() {
+PowerTraceHafnian<small_scalar_type, scalar_type>::ScaleMatrix() {
 
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
     if ( mtx_orig.rows <= 10) {
@@ -395,6 +394,6 @@ PowerTraceHafnian<complex_type>::ScaleMatrix() {
 
 }
 
-template class PowerTraceHafnian<Complex32>;
+template class PowerTraceHafnian<double, long double>;
 
 } // PIC
