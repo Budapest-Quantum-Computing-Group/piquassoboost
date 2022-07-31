@@ -146,6 +146,7 @@ template <class small_scalar_type, class scalar_type>
 Complex16
 PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
     using complex_type = cplx_select_t<scalar_type>;
+    using matrix_type = mtx_select_t<complex_type>;
     if ( mtx.rows != mtx.cols) {
         std::cout << "The input matrix should be square shaped, bu matrix with " << mtx.rows << " rows and with " << mtx.cols << " columns was given" << std::endl;
         std::cout << "Returning zero" << std::endl;
@@ -217,12 +218,12 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long 
         // the elements of mtx=A indexed by the rows and colums, where the binary representation of
         // permutation_idx was 1
         // for details see the text below Eq.(3.20) of arXiv 1805.12498
-        matrix B(number_of_ones, number_of_ones);
-        double scale_factor_B = 0.0;
+        mtx_select_t<cplx_select_t<small_scalar_type>> B(number_of_ones, number_of_ones);
+        small_scalar_type scale_factor_B = 0.0;
         for (size_t idx = 0; idx < number_of_ones; idx++) {
             size_t row_offset = (positions_of_ones[idx] ^ 1)*mtx.stride;
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                Complex16& element = mtx[ row_offset + positions_of_ones[jdx]];
+                cplx_select_t<small_scalar_type> element(mtx[ row_offset + positions_of_ones[jdx]].real(), mtx[ row_offset + positions_of_ones[jdx]].imag());
                 B[idx*number_of_ones + jdx] = element;
                 scale_factor_B = scale_factor_B + element.real()*element.real() + element.imag()*element.imag();
             }
@@ -242,9 +243,9 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long 
 
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-        matrix32 traces(dim_over_2, 1);
+        matrix_type traces(dim_over_2, 1);
         if (number_of_ones != 0) {
-            CalcPowerTraces<double, long double>(B, dim_over_2, traces);
+            CalcPowerTraces<small_scalar_type, scalar_type>(B, dim_over_2, traces);
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -257,15 +258,15 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long 
 
 
         // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-        matrix32 aux0(dim_over_2 + 1, 1);
-        matrix32 aux1(dim_over_2 + 1, 1);
+        matrix_type aux0(dim_over_2 + 1, 1);
+        matrix_type aux1(dim_over_2 + 1, 1);
         memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
         memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
         aux0[0] = 1.0;
         // pointers to the auxiliary data arrays
         complex_type *p_aux0=NULL, *p_aux1=NULL;
 
-        double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
+        small_scalar_type inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
         for (size_t idx = 1; idx <= dim_over_2; idx++) {
 
 
@@ -290,7 +291,7 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long 
             memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(complex_type) );
 
             for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
-                powfactor = powfactor * factor / ((double)jdx);
+                powfactor = powfactor * factor / ((small_scalar_type)jdx);
 
                 for (size_t kdx = idx * jdx + 1; kdx <= dim_over_2 + 1; kdx++) {
                     p_aux1[kdx-1] += p_aux0[kdx-idx*jdx - 1]*powfactor;
@@ -383,7 +384,7 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::ScaleMatrix() {
 
         mtx = mtx_orig.copy();
 
-        double inverse_scale_factor = 1/scale_factor;
+        small_scalar_type inverse_scale_factor = 1/scale_factor;
 
         // scaling the matrix elements
         for (size_t idx=0; idx<mtx_orig.size(); idx++) {
