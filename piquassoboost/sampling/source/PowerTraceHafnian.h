@@ -19,7 +19,7 @@
 
 #include "matrix.h"
 #include "matrix32.h"
-
+#include "InfinitePrecisionComplex.h"
 
 namespace pic {
 
@@ -28,7 +28,7 @@ namespace pic {
 /**
 @brief Class to calculate the hafnian of a complex matrix by the power trace method
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 class PowerTraceHafnian {
 
 protected:
@@ -97,7 +97,8 @@ virtual void ScaleMatrix();
 }; //PowerTraceHafnian
 
 
-using PowerTraceHafnianLongDouble = PowerTraceHafnian<Complex32>;
+using PowerTraceHafnianLongDouble = PowerTraceHafnian<double, long double>;
+
 
 } // PIC
 
