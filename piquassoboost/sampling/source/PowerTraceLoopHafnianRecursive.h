@@ -18,6 +18,7 @@
 #define PowerTraceLoopHafnianRecursive_H
 
 #include "PowerTraceLoopHafnian.h"
+#include "PowerTraceHafnianUtilities.h"
 #include "PowerTraceHafnianRecursive.h"
 #include "PicState.h"
 #include "PicVector.hpp"
@@ -34,8 +35,8 @@ namespace pic {
 This class is an interface class betwwen the Python extension and the C++ implementation to relieve python extensions from TBB functionalities.
 (CPython does not support static objects with constructors/destructors)
 */
-template <class complex_type>
-class PowerTraceLoopHafnianRecursive : public PowerTraceLoopHafnian<complex_type> {
+template <class small_scalar_type, class scalar_type>
+class PowerTraceLoopHafnianRecursive : public PowerTraceLoopHafnian<small_scalar_type, scalar_type> {
 
 
 protected:
@@ -83,7 +84,7 @@ virtual Complex16 calculate();
 
 }; //PowerTraceLoopHafnianRecursive
 
-using PowerTraceLoopHafnianRecursiveLongDouble = PowerTraceLoopHafnianRecursive<Complex32>;
+using PowerTraceLoopHafnianRecursiveLongDouble = PowerTraceLoopHafnianRecursive<double, long double>;
 
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
@@ -92,8 +93,8 @@ using PowerTraceLoopHafnianRecursiveLongDouble = PowerTraceLoopHafnianRecursive<
 @brief Class to calculate the loop hafnian of a complex matrix by a recursive power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
 purpose loop hafnian calculator. This algorithm accounts for the repeated occupancy in the covariance matrix.
 */
-template <class complex_type>
-class PowerTraceLoopHafnianRecursive_Tasks : public PowerTraceHafnianRecursive_Tasks<complex_type> {
+template <class small_scalar_type, class scalar_type>
+class PowerTraceLoopHafnianRecursive_Tasks : public PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type> {
 
 protected:
     /// The diagonal elements of the input matrix
@@ -138,7 +139,7 @@ protected:
 @param current_occupancy Current occupancy of the selected column pairs for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-complex_type CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
+cplx_select_t<scalar_type> CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
 
 
 /**
