@@ -51,8 +51,8 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceHafnianRecursive<complex_type>::PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in ) {
+template <class small_scalar_type, class scalar_type>
+PowerTraceHafnianRecursive<small_scalar_type, scalar_type>::PowerTraceHafnianRecursive( matrix &mtx_in, PicState_int64& occupancy_in ) {
     assert(isSymmetric(mtx_in));
 
     this->mtx = mtx_in;
@@ -64,8 +64,8 @@ PowerTraceHafnianRecursive<complex_type>::PowerTraceHafnianRecursive( matrix &mt
 /**
 @brief Destructor of the class.
 */
-template <class complex_type>
-PowerTraceHafnianRecursive<complex_type>::~PowerTraceHafnianRecursive() {
+template <class small_scalar_type, class scalar_type>
+PowerTraceHafnianRecursive<small_scalar_type, scalar_type>::~PowerTraceHafnianRecursive() {
 
 
 }
@@ -74,9 +74,9 @@ PowerTraceHafnianRecursive<complex_type>::~PowerTraceHafnianRecursive() {
 @brief Call to calculate the hafnian of a complex matrix
 @return Returns with the calculated hafnian
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceHafnianRecursive<complex_type>::calculate() {
+PowerTraceHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
 
     if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
@@ -105,7 +105,7 @@ PowerTraceHafnianRecursive<complex_type>::calculate() {
 
     MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
 
-    hafnian = complex_type(0.0,0.0);
+    hafnian = cplx_select_t<scalar_type>(0.0,0.0);
     for (size_t idx=0; idx<world_size; idx++) {
         hafnian = hafnian + partial_hafnians[idx];
     }
@@ -120,7 +120,7 @@ PowerTraceHafnianRecursive<complex_type>::calculate() {
     unsigned long long current_rank = 0;
     unsigned long long world_size = 1;
 
-    PowerTraceHafnianRecursive_Tasks<complex_type> hafnian_calculator = PowerTraceHafnianRecursive_Tasks<complex_type>(this->mtx, occupancy);
+    PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type> hafnian_calculator = PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>(this->mtx, occupancy);
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
 
     return hafnian;
@@ -129,7 +129,7 @@ PowerTraceHafnianRecursive<complex_type>::calculate() {
 
 }
 
-template class PowerTraceHafnianRecursive<Complex32>;
+template class PowerTraceHafnianRecursive<double, long double>;
 
 
 
@@ -143,8 +143,8 @@ template class PowerTraceHafnianRecursive<Complex32>;
 @brief Nullary constructor of the class.
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceHafnianRecursive_Tasks<complex_type>::PowerTraceHafnianRecursive_Tasks() {
+template <class small_scalar_type, class scalar_type>
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::PowerTraceHafnianRecursive_Tasks() {
 
     // set the maximal number of spawned tasks living at the same time
     max_task_num = 300;
@@ -166,8 +166,8 @@ The \f$ 2*i \f$-th and  \f$ (2*i+1) \f$-th rows and columns are repeated occupan
 (The matrix mtx itself does not contain any repeated rows and column.)
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceHafnianRecursive_Tasks<complex_type>::PowerTraceHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in ) {
+template <class small_scalar_type, class scalar_type>
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::PowerTraceHafnianRecursive_Tasks( matrix &mtx_in, PicState_int64& occupancy_in ) {
 
     this->Update_mtx( mtx_in );
 
@@ -199,8 +199,8 @@ PowerTraceHafnianRecursive_Tasks<complex_type>::PowerTraceHafnianRecursive_Tasks
 /**
 @brief Destructor of the class.
 */
-template <class complex_type>
-PowerTraceHafnianRecursive_Tasks<complex_type>::~PowerTraceHafnianRecursive_Tasks() {
+template <class small_scalar_type, class scalar_type>
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::~PowerTraceHafnianRecursive_Tasks() {
     delete task_count_mutex;
 }
 
@@ -208,9 +208,9 @@ PowerTraceHafnianRecursive_Tasks<complex_type>::~PowerTraceHafnianRecursive_Task
 @brief Call to calculate the hafnian of a complex matrix
 @return Returns with the calculated hafnian
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceHafnianRecursive_Tasks<complex_type>::calculate() {
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::calculate() {
 
     // number of modes spanning the gaussian state
     size_t num_of_modes = occupancy.size();
@@ -229,9 +229,9 @@ PowerTraceHafnianRecursive_Tasks<complex_type>::calculate() {
 @param max_idx The maximal indexe valuated in the exponentially large sum (used to divide calculations between MPI processes)
 @return Returns with the calculated hafnian
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceHafnianRecursive_Tasks<complex_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
 
     if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
@@ -313,7 +313,7 @@ PowerTraceHafnianRecursive_Tasks<complex_type>::calculate(unsigned long long sta
     tg.wait();
 
 
-    complex_type hafnian( 0.0, 0.0 );
+    cplx_select_t<scalar_type> hafnian( 0.0, 0.0 );
     priv_addend.combine_each([&](ComplexM<long double> &a) {
         hafnian = hafnian + a.get();
     });
@@ -345,9 +345,9 @@ PowerTraceHafnianRecursive_Tasks<complex_type>::calculate(unsigned long long sta
 @param priv_addend Therad local storage for the partial hafnians
 @param tg Reference to a tbb::task_group
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 void
-PowerTraceHafnianRecursive_Tasks<complex_type>::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg ) {
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg ) {
 
 
     // spawn iteration over the next mode if available
@@ -457,7 +457,7 @@ std::cout << std::endl;
 
 
     // calculate the partial hafnian for the given filling factors of the selected occupancy
-    complex_type partial_hafnian = CalculatePartialHafnian( selected_modes, current_occupancy);
+    cplx_select_t<scalar_type> partial_hafnian = CalculatePartialHafnian( selected_modes, current_occupancy);
 
     // add partial hafnian to the sum including the combinatorial factors
     unsigned long long combinatorial_fact = 1;
@@ -485,10 +485,10 @@ std::cout << std::endl;
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated partial hafnian
 */
-template <class complex_type>
-complex_type
-PowerTraceHafnianRecursive_Tasks<complex_type>::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
-
+template <class small_scalar_type, class scalar_type>
+cplx_select_t<scalar_type>
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
+    using complex_type = cplx_select_t<scalar_type>;
 
     size_t num_of_modes = sum(current_occupancy);
     size_t total_num_of_modes = sum(occupancy);
@@ -505,7 +505,7 @@ PowerTraceHafnianRecursive_Tasks<complex_type>::CalculatePartialHafnian( const P
     matrix32 traces(total_num_of_modes, 1);
     if (num_of_modes != 0) {
         //traces = calc_power_traces<matrix32, complex_type>(B, total_num_of_modes);
-        CalcPowerTraces(B, total_num_of_modes, traces);
+        CalcPowerTraces<double, long double>(B, total_num_of_modes, traces);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -588,9 +588,9 @@ PowerTraceHafnianRecursive_Tasks<complex_type>::CalculatePartialHafnian( const P
 @param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 matrix
-PowerTraceHafnianRecursive_Tasks<complex_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
 
 
 //std::cout << "A" << std::endl;
@@ -694,14 +694,14 @@ PowerTraceHafnianRecursive_Tasks<complex_type>::CreateAZ( const PicVector<char>&
 /**
 @brief Call to scale the input matrix according to according to Eq (2.11) of in arXiv 1805.12498
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 void
-PowerTraceHafnianRecursive_Tasks<complex_type>::ScaleMatrix() {
-    PowerTraceHafnian<complex_type>::ScaleMatrix();
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::ScaleMatrix() {
+    PowerTraceHafnian<small_scalar_type, scalar_type>::ScaleMatrix();
 
 }
 
-template class PowerTraceHafnianRecursive_Tasks<Complex32>;
+template class PowerTraceHafnianRecursive_Tasks<double, long double>;
 
 
 
