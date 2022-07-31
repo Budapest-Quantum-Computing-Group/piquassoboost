@@ -43,8 +43,8 @@ namespace pic {
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceLoopHafnian<complex_type>::PowerTraceLoopHafnian() : PowerTraceHafnian<complex_type>() {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::PowerTraceLoopHafnian() : PowerTraceHafnian<small_scalar_type, scalar_type>() {
 
 }
 
@@ -53,8 +53,8 @@ PowerTraceLoopHafnian<complex_type>::PowerTraceLoopHafnian() : PowerTraceHafnian
 @param mtx_in A symmetric matrix for which the hafnian is calculated. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
 @return Returns with the instance of the class.
 */
-template <class complex_type>
-PowerTraceLoopHafnian<complex_type>::PowerTraceLoopHafnian( matrix &mtx_in ) {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::PowerTraceLoopHafnian( matrix &mtx_in ) {
 #ifdef DEBUG
     assert(isSymmetric(mtx_in));
 #endif
@@ -87,9 +87,9 @@ PowerTraceLoopHafnian<complex_type>::PowerTraceLoopHafnian( matrix &mtx_in ) {
 @brief Call to calculate the hafnian of a complex matrix stored in the instance of the class
 @return Returns with the calculated hafnian
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceLoopHafnian<complex_type>::calculate() {
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate() {
 
     if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
@@ -153,10 +153,10 @@ PowerTraceLoopHafnian<complex_type>::calculate() {
 @param max_idx The maximal indexe valuated in the exponentially large sum (used to divide calculations between MPI processes)
 @return Returns with the calculated hafnian
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceLoopHafnian<complex_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
-
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
+    using complex_type = cplx_select_t<scalar_type>;
 
     if ( this->mtx.rows != this->mtx.cols) {
         std::cout << "The input matrix should be square shaped, bu matrix with " << this->mtx.rows << " rows and with " << this->mtx.cols << " columns was given" << std::endl;
@@ -252,7 +252,7 @@ PowerTraceLoopHafnian<complex_type>::calculate(unsigned long long start_idx, uns
         matrix32 traces;
         matrix32 loop_corrections;
         if (number_of_ones != 0) {
-            CalcPowerTracesAndLoopCorrections(cx_diag_elements, diag_elements, AZ, dim_over_2, traces, loop_corrections);
+            CalcPowerTracesAndLoopCorrections<double, long double>(cx_diag_elements, diag_elements, AZ, dim_over_2, traces, loop_corrections);
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -359,9 +359,9 @@ PowerTraceLoopHafnian<complex_type>::calculate(unsigned long long start_idx, uns
 @brief Call to update the memory address of the matrix mtx
 @param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 void
-PowerTraceLoopHafnian<complex_type>::Update_mtx( matrix &mtx_in) {
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::Update_mtx( matrix &mtx_in) {
 
     this->mtx_orig = mtx_in;
 
@@ -376,9 +376,9 @@ PowerTraceLoopHafnian<complex_type>::Update_mtx( matrix &mtx_in) {
 /**
 @brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
 */
-template <class complex_type>
+template <class small_scalar_type, class scalar_type>
 void
-PowerTraceLoopHafnian<complex_type>::ScaleMatrix() {
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::ScaleMatrix() {
 
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
     if ( this->mtx_orig.rows <= 10) {
@@ -418,6 +418,6 @@ PowerTraceLoopHafnian<complex_type>::ScaleMatrix() {
 
 }
 
-template class PowerTraceLoopHafnian<Complex32>;
+template class PowerTraceLoopHafnian<double, long double>;
 
 } // PIC
