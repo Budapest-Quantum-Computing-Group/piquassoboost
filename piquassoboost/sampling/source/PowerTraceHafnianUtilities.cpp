@@ -311,6 +311,7 @@ transform_matrix_to_hessenberg(mtx_select_t<cplx_select_t<small_scalar_type>> &m
 }
 
 
+
 /**
 @brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$
 and a loop corrections in Eq (3.26) of arXiv1805.12498
@@ -396,8 +397,109 @@ CalcPowerTraces( mtx_select_t<cplx_select_t<small_scalar_type>>& AZ, size_t pow_
 }
 
 template void
+CalcPowerTraces<double, double>( mtx_select_t<cplx_select_t<double>>& AZ, size_t pow_max, mtx_select_t<cplx_select_t<double>> &traces32);
+
+template void
 CalcPowerTraces<double, long double>( mtx_select_t<cplx_select_t<double>>& AZ, size_t pow_max, mtx_select_t<cplx_select_t<long double>> &traces32);
 
+template<> void
+CalcPowerTraces<long double, long double>( mtx_select_t<cplx_select_t<long double>>& AZ, size_t pow_max, mtx_select_t<cplx_select_t<long double>> &traces32)
+{
+    using matrix_type = mtx_select_t<cplx_select_t<long double>>;
+    matrix_type AZ32( AZ.rows, AZ.cols);
+    for (size_t idx=0; idx<AZ.size(); idx++) {
+        AZ32[idx].real( AZ[idx].real() );
+        AZ32[idx].imag( AZ[idx].imag() );
+    }
+
+
+    transform_matrix_to_hessenberg<matrix_type, cplx_select_t<long double>, long double>(AZ32);
+
+    // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
+    matrix_type coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, cplx_select_t<long double>>(AZ32, AZ.rows);
+
+    // calculate the power traces of the matrix AZ using LeVerrier recursion relation
+    traces32 = powtrace_from_charpoly<matrix_type>(coeffs_labudde, pow_max);
+}
+
+template<>
+void
+transform_matrix_to_hessenberg<mtx_select_t<cplx_select_t<RationalInf>>, cplx_select_t<RationalInf>, RationalInf>(mtx_select_t<cplx_select_t<RationalInf>> &AZ) {
+    using complex_type = cplx_select_t<RationalInf>;
+    complex_type* AZdata = AZ.get_data();
+    size_t i = 0;    
+    while (i + 3 <= AZ.cols) {
+        if (AZdata[(i+1)*AZ.stride+i] == 0) {
+            size_t j;
+            for (j = i+2; j < AZ.rows; j++) {
+                if (AZdata[j*AZ.stride+i] != 0) break;
+            }
+            if (j == AZ.rows) break;
+            for (size_t k = 0; k < AZ.rows; k++) {
+                std::swap(AZdata[k*AZ.stride+i+1], AZdata[k*AZ.stride+j]);
+            }
+            for (size_t k = 0; k < AZ.cols; k++) {
+                std::swap(AZdata[(i+1)*AZ.stride+k], AZdata[j*AZ.stride+k]);
+            }
+        }
+        for (size_t k = i+2; k < AZ.rows; k++) {
+            complex_type a = AZdata[k*AZ.stride+i] / AZdata[(i+1)*AZ.stride+i];
+            for (size_t j = 0; j < AZ.cols; j++) {
+                AZdata[k*AZ.stride+j] -= a * AZdata[(i+1)*AZ.stride+j];                
+            }
+            for (size_t j = 0; j < AZ.rows; j++) {
+                AZdata[j*AZ.stride+i+1] += a * AZdata[j*AZ.stride+k];
+            }
+        }
+        i++;
+    }
+}
+#define USE_MATMUL_INFPREC
+template<> void
+CalcPowerTraces<RationalInf, RationalInf>( mtx_select_t<cplx_select_t<RationalInf>>& AZ, size_t pow_max, mtx_select_t<cplx_select_t<RationalInf>> &traces32) {
+    using complex_type = cplx_select_t<RationalInf>;
+    using matrix_type = mtx_select_t<complex_type>;
+    matrix_type AZnew( AZ.rows, AZ.cols);
+    complex_type* AZdata = AZ.get_data();
+    complex_type* AZnewdata = AZnew.get_data();
+    std::uninitialized_copy_n(AZdata, AZ.size(), AZnewdata);
+    std::uninitialized_fill_n(traces32.get_data(), traces32.rows*traces32.cols, complex_type(0.0, 0.0));
+#ifdef USE_MATMUL_INFPREC
+    matrix_type AZ32( AZ.rows, AZ.cols);
+    complex_type* AZ32data = AZ32.get_data();
+    std::uninitialized_fill_n(AZ32data, AZ32.size(), complex_type(0.0, 0.0));
+    for (size_t n = 0; n < traces32.size(); n++) {
+        for (size_t i = 0; i < AZ.rows; i++) {
+            traces32[n] += AZnewdata[i*AZnew.stride+i];
+        }
+        //traces32[n].real().num.print(); printf(" "); traces32[n].imag().num.print();
+        if (n == traces32.size()-1) break;
+        complex_type* swap = AZ32data;
+        AZ32data = AZnewdata;
+        AZnewdata = swap;
+        std::fill_n(AZnewdata, AZnew.size(), complex_type(0.0, 0.0));
+        for (size_t i = 0; i < AZ.rows; i++) {
+            for (size_t j = 0; j < AZ.cols; j++) {
+                for (size_t k = 0; k < AZ32.cols; k++) {
+                    AZnewdata[i*AZnew.stride+k] += AZ32data[i*AZ32.stride+j] * AZdata[j*AZ.stride+k];
+                }
+            }
+        }
+    }
+    for (size_t i = AZ32.size(); i != 0; i--) AZ32[i-1].~complex_type();
+#else
+    transform_matrix_to_hessenberg<matrix_type, complex_type, RationalInf>(AZnew);
+
+    // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
+    matrix_type coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, complex_type>(AZnew, AZ.rows);
+    //for (size_t i = coeffs_labudde.size(); i != 0; i--) coeffs_labudde[i-1].normalize();
+
+    // calculate the power traces of the matrix AZ using LeVerrier recursion relation
+    traces32 = powtrace_from_charpoly<matrix_type>(coeffs_labudde, pow_max);
+    for (size_t i = coeffs_labudde.size(); i != 0; i--) coeffs_labudde[i-1].~complex_type();
+#endif
+    for (size_t i = AZnew.size(); i != 0; i--) AZnew[i-1].~complex_type();
+}
 
 /**
 @brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$
