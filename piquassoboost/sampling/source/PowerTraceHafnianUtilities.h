@@ -29,7 +29,7 @@
 #include "matrix32.h"
 
 #include "dot.h"
-
+#include "InfinitePrecisionComplex.h"
 
 extern "C" {
 
@@ -52,9 +52,14 @@ template <> class complex_selector<long double> {
 public:
     typedef Complex32 cplx_type;
 };
-/*template <> class complex_selector<FloatInf> {
+template <> class complex_selector<FloatInf> {
+public:
     typedef ComplexInf cplx_type;
-};*/
+};
+template <> class complex_selector<RationalInf> {
+public:
+    typedef ComplexRationalInf cplx_type;
+};
 template <class T>
 using cplx_select_t = typename complex_selector<T>::cplx_type;
 
@@ -67,9 +72,14 @@ template <> class matrix_selector<Complex32> {
 public:
     typedef matrix32 mat_type;
 };
-/*template <> class matrix_selector<ComplexInf> {
+template <> class matrix_selector<ComplexInf> {
+public:
     typedef matrix_base<ComplexInf> mat_type;
-};*/ 
+}; 
+template <> class matrix_selector<ComplexRationalInf> {
+public:
+    typedef matrix_base<ComplexRationalInf> mat_type;
+}; 
 template <class T>
 using mtx_select_t = typename matrix_selector<T>::mat_type;
 
