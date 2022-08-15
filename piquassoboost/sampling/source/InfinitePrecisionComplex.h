@@ -393,6 +393,16 @@ public:
         //num *= f.num; denom *= f.denom; //normalize();
         return *this;
     }
+    RationalInf& operator/=(const RationalInf &f) {
+        FloatInf gcd1 = compute_gcd(num, f.num);
+        FloatInf gcd2 = compute_gcd(f.denom, denom);
+        num /= gcd1; num *= f.denom/gcd2;
+        denom /= gcd2; denom *= f.num/gcd1;
+        return *this;
+    }
+    RationalInf& operator/=(const double d) {
+        return *this /= RationalInf(d);
+    }
     RationalInf operator*(const RationalInf& f) const {
         FloatInf gcd1 = compute_gcd(num, f.denom);
         FloatInf gcd2 = compute_gcd(f.num, denom);
@@ -458,16 +468,22 @@ public:
     static FloatInf compute_gcd(FloatInf a, FloatInf b)
     {
         //https://en.wikipedia.org/wiki/Binary_GCD_algorithm
-        if (a.isZero()) return b;
-        else if (b.isZero()) return a;
         if (a.getSignBit()) a = -a;
         if (b.getSignBit()) b = -b;
+        if (a.isZero()) return b;
+        else if (b.isZero()) return a;
         int i = a.getFractionBits(), j = b.getFractionBits();
         a.setExponent(a.getExponent() + i);
         b.setExponent(b.getExponent() + j);
         int k = std::max(i, j);
         while (true) {
-            if (a > b) std::swap(a, b);
+            if (a > b) {
+                std::swap(a, b);
+                if (a.getMantBits() == 1 && a.getExponent() == 1) {
+                    a.setExponent(a.getExponent() - k);
+                    return a;
+                }
+            }
             b -= a;
             if (b.isZero()) {
                 a.setExponent(a.getExponent() - k);
@@ -585,6 +601,11 @@ public:
         RIMAGPART(*this) = std::move(p);
         return *this;
     }
+    ComplexRationalInf& operator/=(const double d) {
+        RREALPART(*this) /= d;
+        RIMAGPART(*this) /= d;
+        return *this;
+    }
     ComplexRationalInf operator+(const ComplexRationalInf& f)
     {
         return ComplexRationalInf(RREALPART(*this) + RREALPARTC(f), RIMAGPART(*this) + RIMAGPARTC(f));
@@ -595,6 +616,7 @@ public:
     }
     ComplexRationalInf operator*(const ComplexRationalInf& f)
     {
+        //ac-bd+((a+b)(c+d)-ac-bd)i
         RationalInf ac = RREALPART(*this) * RREALPARTC(f);
         RationalInf bd = RIMAGPART(*this) * RIMAGPARTC(f);
         RationalInf p = RREALPART(*this) + RIMAGPART(*this);
