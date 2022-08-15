@@ -545,7 +545,8 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
 
     // allocate memory for the coefficients c_k of p(\lambda)
     matrix_type coeffs(dim, dim);
-    memset(coeffs.get_data(), 0, dim*dim*sizeof(complex_type));
+
+    std::uninitialized_fill_n(coeffs.get_data(), dim*dim, complex_type(0.0, 0.0));
 
 
     // c^(1)_1 = -\alpha_1
@@ -557,14 +558,15 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
     // c^(2)_2 = \alpha_1\alpha_2 - h_{12}\beta_2
     coeffs[dim+1] =  mtx[0]*mtx[dim+1] - mtx[1]*mtx[dim];
 
+    matrix_type beta_prods(highest_order,1);
+    std::uninitialized_fill_n(beta_prods.get_data(), highest_order, complex_type(0.0, 0.0));
     // for (i=3:k do)
     for (size_t idx=2; idx<=highest_order-1; idx++) {
         // i = idx + 1
 
         // calculate the products of matrix elements \beta_i
         // the n-th (0<=n<=idx-2) element of the arary stands for:
-        // beta_prods[n] = \beta_i * \beta_i-1 * ... * \beta_{i-n}
-        matrix_type beta_prods(idx,1);
+        // beta_prods[n] = \beta_i * \beta_i-1 * ... * \beta_{i-n}        
         beta_prods[0] = mtx[idx*dim + idx-1];
         for (size_t prod_idx=1; prod_idx<=idx-1; prod_idx++) {
             beta_prods[prod_idx] = beta_prods[prod_idx-1] * mtx[(idx-prod_idx)*dim + (idx-prod_idx-1)];
@@ -585,15 +587,16 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
                 // m = mdx
 
                 // sum = sum + h_{i-m, i} * beta_prod * c^{(i-m-1)}_{j-m-1}
-                sum = sum + mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
+                sum += mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
 
             }
 
             // sum = sum + h_{i-j+1,i} * \beta_prod
-            sum = sum + mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
+            sum += mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
 
             // c^(i)_j = c^(i-1)_j - \alpha_i*c^(i-1)_{j-1} - sum
             coeffs[idx*dim+jdx] = coeffs[(idx-1)*dim+jdx] - mtx[idx*dim+idx] * coeffs[(idx-1)*dim + jdx-1] - sum;
+            
         }
 
         // sum = \sum_^{i-2}{m=1} h_{i-m,i} \beta_i*...*\beta_{i-m+1} c^{(i-m-1)}_{i-m-1}  - h_{1,i}* beta_i*...*beta_{2}
@@ -604,11 +607,11 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
             // m = mdx
 
             // sum = sum + h_{i-m, i} * beta_prod * c^{(i-m-1)}_{j-m-1}
-            sum = sum + mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + idx-mdx-1];
+            sum += mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + idx-mdx-1];
         }
 
         // c^(i)_i = -\alpha_i c^{(i-1)}_{i-1} - sum
-        coeffs[idx*dim+idx] = -mtx[idx*dim+idx]*coeffs[(idx-1)*dim+idx-1] - sum - mtx[idx]*beta_prods[beta_prods.size()-1];
+        coeffs[idx*dim+idx] = -mtx[idx*dim+idx]*coeffs[(idx-1)*dim+idx-1] - sum - mtx[idx]*beta_prods[idx-1];
 
     }
 
@@ -624,7 +627,6 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
         // beta_prods[n] = \beta_i * \beta_i-1 * ... * \beta_{i-n}
 
         if (highest_order >= 2) {
-            matrix_type beta_prods(idx,1);
             beta_prods[0] = mtx[idx*dim + idx-1];
             for (size_t prod_idx=1; prod_idx<=idx-1; prod_idx++) {
                 beta_prods[prod_idx] = beta_prods[prod_idx-1] * mtx[(idx-prod_idx)*dim + (idx-prod_idx-1)];
@@ -642,21 +644,21 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
                     // m = mdx
 
                     // sum = sum + h_{i-m, i} * beta_prod * c^{(i-m-1)}_{j-m-1}
-                    sum = sum + mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
+                    sum += mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
 
                 }
 
                 // sum = sum + h_{i-j+1,i} * \beta_prod
-                sum = sum + mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
+                sum += mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
 
                 // c^(i)_j = c^(i-1)_j - \alpha_i*c^(i-1)_{j-1} - sum
                 coeffs[idx*dim+jdx] = coeffs[(idx-1)*dim+jdx] - mtx[idx*dim+idx] * coeffs[(idx-1)*dim + jdx-1] - sum;
             }
 
 
-
          }
     }
+    for (size_t i = beta_prods.size(); i != 0; i--) beta_prods[i-1].~complex_type();
 
 
     return coeffs;
@@ -688,6 +690,7 @@ powtrace_from_charpoly(matrix_type &coeffs, size_t pow) {
 
     // allocate memory for the power traces
     matrix_type traces(pow,1);
+    std::uninitialized_fill_n(traces.get_data(), pow, 0.0);    
 
 
     // Tr(A) = -c1
