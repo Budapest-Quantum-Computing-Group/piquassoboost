@@ -24,6 +24,11 @@
 #include "PowerTraceHafnian.h"
 #include "numpy_interface.h"
 
+#define Hybrid 0
+#define Double 1
+#define LongDouble 2
+#define InfPrec 3
+
 /**
 This file contains the implementation of the python wrapper object for the C++ class PowerTraceHafnian_wrapper.
 It is included by the file Boson_Sampling_Utilities_wrapper.cpp
@@ -34,10 +39,16 @@ It is included by the file Boson_Sampling_Utilities_wrapper.cpp
 */
 typedef struct PowerTraceHafnian_wrapper {
     PyObject_HEAD
+    int lib;
     /// pointer to numpy matrix to keep it alive
     PyObject *matrix = NULL;
     /// The C++ variant of class CPowerTraceHafnian
-    pic::PowerTraceHafnianLongDouble* calculator;
+    union {
+        pic::PowerTraceHafnianHybrid* calculator;
+        pic::PowerTraceHafnianDouble* calculatorDouble;
+        pic::PowerTraceHafnianLongDouble* calculatorLongDouble;
+        pic::PowerTraceHafnianInf* calculatorInf;
+    };
 } PowerTraceHafnian_wrapper;
 
 
@@ -46,10 +57,10 @@ typedef struct PowerTraceHafnian_wrapper {
 @param matrix_mtx The matrix for which the hafnain should be calculated
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
-pic::PowerTraceHafnianLongDouble*
+pic::PowerTraceHafnianHybrid*
 create_PowerTraceHafnian( pic::matrix &matrix_mtx ) {
 
-    return new pic::PowerTraceHafnianLongDouble(matrix_mtx);
+    return new pic::PowerTraceHafnianHybrid(matrix_mtx);
 }
 
 /**
@@ -57,7 +68,7 @@ create_PowerTraceHafnian( pic::matrix &matrix_mtx ) {
 @param ptr A pointer pointing to an instance of PowerTraceHafnian class.
 */
 void
-release_PowerTraceHafnian( pic::PowerTraceHafnianLongDouble*  instance ) {
+release_PowerTraceHafnian( pic::PowerTraceHafnianHybrid*  instance ) {
     if ( instance != NULL ) {
         delete instance;
     }
@@ -83,7 +94,14 @@ PowerTraceHafnian_wrapper_dealloc(PowerTraceHafnian_wrapper *self)
 {
 
     // deallocate the instance of class N_Qubit_Decomposition
-    release_PowerTraceHafnian( self->calculator );
+    if (self->lib == Hybrid)
+        release_PowerTraceHafnian( self->calculator );
+    else if (self->lib == Double)
+        delete self->calculatorDouble;
+    else if (self->lib == LongDouble)
+        delete self->calculatorLongDouble;
+    else if (self->lib == InfPrec)
+        delete self->calculatorInf;
 
     // release numpy arrays
     Py_DECREF(self->matrix);
@@ -119,14 +137,14 @@ static int
 PowerTraceHafnian_wrapper_init(PowerTraceHafnian_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"matrix", NULL};
+    static char *kwlist[] = {(char*)"lib", (char*)"matrix", NULL};
 
     // initiate variables for input arguments
     PyObject *matrix_arg = NULL;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,
-                                     &matrix_arg))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iO", kwlist,
+                                     &self->lib, &matrix_arg))
         return -1;
 
     // convert python object array to numpy C API array
@@ -146,8 +164,18 @@ PowerTraceHafnian_wrapper_init(PowerTraceHafnian_wrapper *self, PyObject *args, 
     pic::matrix matrix_mtx = numpy2matrix(self->matrix);
 
     // create instance of class PowerTraceHafnian
-    self->calculator = create_PowerTraceHafnian( matrix_mtx );
-
+    if (self->lib == Hybrid)
+        self->calculator = create_PowerTraceHafnian( matrix_mtx );
+    else if (self->lib == Double)
+        self->calculatorDouble = new pic::PowerTraceHafnianDouble(matrix_mtx);
+    else if (self->lib == LongDouble)
+        self->calculatorLongDouble = new pic::PowerTraceHafnianLongDouble(matrix_mtx);
+    else if (self->lib == InfPrec)
+        self->calculatorInf = new pic::PowerTraceHafnianInf(matrix_mtx);
+    else {
+        PyErr_SetString(PyExc_Exception, "Wrong value set for hafnian library.");
+        return -1;
+    }
     return 0;
 }
 
