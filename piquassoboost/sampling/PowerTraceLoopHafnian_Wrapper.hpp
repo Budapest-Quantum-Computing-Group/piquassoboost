@@ -135,14 +135,14 @@ static int
 PowerTraceLoopHafnian_wrapper_init(PowerTraceLoopHafnian_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"matrix", NULL};
+    static char *kwlist[] = {(char*)"lib", (char*)"matrix", NULL};
 
     // initiate variables for input arguments
     PyObject *matrix_arg = NULL;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,
-                                     &matrix_arg))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iO", kwlist,
+                                     &self->lib, &matrix_arg))
         return -1;
 
     // convert python object array to numpy C API array
