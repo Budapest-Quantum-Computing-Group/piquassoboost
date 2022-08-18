@@ -281,8 +281,9 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
 
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2 and loop corrections
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-        matrix_type traces;
-        matrix_type loop_corrections;
+        matrix_type traces(dim_over_2, 1);
+        matrix_type loop_corrections(dim_over_2, 1);
+
 #ifndef GLYNN
         if (number_of_ones != 0) {
 #endif
@@ -294,8 +295,10 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
             // this occurs once during the calculations
             traces = matrix_type(dim_over_2, 1);
             loop_corrections = matrix_type(dim_over_2, 1);
-            memset( traces.get_data(), 0.0, traces.size()*sizeof(complex_type));
-            memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(complex_type));
+            //memset( traces.get_data(), 0.0, traces.size()*sizeof(complex_type));
+            std::uninitialized_fill_n(traces.get_data(), traces.rows*traces.cols, complex_type(0.0, 0.0));
+            //memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(complex_type));
+            std::uninitialized_fill_n(loop_corrections.get_data(), loop_corrections.rows*loop_corrections.cols, complex_type(0.0, 0.0));
         }
 #endif
 
@@ -304,8 +307,10 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
         // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
         matrix_type aux0(dim_over_2 + 1, 1);
         matrix_type aux1(dim_over_2 + 1, 1);
-        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
-        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
+        //memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
+        //memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
+        std::uninitialized_fill_n(aux0.get_data(), dim_over_2 + 1, complex_type(0.0, 0.0));
+        std::uninitialized_fill_n(aux1.get_data(), dim_over_2 + 1, complex_type(0.0, 0.0));        
         aux0[0] = 1.0;
         // pointers to the auxiliary data arrays
         complex_type *p_aux0=NULL, *p_aux1=NULL;
@@ -332,7 +337,8 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
                 p_aux1 = aux0.get_data();
             }
 
-            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(complex_type) );
+            //memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(complex_type) );
+            std::copy_n(p_aux0, dim_over_2+1, p_aux1);
 
             for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
                 powfactor *= factor / ((scalar_type)jdx);
@@ -357,13 +363,18 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
 //std::cout << p_aux1[dim_over_2] << std::endl;
         }
 
+        for (size_t n = aux0.size(); n > 0; --n) aux0[n-1].~complex_type();
+        for (size_t n = aux1.size(); n > 0; --n) aux1[n-1].~complex_type();
+        for (size_t n = traces.size(); n > 0; --n) traces[n-1].~complex_type();
+        for (size_t n = loop_corrections.size(); n > 0; --n) loop_corrections[n-1].~complex_type();
+        for (size_t n = AZ.size(); n > 0; --n) AZ[n-1].~cplx_select_t<small_scalar_type>();
 
 
     });
 
     // the resulting Hafnian of matrix mat
     complex_type res(0,0);
-    summands.combine_each([&res](complex_type a) {
+    summands.combine_each([&res](const complex_type& a) {
         res += a;
     });
 
@@ -457,11 +468,6 @@ template class PowerTraceLoopHafnian<double, double>;
 template class PowerTraceLoopHafnian<double, long double>;
 template class PowerTraceLoopHafnian<long double, long double>;
 
-template <>
-Complex16
-PowerTraceLoopHafnian<RationalInf, RationalInf>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
-    return 0;
-}
 template <>
 void
 PowerTraceLoopHafnian<RationalInf, RationalInf>::ScaleMatrix() {
