@@ -703,8 +703,10 @@ transform_matrix_to_hessenberg<mtx_select_t<cplx_select_t<RationalInf>>, cplx_se
             for (size_t j = 0; j < AZ.rows; j++) {
                 AZdata[j*AZ.stride+i+1] += a * AZdata[j*AZ.stride+k];
             }
+            //apply to Lv and Rv
+            Rv[k] -= a * Rv[i+1];
+            Lv[i+1] += a * Lv[k];
         }
-        //apply to Lv and Rv
         i++;
     }
 }
