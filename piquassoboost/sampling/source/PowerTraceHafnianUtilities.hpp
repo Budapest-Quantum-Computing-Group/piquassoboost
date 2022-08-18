@@ -936,10 +936,12 @@ matrix_type
 calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_elements, matrix_type& AZ, size_t num_of_modes) {
 
     matrix_type loop_correction(num_of_modes, 1);
+    std::uninitialized_fill_n(loop_correction.get_data(), num_of_modes, complex_type(0.0, 0.0));
     //transform_matrix_to_hessenberg<matrix_type, complex_type, small_scalar_type>(AZ, diag_elements, cx_diag_elements);
 
     size_t max_idx = cx_diag_elements.size();
     matrix_type tmp_vec(1, max_idx);
+    std::uninitialized_fill_n(tmp_vec.get_data(), max_idx, complex_type(0.0, 0.0));
     complex_type* cx_data = cx_diag_elements.get_data();
     complex_type* diag_data = diag_elements.get_data();
 
@@ -976,10 +978,12 @@ calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_el
         }
 
 
-        memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+        //memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+        std::copy_n(tmp_vec.get_data(), tmp_vec.size(), cx_diag_elements.get_data());
 
     }
-
+    
+    for (size_t i = tmp_vec.size(); i != 0; i--) tmp_vec[i-1].~complex_type();
 
     return loop_correction;
 
