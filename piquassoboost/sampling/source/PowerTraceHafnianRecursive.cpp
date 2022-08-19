@@ -138,6 +138,9 @@ PowerTraceHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
 }
 
 template class PowerTraceHafnianRecursive<double, long double>;
+template class PowerTraceHafnianRecursive<double, double>;
+template class PowerTraceHafnianRecursive<long double, long double>;
+template class PowerTraceHafnianRecursive<RationalInf, RationalInf>;
 
 
 
@@ -513,7 +516,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateParti
 
 
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
-    double scale_factor_B = 0.0;
+    small_scalar_type scale_factor_B = 0.0;
     mtx_select_t<cplx_select_t<small_scalar_type>>&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes, scale_factor_B);
 
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
@@ -615,7 +618,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateParti
 */
 template <class small_scalar_type, class scalar_type>
 mtx_select_t<cplx_select_t<small_scalar_type>>
-PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
+PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, small_scalar_type &scale_factor_AZ  ) {
 
 
 //std::cout << "A" << std::endl;
@@ -662,27 +665,15 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( cons
     // A^(Z), i.e. to the square matrix constructed from the input matrix
     // for details see the text below Eq.(3.20) of arXiv 1805.12498
     mtx_select_t<cplx_select_t<small_scalar_type>> AZ(num_of_modes*2, num_of_modes*2);
-    scale_factor_AZ = 0.0;
     for (size_t idx = 0; idx < 2*num_of_modes; idx++) {
         size_t row_offset = (idx^1)*A.stride;
         for (size_t jdx = 0; jdx < 2*num_of_modes; jdx++) {
             cplx_select_t<small_scalar_type> element(A[row_offset + jdx].real(), A[row_offset + jdx].imag());
             ::new (&AZ[idx*AZ.stride + jdx]) cplx_select_t<small_scalar_type>(element);
-            scale_factor_AZ = scale_factor_AZ + element.real()*element.real() + element.imag()*element.imag();
         }
     }
 
-
-    // scale matrix AZ -- when matrix elements of AZ are scaled, larger part of the computations can be kept in double precision
-    if ( scale_factor_AZ < 1e-8 ) {
-        scale_factor_AZ = 1.0;
-    }
-    else {
-        scale_factor_AZ = std::sqrt(scale_factor_AZ/2)/AZ.size();
-        for (size_t idx=0; idx<AZ.size(); idx++) {
-            AZ[idx] *= scale_factor_AZ;
-        }
-    }
+    scaleMatrix(AZ, scale_factor_AZ);
 
 
 /*
