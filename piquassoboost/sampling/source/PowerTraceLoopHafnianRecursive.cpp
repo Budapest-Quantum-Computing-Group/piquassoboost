@@ -125,7 +125,11 @@ PowerTraceLoopHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
     PowerTraceLoopHafnianRecursive_Tasks hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks(mtx, diag, occupancy);
+#ifdef GLYNN
+    Complex16 hafnian = hafnian_calculator.calculate(current_rank, world_size, permutation_idx_max/2);
+#else
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
+#endif    
 
     // send the calculated partial hafnian to rank 0
     Complex16* partial_hafnians = new Complex16[world_size];
@@ -148,7 +152,11 @@ PowerTraceLoopHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
     unsigned long long world_size = 1;
 
     PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type> hafnian_calculator = PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>(this->mtx, diag, occupancy);
+#ifdef GLYNN
+    Complex16 hafnian = hafnian_calculator.calculate(current_rank, world_size, permutation_idx_max/2);
+#else
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
+#endif    
 
     return hafnian;
 #endif
@@ -157,6 +165,9 @@ PowerTraceLoopHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
 }
 
 template class PowerTraceLoopHafnianRecursive<double, long double>;
+template class PowerTraceLoopHafnianRecursive<double, double>;
+template class PowerTraceLoopHafnianRecursive<long double, long double>;
+template class PowerTraceLoopHafnianRecursive<RationalInf, RationalInf>;
 
 
 
@@ -273,7 +284,8 @@ template <class small_scalar_type, class scalar_type>
 cplx_select_t<scalar_type>
 PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculatePartialHafnian( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy ) {
     using complex_type = cplx_select_t<scalar_type>;
-
+    using matrix_type = mtx_select_t<complex_type>;
+    
 //return complex_type(0.0,0.0);
     size_t num_of_modes = sum(current_occupancy);
     size_t total_num_of_modes = sum(this->occupancy);
@@ -281,46 +293,50 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
 
 
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
-    double scale_factor_B = 0.0;
+    small_scalar_type scale_factor_B = 0.0;
 
-    matrix&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes, scale_factor_B);
+    mtx_select_t<cplx_select_t<small_scalar_type>>&& B = CreateAZ(selected_modes, current_occupancy, num_of_modes, scale_factor_B);
 
     // diag_elements corresponds to the diagonal elements of the input  matrix used in the loop correction
-    matrix&& diag_elements = CreateDiagElements(selected_modes, current_occupancy, num_of_modes);
+    mtx_select_t<cplx_select_t<small_scalar_type>>&& diag_elements = CreateDiagElements(selected_modes, current_occupancy, num_of_modes);
 
 
 
     // select the X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
-    matrix cx_diag_elements(num_of_modes*2, 1);
+    mtx_select_t<cplx_select_t<small_scalar_type>> cx_diag_elements(num_of_modes*2, 1);
     for (size_t idx = 1; idx < diag_elements.size(); idx=idx+2) {
-        cx_diag_elements[idx] = diag_elements[idx-1];
-        cx_diag_elements[idx-1] = diag_elements[idx];
+        ::new (&cx_diag_elements[idx]) cplx_select_t<small_scalar_type>(diag_elements[idx-1]);
+        ::new (&cx_diag_elements[idx-1]) cplx_select_t<small_scalar_type>(diag_elements[idx]);
     }
 
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2 and loop corrections
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-    matrix32 traces;
-    matrix32 loop_corrections;
+    matrix_type traces;
+    matrix_type loop_corrections;
     if (num_of_modes != 0) {
-        CalcPowerTracesAndLoopCorrections<double, long double>(cx_diag_elements, diag_elements, B, total_num_of_modes, traces, loop_corrections);
+        CalcPowerTracesAndLoopCorrections<small_scalar_type, scalar_type>(cx_diag_elements, diag_elements, B, total_num_of_modes, traces, loop_corrections);
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
         // this occurs once during the calculations
-        traces = matrix32(total_num_of_modes, 1);
-        loop_corrections = matrix32(total_num_of_modes, 1);
-        memset( traces.get_data(), 0.0, traces.size()*sizeof(complex_type));
-        memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(complex_type));
+        traces = matrix_type(total_num_of_modes, 1);
+        loop_corrections = matrix_type(total_num_of_modes, 1);
+        //memset( traces.get_data(), 0.0, traces.size()*sizeof(complex_type));
+        //memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(complex_type));
+        std::uninitialized_fill_n(traces.get_data(), traces.rows*traces.cols, complex_type(0.0, 0.0));
+        std::uninitialized_fill_n(loop_corrections.get_data(), loop_corrections.rows*loop_corrections.cols, complex_type(0.0, 0.0));
     }
 
     // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
     bool fact = ((total_num_of_modes - num_of_modes) % 2);
 
     // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-    matrix32 aux0(total_num_of_modes + 1, 1);
-    matrix32 aux1(total_num_of_modes + 1, 1);
-    memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(complex_type));
-    memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(complex_type));
+    matrix_type aux0(total_num_of_modes + 1, 1);
+    matrix_type aux1(total_num_of_modes + 1, 1);
+    //memset( aux0.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(complex_type));
+    //memset( aux1.get_data(), 0.0, (total_num_of_modes + 1)*sizeof(complex_type));
+    std::uninitialized_fill_n(aux0.get_data(), total_num_of_modes + 1, complex_type(0.0, 0.0));
+    std::uninitialized_fill_n(aux1.get_data(), total_num_of_modes + 1, complex_type(0.0, 0.0));       
     aux0[0] = 1.0;
     // pointers to the auxiliary data arrays
     complex_type *p_aux0=NULL, *p_aux1=NULL;
@@ -345,7 +361,8 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
             p_aux1 = aux0.get_data();
         }
 
-        memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(complex_type) );
+        //memcpy(p_aux1, p_aux0, (total_num_of_modes+1)*sizeof(complex_type) );
+        std::copy_n(p_aux0, total_num_of_modes+1, p_aux1);
 
         for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
             powfactor = powfactor * factor / ((double)jdx);
@@ -361,15 +378,24 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
 
 
     }
+    
+    complex_type res = p_aux1[total_num_of_modes];
+    for (size_t n = aux0.size(); n > 0; --n) aux0[n-1].~complex_type();
+    for (size_t n = aux1.size(); n > 0; --n) aux1[n-1].~complex_type();
+    for (size_t n = traces.size(); n > 0; --n) traces[n-1].~complex_type();
+    for (size_t n = loop_corrections.size(); n > 0; --n) loop_corrections[n-1].~complex_type();
+    for (size_t n = B.size(); n > 0; --n) B[n-1].~cplx_select_t<small_scalar_type>();    
+    for (size_t n = diag_elements.size(); n > 0; --n) diag_elements[n-1].~cplx_select_t<small_scalar_type>();
+    for (size_t n = cx_diag_elements.size(); n > 0; --n) cx_diag_elements[n-1].~cplx_select_t<small_scalar_type>();
 
     if (fact) {
 //std::cout << -p_aux1[total_num_of_modes] << std::endl;
-        return  -p_aux1[total_num_of_modes];
+        return  -res;
 
     }
     else {
 //std::cout << p_aux1[total_num_of_modes] << std::endl;
-        return p_aux1[total_num_of_modes];
+        return res;
 
     }
 
@@ -401,7 +427,7 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::ScaleMatri
 
         this->mtx = this->mtx_orig.copy();
 
-        double inverse_scale_factor = 1/this->scale_factor;
+        small_scalar_type inverse_scale_factor = 1/this->scale_factor;
 
         // scaling the matrix elements
         for (size_t row_idx=0; row_idx<this->mtx_orig.rows; row_idx++) {
@@ -439,7 +465,12 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::ScaleMatri
 
 }
 
-
+template <>
+void
+PowerTraceLoopHafnianRecursive_Tasks<RationalInf, RationalInf>::ScaleMatrix() {
+    this->mtx = this->mtx_orig;
+    this->scale_factor = 1.0;
+}
 
 /**
 @brief Call to construct matrix \f$ A^Z \f$ (see the text below Eq. (3.20) of arXiv 1805.12498) for the given modes and their occupancy
@@ -450,8 +481,8 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::ScaleMatri
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 template <class small_scalar_type, class scalar_type>
-matrix
-PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, double &scale_factor_AZ  ) {
+mtx_select_t<cplx_select_t<small_scalar_type>>
+PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, small_scalar_type &scale_factor_AZ  ) {
 
 
     matrix A(num_of_modes*2, num_of_modes*2);
@@ -497,28 +528,16 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( 
 */
     // A^(Z), i.e. to the square matrix constructed from the input matrix
     // for details see the text below Eq.(3.20) of arXiv 1805.12498
-    matrix AZ(num_of_modes*2, num_of_modes*2);
-    scale_factor_AZ = 0.0;
+    mtx_select_t<cplx_select_t<small_scalar_type>> AZ(num_of_modes*2, num_of_modes*2);
     for (size_t idx = 0; idx < 2*num_of_modes; idx++) {
         size_t row_offset = (idx^1)*A.stride;
         for (size_t jdx = 0; jdx < 2*num_of_modes; jdx++) {
-            Complex16 &element = A[row_offset + jdx];
-            AZ[idx*AZ.stride + jdx] = element;
-            scale_factor_AZ = scale_factor_AZ + element.real()*element.real() + element.imag()*element.imag();
+            cplx_select_t<small_scalar_type> element = cplx_select_t<small_scalar_type>(A[row_offset + jdx].real(), A[row_offset + jdx].imag());
+            ::new (&AZ[idx*AZ.stride + jdx]) cplx_select_t<small_scalar_type>(element);
         }
     }
 
-
-    // scale matrix AZ -- when matrix elements of AZ are scaled, larger part of the computations can be kept in double precision
-    if ( scale_factor_AZ < 1e-8 ) {
-        scale_factor_AZ = 1.0;
-    }
-    else {
-        scale_factor_AZ = std::sqrt(scale_factor_AZ/2)/AZ.size();
-        for (size_t idx=0; idx<AZ.size(); idx++) {
-            AZ[idx] = AZ[idx]*scale_factor_AZ;
-        }
-    }
+    scaleMatrix(AZ, scale_factor_AZ);
 
 
 
@@ -561,11 +580,11 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( 
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
 template <class small_scalar_type, class scalar_type>
-matrix
+mtx_select_t<cplx_select_t<small_scalar_type>>
 PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateDiagElements( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes ) {
 
 
-    matrix diag_elements(1, num_of_modes*2);
+    mtx_select_t<cplx_select_t<small_scalar_type>> diag_elements(1, num_of_modes*2);
 
     size_t row_idx = 0;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
@@ -575,8 +594,8 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateDiag
 
         for (size_t filling_factor_row=1; filling_factor_row<=current_occupancy[mode_idx]; filling_factor_row++) {
 
-            diag_elements[2*row_idx]   = diag[selected_modes[mode_idx]*2];
-            diag_elements[2*row_idx+1] = diag[selected_modes[mode_idx]*2 + 1];
+            ::new (&diag_elements[2*row_idx]) cplx_select_t<small_scalar_type>(diag[selected_modes[mode_idx]*2].real(), diag[selected_modes[mode_idx]*2].imag());
+            ::new (&diag_elements[2*row_idx+1]) cplx_select_t<small_scalar_type>(diag[selected_modes[mode_idx]*2 + 1].real(), diag[selected_modes[mode_idx]*2 + 1].imag());
 
             row_idx++;
         }
@@ -588,6 +607,9 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateDiag
 }
 
 template class PowerTraceLoopHafnianRecursive_Tasks<double, long double>;
+template class PowerTraceLoopHafnianRecursive_Tasks<double, double>;
+template class PowerTraceLoopHafnianRecursive_Tasks<long double, long double>;
+template class PowerTraceLoopHafnianRecursive_Tasks<RationalInf, RationalInf>;
 
 
 
