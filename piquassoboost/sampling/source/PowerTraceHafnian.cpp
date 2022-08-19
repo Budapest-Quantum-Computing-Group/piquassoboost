@@ -143,13 +143,10 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate() {
 }
 
 template<class small_scalar_type>
-void scaleMatrix(mtx_select_t<cplx_select_t<small_scalar_type>> & AZ, const size_t& number_of_ones, small_scalar_type &scale_factor_AZ)
+void scaleMatrix(mtx_select_t<cplx_select_t<small_scalar_type>> & AZ, small_scalar_type &scale_factor_AZ)
 {
-    for (size_t idx = 0; idx < number_of_ones; idx++) {
-        size_t row_offset = idx*AZ.stride;
-        for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-            scale_factor_AZ += std::norm(AZ[row_offset+jdx]);
-        }
+    for (size_t idx = 0; idx < AZ.size(); idx++) {
+        scale_factor_AZ += std::norm(AZ[idx]);
     }
 
     // scale matrix B -- when matrix elements of B are scaled, larger part of the computations can be kept in double precision
@@ -163,8 +160,12 @@ void scaleMatrix(mtx_select_t<cplx_select_t<small_scalar_type>> & AZ, const size
         }
     }
 }
+template
+void scaleMatrix<double>(mtx_select_t<cplx_select_t<double>> & AZ, double &scale_factor_AZ);
+template
+void scaleMatrix<long double>(mtx_select_t<cplx_select_t<long double>> & AZ, long double &scale_factor_AZ);
 template<>
-void scaleMatrix<RationalInf>(mtx_select_t<cplx_select_t<RationalInf>> & AZ, const size_t& number_of_ones, RationalInf &scale_factor_AZ) {
+void scaleMatrix<RationalInf>(mtx_select_t<cplx_select_t<RationalInf>> & AZ, RationalInf &scale_factor_AZ) {
     scale_factor_AZ = 1.0;
 }
 
@@ -284,7 +285,7 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long 
 
 
         small_scalar_type scale_factor_B = 0.0;
-        scaleMatrix<small_scalar_type>(B, B.size(), scale_factor_B);
+        scaleMatrix<small_scalar_type>(B, scale_factor_B);
 
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
