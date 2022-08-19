@@ -69,7 +69,10 @@ virtual Complex16 calculate();
 
 }; //PowerTraceHafnianRecursive
 
-using PowerTraceHafnianRecursiveLongDouble = PowerTraceHafnianRecursive<double, long double>;
+using PowerTraceHafnianRecursiveHybrid = PowerTraceHafnianRecursive<double, long double>;
+using PowerTraceHafnianRecursiveDouble = PowerTraceHafnianRecursive<double, double>;
+using PowerTraceHafnianRecursiveLongDouble = PowerTraceHafnianRecursive<long double, long double>;
+using PowerTraceHafnianRecursiveInf = PowerTraceHafnianRecursive<RationalInf, RationalInf>;
 
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
@@ -144,7 +147,7 @@ protected:
 @param priv_addend Therad local storage for the partial hafnians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg );
+void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<cplxm_select_t<scalar_type>>& priv_addend, tbb::task_group &tg );
 
 
 /**
@@ -164,7 +167,7 @@ virtual cplx_select_t<scalar_type> CalculatePartialHafnian( const PicVector<char
 @param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-virtual matrix CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
+virtual mtx_select_t<cplx_select_t<small_scalar_type>> CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
 
 
 
