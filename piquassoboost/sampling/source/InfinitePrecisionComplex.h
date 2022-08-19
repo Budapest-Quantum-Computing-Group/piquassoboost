@@ -305,6 +305,7 @@ public:
         IMAGPART(*this) /= f;
         return *this;
     }
+    ComplexInf& get() { return *this; }
     FloatInf& real() { return REALPART(*this); }
     FloatInf& imag() { return IMAGPART(*this); }
 };
@@ -318,6 +319,11 @@ public:
         ::new (&this->denom) FloatInf(1.0);
         normalize_int();
     }
+    RationalInf(const long long unsigned int num) {
+        ::new (&this->num) FloatInf(num);
+        ::new (&this->denom) FloatInf(1.0);
+    }
+    RationalInf(const size_t num) : RationalInf((unsigned long long)num) {}
     RationalInf(double num, double denom) {
         ::new (&this->num) FloatInf(num);
         ::new (&this->denom) FloatInf(denom);
@@ -624,6 +630,9 @@ public:
         ac -= bd;
         return ComplexRationalInf(std::move(ac), std::move(p));
     }
+    ComplexRationalInf operator*(const RationalInf& d) {
+        return ComplexRationalInf(std::move(RREALPART(*this) * d), std::move(RIMAGPART(*this) * d));
+    }
     ComplexRationalInf operator*(double d) {
         return ComplexRationalInf(std::move(RREALPART(*this) * d), std::move(RIMAGPART(*this) * d));
     }
@@ -655,6 +664,7 @@ public:
     void normalize() { RREALPART(*this).normalize(); RIMAGPART(*this).normalize(); }
     RationalInf& real() { return RREALPART(*this); }
     RationalInf& imag() { return RIMAGPART(*this); }
+    ComplexRationalInf& get() { return *this; }
     void real(double d) {
         RREALPART(*this) = d; 
     }
