@@ -24,6 +24,11 @@
 #include "PowerTraceLoopHafnianRecursive.h"
 #include "numpy_interface.h"
 
+#define Hybrid 0
+#define Double 1
+#define LongDouble 2
+#define InfPrec 3
+
 /**
 This file contains the implementation of the python wrapper object for the C++ class PowerTraceLoopHafnianRecursive_wrapper.
 It is included by the file Boson_Sampling_Utilities_wrapper.cpp
@@ -34,12 +39,18 @@ It is included by the file Boson_Sampling_Utilities_wrapper.cpp
 */
 typedef struct PowerTraceLoopHafnianRecursive_wrapper {
     PyObject_HEAD
+    int lib;
     /// pointer to numpy matrix to keep it alive (this stores the symmetric matrix for which the hafnian is calculated)
     PyObject *matrix = NULL;
     /// pointer to numpy matrix to keep it alive (this stores the occupancy of the individual modes)
     PyObject *occupancy = NULL;
     /// The C++ variant of class CPowerTraceLoopHafnianRecursive
-    pic::PowerTraceLoopHafnianRecursiveLongDouble* calculator;
+    union {
+        pic::PowerTraceLoopHafnianRecursiveHybrid* calculator;
+        pic::PowerTraceLoopHafnianRecursiveDouble* calculatorDouble;
+        pic::PowerTraceLoopHafnianRecursiveLongDouble* calculatorLongDouble;
+        pic::PowerTraceLoopHafnianRecursiveInf* calculatorInf;
+    };    
 } PowerTraceLoopHafnianRecursive_wrapper;
 
 
@@ -48,10 +59,10 @@ typedef struct PowerTraceLoopHafnianRecursive_wrapper {
 @param matrix_mtx The matrix for which the hafnain should be calculated
 @return Return with a void pointer pointing to an instance of N_Qubit_Decomposition class.
 */
-pic::PowerTraceLoopHafnianRecursiveLongDouble*
+pic::PowerTraceLoopHafnianRecursiveHybrid*
 create_PowerTraceLoopHafnianRecursive( pic::matrix &matrix_mtx,  pic::PicState_int64& occupancy) {
 
-    return new pic::PowerTraceLoopHafnianRecursiveLongDouble(matrix_mtx, occupancy);
+    return new pic::PowerTraceLoopHafnianRecursiveHybrid(matrix_mtx, occupancy);
 }
 
 /**
@@ -59,7 +70,7 @@ create_PowerTraceLoopHafnianRecursive( pic::matrix &matrix_mtx,  pic::PicState_i
 @param ptr A pointer pointing to an instance of PowerTraceLoopHafnianRecursive class.
 */
 void
-release_PowerTraceLoopHafnianRecursive( pic::PowerTraceLoopHafnianRecursiveLongDouble*  instance ) {
+release_PowerTraceLoopHafnianRecursive( pic::PowerTraceLoopHafnianRecursiveHybrid*  instance ) {
     if ( instance != NULL ) {
         delete instance;
     }
@@ -84,8 +95,15 @@ static void
 PowerTraceLoopHafnianRecursive_wrapper_dealloc(PowerTraceLoopHafnianRecursive_wrapper *self)
 {
 
-    // deallocate the instance of class N_Qubit_Decomposition
-    release_PowerTraceLoopHafnianRecursive( self->calculator );
+    // deallocate the instance of class N_Qubit_Decomposition    
+    if (self->lib == Hybrid)
+        release_PowerTraceLoopHafnianRecursive( self->calculator );
+    else if (self->lib == Double)
+        delete self->calculatorDouble;
+    else if (self->lib == LongDouble)
+        delete self->calculatorLongDouble;
+    else if (self->lib == InfPrec)
+        delete self->calculatorInf;    
 
     if ( self->matrix != NULL ) {
         // release numpy arrays
@@ -130,15 +148,15 @@ static int
 PowerTraceLoopHafnianRecursive_wrapper_init(PowerTraceLoopHafnianRecursive_wrapper *self, PyObject *args, PyObject *kwds)
 {
     // The tuple of expected keywords
-    static char *kwlist[] = {(char*)"matrix", (char*)"occupancy", NULL};
+    static char *kwlist[] = {(char*)"lib", (char*)"matrix", (char*)"occupancy", NULL};
 
     // initiate variables for input arguments
     PyObject *matrix_arg = NULL;
     PyObject *occupancy_arg = NULL;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OO", kwlist,
-                                     &matrix_arg, &occupancy_arg))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iOO", kwlist,
+                                     &self->lib, &matrix_arg, &occupancy_arg))
         return -1;
 
     // convert python object array to numpy C API array
@@ -173,8 +191,19 @@ PowerTraceLoopHafnianRecursive_wrapper_init(PowerTraceLoopHafnianRecursive_wrapp
     // create PIC version of the occupancy matrix
     pic::PicState_int64 occupancy_mtx = numpy2PicState_int64( self->occupancy);
 
-    // create instance of class PowerTraceLoopHafnianRecursive
-    self->calculator = create_PowerTraceLoopHafnianRecursive( matrix_mtx, occupancy_mtx );
+    // create instance of class PowerTraceLoopHafnianRecursive    
+    if (self->lib == Hybrid)
+        self->calculator = create_PowerTraceLoopHafnianRecursive( matrix_mtx, occupancy_mtx );
+    else if (self->lib == Double)
+        self->calculatorDouble = new pic::PowerTraceLoopHafnianRecursiveDouble(matrix_mtx, occupancy_mtx);
+    else if (self->lib == LongDouble)
+        self->calculatorLongDouble = new pic::PowerTraceLoopHafnianRecursiveLongDouble(matrix_mtx, occupancy_mtx);
+    else if (self->lib == InfPrec)
+        self->calculatorInf = new pic::PowerTraceLoopHafnianRecursiveInf(matrix_mtx, occupancy_mtx);
+    else {
+        PyErr_SetString(PyExc_Exception, "Wrong value set for hafnian library.");
+        return -1;
+    }        
 
     return 0;
 }
