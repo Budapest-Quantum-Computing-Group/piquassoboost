@@ -264,9 +264,9 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
         for (size_t idx = 0; idx < number_of_ones; idx++) {
             size_t row_offset = (positions_of_ones[idx] ^ 1)*this->mtx.stride;
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                AZ[idx*AZ.stride + jdx] = this->mtx[row_offset + ((positions_of_ones[jdx]))];
+                AZ[idx*AZ.stride + jdx] = cplx_select_t<small_scalar_type>(this->mtx[row_offset + ((positions_of_ones[jdx]))].real(), this->mtx[row_offset + ((positions_of_ones[jdx]))].imag());
             }
-            diag_elements[idx] = this->mtx[(positions_of_ones[idx])*this->mtx.stride + positions_of_ones[idx]];
+            diag_elements[idx] = cplx_select_t<small_scalar_type>(this->mtx[(positions_of_ones[idx])*this->mtx.stride + positions_of_ones[idx]].real(), this->mtx[(positions_of_ones[idx])*this->mtx.stride + positions_of_ones[idx]].imag());
 
         }
         // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
