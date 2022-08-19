@@ -84,7 +84,10 @@ virtual Complex16 calculate();
 
 }; //PowerTraceLoopHafnianRecursive
 
-using PowerTraceLoopHafnianRecursiveLongDouble = PowerTraceLoopHafnianRecursive<double, long double>;
+using PowerTraceLoopHafnianRecursiveHybrid = PowerTraceLoopHafnianRecursive<double, long double>;
+using PowerTraceLoopHafnianRecursiveDouble = PowerTraceLoopHafnianRecursive<double, double>;
+using PowerTraceLoopHafnianRecursiveLongDouble = PowerTraceLoopHafnianRecursive<long double, long double>;
+using PowerTraceLoopHafnianRecursiveInf = PowerTraceLoopHafnianRecursive<RationalInf, RationalInf>;
 
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
@@ -150,7 +153,7 @@ cplx_select_t<scalar_type> CalculatePartialHafnian( const PicVector<char>& selec
 @param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-matrix CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
+mtx_select_t<cplx_select_t<small_scalar_type>> CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, small_scalar_type &scale_factor_AZ );
 
 /**
 @brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
@@ -166,7 +169,7 @@ void ScaleMatrix();
 @param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-matrix CreateDiagElements( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes );
+mtx_select_t<cplx_select_t<small_scalar_type>> CreateDiagElements( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes );
 
 
 }; //PowerTraceLoopHafnianRecursive_Tasks
