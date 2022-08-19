@@ -23,7 +23,6 @@
 namespace pic {
 
 
-
 /**
 @brief Class to calculate the loop hafnian of a complex matrix by the power trace method
 */
