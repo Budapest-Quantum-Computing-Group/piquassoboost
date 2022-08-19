@@ -428,7 +428,7 @@ class PowerTraceHafnianRecursive(PowerTraceHafnianRecursive_wrapper):
     def __init__(self, matrix, occupancy):
 
         # call the constructor of the wrapper class
-        super(PowerTraceHafnianRecursive, self).__init__(matrix=matrix, occupancy=occupancy)
+        super(PowerTraceHafnianRecursive, self).__init__(lib=0, matrix=matrix, occupancy=occupancy)
         pass
 
        
@@ -443,7 +443,77 @@ class PowerTraceHafnianRecursive(PowerTraceHafnianRecursive_wrapper):
         # call the permanent calculator of the parent class
         return super(PowerTraceHafnianRecursive, self).calculate()
 
+class PowerTraceHafnianRecursiveDouble(PowerTraceHafnianRecursive_wrapper):
+    """
+        This class is designed to calculate the hafnian of a symetrix matrix using the power trace method.
+    """
+    
 
+    def __init__(self, matrix, occupancy):
+
+        # call the constructor of the wrapper class
+        super(PowerTraceHafnianRecursiveDouble, self).__init__(lib=1, matrix=matrix, occupancy=occupancy)
+        pass
+
+       
+    def calculate(self):
+        """
+            ?????????????????.
+            :return: The hafnian of the matrix.
+        """
+
+
+
+        # call the permanent calculator of the parent class
+        return super(PowerTraceHafnianRecursiveDouble, self).calculate()
+
+class PowerTraceHafnianRecursiveLongDouble(PowerTraceHafnianRecursive_wrapper):
+    """
+        This class is designed to calculate the hafnian of a symetrix matrix using the power trace method.
+    """
+    
+
+    def __init__(self, matrix, occupancy):
+
+        # call the constructor of the wrapper class
+        super(PowerTraceHafnianRecursiveLongDouble, self).__init__(lib=2, matrix=matrix, occupancy=occupancy)
+        pass
+
+       
+    def calculate(self):
+        """
+            ?????????????????.
+            :return: The hafnian of the matrix.
+        """
+
+
+
+        # call the permanent calculator of the parent class
+        return super(PowerTraceHafnianRecursiveLongDouble, self).calculate()
+
+class PowerTraceHafnianRecursiveInf(PowerTraceHafnianRecursive_wrapper):
+    """
+        This class is designed to calculate the hafnian of a symetrix matrix using the power trace method.
+    """
+    
+
+    def __init__(self, matrix, occupancy):
+
+        # call the constructor of the wrapper class
+        super(PowerTraceHafnianRecursiveInf, self).__init__(lib=3, matrix=matrix, occupancy=occupancy)
+        pass
+
+       
+    def calculate(self):
+        """
+            ?????????????????.
+            :return: The hafnian of the matrix.
+        """
+
+
+
+        # call the permanent calculator of the parent class
+        return super(PowerTraceHafnianRecursiveInf, self).calculate()
 
 class PowerTraceLoopHafnian(PowerTraceLoopHafnian_wrapper):
     """
