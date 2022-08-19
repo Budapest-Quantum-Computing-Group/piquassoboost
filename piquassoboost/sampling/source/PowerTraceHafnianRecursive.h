@@ -167,7 +167,7 @@ virtual cplx_select_t<scalar_type> CalculatePartialHafnian( const PicVector<char
 @param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-virtual mtx_select_t<cplx_select_t<small_scalar_type>> CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
+virtual mtx_select_t<cplx_select_t<small_scalar_type>> CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, small_scalar_type &scale_factor_AZ );
 
 
 
