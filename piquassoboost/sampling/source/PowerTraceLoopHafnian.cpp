@@ -367,6 +367,8 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
         for (size_t n = aux1.size(); n > 0; --n) aux1[n-1].~complex_type();
         for (size_t n = traces.size(); n > 0; --n) traces[n-1].~complex_type();
         for (size_t n = loop_corrections.size(); n > 0; --n) loop_corrections[n-1].~complex_type();
+        for (size_t n = diag_elements.size(); n > 0; --n) diag_elements[n-1].~cplx_select_t<small_scalar_type>();
+        for (size_t n = cx_diag_elements.size(); n > 0; --n) cx_diag_elements[n-1].~cplx_select_t<small_scalar_type>();
         for (size_t n = AZ.size(); n > 0; --n) AZ[n-1].~cplx_select_t<small_scalar_type>();
 
 
