@@ -155,7 +155,7 @@ PowerTraceHafnianRecursive_wrapper_init(PowerTraceHafnianRecursive_wrapper *self
     PyObject *occupancy_arg = NULL;
 
     // parsing input arguments
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OO", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iOO", kwlist,
                                      &self->lib, &matrix_arg, &occupancy_arg))
         return -1;
 
