@@ -311,8 +311,8 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
 
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2 and loop corrections
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-    matrix_type traces;
-    matrix_type loop_corrections;
+    matrix_type traces(total_num_of_modes, 1);
+    matrix_type loop_corrections(total_num_of_modes, 1);
     if (num_of_modes != 0) {
         CalcPowerTracesAndLoopCorrections<small_scalar_type, scalar_type>(cx_diag_elements, diag_elements, B, total_num_of_modes, traces, loop_corrections);
     }
@@ -341,8 +341,8 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
     // pointers to the auxiliary data arrays
     complex_type *p_aux0=NULL, *p_aux1=NULL;
 
-    double inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
-    double inverse_scale_factor_loop = 1; // the (1/scale_factor_B)^(idx-1) power of the local scaling factor of matrix B to scale the loop correction
+    small_scalar_type inverse_scale_factor = 1/scale_factor_B; // the (1/scale_factor_B)^idx power of the local scaling factor of matrix B to scale the power trace
+    small_scalar_type inverse_scale_factor_loop = 1.0; // the (1/scale_factor_B)^(idx-1) power of the local scaling factor of matrix B to scale the loop correction
     for (size_t idx = 1; idx <= total_num_of_modes; idx++) {
 
         complex_type factor = traces[idx - 1] * inverse_scale_factor / (2.0 * idx) + loop_corrections[idx-1] * 0.5 * inverse_scale_factor_loop;
@@ -365,7 +365,7 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
         std::copy_n(p_aux0, total_num_of_modes+1, p_aux1);
 
         for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
-            powfactor = powfactor * factor / ((double)jdx);
+            powfactor *= factor / ((scalar_type)jdx);
 
 
             for (size_t kdx = idx * jdx + 1; kdx <= total_num_of_modes + 1; kdx++) {
