@@ -444,7 +444,7 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::ScaleMatrix() {
 
         this->mtx = this->mtx_orig.copy();
 
-        double inverse_scale_factor = 1/this->scale_factor;
+        small_scalar_type inverse_scale_factor = 1/this->scale_factor;
 
         // scaling the matrix elements
         for (size_t row_idx=0; row_idx<this->mtx_orig.rows; row_idx++) {
