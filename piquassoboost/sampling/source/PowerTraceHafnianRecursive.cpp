@@ -98,11 +98,7 @@ PowerTraceHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
     PowerTraceHafnianRecursive_Tasks hafnian_calculator = PowerTraceHafnianRecursive_Tasks(mtx, occupancy);
-#ifdef GLYNN
-    Complex16 hafnian = hafnian_calculator.calculate(current_rank, world_size, permutation_idx_max/2);
-#else
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
-#endif
 
     // send the calculated partial hafnian to rank 0
     Complex16* partial_hafnians = new Complex16[world_size];
@@ -125,11 +121,7 @@ PowerTraceHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
     unsigned long long world_size = 1;
 
     PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type> hafnian_calculator = PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>(this->mtx, occupancy);
-#ifdef GLYNN
-    Complex16 hafnian = hafnian_calculator.calculate(current_rank, world_size, permutation_idx_max/2);
-#else
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
-#endif
 
     return hafnian;
 #endif
@@ -228,11 +220,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::calculate() {
 
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) num_of_modes);
 
-#ifdef GLYNN
-    return calculate(0, 1, permutation_idx_max/2 );
-#else
     return calculate(1, 1, permutation_idx_max );
-#endif
 }
 
 
@@ -264,12 +252,6 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::calculate(unsi
     openblas_set_num_threads(1);
 #endif
 
-    if (start_idx<1) {
-        std::cout << "start_idx must be at least 1" << std::endl;
-        exit(-1);
-    }
-
-
     // number of modes spanning the gaussian state
     size_t num_of_modes = occupancy.size();
 
@@ -279,6 +261,22 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::calculate(unsi
     // thread local storage for partial hafnian
     tbb::combinable<cplxm_select_t<scalar_type>> priv_addend{[](){return cplxm_select_t<scalar_type>();}};
 
+#ifdef GLYNN
+    PicVector<char> selected_modes;
+    selected_modes.reserve(num_of_modes);
+    for (size_t idx = 0; idx < num_of_modes; idx++) {
+        if (occupancy[idx] > 0) selected_modes.push_back(idx);
+    }
+    PicState_int64 current_occupancy(selected_modes.size());
+    for (size_t idx=0;idx<selected_modes.size(); idx++) {
+        current_occupancy[idx] = idx == 0 ? 1 : 0; //best to choose the smallest mode for anchor
+    }
+    IterateOverSelectedModes( selected_modes, current_occupancy, 0, priv_addend, tg );
+#else
+    if (start_idx<1) {
+        std::cout << "start_idx must be at least 1" << std::endl;
+        exit(-1);
+    }
     // for cycle over the combinations of occupancy
     tbb::parallel_for(start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
     //for (unsigned long long permutation_idx = 1; permutation_idx < permutation_idx_max; permutation_idx++) {
@@ -323,6 +321,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::calculate(unsi
     //}
 
     });
+#endif
 
     // wait until all spawned tasks are completed
     tg.wait();
@@ -349,7 +348,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::calculate(unsi
     // scale the result by the appropriate facto according to Eq (2.11) of in arXiv 1805.12498
     hafnian *= pow(this->scale_factor, sum(occupancy));
 #ifdef GLYNN
-    hafnian /= (1ULL << (num_of_modes/2-1));
+    hafnian /= (1ULL << (sum(occupancy)-1));
 #endif
 
     return Complex16(hafnian.real(), hafnian.imag());
@@ -509,10 +508,16 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateParti
     using complex_type = cplx_select_t<scalar_type>;
     using matrix_type = mtx_select_t<complex_type>;
 
-    size_t num_of_modes = sum(current_occupancy);
     size_t total_num_of_modes = sum(occupancy);
     size_t dim = total_num_of_modes*2;
-
+#ifdef GLYNN
+    size_t num_of_modes = total_num_of_modes; 
+    bool fact = sum(current_occupancy) % 2;
+#else
+    size_t num_of_modes = sum(current_occupancy);
+    // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
+    bool fact = ((total_num_of_modes - num_of_modes) % 2);
+#endif
 
 
     // matrix B corresponds to A^(Z), i.e. to the square matrix constructed from
@@ -522,9 +527,12 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateParti
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
     matrix_type traces(total_num_of_modes, 1);
+#ifndef GLYNN
     if (num_of_modes != 0) {
+#endif
         //traces = calc_power_traces<matrix32, complex_type>(B, total_num_of_modes);
         CalcPowerTraces<small_scalar_type, scalar_type>(B, total_num_of_modes, traces);
+#ifndef GLYNN
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -532,10 +540,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateParti
         //memset( traces.get_data(), 0.0, traces.rows*traces.cols*sizeof(complex_type));
         std::uninitialized_fill_n(traces.get_data(), traces.rows*traces.cols, complex_type(0.0, 0.0));
     }
-
-
-    // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
-    bool fact = ((total_num_of_modes - num_of_modes) % 2);
+#endif
 
 
     // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
@@ -622,6 +627,49 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( cons
 
 
 //std::cout << "A" << std::endl;
+#ifdef GLYNN
+    matrix A(num_of_modes*2, num_of_modes*2);
+    memset(A.get_data(), 0, A.size()*sizeof(Complex16));
+    size_t row_idx = 0;
+    for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
+
+        size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*this->mtx.stride;
+        size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*this->mtx.stride;
+
+        for (size_t filling_factor_row=1; filling_factor_row<=occupancy[selected_modes[mode_idx]]; filling_factor_row++) {
+
+            size_t row_offset_A_a = 2*row_idx*A.stride;
+            size_t row_offset_A_aconj = (2*row_idx+1)*A.stride;
+
+
+            size_t col_idx = 0;
+
+            for (size_t mode_jdx = 0; mode_jdx < selected_modes.size(); mode_jdx++) {
+
+
+                for (size_t filling_factor_col=1; filling_factor_col<=occupancy[selected_modes[mode_jdx]]; filling_factor_col++) {
+                    bool neg = filling_factor_col <= current_occupancy[mode_jdx];
+                    if (neg) {
+                        A[row_offset_A_a + col_idx*2] = -this->mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
+                        A[row_offset_A_aconj + col_idx*2+1] = -this->mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
+                        A[row_offset_A_a + col_idx*2+1] = -this->mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2+1)];
+                        A[row_offset_A_aconj + col_idx*2] = -this->mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2)];
+                    } else {
+                        A[row_offset_A_a + col_idx*2] = this->mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
+                        A[row_offset_A_aconj + col_idx*2+1] = this->mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
+                        A[row_offset_A_a + col_idx*2+1] = this->mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2+1)];
+                        A[row_offset_A_aconj + col_idx*2] = this->mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2)];
+                    }
+                    col_idx++;
+                }
+            }
+
+
+            row_idx++;
+        }
+
+    }    
+#else
     matrix A(num_of_modes*2, num_of_modes*2);
     memset(A.get_data(), 0, A.size()*sizeof(Complex16));
     size_t row_idx = 0;
@@ -656,6 +704,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( cons
         }
 
     }
+#endif
 /*
 {
     tbb::spin_mutex::scoped_lock my_lock{mymutex};
