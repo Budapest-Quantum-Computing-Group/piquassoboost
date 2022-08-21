@@ -40,8 +40,30 @@ int LAPACKE_zgehrd( int matrix_layout, int n, int ilo, int ihi, pic::Complex16* 
 
 }
 
+#define USE_MATMUL_INFPREC
+#define GLYNN
 
 namespace pic {
+
+template <class T> class complexm_selector;
+template <> class complexm_selector<double> {
+public:
+    typedef ComplexM<double> cplxm_type;
+};
+template <> class complexm_selector<long double> {
+public:
+    typedef ComplexM<long double> cplxm_type;
+};
+template <> class complexm_selector<FloatInf> {
+public:
+    typedef ComplexInf cplxm_type;
+};
+template <> class complexm_selector<RationalInf> {
+public:
+    typedef ComplexRationalInf cplxm_type;
+};
+template <class T>
+using cplxm_select_t = typename complexm_selector<T>::cplxm_type;
 
 template <class T> class complex_selector;
 template <> class complex_selector<double> {
