@@ -41,7 +41,7 @@ int LAPACKE_zgehrd( int matrix_layout, int n, int ilo, int ihi, pic::Complex16* 
 }
 
 #define USE_MATMUL_INFPREC
-#define GLYNN
+//#define GLYNN
 
 namespace pic {
 
