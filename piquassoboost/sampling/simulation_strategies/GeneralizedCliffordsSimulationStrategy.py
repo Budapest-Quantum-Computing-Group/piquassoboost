@@ -25,6 +25,10 @@ from .GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper import (
     GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper
 )
 
+from .GeneralizedCliffordsBLossySimulationStrategy_wrapper import (
+    GeneralizedCliffordsBLossySimulationStrategy_wrapper
+)
+
 
 class GeneralizedCliffordsBSimulationStrategy(
     GeneralizedCliffordsBSimulationStrategy_wrapper
@@ -60,6 +64,25 @@ class GeneralizedCliffordsBUniformLossesSimulationStrategy(
         """
 
         return super().simulate(input_state, samples_number)
+
+
+class GeneralizedCliffordsBLossySimulationStrategy(
+    GeneralizedCliffordsBLossySimulationStrategy_wrapper
+):
+    def __init__(self, interferometer_matrix, approximated_modes, seed):
+
+        super().__init__(interferometer_matrix, approximated_modes=approximated_modes, seed=seed, lib=0)
+
+
+    def simulate(self, input_state, samples_number: int = 1):
+        """
+            Returns sample from linear optics experiments given output state.
+            :param input_state: Input state in particle basis.
+            :return: A resultant state after traversing through interferometer.
+        """
+
+        return super().simulate(input_state, samples_number)
+
 
 
 

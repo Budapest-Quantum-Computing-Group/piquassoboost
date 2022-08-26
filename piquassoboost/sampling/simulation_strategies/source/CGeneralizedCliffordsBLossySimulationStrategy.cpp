@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#include "CGeneralizedCliffordsBUniformLossesSimulationStrategy.h"
+#include <iostream>
+#include "CGeneralizedCliffordsBLossySimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculatorRepeated.h"
 #include "BBFGPermanentCalculatorRepeated.h"
@@ -24,40 +25,41 @@
 #endif
 #include "CChinHuhPermanentCalculator.h"
 #include "common_functionalities.h"
-
+#include "dot.h"
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
-#include <unordered_map>
-#include <stdlib.h>
-#include <time.h>
-#include <iostream>
-
 
 #ifdef __MPI__
 #include <mpi.h>
 #endif // MPI
 
+
+
+extern "C" {
+    #ifndef LAPACK_ROW_MAJOR
+    #define LAPACK_ROW_MAJOR 101
+    #endif
+
+    int LAPACKE_zgesvd(int matrix_layout, char, char, int, int, pic::Complex16 *, int, double *, pic::Complex16 *, int, pic::Complex16 *, int, pic::Complex16 *, int, double*, int* );
+}
+
+
 namespace pic {
 
 
-static double t_perm_accumulator=0.0;
-static double t_DFE=0.0;
-static double t_DFE_pure=0.0;
-static double t_DFE_prepare=0.0;
-static double t_CPU_permanent=0.0;
-static double t_CPU=0.0;
-static double t_CPU_permanent_Glynn=0.0;
-
-
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::CGeneralizedCliffordsBUniformLossesSimulationStrategy() {
+CGeneralizedCliffordsBLossySimulationStrategy::CGeneralizedCliffordsBLossySimulationStrategy() {
     // seed the random generator
     seed(time(NULL));
+    
+    // default number of approximated modes is 0
+    number_of_approximated_modes = 0;
 
-    // if there is no transmittance available we set the transmittance to 1.0
-    this->transmittance = 1.0;
-  
 #ifdef __MPI__
+    int done_already;
+    MPI_Initialized(&done_already);
+    if (!done_already)
+        MPI_Init(NULL, NULL);
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
@@ -66,20 +68,24 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::CGeneralizedCliffordsBUni
 
 #endif
 
-
 }
 
 
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::CGeneralizedCliffordsBUniformLossesSimulationStrategy( matrix &interferometer_matrix_in, double transmittance, int lib ) {
+CGeneralizedCliffordsBLossySimulationStrategy::CGeneralizedCliffordsBLossySimulationStrategy( matrix &interferometer_matrix_in, int lib ) {
     this->lib = lib;
     Update_interferometer_matrix( interferometer_matrix_in );
 
     // seed the random generator
     seed(time(NULL));
 
-    this->transmittance = transmittance;
+    // default number of approximated modes is 0
+    number_of_approximated_modes = 0;
 
 #ifdef __MPI__
+    int done_already;
+    MPI_Initialized(&done_already);
+    if (!done_already)
+        MPI_Init(NULL, NULL);
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
@@ -88,24 +94,58 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::CGeneralizedCliffordsBUni
 
 #endif
 
+}
 
+
+CGeneralizedCliffordsBLossySimulationStrategy::
+CGeneralizedCliffordsBLossySimulationStrategy(
+    matrix &interferometer_matrix_in,
+    int number_of_approximated_modes_in,
+    int lib
+) {
+    this->lib = lib;
+    Update_interferometer_matrix( interferometer_matrix_in );
+
+    // seed the random generator
+    seed(time(NULL));
+
+    number_of_approximated_modes = number_of_approximated_modes_in;
+
+#ifdef __MPI__
+    int done_already;
+    MPI_Initialized(&done_already);
+    if (!done_already)
+        MPI_Init(NULL, NULL);
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
+
+#endif
 
 }
 
 
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::~CGeneralizedCliffordsBUniformLossesSimulationStrategy() {
+CGeneralizedCliffordsBLossySimulationStrategy::~CGeneralizedCliffordsBLossySimulationStrategy() {
 
 }
 
 
 void
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::seed(unsigned long long int value) {
+CGeneralizedCliffordsBLossySimulationStrategy::seed(unsigned long long int value) {
     srand(value);
 }
 
 
 void
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::Update_interferometer_matrix( matrix &interferometer_matrix_in ) {
+CGeneralizedCliffordsBLossySimulationStrategy::set_approximated_modes_number(int value) {
+    number_of_approximated_modes = value;
+}
+
+
+void
+CGeneralizedCliffordsBLossySimulationStrategy::Update_interferometer_matrix( matrix &interferometer_matrix_in ) {
 
     interferometer_matrix = interferometer_matrix_in;
     //perm_accumulator = BatchednPermanentCalculator( interferometer_matrix );
@@ -114,43 +154,82 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::Update_interferometer_mat
 
 
 std::vector<PicState_int64>
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::simulate( PicState_int64 &input_state_in, int samples_number ) {
+CGeneralizedCliffordsBLossySimulationStrategy::
+simulate( PicState_int64 &input_state, int samples_number ) {
+    std::cout << "CGeneralizedCliffordsBLossySimulationStrategy::simulate\n";
+    std::cout << "First input: ";
+    for (int i = 0; i < input_state.size(); i++){
+        std::cout << input_state[i] <<" ";
+    }
+    std::cout << std::endl;
 
-    std::cout << "CGeneralizedCliffordsBUniformLossesSimulationStrategy::simulate\n";
+    std::cout << "Approximated modes number: "<<number_of_approximated_modes<<std::endl;
+
+    extract_losses_from_interferometer();
+
 #ifdef __DFE__
     lock_lib();
     init_dfe_lib(DFE_MAIN, useDual); 
     out_of_memory = false;  
 #endif
 
-    input_state = input_state_in;
+    // input states with 0's on the first modes which are approximated
+    PicState_int64 input_state_without_approximated_modes = input_state.copy();
+
+    particle_number_in_approximated_modes = 0;
     
-    calculate_particle_number_probabilities();
+    for (size_t idx = 0; idx < number_of_approximated_modes; idx++){
+        particle_number_in_approximated_modes += input_state[idx];
+        input_state_without_approximated_modes[idx] = 0;
+    }
 
-    // the k-th element of particle_input_state gives that the k-th photon is on which optical mode
-    PicState_int64&& particle_input_state = modes_state_to_particle_state(input_state);
+    // calculating maximal particle number on one mode
+    int maximum_particle_number_in = particle_number_in_approximated_modes;
 
+    for (size_t idx = number_of_approximated_modes; idx < input_state.size(); idx++){
+        if (input_state[idx] > maximum_particle_number_in)
+            maximum_particle_number_in = input_state[idx];
+    }
+
+    calculate_particle_number_probabilities(maximum_particle_number_in);
+
+    size_t counter = 0;
+    std::cout << "Particle number probabilities\n";
+    for (auto&& weights : binomial_weights){
+        for (int i = 0; i < weights.size(); i++){
+            std::cout << counter << " "<<i<<":"<<weights[i]<<std::endl; 
+        }
+        counter++;
+    }
 
     std::vector<PicState_int64> samples;
     if ( samples_number > 0 ) {    
         // preallocate the memory for the output states
         samples.reserve( samples_number );
+
+        
 #ifdef __MPI__
 
         int samples_number_per_process = samples_number/world_size;
     
         // calculate the first iteration of the sampling process
-        PicState_int64 sample(input_state_in.cols, 0);
+        PicState_int64 sample(input_state.cols, 0);
         sample.number_of_photons = 0;
 
-        current_input = PicState_int64(sample.size(), 0);
+        PicState_int64 current_input = PicState_int64(sample.size(), 0);
         current_input.number_of_photons = 0;
 
-        working_input_state = particle_input_state.copy();
+        // randomly generated approximated particle input state
+        // the particle input means: the k-th element of it
+        // gives that the k-th photon is on which optical mode
+        PicState_int64 approximated_particle_input_state =
+            compute_lossy_particle_input(
+                input_state_without_approximated_modes
+            );
 
-        int64_t number_of_output_photons = calculate_current_photon_number();//sum(input_state);
-        fill_r_sample( sample, number_of_output_photons);
-        
+        fill_r_sample( sample, current_input, approximated_particle_input_state );
+
+        std::cout << "samples_number_per_process: "<<samples_number_per_process<<std::endl;
         
         // calculate the individual outputs for the shots and send the calculated outputs to other MPI processes in parallel
         PicState_int64 sample_new;
@@ -159,16 +238,19 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::simulate( PicState_int64 
             tbb::parallel_invoke(
     
                 [&]{
-                    sample_new = PicState_int64(input_state_in.cols, 0);
+                    sample_new = PicState_int64(input_state.cols, 0);
                     sample_new.number_of_photons = 0;
 
-                    current_input = PicState_int64(sample.size(), 0);
-                    current_input.number_of_photons = 0;
+                    PicState_int64 local_current_input = PicState_int64(sample.size(), 0);
+                    local_current_input.number_of_photons = 0;
 
-                    working_input_state = particle_input_state.copy();
+                    PicState_int64 local_approximated_particle_input_state =
+                        compute_lossy_particle_input(
+                            input_state_without_approximated_modes
+                        );
 
-                    int64_t number_of_output_photons = calculate_current_photon_number();//sum(input_state);
-                    fill_r_sample( sample, number_of_output_photons);
+                    fill_r_sample( sample_new, local_current_input, local_approximated_particle_input_state );
+
                 },
                 [&]{
         
@@ -208,16 +290,25 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::simulate( PicState_int64 
 
         // calculate the individual outputs for the shots
         for (int idx=0; idx<samples_number; idx++) {
-            PicState_int64 sample(input_state_in.cols, 0);
+            // randomly generated approximated particle input state
+            // the particle input means: the k-th element of it
+            // gives that the k-th photon is on which optical mode
+            PicState_int64 approximated_particle_input_state =
+                compute_lossy_particle_input(
+                    input_state_without_approximated_modes
+                );
+
+            // current sample to fill
+            PicState_int64 sample(input_state.cols, 0);
             sample.number_of_photons = 0;
 
-            current_input = PicState_int64(sample.size(), 0);
+            // starting with 0 input we always add 1 particle
+            PicState_int64 current_input = PicState_int64(sample.size(), 0);
             current_input.number_of_photons = 0;
 
-            working_input_state = particle_input_state.copy();
+            PicState_int64 working_input_state = approximated_particle_input_state.copy();
 
-            int64_t number_of_output_photons = calculate_current_photon_number();//sum(input_state);
-            fill_r_sample( sample, number_of_output_photons);
+            fill_r_sample( sample, current_input, working_input_state );
             
 #ifdef __DFE__
             if (out_of_memory) {
@@ -226,8 +317,18 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::simulate( PicState_int64 
             }
 #endif
 
-            samples.push_back( sample );
+            std::cout << "Input: ";
+            for (int i = 0; i < current_input.size(); i++)
+                std::cout << current_input[i] << " ";
+            std::cout << std::endl;
 
+            std::cout << "Output: ";
+            for (int i = 0; i < sample.size(); i++)
+                std::cout << sample[i] << " ";
+            std::cout << std::endl;
+
+
+            samples.push_back( sample );
         }
 
 
@@ -243,18 +344,21 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::simulate( PicState_int64 
 
 
 void
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::fill_r_sample( PicState_int64& sample, int64_t number_of_output_photons ) {
+CGeneralizedCliffordsBLossySimulationStrategy::fill_r_sample(
+    PicState_int64& sample,
+    PicState_int64& current_input,
+    PicState_int64& working_particle_input_state
+){
+    size_t number_of_current_input_photons = working_particle_input_state.size();
 
+    while (number_of_current_input_photons > sample.number_of_photons) {
 
+        // randomly pick up an incoming photon and add it to current input state
+        update_input_by_single_photon( current_input, working_particle_input_state );
 
-    while (number_of_output_photons > sample.number_of_photons) {
-//tbb::tick_count t0 = tbb::tick_count::now();
-       
-        // randomly pick up an incomming photon and att it to current input state
-        update_current_input();
-
-        // calculate new layer of probabilities from which an intermediate (or final) output state is sampled
-        compute_pmf( sample );
+        // calculate new layer of probabilities from which an intermediate
+        // (or final) output state is sampled
+        matrix_real current_pmf = compute_pmf( sample, current_input );
         
 #ifdef __DFE__
         if (out_of_memory) {
@@ -262,26 +366,25 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::fill_r_sample( PicState_i
         }
 #endif
 
-        // pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs
-        sample_from_pmf(sample);
-//tbb::tick_count t1 = tbb::tick_count::now();
-//std::cout << sample.number_of_photons << " photons from " << number_of_output_photons << " in " << (t1-t0).seconds() << " seconds" << std::endl;
+        sample_from_pmf(current_pmf, sample);
 
     }
-
-     
-
 
 }
 
 
-void 
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::compute_pmf( PicState_int64& sample ) {
+matrix_real
+CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& sample, PicState_int64& current_input ) {
 
+    std::cout << "compute_pmf is running with\n";
+    std::cout << "Sample:";
+    sample.print_matrix();
+    std::cout << "current:";
+    current_input.print_matrix();
+    
 
     // reset the previously calculated pmf layer
-    pmf = matrix_real(1, sample.size());
-
+    matrix_real pmf = matrix_real(1, sample.size());
 
     // define function to filter out nonzero elements
     std::function<bool(int64_t)> filterNonZero = [](int64_t elem) { 
@@ -346,30 +449,16 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::compute_pmf( PicState_int
             input_state_loc[colIndices[idx]]--;  
             input_state_loc.number_of_photons--; 
 
-            //tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
-            //matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, &input_state_loc, &sample );
-            //permanent_addends[idx] = permanentCalculator.calculate( modifiedInterferometerMatrix  );
-               
             
             matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
             PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
             PicState_int64 adapted_output_state = sample.filter(filterNonZero);
+            std::cout << "permanent calculated from\n";
+            std::cout <<"adapted_input_state";
+            adapted_input_state.print_matrix();
+            std::cout <<"adapted_output_state";
+            adapted_output_state.print_matrix();
             permanent_addends[colIndices[idx]] = BBFGpermanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state, false);
-
-            //tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
-            //t_CPU_permanent += (t1-t0).seconds();    //////////////////////////             
-
-/*
-            tbb::tick_count t0b = tbb::tick_count::now();////////////////////////// 
-            Complex16 perm = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state);
-            tbb::tick_count t1b = tbb::tick_count::now();////////////////////////// 
-            t_CPU_permanent_Glynn += (t1b-t0b).seconds();    //////////////////////////             
-*/
-/*
-            if ( std::norm( permanent_addends[colIndices[idx]] - perm )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
-                std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << perm << std::endl;
-            }  
-*/
 
 
         //}
@@ -504,10 +593,6 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::compute_pmf( PicState_int
 #endif
      
 
-//std::cout << "iteration done" << std::endl;
-
-   
-
 
     // calculate probabilities by taking into account the a new particle can come in any new mode
     for (size_t mdx=0; mdx<sample.size(); mdx++ ) {
@@ -543,19 +628,25 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::compute_pmf( PicState_int
         pmf[mdx] = pmf[mdx]/probability_sum;
     }
 
+    return pmf;
+
 }
 
 
 void 
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::update_current_input() {
+CGeneralizedCliffordsBLossySimulationStrategy::
+update_input_by_single_photon(
+    PicState_int64& current_input,
+    PicState_int64& working_input_state
+) {
 
     if ( working_input_state.size() == 0 ) {
-        std::string error("CGeneralizedCliffordsBUniformLossesSimulationStrategy::update_current_input:  the size of working_input_state is zero");
+        std::string error("CGeneralizedCliffordsBSimulationStrategy::update_input_by_single_photon:  the size of working_input_state is zero");
         throw error;
     }
 
     // determine a random index
-    int rand_index = rand() % working_input_state.size();
+    size_t rand_index = rand() % working_input_state.size();
 
     current_input[working_input_state[rand_index]]++;
     current_input.number_of_photons++;
@@ -571,27 +662,25 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::update_current_input() {
 
     // replace the working input state with the reduced one  
     working_input_state = working_input_state_reduced;
-    
 
-   
 }
 
 
 void
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::sample_from_pmf( PicState_int64& sample ) {
-
+CGeneralizedCliffordsBLossySimulationStrategy::
+sample_from_pmf( matrix_real &pmf, PicState_int64 &sample ) {
 
     // create a random double
     double rand_num = (double)rand()/RAND_MAX;
-    //double rand_num = rand_nums[rand_num_idx];//distribution(generator);
+   //double rand_num = rand_nums[rand_num_idx];//distribution(generator);
     //rand_num_idx = rand_num_idx + 1;
 
   
 
     // determine the random index according to the distribution described by pmf
-    int sampled_index=0;
+    size_t sampled_index=0;
     double prob_sum = 0.0;
-    for (int idx=0; idx<pmf.size(); idx++) {
+    for (size_t idx=0; idx<pmf.size(); idx++) {
         prob_sum = prob_sum + pmf[idx];
         if ( prob_sum >= rand_num) {
             sampled_index = idx;
@@ -604,49 +693,244 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::sample_from_pmf( PicState
 }
 
 
-int64_t
-CGeneralizedCliffordsBUniformLossesSimulationStrategy::calculate_current_photon_number() {
-    double rand_num = (double)rand()/RAND_MAX;
+void
+CGeneralizedCliffordsBLossySimulationStrategy::calculate_particle_number_probabilities(int maximal_particle_number){
+    double eta = 1.0 - uniform_loss;
 
-    int64_t photon_number = 0;
+    size_t number_of_possible_particle_number = maximal_particle_number + 1;
 
-    double weight = particle_number_probabilities[photon_number];
+    binomial_weights = std::vector<matrix_real>(number_of_possible_particle_number);
 
-    while (weight < rand_num && weight < 1.0){
-        photon_number++;
-        weight += particle_number_probabilities[photon_number];
+    for (size_t n = 1; n < number_of_possible_particle_number; n++){
+        binomial_weights[n] = matrix_real(1, n+1);
+            for (size_t i = 0; i < n+1; i++){
+                binomial_weights[n][i] =
+                    pow(eta, i)
+                    * binomialCoeffInt64(n, i)
+                    * pow(1.0 - eta, n - i);
+        }
+    }
+} 
+
+void
+CGeneralizedCliffordsBLossySimulationStrategy::extract_losses_from_interferometer(){
+    size_t n = interferometer_matrix.rows;
+    
+    matrix u = matrix(n, n);
+    matrix_real s = matrix_real(1, n);
+    matrix vt = matrix(n, n);
+
+    const size_t rwork_n = 5 * n;
+    matrix work = matrix( 1, n );
+    matrix_real rwork = matrix_real( 1, rwork_n);
+
+    int info = -99;
+
+    // svd by Lapacke
+    LAPACKE_zgesvd(
+        LAPACK_ROW_MAJOR,
+        'A',
+        'A',
+        n,
+        n,
+        interferometer_matrix.get_data(),
+        n,
+        s.get_data(),
+        u.get_data(),
+        n,
+        vt.get_data(),
+        n,
+        work.get_data(),
+        n,
+        rwork.get_data(),
+        &info
+    );
+
+
+    matrix_real transmissivities = matrix_real( 1, n );
+
+    double maximal_transmissivity = 0.0;
+    for (size_t idx = 0; idx < n; idx++){
+        transmissivities[idx] = s[idx] * s[idx];
+        
+        if (transmissivities[idx] > maximal_transmissivity){
+            maximal_transmissivity = transmissivities[idx];
+        }
+    }
+    uniform_loss = 1.0 - maximal_transmissivity;
+
+    for (size_t idx = 0; idx < n; idx++){
+        transmissivities[idx] /= maximal_transmissivity;
+        s[idx] = std::sqrt(transmissivities[idx]);
+    }
+    
+
+    // matrix multiplication is not implemented for real and complex matrices yet
+    // doing manually
+    Complex16 *row_pointer = vt.get_data();
+    for (size_t row_idx = 0; row_idx < n; row_idx++){
+        double current_transmissivity = s[row_idx];
+        for (size_t col_idx = 0; col_idx < n; col_idx++){
+            *row_pointer *= current_transmissivity; // multiplying with corresponding sigma value
+            row_pointer++; // jumping to next value
+        }
+    }
+    
+    interferometer_matrix = dot(u, vt);
+    interferometer_matrix.print_matrix();
+}
+
+PicState_int64
+CGeneralizedCliffordsBLossySimulationStrategy::
+compute_lossy_particle_input(PicState_int64 &input_state_without_approx_modes){
+
+    PicState_int64 lossy_input_state = input_state_without_approx_modes.copy();
+
+    // fill all particles into one random mode on the approximated modes
+    if (number_of_approximated_modes > 0){
+        size_t mode_index_of_approximation = rand() % number_of_approximated_modes;
+
+        lossy_input_state[mode_index_of_approximation] = random_particle_number(particle_number_in_approximated_modes);
     }
 
-    return photon_number;
+    // update particle numbers on all modes after the approximated modes
+    if (uniform_loss > 0.0){
+        for (size_t idx = number_of_approximated_modes; idx < lossy_input_state.size(); idx++){
+            if (lossy_input_state[idx] > 0){
+                lossy_input_state[idx] = random_particle_number(lossy_input_state[idx]);
+            }
+        }
+
+    }
+    std::cout << "lossy input: ";
+    for(int i = 0; i < lossy_input_state.size(); i++){
+        std::cout << lossy_input_state[i]<<" ";
+    }
+    std::cout <<std::endl;
+
+    size_t number_of_input_photons = sum(lossy_input_state);
+
+    PicState_int64 lossy_particle_input_state =
+        PicState_int64(number_of_input_photons);
+
+    size_t index = 0;
+    for ( size_t mode_idx=0; mode_idx<lossy_input_state.size(); mode_idx++ ) {
+        for(
+            int64_t particle_index=0;
+            particle_index < lossy_input_state[mode_idx];
+            particle_index++
+        ) {
+            lossy_particle_input_state[index] = mode_idx;
+            index++;
+        }
+    }
+    
+    return lossy_particle_input_state;
+}
+
+size_t CGeneralizedCliffordsBLossySimulationStrategy::random_particle_number(size_t particle_number){
+
+    double rand_num = (double)rand()/RAND_MAX;
+    
+    size_t idx = 0;
+    double *weights = binomial_weights[particle_number].get_data();
+    double weight = *weights;
+    weights++;
+    while(weight < rand_num){
+        weight += *weights;
+        weights++;
+        idx++;
+    }
+
+    return idx;
 }
 
 
-void CGeneralizedCliffordsBUniformLossesSimulationStrategy::calculate_particle_number_probabilities(){
-    int64_t n = sum(input_state);
-    
-    size_t number_of_possible_particle_number = n + 1;
-    particle_number_probabilities = matrix_real(1, number_of_possible_particle_number);
+void CGeneralizedCliffordsBLossySimulationStrategy::update_matrix_for_approximate_sampling(){
+    matrix qft = quantum_fourier_transform_matrix(number_of_approximated_modes);
 
-    // probability of a particle remaining in the circuit
-    double eta = transmittance * transmittance;
+    matrix random_phases = random_phases_vector(number_of_approximated_modes);
 
-    for (size_t i = 0; i < number_of_possible_particle_number; i++){
-        particle_number_probabilities[i] =
-            binomialCoeffInt64(n, i) * pow(eta, i) * pow(1.0 - eta, n - i);
-
+    Complex16 *qft_data = qft.get_data();
+    // interferometer_matrix = interferometer_matrix @ random_phases_extended @ qft_extended python code
+    // multiplying by a diagonal matrix from left means multiplying lines by lines with the diagonal elements
+    for (size_t row_idx = 0; row_idx < qft.rows; row_idx++){
+        Complex16 *current_row = qft_data + row_idx * qft.stride;
+        for (size_t col_idx = 0; col_idx < qft.cols; col_idx++){
+            current_row[col_idx] *= random_phases[row_idx];
+        }
     }
 
+    matrix new_interferometer = matrix(
+        interferometer_matrix.rows,
+        interferometer_matrix.cols
+    );
 
-#ifdef DEBUG
-    double weight_sum = 0;
-    for (size_t i = 0; i < number_of_possible_particle_number; i++){
-        weight_sum += particle_number_probabilities[i];
+    Complex16 *interferometer_data = interferometer_matrix.get_data();
+    // multiplying interferometer with modified qft with additional identity block matrix
+    for (size_t row_idx = 0; row_idx < interferometer_matrix.rows; row_idx++){
+        Complex16 *interferometer_current_row = interferometer_data + row_idx * interferometer_matrix.stride;
+        // just the first qft.cols elements has to be updated
+        for (size_t col_idx = 0; col_idx < qft.cols; col_idx++){
+            Complex16 *new_interferometer_elem = new_interferometer.get_data() + row_idx * new_interferometer.stride + col_idx;
+            *new_interferometer_elem = 0.0;
+            for (size_t k = 0; k < qft.cols; k++){
+                *new_interferometer_elem +=
+                    interferometer_current_row[k]
+                    * qft[k * qft.stride + col_idx];
+            } 
+        }
+        // outside of the first qft.cols elements the interferometer row remains the same
+        for (size_t col_idx = qft.cols; col_idx < interferometer_matrix.cols; col_idx++){
+                new_interferometer[row_idx * new_interferometer.stride + col_idx] =
+                    interferometer_current_row[col_idx];
+        }
     }
 
-    assert(std::abs(weight_sum - 1.0) < 0.0000001);
-#endif
+    // update interferometer matrix
+    interferometer_matrix = new_interferometer;
+}
 
-} 
+
+matrix quantum_fourier_transform_matrix(size_t n){
+    Complex16 j = Complex16(0.0, 1.0);
+    Complex16 e = M_E;
+    auto omega_std = pow(e, j * 2.0 * M_PI / (double)n);
+    Complex16 omega = Complex16(omega_std.real(), omega_std.imag());
+
+    matrix qft(n, n);
+
+    double sqrt_of_n = std::sqrt(n);
+
+    for (size_t row_idx = 0; row_idx < n; row_idx++){
+        for (size_t col_idx = 0; col_idx < n; col_idx++){
+            qft[row_idx * qft.stride + col_idx] =
+                pow(omega, row_idx * col_idx) / sqrt_of_n;
+        }
+    }
+
+    return qft;
+}
 
 
-}// PIC
+matrix random_phases_vector(size_t n){
+    matrix phases = matrix(n, 1);
+
+    Complex16 j = Complex16(0.0, 1.0);
+    Complex16 e = M_E;
+
+    for (size_t idx = 0; idx < n; idx++){
+        double rand_num = (double)rand()/RAND_MAX;
+
+        auto omega_std = pow(e, j * 2.0 * M_PI / rand_num);
+        Complex16 omega = Complex16(omega_std.real(), omega_std.imag());
+
+        phases[idx] = omega;
+    }
+
+    return phases;
+}
+
+
+
+} // PIC

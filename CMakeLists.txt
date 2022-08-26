@@ -161,6 +161,7 @@ check_function_exists(openblas_set_num_threads BLAS_IS_OPENBLAS)
 
 # check the presence of lapacke library
 check_function_exists(LAPACKE_zgetri LAPACKE_FOUND)
+check_function_exists(LAPACKE_zgesvd LAPACKE_FOUND)
 set(CMAKE_REQUIRED_LIBRARIES "")
 
 # If MKL is enabled
@@ -418,6 +419,7 @@ list(APPEND piquassoboost_files
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategy.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.cpp
     ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/RepeatedColumnPairs.cpp
+    ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsBLossySimulationStrategy.cpp
 
 )
 
@@ -547,6 +549,7 @@ set_target_properties(piquassoboost PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategy.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/GaussianSimulationStrategyFast.h
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/RepeatedColumnPairs.h
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/piquassoboost/sampling/simulation_strategies/source/CGeneralizedCliffordsBLossySimulationStrategy.h
 )
 
 configure_file(${PROJECT_SOURCE_DIR}/piquassoboost/common/source/Config.h.in

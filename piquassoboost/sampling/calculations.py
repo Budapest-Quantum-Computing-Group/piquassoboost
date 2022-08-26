@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from distutils.command.config import config
 import numpy as np
 
 from functools import partial
@@ -31,6 +32,7 @@ from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
     GeneralizedCliffordsSimulationStrategyMultiSingleDFE,
     GeneralizedCliffordsSimulationStrategyMultiDualDFE,
     GeneralizedCliffordsBUniformLossesSimulationStrategy,
+    GeneralizedCliffordsBLossySimulationStrategy,
 )
 
 from piquasso.api.result import Result
@@ -43,7 +45,7 @@ def _is_uniform(array):
 def _particle_number_measurement(
     state, 
     instruction, 
-    shots, 
+    shots,
     strategy_class,
     speedup_uniform = False
 ) -> Result:
@@ -58,6 +60,42 @@ def _particle_number_measurement(
     as it allows effective simulation of broader range of input states than original
     algorithm.
     """
+    
+    if state._config.number_of_approximated_modes is not None:
+        interferometer = state.interferometer
+
+        initial_state = np.array(state.initial_state)
+
+
+        from theboss.boson_sampling_utilities.permanent_calculators.ryser_permanent_calculator import (
+            RyserPermanentCalculator,
+        )
+        from theboss.simulation_strategies.nonuniform_losses_approximation_strategy import (
+            NonuniformLossesApproximationStrategy,
+        )
+        
+        
+        #calculator = RyserPermanentCalculator(interferometer)
+        #simulation_strategy = NonuniformLossesApproximationStrategy(
+        #    bs_permanent_calculator=calculator,
+        #    approximated_modes_number=state._config.number_of_approximated_modes,
+        #    threads_number=1
+        #)
+
+        simulation_strategy = GeneralizedCliffordsBLossySimulationStrategy(
+            interferometer,
+            state._config.number_of_approximated_modes,
+            state._config._seed_sequence
+        )
+        
+        sampling_simulator = BosonSamplingSimulator(simulation_strategy)
+
+        samples = sampling_simulator.get_classical_simulation_results(
+            initial_state,
+            samples_number=shots
+        )
+
+        return Result(state=state, samples=samples)
 
     singular_values = np.linalg.svd(state.interferometer)[1]
     is_uniform = _is_uniform(singular_values)
