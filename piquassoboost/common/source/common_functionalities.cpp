@@ -151,6 +151,11 @@ int64_t binomialCoeffInt64(int n, int k){
 }
 
 
+__int128 binomialCoeffInt128(int n, int k){
+    return binomialCoeffTemplated<__int128>(n, k);
+}
+
+
 /**
 @brief Function which checks whether the given matrix is symmetric or not.
 @param mtx_in The given matrix.
