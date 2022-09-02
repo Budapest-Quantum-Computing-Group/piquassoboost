@@ -86,6 +86,15 @@ int binomialCoeff(int n, int k);
 @return Returns with the Binomial Coefficient C(n, k).
 */
 int64_t binomialCoeffInt64(int n, int k);
+  
+
+/**
+@brief Call to calculate the Binomial Coefficient C(n, k) in __int128
+@param n The integer n
+@param k The integer k
+@return Returns with the Binomial Coefficient C(n, k).
+*/
+__int128 binomialCoeffInt128(int n, int k);
 
 
 /**
