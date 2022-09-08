@@ -168,7 +168,7 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::simulate( PicState_int64 
                     working_input_state = particle_input_state.copy();
 
                     int64_t number_of_output_photons = calculate_current_photon_number();//sum(input_state);
-                    fill_r_sample( sample, number_of_output_photons);
+                    fill_r_sample( sample_new, number_of_output_photons);
                 },
                 [&]{
         

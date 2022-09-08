@@ -13,6 +13,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+try:
+    from mpi4py import MPI
+    MPI_imported = True
+except ModuleNotFoundError:
+    MPI_imported = False
+
 
 if __name__ == '__main__':    
 
