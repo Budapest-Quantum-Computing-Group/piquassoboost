@@ -145,7 +145,31 @@ std::vector<PicState_int64>
 CGeneralizedCliffordsBLossySimulationStrategy::
 simulate( PicState_int64 &input_state, int samples_number ) {
 
+#ifdef __MPI__
+    // at MPI just the root process has to extract the losses from the interferometer
+    if (current_rank == root_rank){
+        extract_losses_from_interferometer();
+    }
+    MPI_Bcast(
+        &uniform_loss,
+        1,
+        MPI_DOUBLE,
+        root_rank,
+        MPI_COMM_WORLD
+    );
+
+    MPI_Bcast(
+        interferometer_matrix.get_data(),
+        interferometer_matrix.size() * 2 /*complex values*/,
+        MPI_DOUBLE,
+        root_rank,
+        MPI_COMM_WORLD
+    );
+
+#else
     extract_losses_from_interferometer();
+#endif
+
 
 #ifdef __DFE__
     lock_lib();

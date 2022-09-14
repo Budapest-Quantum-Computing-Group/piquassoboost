@@ -69,6 +69,8 @@ protected:
 
     int MPI_start_index;
     int MPI_end_index;
+    /// The rank of the root process
+    static constexpr int root_rank = 0;
 #endif
 
 #ifdef __DFE__
