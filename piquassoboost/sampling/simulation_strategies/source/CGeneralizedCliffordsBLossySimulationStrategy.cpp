@@ -56,10 +56,6 @@ CGeneralizedCliffordsBLossySimulationStrategy::CGeneralizedCliffordsBLossySimula
     number_of_approximated_modes = 0;
 
 #ifdef __MPI__
-    int done_already;
-    MPI_Initialized(&done_already);
-    if (!done_already)
-        MPI_Init(NULL, NULL);
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
@@ -82,10 +78,6 @@ CGeneralizedCliffordsBLossySimulationStrategy::CGeneralizedCliffordsBLossySimula
     number_of_approximated_modes = 0;
 
 #ifdef __MPI__
-    int done_already;
-    MPI_Initialized(&done_already);
-    if (!done_already)
-        MPI_Init(NULL, NULL);
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
@@ -112,10 +104,6 @@ CGeneralizedCliffordsBLossySimulationStrategy(
     number_of_approximated_modes = number_of_approximated_modes_in;
 
 #ifdef __MPI__
-    int done_already;
-    MPI_Initialized(&done_already);
-    if (!done_already)
-        MPI_Init(NULL, NULL);
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
@@ -156,14 +144,6 @@ CGeneralizedCliffordsBLossySimulationStrategy::Update_interferometer_matrix( mat
 std::vector<PicState_int64>
 CGeneralizedCliffordsBLossySimulationStrategy::
 simulate( PicState_int64 &input_state, int samples_number ) {
-    std::cout << "CGeneralizedCliffordsBLossySimulationStrategy::simulate\n";
-    std::cout << "First input: ";
-    for (int i = 0; i < input_state.size(); i++){
-        std::cout << input_state[i] <<" ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "Approximated modes number: "<<number_of_approximated_modes<<std::endl;
 
     extract_losses_from_interferometer();
 
@@ -193,15 +173,6 @@ simulate( PicState_int64 &input_state, int samples_number ) {
 
     calculate_particle_number_probabilities(maximum_particle_number_in);
 
-    size_t counter = 0;
-    std::cout << "Particle number probabilities\n";
-    for (auto&& weights : binomial_weights){
-        for (int i = 0; i < weights.size(); i++){
-            std::cout << counter << " "<<i<<":"<<weights[i]<<std::endl; 
-        }
-        counter++;
-    }
-
     std::vector<PicState_int64> samples;
     if ( samples_number > 0 ) {    
         // preallocate the memory for the output states
@@ -209,7 +180,6 @@ simulate( PicState_int64 &input_state, int samples_number ) {
 
         
 #ifdef __MPI__
-
         int samples_number_per_process = samples_number/world_size;
     
         // calculate the first iteration of the sampling process
@@ -228,8 +198,6 @@ simulate( PicState_int64 &input_state, int samples_number ) {
             );
 
         fill_r_sample( sample, current_input, approximated_particle_input_state );
-
-        std::cout << "samples_number_per_process: "<<samples_number_per_process<<std::endl;
         
         // calculate the individual outputs for the shots and send the calculated outputs to other MPI processes in parallel
         PicState_int64 sample_new;
@@ -317,16 +285,6 @@ simulate( PicState_int64 &input_state, int samples_number ) {
             }
 #endif
 
-            std::cout << "Input: ";
-            for (int i = 0; i < current_input.size(); i++)
-                std::cout << current_input[i] << " ";
-            std::cout << std::endl;
-
-            std::cout << "Output: ";
-            for (int i = 0; i < sample.size(); i++)
-                std::cout << sample[i] << " ";
-            std::cout << std::endl;
-
 
             samples.push_back( sample );
         }
@@ -376,14 +334,8 @@ CGeneralizedCliffordsBLossySimulationStrategy::fill_r_sample(
 matrix_real
 CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& sample, PicState_int64& current_input ) {
 
-    std::cout << "compute_pmf is running with\n";
-    std::cout << "Sample:";
-    sample.print_matrix();
-    std::cout << "current:";
-    current_input.print_matrix();
-    
 
-    // reset the previously calculated pmf layer
+    // create new pmf layer
     matrix_real pmf = matrix_real(1, sample.size());
 
     // define function to filter out nonzero elements
@@ -430,8 +382,6 @@ CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& samp
 
 #ifdef __DFE__
     const size_t nonzero_output_elements_threshold = 10; 
-//double photon_density = (double)(sample.number_of_photons)/nonzero_output_elements;
-//std::cout << nonzero_output_elements << " " << photon_density << " " << effective_dim <<std::endl;
 
     if ( nonzero_output_elements < nonzero_output_elements_threshold || input_state.number_of_photons > 36 ) {
 #endif
@@ -453,11 +403,7 @@ CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& samp
             matrix&& modifiedInterferometerMatrix = adaptInterferometer( interferometer_matrix, input_state_loc, sample );
             PicState_int64 adapted_input_state = input_state_loc.filter(filterNonZero);
             PicState_int64 adapted_output_state = sample.filter(filterNonZero);
-            std::cout << "permanent calculated from\n";
-            std::cout <<"adapted_input_state";
-            adapted_input_state.print_matrix();
-            std::cout <<"adapted_output_state";
-            adapted_output_state.print_matrix();
+
             permanent_addends[colIndices[idx]] = BBFGpermanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state, false);
 
 
@@ -575,11 +521,7 @@ CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& samp
                 for (size_t idx=idx_max_CPU; idx<colIndices.size(); idx++) {
 
                     permanent_addends[colIndices[idx]] = perms_DFE[idx-idx_max_CPU];
-/*
-                    if ( std::norm( permanent_addends[colIndices[idx]] - permanent_addends_tmp[colIndices[idx]] )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
-                        std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << permanent_addends_tmp[colIndices[idx]] <<  std::endl;
-                    }  
-*/
+
                 }
     
 
@@ -777,7 +719,6 @@ CGeneralizedCliffordsBLossySimulationStrategy::extract_losses_from_interferomete
     }
     
     interferometer_matrix = dot(u, vt);
-    interferometer_matrix.print_matrix();
 }
 
 PicState_int64
@@ -802,11 +743,6 @@ compute_lossy_particle_input(PicState_int64 &input_state_without_approx_modes){
         }
 
     }
-    std::cout << "lossy input: ";
-    for(int i = 0; i < lossy_input_state.size(); i++){
-        std::cout << lossy_input_state[i]<<" ";
-    }
-    std::cout <<std::endl;
 
     size_t number_of_input_photons = sum(lossy_input_state);
 

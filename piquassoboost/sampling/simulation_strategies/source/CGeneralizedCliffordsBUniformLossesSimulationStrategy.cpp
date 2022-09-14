@@ -116,7 +116,6 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::Update_interferometer_mat
 std::vector<PicState_int64>
 CGeneralizedCliffordsBUniformLossesSimulationStrategy::simulate( PicState_int64 &input_state_in, int samples_number ) {
 
-    std::cout << "CGeneralizedCliffordsBUniformLossesSimulationStrategy::simulate\n";
 #ifdef __DFE__
     lock_lib();
     init_dfe_lib(DFE_MAIN, useDual); 
