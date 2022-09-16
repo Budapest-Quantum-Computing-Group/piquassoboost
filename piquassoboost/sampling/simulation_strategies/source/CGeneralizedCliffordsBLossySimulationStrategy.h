@@ -147,10 +147,7 @@ void Update_interferometer_matrix( matrix &interferometer_matrix_in );
  * @return Returns with the resultant state after traversing through
  *         linear interferometer.
  */
-std::vector<PicState_int64> simulate(
-    PicState_int64 &input_state_in,
-    int samples_number
-);
+std::vector<PicState_int64> simulate( PicState_int64 &input_state_in, int samples_number );
 
 
 protected:
@@ -167,10 +164,7 @@ protected:
  * @param working_input_state The indices of the input particle
  *        from which we choose randomly
  */
-void update_input_by_single_photon(
-    PicState_int64& current_input,
-    PicState_int64& working_input_state
-);
+void update_input_by_single_photon( PicState_int64& current_input, PicState_int64& working_input_state );
 
 
 /**
@@ -188,11 +182,7 @@ matrix_real compute_pmf( PicState_int64& sample, PicState_int64& current_input )
  * @param current_input The input state where we are currently (starting with all 0's)
  * @param working_input_state The input state we want to reach
  */
-void fill_r_sample(
-    PicState_int64& sample,
-    PicState_int64& current_input,
-    PicState_int64& working_particle_input_state
-);
+void fill_r_sample( PicState_int64& sample, PicState_int64& current_input, PicState_int64& working_particle_input_state );
 
 
 /**

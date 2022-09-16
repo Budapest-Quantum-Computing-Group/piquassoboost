@@ -47,6 +47,13 @@ extern "C" {
 
 namespace pic {
 
+static double t_perm_accumulator=0.0;
+static double t_DFE=0.0;
+static double t_DFE_pure=0.0;
+static double t_DFE_prepare=0.0;
+static double t_CPU_permanent=0.0;
+static double t_CPU=0.0;
+static double t_CPU_permanent_Glynn=0.0;
 
 CGeneralizedCliffordsBLossySimulationStrategy::CGeneralizedCliffordsBLossySimulationStrategy() {
     // seed the random generator
@@ -142,8 +149,7 @@ CGeneralizedCliffordsBLossySimulationStrategy::Update_interferometer_matrix( mat
 
 
 std::vector<PicState_int64>
-CGeneralizedCliffordsBLossySimulationStrategy::
-simulate( PicState_int64 &input_state, int samples_number ) {
+CGeneralizedCliffordsBLossySimulationStrategy::simulate( PicState_int64 &input_state, int samples_number ) {
 
 #ifdef __MPI__
     // at MPI just the root process has to extract the losses from the interferometer
@@ -173,7 +179,7 @@ simulate( PicState_int64 &input_state, int samples_number ) {
 
 #ifdef __DFE__
     lock_lib();
-    init_dfe_lib(DFE_MAIN, useDual); 
+    init_dfe_lib(DFE_REP, useDual); 
     out_of_memory = false;  
 #endif
 
@@ -226,40 +232,40 @@ simulate( PicState_int64 &input_state, int samples_number ) {
         // calculate the individual outputs for the shots and send the calculated outputs to other MPI processes in parallel
         PicState_int64 sample_new;
         for (int idx=1; idx<samples_number_per_process; idx++) {
-    
-            tbb::parallel_invoke(
-    
-                [&]{
-                    sample_new = PicState_int64(input_state.cols, 0);
-                    sample_new.number_of_photons = 0;
 
-                    PicState_int64 local_current_input = PicState_int64(sample.size(), 0);
-                    local_current_input.number_of_photons = 0;
 
-                    PicState_int64 local_approximated_particle_input_state =
-                        compute_lossy_particle_input(
-                            input_state_without_approximated_modes
-                        );
+            std::thread mpi_thread( [&](){
 
-                    fill_r_sample( sample_new, local_current_input, local_approximated_particle_input_state );
-
-                },
-                [&]{
-        
                     // gather the samples over the MPI processes
                     PicState_int64 sample_gathered( sample.size()*world_size );
                     int bytes = sample.size()*sizeof(int64_t);
-      
+
                     MPI_Allgather(sample.get_data(), bytes, MPI_BYTE, sample_gathered.get_data(), bytes, MPI_BYTE, MPI_COMM_WORLD);
-            
+
                     for( int rank=0; rank<world_size; rank++) {
                         PicState_int64 sample_local( sample_gathered.get_data()+rank*sample.size(), sample.size() );
                         samples.push_back( sample_local.copy() );
                     }
-    
-                }
-    
-            ); // parallel invoke     
+
+            });      
+
+
+
+            sample_new = PicState_int64(input_state.cols, 0);
+            sample_new.number_of_photons = 0;
+
+            PicState_int64 local_current_input = PicState_int64(sample.size(), 0);
+            local_current_input.number_of_photons = 0;
+
+            PicState_int64 local_approximated_particle_input_state = compute_lossy_particle_input( input_state_without_approximated_modes );
+
+            fill_r_sample( sample_new, local_current_input, local_approximated_particle_input_state );
+   
+
+
+            // Makes the main thread wait for the mpi thread to finish execution, therefore blocks its own execution.
+            mpi_thread.join();
+  
     
             sample = sample_new;
             
@@ -407,7 +413,7 @@ CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& samp
 #ifdef __DFE__
     const size_t nonzero_output_elements_threshold = 10; 
 
-    if ( nonzero_output_elements < nonzero_output_elements_threshold || input_state.number_of_photons > 36 ) {
+    if ( nonzero_output_elements < nonzero_output_elements_threshold || current_input.number_of_photons > 48 ) {
 #endif
 
 
@@ -482,9 +488,9 @@ CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& samp
                 }
 
                 for( size_t idx=0; idx<colIndices.size(); idx++) {
-                    reduced_input_state[idx] = input_state[colIndices[idx]];
+                    reduced_input_state[idx] = current_input[colIndices[idx]];
                 }
-                reduced_input_state.number_of_photons = input_state.number_of_photons;
+                reduced_input_state.number_of_photons = current_input.number_of_photons;
 
 
                 // create storage for batched input states
@@ -521,7 +527,7 @@ CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& samp
                     Complex16& perm = permanent_addends[colIndices[idx]];
                     GlynnPermanentCalculatorRepeated_DFE(interferometer_matrix, input_state_loc, sample, perm, useDual, useFloat);
 */
-/*
+
                     tbb::tick_count t0 = tbb::tick_count::now();//////////////////////////
                     PicState_int64&& input_state_loc = current_input.copy();
                     input_state_loc[colIndices[idx]]--;  
@@ -535,7 +541,7 @@ CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& samp
                     permanent_addends_tmp[colIndices[idx]] = permanentCalculator.calculate( modifiedInterferometerMatrix, adapted_input_state, adapted_output_state); 
                     tbb::tick_count t1 = tbb::tick_count::now();////////////////////////// 
                     t_CPU_permanent += (t1-t0).seconds();    ////////////////////////// 
-*/
+
                 }
 
 
@@ -545,6 +551,12 @@ CGeneralizedCliffordsBLossySimulationStrategy::compute_pmf( PicState_int64& samp
                 for (size_t idx=idx_max_CPU; idx<colIndices.size(); idx++) {
 
                     permanent_addends[colIndices[idx]] = perms_DFE[idx-idx_max_CPU];
+
+
+                    if ( std::norm( permanent_addends[colIndices[idx]] - permanent_addends_tmp[colIndices[idx]] )/std::norm( permanent_addends[colIndices[idx]]) > 1e-3 ) {
+                        std::cout << "difference in idx=" << idx << " " << permanent_addends[colIndices[idx]] << " " << permanent_addends_tmp[colIndices[idx]] <<  std::endl;
+                    }  
+
 
                 }
     

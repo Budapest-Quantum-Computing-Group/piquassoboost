@@ -138,7 +138,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 
 #ifdef __DFE__
     lock_lib();
-    init_dfe_lib(DFE_MAIN, useDual); 
+    init_dfe_lib(DFE_REP, useDual); 
     out_of_memory = false;  
 #endif
 
@@ -153,6 +153,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
     if ( samples_number > 0 ) {    
         // preallocate the memory for the output states
         samples.reserve( samples_number );
+
 #ifdef __MPI__
 
         int samples_number_per_process = samples_number/world_size;
@@ -167,42 +168,45 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
         working_input_state = particle_input_state.copy();
 
         fill_r_sample( sample );
-        
-        
+              
         // calculate the individual outputs for the shots and send the calculated outputs to other MPI processes in parallel
         PicState_int64 sample_new;
         for (int idx=1; idx<samples_number_per_process; idx++) {
-    
-            tbb::parallel_invoke(
-    
-                [&]{
-                    sample_new = PicState_int64(input_state_in.cols, 0);
-                    sample_new.number_of_photons = 0;
 
-                    current_input = PicState_int64(sample.size(), 0);
-                    current_input.number_of_photons = 0;
 
-                    working_input_state = particle_input_state.copy();
+            std::thread mpi_thread( [&](){
 
-                    fill_r_sample( sample_new );
-                },
-                [&]{
-        
                     // gather the samples over the MPI processes
                     PicState_int64 sample_gathered( sample.size()*world_size );
                     int bytes = sample.size()*sizeof(int64_t);
-      
+
                     MPI_Allgather(sample.get_data(), bytes, MPI_BYTE, sample_gathered.get_data(), bytes, MPI_BYTE, MPI_COMM_WORLD);
-            
+
                     for( int rank=0; rank<world_size; rank++) {
                         PicState_int64 sample_local( sample_gathered.get_data()+rank*sample.size(), sample.size() );
                         samples.push_back( sample_local.copy() );
                     }
-    
-                }
-    
-            ); // parallel invoke     
-    
+
+            });      
+
+
+
+            sample_new = PicState_int64(input_state_in.cols, 0);
+            sample_new.number_of_photons = 0;
+
+            current_input = PicState_int64(sample.size(), 0);
+            current_input.number_of_photons = 0;
+
+            working_input_state = particle_input_state.copy();
+
+            fill_r_sample( sample_new );
+   
+
+
+            // Makes the main thread wait for the mpi thread to finish execution, therefore blocks its own execution.
+            mpi_thread.join();
+
+       
             sample = sample_new;
             
         }
@@ -362,7 +366,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 //double photon_density = (double)(sample.number_of_photons)/nonzero_output_elements;
 //std::cout << nonzero_output_elements << " " << photon_density << " " << effective_dim <<std::endl;
 
-    if ( nonzero_output_elements < nonzero_output_elements_threshold || input_state.number_of_photons > 36 ) {
+    if ( nonzero_output_elements < nonzero_output_elements_threshold || current_input.number_of_photons > 40 ) {
 #endif
 
 
@@ -411,7 +415,6 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
     else {
 
 
-        
         // split the work between CPU and DFE
         size_t idx_max_CPU = colIndices.size()/6;
         
@@ -455,9 +458,9 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
                 }
 
                 for( size_t idx=0; idx<colIndices.size(); idx++) {
-                    reduced_input_state[idx] = input_state[colIndices[idx]];
+                    reduced_input_state[idx] = current_input[colIndices[idx]];
                 }
-                reduced_input_state.number_of_photons = input_state.number_of_photons;
+                reduced_input_state.number_of_photons = current_input.number_of_photons;
 
 
                 // create storage for batched input states
@@ -474,7 +477,7 @@ CGeneralizedCliffordsBSimulationStrategy::compute_pmf( PicState_int64& sample ) 
 
                 //create storage for the batched output states
                 std::vector<PicState_int64> output_states_DFE;
-                output_states_DFE.push_back(sample);        
+                output_states_DFE.push_back(sample);    
 
                 for (size_t idx=idx_max_CPU; idx<colIndices.size(); idx++) {
 

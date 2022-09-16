@@ -294,8 +294,8 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
         // start the calculation of the permanent
     
         pic::Complex16 ret;
-        ret = 27.0;
-        std::cout << "27 in ret\n";
+        //ret = 27.0;
+        //std::cout << "27 in ret\n";
 
         if (self->lib == GlynnLongDouble) {
             try {
