@@ -153,44 +153,12 @@ std::vector<PicState_int64> simulate( PicState_int64 &input_state_in, int sample
 protected:
 
 /**
- * @brief Call to randomly increase the current input state
- *        by a single photon
- * 
- * This method randomly chooses a particle from
- * `working_input_state` and fills it into the current
- * input and the particle is eliminated from 
- * `working_input_state`.
- * @param current_input Current input state to update
- * @param working_input_state The indices of the input particle
- *        from which we choose randomly
- */
-void update_input_by_single_photon( PicState_int64& current_input, PicState_int64& working_input_state );
-
-
-/**
- * @brief Call to calculate new layer of probabilities from
- *        which an intermediate output state is sampled.
- * 
- * @return The vector containing the probabilities.
- */
-matrix_real compute_pmf( PicState_int64& sample, PicState_int64& current_input );
-
-
-/**
  * @brief Call to calculate and fill the output states for the individual shots.
  * @param sample The current sample state represented by a PicState_int64 class
  * @param current_input The input state where we are currently (starting with all 0's)
  * @param working_input_state The input state we want to reach
  */
 void fill_r_sample( PicState_int64& sample, PicState_int64& current_input, PicState_int64& working_particle_input_state );
-
-
-/**
- * @brief Call to pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs.
- * @param pmf Probabilities to sample from
- * @param sample The current sample represanted by a PicState_int64 class that would be replaced by the new sample.
- */
-void sample_from_pmf( matrix_real &pmf, PicState_int64& sample );
 
 
 /**
@@ -233,11 +201,11 @@ PicState_int64 compute_lossy_particle_input(
 
 /**
  * @brief Gives a random particle number based on a mode
- * @param particle_number The maximal number of particles on
+ * @param maximal_particle_number The maximal number of particles on
  *        the specific mode.
  * @return Random particle number on the current mode.
  */
-size_t random_particle_number(size_t particle_number);
+size_t random_particle_number(size_t maximal_particle_number);
 
 
 /**
@@ -249,12 +217,8 @@ void update_matrix_for_approximate_sampling();
 
 }; //CGeneralizedCliffordsBLossySimulationStrategy
 
-matrix quantum_fourier_transform_matrix(size_t n);
-
-/** random phases in vector form!
- */
-matrix random_phases_vector(size_t n);
 
 } // PIC
+
 
 #endif // CGeneralizedCliffordsBLossySimulationStrategy_H

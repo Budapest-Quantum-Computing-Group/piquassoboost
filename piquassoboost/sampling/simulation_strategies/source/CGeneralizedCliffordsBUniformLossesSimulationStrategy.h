@@ -123,19 +123,9 @@ std::vector<PicState_int64> simulate( PicState_int64 &input_state_in, int sample
 protected:
 
 /**
- * @brief Call to randomly increase the current input state by a single photon
- */
-void update_current_input();
-
-
-/**
- * @brief Call to calculate new layer of probabilities from which an intermediate (or final) output state is sampled
- */
-void compute_pmf(PicState_int64& sample);
-
-/**
  * @brief Call to recursively add substates to the hashmap of labeled states.
  */
+
 
 /**
  * @brief Call to calculate and fill the output states for the individual shots.
@@ -143,12 +133,6 @@ void compute_pmf(PicState_int64& sample);
  */
 void fill_r_sample( PicState_int64& sample, int64_t number_of_output_photons );
 
-
-/**
- * @brief Call to pick a new sample from the possible output states according to the calculated probability distribution stored in pmfs.
- * @param sample The current sample represanted by a PicState_int64 class that would be replaced by the new sample.
- */
-void sample_from_pmf( PicState_int64& sample );
 
 /**
  *  @brief Samples remaining particles number using binomial weights computed earlier and stored in member variable.
