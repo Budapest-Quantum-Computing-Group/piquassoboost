@@ -14,7 +14,15 @@ public:
   FloatInf(const double d) { init = 1; mpfr_init2(this->f, IEEE_DBL_MANT_DIG); mpfr_set_d(this->f, d, MPFR_RNDN); }
   FloatInf(const long double ld) { init = 1; mpfr_init2(this->f, MPFR_LDBL_MANT_DIG); mpfr_set_ld(this->f, ld, MPFR_RNDN); }
   FloatInf(const long long unsigned int uj) { init = 1; mpfr_init2(this->f, sizeof(uintmax_t)*8); mpfr_set_uj(this->f, uj, MPFR_RNDN); }
+  FloatInf(const int i) { init = 1; mpfr_init2(this->f, sizeof(int)*8); mpfr_set_si(this->f, i, MPFR_RNDN); }
   FloatInf(const int64_t i) { init = 1; mpfr_init2(this->f, sizeof(intmax_t)*8); mpfr_set_sj(this->f, i, MPFR_RNDN); }
+  FloatInf(const __int128 i) { init = 1; mpfr_init2(this->f, sizeof(__int128)*8);
+      mpz_t z;
+      assert(sizeof(i) == 2 * sizeof(mp_limb_t));
+      mpz_roinit_n(z, reinterpret_cast<const mp_limb_t*>(&i), 2);
+      mpfr_set_z(this->f, z, MPFR_RNDN);
+      mpz_clear(z);
+  }
   FloatInf(const char c) { init = 1; mpfr_init2(this->f, sizeof(char)*8); mpfr_set_si(this->f, c, MPFR_RNDN); }
   FloatInf(const int oinit, const mpfr_t& f) {      
       init = oinit;
