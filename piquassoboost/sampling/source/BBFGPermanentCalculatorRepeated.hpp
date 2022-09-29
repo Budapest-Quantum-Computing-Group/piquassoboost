@@ -192,7 +192,7 @@ Complex16 calculate() {
         PicState_int gcode = gcode_counter.get();
 
         // calculate the initial column sum and binomial coefficient
-        int64_t binomial_coeff = 1;
+        __int128 binomial_coeff = 1;
 
         matrix_base<scalar_type> colsum( 1, col_mult.size());
         std::uninitialized_copy_n(mtx.get_data(), colsum.size(), colsum.get_data());  
@@ -208,13 +208,13 @@ Complex16 calculate() {
             int row_mult_current = row_mult[idx+1];
 
             for( size_t col_idx=0; col_idx<col_mult.size(); col_idx++) {
-                colsum[col_idx] += (row_mult_current-2*minus_signs)*mtx_data[col_idx];
+                colsum[col_idx] += (scalar_type)mtx_data[col_idx]*(precision_type)(row_mult_current-2*minus_signs);
             }
 
             minus_signs_all += minus_signs;
 
             // update the binomial coefficient
-            binomial_coeff *= binomialCoeffInt64(row_mult_current, minus_signs);
+            binomial_coeff *= binomialCoeffInt128(row_mult_current, minus_signs);
 
             mtx_data += mtx.stride;
 
@@ -296,7 +296,7 @@ Complex16 calculate() {
         permanent += a;
     });
 
-    permanent /= (precision_type)(1ULL << (sum_row_mult-1));
+    permanent /= (precision_type)ldexp(1.0, sum_row_mult-1);
 
     return Complex16(permanent.real(), permanent.imag());
 }
