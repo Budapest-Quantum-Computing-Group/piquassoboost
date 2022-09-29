@@ -19,15 +19,18 @@
 
 #include "matrix.h"
 #include "matrix32.h"
-
+#include "PowerTraceHafnianUtilities.h"
 
 namespace pic {
 
 
+template<class small_scalar_type>
+void scaleMatrix(mtx_select_t<cplx_select_t<small_scalar_type>> & AZ, small_scalar_type &scale_factor_AZ);
 
 /**
 @brief Class to calculate the hafnian of a complex matrix by the power trace method
 */
+template <class small_scalar_type, class scalar_type>
 class PowerTraceHafnian {
 
 protected:
@@ -95,6 +98,11 @@ virtual void ScaleMatrix();
 
 }; //PowerTraceHafnian
 
+
+using PowerTraceHafnianDouble = PowerTraceHafnian<double, double>;
+using PowerTraceHafnianHybrid = PowerTraceHafnian<double, long double>;
+using PowerTraceHafnianLongDouble = PowerTraceHafnian<long double, long double>;
+using PowerTraceHafnianInf = PowerTraceHafnian<RationalInf, RationalInf>;
 
 } // PIC
 

@@ -43,7 +43,8 @@ namespace pic {
 @brief Default constructor of the class.
 @return Returns with the instance of the class.
 */
-PowerTraceLoopHafnian::PowerTraceLoopHafnian() : PowerTraceHafnian() {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::PowerTraceLoopHafnian() : PowerTraceHafnian<small_scalar_type, scalar_type>() {
 
 }
 
@@ -52,7 +53,8 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian() : PowerTraceHafnian() {
 @param mtx_in A symmetric matrix for which the hafnian is calculated. ( In GBS calculations the \f$ a_1, a_2, ... a_n, a_1^*, a_2^*, ... a_n^* \f$ ordered covariance matrix of the Gaussian state.)
 @return Returns with the instance of the class.
 */
-PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
+template <class small_scalar_type, class scalar_type>
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::PowerTraceLoopHafnian( matrix &mtx_in ) {
 #ifdef DEBUG
     assert(isSymmetric(mtx_in));
 #endif
@@ -85,19 +87,20 @@ PowerTraceLoopHafnian::PowerTraceLoopHafnian( matrix &mtx_in ) {
 @brief Call to calculate the hafnian of a complex matrix stored in the instance of the class
 @return Returns with the calculated hafnian
 */
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceLoopHafnian::calculate() {
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate() {
 
-    if (mtx.rows == 0) {
+    if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return Complex16(1,0);
     }
-    else if (mtx.rows % 2 != 0) {
+    else if (this->mtx.rows % 2 != 0) {
         // the hafnian of odd shaped matrix is 0 by definition
         return Complex16(0.0, 0.0);
     }
 
-    size_t dim_over_2 = mtx.rows / 2;
+    size_t dim_over_2 = this->mtx.rows / 2;
     unsigned long long permutation_idx_max = power_of_2( (unsigned long long) dim_over_2);
 
 #ifdef __MPI__
@@ -110,7 +113,11 @@ PowerTraceLoopHafnian::calculate() {
     int current_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
+#ifdef GLYNN
+    Complex16 hafnian = calculate(current_rank, world_size, permutation_idx_max/2);
+#else
     Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
+#endif
 
     // send the calculated partial hafnian to rank 0
     Complex16* partial_hafnians = new Complex16[world_size];
@@ -133,7 +140,11 @@ PowerTraceLoopHafnian::calculate() {
     unsigned long long current_rank = 0;
     unsigned long long world_size = 1;
 
+#ifdef GLYNN
+    Complex16 hafnian = calculate(current_rank, world_size, permutation_idx_max/2);
+#else
     Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
+#endif
 
     return hafnian;
 #endif
@@ -150,12 +161,14 @@ PowerTraceLoopHafnian::calculate() {
 @param max_idx The maximal indexe valuated in the exponentially large sum (used to divide calculations between MPI processes)
 @return Returns with the calculated hafnian
 */
+template <class small_scalar_type, class scalar_type>
 Complex16
-PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long start_idx, unsigned long long step_idx, unsigned long long max_idx ) {
+    using complex_type = cplx_select_t<scalar_type>;
+    using matrix_type = mtx_select_t<complex_type>;
 
-
-    if ( mtx.rows != mtx.cols) {
-        std::cout << "The input matrix should be square shaped, bu matrix with " << mtx.rows << " rows and with " << mtx.cols << " columns was given" << std::endl;
+    if ( this->mtx.rows != this->mtx.cols) {
+        std::cout << "The input matrix should be square shaped, but matrix with " << this->mtx.rows << " rows and with " << this->mtx.cols << " columns was given" << std::endl;
         std::cout << "Returning zero" << std::endl;
         return Complex16(0,0);
     }
@@ -171,36 +184,58 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
     openblas_set_num_threads(1);
 #endif
 
-    size_t dim = mtx.rows;
+    size_t dim = this->mtx.rows;
 
 
-    if (mtx.rows == 0) {
+    if (this->mtx.rows == 0) {
         // the hafnian of an empty matrix is 1 by definition
         return Complex16(1,0);
     }
-    else if (mtx.rows % 2 != 0) {
+    else if (this->mtx.rows % 2 != 0) {
         // the hafnian of odd shaped matrix is 0 by definition
         return Complex16(0.0, 0.0);
     }
 
-    size_t dim_over_2 = mtx.rows / 2;
+    size_t dim_over_2 = this->mtx.rows / 2;
 
     // for cycle over the permutations n/2 according to Eq (3.24) in arXiv 1805.12498
-    tbb::combinable<Complex32> summands{[](){return Complex32(0.0,0.0);}};
+    tbb::combinable<complex_type> summands{[](){return complex_type(0.0,0.0);}};
 
     tbb::parallel_for( start_idx, max_idx, step_idx, [&](unsigned long long permutation_idx) {
 
 
-        Complex32 &summand = summands.local();
+        complex_type &summand = summands.local();
 
 /*
-    Complex32 summand(0.0,0.0);
+    complex_type summand(0.0,0.0);
 
     for (unsigned long long permutation_idx = 0; permutation_idx < permutation_idx_max; permutation_idx++) {
 */
 
-
-
+#ifdef GLYNN
+        mtx_select_t<cplx_select_t<small_scalar_type>> diag_elements(1, dim);
+        mtx_select_t<cplx_select_t<small_scalar_type>> cx_diag_elements(dim, 1);
+        mtx_select_t<cplx_select_t<small_scalar_type>> AZ(dim, dim);
+        bool fact = false;
+        //also possible to the pairs of rows and pairs of columns, places them on the opposite halves, and reverses these halves 
+        for (size_t idx = 0; idx < dim; idx++) {
+            size_t row_offset = (idx ^ 1)*this->mtx.stride;
+            size_t swap_row_offset = idx*AZ.stride;
+            for (size_t jdx = 0; jdx < dim_over_2; jdx++) {
+                bool neg = (permutation_idx & (1ULL << jdx)) != 0;
+                if (idx == jdx) fact ^= neg;
+                if (neg) {
+                    ::new (&AZ[swap_row_offset + jdx*2]) cplx_select_t<small_scalar_type>(-this->mtx[ row_offset + jdx*2].real(), -this->mtx[ row_offset + jdx*2].imag());
+                    ::new (&AZ[swap_row_offset + jdx*2+1]) cplx_select_t<small_scalar_type>(-this->mtx[ row_offset + jdx*2+1].real(), -this->mtx[ row_offset + jdx*2+1].imag());
+                } else {
+                    ::new (&AZ[swap_row_offset + jdx*2]) cplx_select_t<small_scalar_type>(this->mtx[ row_offset + jdx*2].real(), this->mtx[ row_offset + jdx*2].imag());
+                    ::new (&AZ[swap_row_offset + jdx*2+1]) cplx_select_t<small_scalar_type>(this->mtx[ row_offset + jdx*2+1].real(), this->mtx[ row_offset + jdx*2+1].imag());
+                }
+            }
+            ::new (&diag_elements[idx^1]) cplx_select_t<small_scalar_type>(AZ[swap_row_offset + (idx^1)]);
+            ::new (&cx_diag_elements[idx]) cplx_select_t<small_scalar_type>(((permutation_idx & (1ULL << (idx/2))) != 0) ? -diag_elements[idx^1] : diag_elements[idx^1]); 
+        }
+#else
         // get the binary representation of permutation_idx
         // also get the number of 1's in the representation and their position as 2*i and 2*i+1 in consecutive slots of the vector bin_rep
         std::vector<unsigned char> bin_rep;
@@ -224,59 +259,66 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
         // the elements of mtx=A indexed by the rows and colums, where the binary representation of permutation_idx was 1
         // for details see the text below Eq.(3.20) of arXiv 1805.12498
         // diag_elements corresponds to the diagonal elements of the input  matrix used in the loop correction
-        matrix AZ(number_of_ones, number_of_ones);
-        matrix diag_elements(1, number_of_ones);
+        mtx_select_t<cplx_select_t<small_scalar_type>> diag_elements(1, number_of_ones);
+        mtx_select_t<cplx_select_t<small_scalar_type>> AZ(number_of_ones, number_of_ones);
         for (size_t idx = 0; idx < number_of_ones; idx++) {
-            size_t row_offset = (positions_of_ones[idx] ^ 1)*mtx.stride;
+            size_t row_offset = (positions_of_ones[idx] ^ 1)*this->mtx.stride;
             for (size_t jdx = 0; jdx < number_of_ones; jdx++) {
-                AZ[idx*AZ.stride + jdx] = mtx[row_offset + ((positions_of_ones[jdx]))];
+                ::new (&AZ[idx*AZ.stride + jdx]) cplx_select_t<small_scalar_type>(this->mtx[row_offset + ((positions_of_ones[jdx]))].real(), this->mtx[row_offset + ((positions_of_ones[jdx]))].imag());
             }
-            diag_elements[idx] = mtx[(positions_of_ones[idx])*mtx.stride + positions_of_ones[idx]];
+            ::new (&diag_elements[idx]) cplx_select_t<small_scalar_type>(this->mtx[(positions_of_ones[idx])*this->mtx.stride + positions_of_ones[idx]].real(), this->mtx[(positions_of_ones[idx])*this->mtx.stride + positions_of_ones[idx]].imag());
 
         }
-
+        // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
+        bool fact = ((dim_over_2 - number_of_ones/2) % 2);
         // select the X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
-        matrix cx_diag_elements(number_of_ones, 1);
+        mtx_select_t<cplx_select_t<small_scalar_type>> cx_diag_elements(number_of_ones, 1);
         for (size_t idx = 1; idx < number_of_ones; idx=idx+2) {
-            cx_diag_elements[idx] = diag_elements[idx-1];
-            cx_diag_elements[idx-1] = diag_elements[idx];
+            ::new (&cx_diag_elements[idx]) cplx_select_t<small_scalar_type>(diag_elements[idx-1]);
+            ::new (&cx_diag_elements[idx-1]) cplx_select_t<small_scalar_type>(diag_elements[idx]);
         }
-
+#endif
 
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2 and loop corrections
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
-        matrix32 traces;
-        matrix32 loop_corrections;
+        matrix_type traces(dim_over_2, 1);
+        matrix_type loop_corrections(dim_over_2, 1);
+
+#ifndef GLYNN
         if (number_of_ones != 0) {
-            CalcPowerTracesAndLoopCorrections(cx_diag_elements, diag_elements, AZ, dim_over_2, traces, loop_corrections);
+#endif
+            CalcPowerTracesAndLoopCorrections<small_scalar_type, scalar_type>(cx_diag_elements, diag_elements, AZ, dim_over_2, traces, loop_corrections);
+#ifndef GLYNN
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
             // this occurs once during the calculations
-            traces = matrix32(dim_over_2, 1);
-            loop_corrections = matrix32(dim_over_2, 1);
-            memset( traces.get_data(), 0.0, traces.size()*sizeof(Complex32));
-            memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(Complex32));
+            traces = matrix_type(dim_over_2, 1);
+            loop_corrections = matrix_type(dim_over_2, 1);
+            //memset( traces.get_data(), 0.0, traces.size()*sizeof(complex_type));
+            std::uninitialized_fill_n(traces.get_data(), traces.rows*traces.cols, complex_type(0.0, 0.0));
+            //memset( loop_corrections.get_data(), 0.0, loop_corrections.size()*sizeof(complex_type));
+            std::uninitialized_fill_n(loop_corrections.get_data(), loop_corrections.rows*loop_corrections.cols, complex_type(0.0, 0.0));
         }
+#endif
 
-
-        // fact corresponds to the (-1)^{(n/2) - |Z|} prefactor from Eq (3.24) in arXiv 1805.12498
-        bool fact = ((dim_over_2 - number_of_ones/2) % 2);
 
 
         // auxiliary data arrays to evaluate the second part of Eqs (3.24) and (3.21) in arXiv 1805.12498
-        matrix32 aux0(dim_over_2 + 1, 1);
-        matrix32 aux1(dim_over_2 + 1, 1);
-        memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
-        memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(Complex32));
+        matrix_type aux0(dim_over_2 + 1, 1);
+        matrix_type aux1(dim_over_2 + 1, 1);
+        //memset( aux0.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
+        //memset( aux1.get_data(), 0.0, (dim_over_2 + 1)*sizeof(complex_type));
+        std::uninitialized_fill_n(aux0.get_data(), dim_over_2 + 1, complex_type(0.0, 0.0));
+        std::uninitialized_fill_n(aux1.get_data(), dim_over_2 + 1, complex_type(0.0, 0.0));        
         aux0[0] = 1.0;
         // pointers to the auxiliary data arrays
-        Complex32 *p_aux0=NULL, *p_aux1=NULL;
+        complex_type *p_aux0=NULL, *p_aux1=NULL;
 
         for (size_t idx = 1; idx <= dim_over_2; idx++) {
 
 
-            Complex32 factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
+            complex_type factor = traces[idx - 1] / (2.0 * idx) + loop_corrections[idx-1]*0.5;
 /*
 {
       tbb::spin_mutex::scoped_lock my_lock{my_mutex};
@@ -284,7 +326,7 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
       std::cout << factor << " " << loop_corrections[idx-1]*0.5 << std::endl;
   }
 */
-            Complex32 powfactor(1.0,0.0);
+            complex_type powfactor(1.0,0.0);
 
             if (idx%2 == 1) {
                 p_aux0 = aux0.get_data();
@@ -295,10 +337,11 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
                 p_aux1 = aux0.get_data();
             }
 
-            memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(Complex32) );
+            //memcpy(p_aux1, p_aux0, (dim_over_2+1)*sizeof(complex_type) );
+            std::copy_n(p_aux0, dim_over_2+1, p_aux1);
 
             for (size_t jdx = 1; jdx <= (dim / (2 * idx)); jdx++) {
-                powfactor = powfactor * factor / ((double)jdx);
+                powfactor *= factor / ((scalar_type)jdx);
 
                 for (size_t kdx = idx * jdx + 1; kdx <= dim_over_2 + 1; kdx++) {
                     p_aux1[kdx-1] += p_aux0[kdx-idx*jdx - 1]*powfactor;
@@ -312,22 +355,29 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
 
 
         if (fact) {
-            summand = summand - p_aux1[dim_over_2];
+            summand -= p_aux1[dim_over_2];
 //std::cout << -p_aux1[dim_over_2] << std::endl;
         }
         else {
-            summand = summand + p_aux1[dim_over_2];
+            summand += p_aux1[dim_over_2];
 //std::cout << p_aux1[dim_over_2] << std::endl;
         }
 
+        for (size_t n = aux0.size(); n > 0; --n) aux0[n-1].~complex_type();
+        for (size_t n = aux1.size(); n > 0; --n) aux1[n-1].~complex_type();
+        for (size_t n = traces.size(); n > 0; --n) traces[n-1].~complex_type();
+        for (size_t n = loop_corrections.size(); n > 0; --n) loop_corrections[n-1].~complex_type();
+        for (size_t n = diag_elements.size(); n > 0; --n) diag_elements[n-1].~cplx_select_t<small_scalar_type>();
+        for (size_t n = cx_diag_elements.size(); n > 0; --n) cx_diag_elements[n-1].~cplx_select_t<small_scalar_type>();
+        for (size_t n = AZ.size(); n > 0; --n) AZ[n-1].~cplx_select_t<small_scalar_type>();
 
 
     });
 
     // the resulting Hafnian of matrix mat
-    Complex32 res(0,0);
-    summands.combine_each([&res](Complex32 a) {
-        res = res + a;
+    complex_type res(0,0);
+    summands.combine_each([&res](const complex_type& a) {
+        res += a;
     });
 
     //Complex16 res = summand;
@@ -342,8 +392,10 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
 #endif
 
     // scale the result by the appropriate facto according to Eq (2.11) of in arXiv 1805.12498
-    res = res * pow(scale_factor, dim_over_2);
-
+    res *= pow(this->scale_factor, dim_over_2);
+#ifdef GLYNN
+    res /= (1ULL << (dim_over_2-1));
+#endif
     return Complex16(res.real(), res.imag() );
 }
 
@@ -355,10 +407,11 @@ PowerTraceLoopHafnian::calculate(unsigned long long start_idx, unsigned long lon
 @brief Call to update the memory address of the matrix mtx
 @param mtx_in A symmetric matrix for which the hafnian is calculated. (For example a covariance matrix of the Gaussian state.)
 */
+template <class small_scalar_type, class scalar_type>
 void
-PowerTraceLoopHafnian::Update_mtx( matrix &mtx_in) {
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::Update_mtx( matrix &mtx_in) {
 
-    mtx_orig = mtx_in;
+    this->mtx_orig = mtx_in;
 
     // scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
     ScaleMatrix();
@@ -371,38 +424,39 @@ PowerTraceLoopHafnian::Update_mtx( matrix &mtx_in) {
 /**
 @brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
 */
+template <class small_scalar_type, class scalar_type>
 void
-PowerTraceLoopHafnian::ScaleMatrix() {
+PowerTraceLoopHafnian<small_scalar_type, scalar_type>::ScaleMatrix() {
 
     // scale the matrix to have the mean magnitudes matrix elements equal to one.
-    if ( mtx_orig.rows <= 10) {
-        mtx = mtx_orig;
-        scale_factor = 1.0;
+    if ( this->mtx_orig.rows <= 10) {
+        this->mtx = this->mtx_orig;
+        this->scale_factor = 1.0;
     }
     else {
 
         // determine the scale factor
-        scale_factor = 0.0;
-        for (size_t idx=0; idx<mtx_orig.size(); idx++) {
-            scale_factor = scale_factor + std::sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
+        this->scale_factor = 0.0;
+        for (size_t idx=0; idx<this->mtx_orig.size(); idx++) {
+            this->scale_factor = this->scale_factor + std::sqrt( this->mtx_orig[idx].real()*this->mtx_orig[idx].real() + this->mtx_orig[idx].imag()*this->mtx_orig[idx].imag() );
         }
-        scale_factor = scale_factor/mtx_orig.size()/std::sqrt(2);
+        this->scale_factor = this->scale_factor/this->mtx_orig.size()/std::sqrt(2);
 
-        mtx = mtx_orig.copy();
+        this->mtx = this->mtx_orig.copy();
 
-        double inverse_scale_factor = 1/scale_factor;
+        small_scalar_type inverse_scale_factor = 1/this->scale_factor;
 
         // scaling the matrix elements
-        for (size_t row_idx=0; row_idx<mtx_orig.rows; row_idx++) {
+        for (size_t row_idx=0; row_idx<this->mtx_orig.rows; row_idx++) {
 
-            size_t row_offset = row_idx*mtx.stride;
+            size_t row_offset = row_idx*this->mtx.stride;
 
-            for (size_t col_idx=0; col_idx<mtx_orig.cols; col_idx++) {
+            for (size_t col_idx=0; col_idx<this->mtx_orig.cols; col_idx++) {
                 if (col_idx == row_idx ) {
-                    mtx[row_offset+col_idx] = mtx[row_offset+col_idx]*sqrt(inverse_scale_factor);
+                    this->mtx[row_offset+col_idx] = this->mtx[row_offset+col_idx]*sqrt(inverse_scale_factor);
                 }
                 else {
-                    mtx[row_offset+col_idx] = mtx[row_offset+col_idx]*inverse_scale_factor;
+                    this->mtx[row_offset+col_idx] = this->mtx[row_offset+col_idx]*inverse_scale_factor;
                 }
 
             }
@@ -412,6 +466,16 @@ PowerTraceLoopHafnian::ScaleMatrix() {
 
 }
 
+template class PowerTraceLoopHafnian<double, double>;
+template class PowerTraceLoopHafnian<double, long double>;
+template class PowerTraceLoopHafnian<long double, long double>;
 
+template <>
+void
+PowerTraceLoopHafnian<RationalInf, RationalInf>::ScaleMatrix() {
+    mtx = mtx_orig;
+    scale_factor = 1.0;
+}
+template class PowerTraceLoopHafnian<RationalInf, RationalInf>;
 
 } // PIC

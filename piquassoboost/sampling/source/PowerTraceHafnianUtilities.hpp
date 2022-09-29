@@ -48,11 +48,11 @@ namespace pic {
 @param norm_v_sqr The squared norm of the created reflection matrix that is returned by reference
 @return Returns with the calculated reflection vector
  */
-template<class matrix_type, class complex_type>
+template<class matrix_type, class complex_type, class small_scalar_type>
 matrix_type
-get_reflection_vector(matrix_type &input, double &norm_v_sqr) {
+get_reflection_vector(matrix_type &input, small_scalar_type &norm_v_sqr) {
 
-  double sigma(0.0);
+  small_scalar_type sigma(0.0);
   norm_v_sqr = 0.0;
   matrix_type reflect_vector(input.rows,1);
   for (size_t idx = 0; idx < reflect_vector.size(); idx++) {
@@ -63,10 +63,10 @@ get_reflection_vector(matrix_type &input, double &norm_v_sqr) {
   sigma = sqrt(norm_v_sqr);
 
 
-  double abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
+  small_scalar_type abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
   norm_v_sqr = 2*(norm_v_sqr + abs_val*sigma);
   if (abs_val != 0.0){
-      //double angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
+      //small_scalar_type angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
       auto addend = reflect_vector[0]/abs_val*sigma;
       reflect_vector[0].real( reflect_vector[0].real() + addend.real());
       reflect_vector[0].imag( reflect_vector[0].imag() + addend.imag());
@@ -79,7 +79,7 @@ get_reflection_vector(matrix_type &input, double &norm_v_sqr) {
       return reflect_vector;
 
   // normalize the reflection matrix
-  double norm_v = std::sqrt(norm_v_sqr);
+  small_scalar_type norm_v = std::sqrt(norm_v_sqr);
   for (size_t idx=0; idx<reflect_vector.size(); idx++) {
       reflect_vector[idx] = reflect_vector[idx]/norm_v;
   }
@@ -433,7 +433,7 @@ apply_householder_cols_req(matrix_type &A, matrix_type &v) {
 @brief Reduce a general matrix to upper Hessenberg form.
 @param matrix matrix to be reduced to upper Hessenberg form. The reduced matrix is returned via this input
 */
-template<class matrix_type, class complex_type>
+template<class matrix_type, class complex_type, class small_scalar_type>
 void
 transform_matrix_to_hessenberg(matrix_type &mtx) {
 
@@ -444,8 +444,8 @@ transform_matrix_to_hessenberg(matrix_type &mtx) {
       matrix_type ref_vector_input(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, 1, mtx.stride);
 
       // get reflection matrix and its norm
-      double norm_v_sqr(0.0);
-      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type>(ref_vector_input, norm_v_sqr);
+      small_scalar_type norm_v_sqr(0.0);
+      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type, small_scalar_type>(ref_vector_input, norm_v_sqr);
 
       if (norm_v_sqr == 0.0) continue;
 
@@ -475,7 +475,7 @@ transform_matrix_to_hessenberg(matrix_type &mtx) {
 @param Lv the left sided vector
 @param Rv the roght sided vector
 */
-template<class matrix_type, class complex_type>
+template<class matrix_type, class complex_type, class small_scalar_type>
 void
 transform_matrix_to_hessenberg(matrix_type &mtx, matrix_type Lv, matrix_type Rv ) {
 
@@ -486,8 +486,8 @@ transform_matrix_to_hessenberg(matrix_type &mtx, matrix_type Lv, matrix_type Rv 
       matrix_type ref_vector_input(mtx.get_data() + idx*mtx.stride + idx - 1, mtx.rows-idx, 1, mtx.stride);
 
       // get reflection matrix and its norm
-      double norm_v_sqr(0.0);
-      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type>(ref_vector_input, norm_v_sqr);
+      small_scalar_type norm_v_sqr(0.0);
+      matrix_type &&reflect_vector = get_reflection_vector<matrix_type, complex_type, small_scalar_type>(ref_vector_input, norm_v_sqr);
 
       if (norm_v_sqr == 0.0) continue;
 
@@ -545,7 +545,8 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
 
     // allocate memory for the coefficients c_k of p(\lambda)
     matrix_type coeffs(dim, dim);
-    memset(coeffs.get_data(), 0, dim*dim*sizeof(complex_type));
+
+    std::uninitialized_fill_n(coeffs.get_data(), dim*dim, complex_type(0.0, 0.0));
 
 
     // c^(1)_1 = -\alpha_1
@@ -557,14 +558,15 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
     // c^(2)_2 = \alpha_1\alpha_2 - h_{12}\beta_2
     coeffs[dim+1] =  mtx[0]*mtx[dim+1] - mtx[1]*mtx[dim];
 
+    matrix_type beta_prods(highest_order,1);
+    std::uninitialized_fill_n(beta_prods.get_data(), highest_order, complex_type(0.0, 0.0));
     // for (i=3:k do)
     for (size_t idx=2; idx<=highest_order-1; idx++) {
         // i = idx + 1
 
         // calculate the products of matrix elements \beta_i
         // the n-th (0<=n<=idx-2) element of the arary stands for:
-        // beta_prods[n] = \beta_i * \beta_i-1 * ... * \beta_{i-n}
-        matrix_type beta_prods(idx,1);
+        // beta_prods[n] = \beta_i * \beta_i-1 * ... * \beta_{i-n}        
         beta_prods[0] = mtx[idx*dim + idx-1];
         for (size_t prod_idx=1; prod_idx<=idx-1; prod_idx++) {
             beta_prods[prod_idx] = beta_prods[prod_idx-1] * mtx[(idx-prod_idx)*dim + (idx-prod_idx-1)];
@@ -585,15 +587,16 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
                 // m = mdx
 
                 // sum = sum + h_{i-m, i} * beta_prod * c^{(i-m-1)}_{j-m-1}
-                sum = sum + mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
+                sum += mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
 
             }
 
             // sum = sum + h_{i-j+1,i} * \beta_prod
-            sum = sum + mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
+            sum += mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
 
             // c^(i)_j = c^(i-1)_j - \alpha_i*c^(i-1)_{j-1} - sum
             coeffs[idx*dim+jdx] = coeffs[(idx-1)*dim+jdx] - mtx[idx*dim+idx] * coeffs[(idx-1)*dim + jdx-1] - sum;
+            
         }
 
         // sum = \sum_^{i-2}{m=1} h_{i-m,i} \beta_i*...*\beta_{i-m+1} c^{(i-m-1)}_{i-m-1}  - h_{1,i}* beta_i*...*beta_{2}
@@ -604,11 +607,11 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
             // m = mdx
 
             // sum = sum + h_{i-m, i} * beta_prod * c^{(i-m-1)}_{j-m-1}
-            sum = sum + mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + idx-mdx-1];
+            sum += mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + idx-mdx-1];
         }
 
         // c^(i)_i = -\alpha_i c^{(i-1)}_{i-1} - sum
-        coeffs[idx*dim+idx] = -mtx[idx*dim+idx]*coeffs[(idx-1)*dim+idx-1] - sum - mtx[idx]*beta_prods[beta_prods.size()-1];
+        coeffs[idx*dim+idx] = -mtx[idx*dim+idx]*coeffs[(idx-1)*dim+idx-1] - sum - mtx[idx]*beta_prods[idx-1];
 
     }
 
@@ -624,7 +627,6 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
         // beta_prods[n] = \beta_i * \beta_i-1 * ... * \beta_{i-n}
 
         if (highest_order >= 2) {
-            matrix_type beta_prods(idx,1);
             beta_prods[0] = mtx[idx*dim + idx-1];
             for (size_t prod_idx=1; prod_idx<=idx-1; prod_idx++) {
                 beta_prods[prod_idx] = beta_prods[prod_idx-1] * mtx[(idx-prod_idx)*dim + (idx-prod_idx-1)];
@@ -642,21 +644,21 @@ calc_characteristic_polynomial_coeffs(matrix_type &mtx, size_t highest_order)
                     // m = mdx
 
                     // sum = sum + h_{i-m, i} * beta_prod * c^{(i-m-1)}_{j-m-1}
-                    sum = sum + mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
+                    sum += mtx[(idx-mdx)*dim+idx] * beta_prods[mdx-1] * coeffs[(idx-mdx-1)*dim + jdx-mdx-1];
 
                 }
 
                 // sum = sum + h_{i-j+1,i} * \beta_prod
-                sum = sum + mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
+                sum += mtx[(idx-jdx)*dim + idx] * beta_prods[jdx-1];
 
                 // c^(i)_j = c^(i-1)_j - \alpha_i*c^(i-1)_{j-1} - sum
                 coeffs[idx*dim+jdx] = coeffs[(idx-1)*dim+jdx] - mtx[idx*dim+idx] * coeffs[(idx-1)*dim + jdx-1] - sum;
             }
 
 
-
          }
     }
+    for (size_t i = beta_prods.size(); i != 0; i--) beta_prods[i-1].~complex_type();
 
 
     return coeffs;
@@ -688,6 +690,7 @@ powtrace_from_charpoly(matrix_type &coeffs, size_t pow) {
 
     // allocate memory for the power traces
     matrix_type traces(pow,1);
+    std::uninitialized_fill_n(traces.get_data(), pow, 0.0);    
 
 
     // Tr(A) = -c1
@@ -740,25 +743,25 @@ powtrace_from_charpoly(matrix_type &coeffs, size_t pow) {
 @param pow_max maximum matrix power when calculating the power trace.
 @return a vector containing the power traces of matrix `z` to power \f$1\leq j \leq l\f$.
 */
-template<class matrix_type, class complex_type>
+template<class matrix_type, class complex_type, class scalar_type, class small_matrix_type, class small_complex_type, class small_scalar_type>
 matrix_type
 calc_power_traces(matrix &AZ, size_t pow_max) {
 
     // for small matrices only the traces are casted into quad precision
     if (AZ.rows <= 10) {
 
-        transform_matrix_to_hessenberg<matrix, Complex16>(AZ);
+        transform_matrix_to_hessenberg<small_matrix_type, small_complex_type, small_scalar_type>(AZ);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
-        matrix&& coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix, Complex16>(AZ, AZ.rows);
+        small_matrix_type&& coeffs_labudde = calc_characteristic_polynomial_coeffs<small_matrix_type, small_complex_type>(AZ, AZ.rows);
 
         // calculate the power traces of the matrix AZ using LeVerrier recursion relation
-        matrix&& traces = powtrace_from_charpoly<matrix>(coeffs_labudde, pow_max);
+        small_matrix_type&& traces = powtrace_from_charpoly<small_matrix_type>(coeffs_labudde, pow_max);
 
         matrix_type traces32(traces.rows, traces.cols);
         for (size_t idx=0; idx<traces.size(); idx++) {
-            traces32[idx].real( (long double)traces[idx].real() );
-            traces32[idx].imag( (long double)traces[idx].imag() );
+            traces32[idx].real( (scalar_type)traces[idx].real() );
+            traces32[idx].imag( (scalar_type)traces[idx].imag() );
         }
 
         return traces32;
@@ -803,7 +806,7 @@ calc_power_traces(matrix &AZ, size_t pow_max) {
             AZ32[idx].imag( AZ[idx].imag() );
         }
 
-        transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ32);
+        transform_matrix_to_hessenberg<matrix_type, complex_type, small_scalar_type>(AZ32);
 
         // calculate the coefficients of the characteristic polynomiam by LaBudde algorithm
         matrix_type coeffs_labudde = calc_characteristic_polynomial_coeffs<matrix_type, complex_type>(AZ32, AZ.rows);
@@ -933,10 +936,12 @@ matrix_type
 calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_elements, matrix_type& AZ, size_t num_of_modes) {
 
     matrix_type loop_correction(num_of_modes, 1);
-    //transform_matrix_to_hessenberg<matrix_type, complex_type>(AZ, diag_elements, cx_diag_elements);
+    std::uninitialized_fill_n(loop_correction.get_data(), num_of_modes, complex_type(0.0, 0.0));
+    //transform_matrix_to_hessenberg<matrix_type, complex_type, small_scalar_type>(AZ, diag_elements, cx_diag_elements);
 
     size_t max_idx = cx_diag_elements.size();
     matrix_type tmp_vec(1, max_idx);
+    std::uninitialized_fill_n(tmp_vec.get_data(), max_idx, complex_type(0.0, 0.0));
     complex_type* cx_data = cx_diag_elements.get_data();
     complex_type* diag_data = diag_elements.get_data();
 
@@ -973,10 +978,12 @@ calculate_loop_correction_2( matrix_type &cx_diag_elements, matrix_type& diag_el
         }
 
 
-        memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+        //memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+        std::copy_n(tmp_vec.get_data(), tmp_vec.size(), cx_diag_elements.get_data());
 
     }
-
+    
+    for (size_t i = tmp_vec.size(); i != 0; i--) tmp_vec[i-1].~complex_type();
 
     return loop_correction;
 

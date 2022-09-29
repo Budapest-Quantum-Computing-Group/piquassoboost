@@ -213,7 +213,7 @@ GaussianSimulationStrategyFast::calc_probability( matrix& Qinv, const double& Qd
 /*
         // create Matrix A_S according to the main text below Eq (5) of arXiv 2010.15595v3
         matrix&& A_S = create_A_S( A, current_output );
-        PowerTraceHafnian hafnian_calculator = PowerTraceHafnian(A_S);
+        PowerTraceHafnianLongDouble hafnian_calculator = PowerTraceHafnianLongDouble(A_S);
         hafnian = hafnian_calculator.calculate();
 */
 
@@ -223,7 +223,7 @@ GaussianSimulationStrategyFast::calc_probability( matrix& Qinv, const double& Qd
 
         ConstructMatrixForRecursivePowerTrace(A, current_output, mtx_permuted, repeated_column_pairs);
 
-        PowerTraceHafnianRecursive hafnian_calculator_recursive = PowerTraceHafnianRecursive(mtx_permuted, repeated_column_pairs);
+        PowerTraceHafnianRecursiveLongDouble hafnian_calculator_recursive = PowerTraceHafnianRecursiveLongDouble(mtx_permuted, repeated_column_pairs);
         hafnian = hafnian_calculator_recursive.calculate();
         //Complex16 hafnian2 = hafnian_calculator_recursive.calculate();
 
@@ -250,7 +250,7 @@ else {
         // calculate gamma according to Eq (9) of arXiv 2010.15595v3 and set them into the diagonal of A_S
         diag_correction_of_A_S( A_S, Qinv, m, current_output );
 
-        PowerTraceLoopHafnian hafnian_calculator = PowerTraceLoopHafnian(A_S);
+        PowerTraceLoopHafnianLongDouble hafnian_calculator = PowerTraceLoopHafnianLongDouble(A_S);
         hafnian = hafnian_calculator.calculate();
 */
 
@@ -265,7 +265,7 @@ else {
 
         ConstructMatrixForRecursiveLoopPowerTrace(A, gamma, current_output, mtx_permuted, diags_permuted, repeated_column_pairs);
 
-        PowerTraceLoopHafnianRecursive hafnian_calculator_recursive = PowerTraceLoopHafnianRecursive(mtx_permuted, diags_permuted, repeated_column_pairs);
+        PowerTraceLoopHafnianRecursiveLongDouble hafnian_calculator_recursive = PowerTraceLoopHafnianRecursiveLongDouble(mtx_permuted, diags_permuted, repeated_column_pairs);
         hafnian = hafnian_calculator_recursive.calculate();
         //Complex16 hafnian2 = hafnian_calculator_recursive.calculate();
 

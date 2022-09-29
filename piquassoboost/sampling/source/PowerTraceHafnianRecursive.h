@@ -18,6 +18,7 @@
 #define PowerTraceHafnianRecursive_H
 
 #include "PowerTraceHafnian.h"
+#include "PowerTraceHafnianUtilities.h"
 #include "PicState.h"
 #include "PicVector.hpp"
 
@@ -33,7 +34,8 @@ namespace pic {
 This class is an interface class betwwen the Python extension and the C++ implementation to relieve python extensions from TBB functionalities.
 (CPython does not support static objects with constructors/destructors)
 */
-class PowerTraceHafnianRecursive : public PowerTraceHafnian {
+template <class small_scalar_type, class scalar_type>
+class PowerTraceHafnianRecursive : public PowerTraceHafnian<small_scalar_type, scalar_type> {
 
 
 protected:
@@ -67,7 +69,10 @@ virtual Complex16 calculate();
 
 }; //PowerTraceHafnianRecursive
 
-
+using PowerTraceHafnianRecursiveHybrid = PowerTraceHafnianRecursive<double, long double>;
+using PowerTraceHafnianRecursiveDouble = PowerTraceHafnianRecursive<double, double>;
+using PowerTraceHafnianRecursiveLongDouble = PowerTraceHafnianRecursive<long double, long double>;
+using PowerTraceHafnianRecursiveInf = PowerTraceHafnianRecursive<RationalInf, RationalInf>;
 
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
@@ -76,7 +81,8 @@ virtual Complex16 calculate();
 @brief Class to calculate the hafnian of a complex matrix by a recursive power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
 purpose hafnian calculator. This algorithm accounts for the repeated occupancy in the covariance matrix.
 */
-class PowerTraceHafnianRecursive_Tasks : public PowerTraceHafnian {
+template <class small_scalar_type, class scalar_type>
+class PowerTraceHafnianRecursive_Tasks : public PowerTraceHafnian<small_scalar_type, scalar_type> {
 
 
 protected:
@@ -141,7 +147,7 @@ protected:
 @param priv_addend Therad local storage for the partial hafnians
 @param tg Reference to a tbb::task_group
 */
-void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<ComplexM<long double>>& priv_addend, tbb::task_group &tg );
+void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, size_t mode_to_iterate, tbb::combinable<cplxm_select_t<scalar_type>>& priv_addend, tbb::task_group &tg, const PicState_int64& adjoccupancy );
 
 
 /**
@@ -150,7 +156,7 @@ void IterateOverSelectedModes( const PicVector<char>& selected_modes, const PicS
 @param current_occupancy Current occupancy of the selected modes for which the partial hafnian is calculated
 @return Returns with the calculated partial hafnian
 */
-virtual Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
+virtual cplx_select_t<scalar_type> CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
 
 
 /**
@@ -161,7 +167,7 @@ virtual Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes
 @param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-virtual matrix CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
+virtual mtx_select_t<cplx_select_t<small_scalar_type>> CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, small_scalar_type &scale_factor_AZ );
 
 
 

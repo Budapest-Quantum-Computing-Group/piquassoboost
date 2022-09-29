@@ -29,7 +29,7 @@
 #include "matrix32.h"
 
 #include "dot.h"
-
+#include "InfinitePrecisionComplex.h"
 
 extern "C" {
 
@@ -40,25 +40,82 @@ int LAPACKE_zgehrd( int matrix_layout, int n, int ilo, int ihi, pic::Complex16* 
 
 }
 
+#define USE_MATMUL_INFPREC
+//#define GLYNN
 
 namespace pic {
 
+template <class T> class complexm_selector;
+template <> class complexm_selector<double> {
+public:
+    typedef ComplexM<double> cplxm_type;
+};
+template <> class complexm_selector<long double> {
+public:
+    typedef ComplexM<long double> cplxm_type;
+};
+template <> class complexm_selector<FloatInf> {
+public:
+    typedef ComplexInf cplxm_type;
+};
+template <> class complexm_selector<RationalInf> {
+public:
+    typedef ComplexRationalInf cplxm_type;
+};
+template <class T>
+using cplxm_select_t = typename complexm_selector<T>::cplxm_type;
+
+template <class T> class complex_selector;
+template <> class complex_selector<double> {
+public:
+    typedef Complex16 cplx_type;
+};
+template <> class complex_selector<long double> {
+public:
+    typedef Complex32 cplx_type;
+};
+template <> class complex_selector<FloatInf> {
+public:
+    typedef ComplexInf cplx_type;
+};
+template <> class complex_selector<RationalInf> {
+public:
+    typedef ComplexRationalInf cplx_type;
+};
+template <class T>
+using cplx_select_t = typename complex_selector<T>::cplx_type;
+
+template <class T> class matrix_selector;
+template <> class matrix_selector<Complex16> {
+public:
+    typedef matrix mat_type;
+};
+template <> class matrix_selector<Complex32> {
+public:
+    typedef matrix32 mat_type;
+};
+template <> class matrix_selector<ComplexInf> {
+public:
+    typedef matrix_base<ComplexInf> mat_type;
+}; 
+template <> class matrix_selector<ComplexRationalInf> {
+public:
+    typedef matrix_base<ComplexRationalInf> mat_type;
+}; 
+template <class T>
+using mtx_select_t = typename matrix_selector<T>::mat_type;
+
+
+
 /**
 /@brief Determine the reflection vector for Householder transformation used in the upper Hessenberg transformation algorithm
 @param input The strided input vector constructed from the k-th column of the matrix on which the Hessenberg transformation should be applied
 @param norm_v_sqr The squared norm of the created reflection matrix that is returned by reference
 @return Returns with the calculated reflection vector
  */
-matrix get_reflection_vector(matrix &input, double &norm_v_sqr);
-
-
-/**
-/@brief Determine the reflection vector for Householder transformation used in the upper Hessenberg transformation algorithm
-@param input The strided input vector constructed from the k-th column of the matrix on which the Hessenberg transformation should be applied
-@param norm_v_sqr The squared norm of the created reflection matrix that is returned by reference
-@return Returns with the calculated reflection vector
- */
-matrix get_reflection_vector(matrix &input, double &norm_v_sqr);
+template <typename small_scalar_type>
+mtx_select_t<cplx_select_t<small_scalar_type>>
+get_reflection_vector(mtx_select_t<cplx_select_t<small_scalar_type>> &input, small_scalar_type &norm_v_sqr);
 
 
 
@@ -68,7 +125,9 @@ matrix get_reflection_vector(matrix &input, double &norm_v_sqr);
 @param v A matrix instance of the reflection vector
 @param vH_times_A preallocated array to hold the data of vH_times_A. The result is returned via this reference.
 */
-void calc_vH_times_A(matrix &A, matrix &v, matrix &vH_times_A);
+template<class small_scalar_type>
+void
+calc_vH_times_A(mtx_select_t<cplx_select_t<small_scalar_type>> &A, mtx_select_t<cplx_select_t<small_scalar_type>> &v, mtx_select_t<cplx_select_t<small_scalar_type>> &vH_times_A);
 
 
 /**
@@ -77,14 +136,20 @@ void calc_vH_times_A(matrix &A, matrix &v, matrix &vH_times_A);
 @param v A matrix instance of the reflection vector
 @param vH_times_A The calculated product v^H * A calculated by calc_vH_times_A.
 */
-void calc_vov_times_A(matrix &A, matrix &v, matrix &vH_times_A);
+template<class small_scalar_type>
+void
+calc_vov_times_A(mtx_select_t<cplx_select_t<small_scalar_type>> &A, mtx_select_t<cplx_select_t<small_scalar_type>> &v, mtx_select_t<cplx_select_t<small_scalar_type>> &vH_times_A);
+
 
 /**
 @brief Apply householder transformation on a matrix A' = (1 - 2*v o v/v^2) A for one specific reflection vector v
 @param A matrix on which the householder transformation is applied. (The output is returned via this matrix)
 @param v A matrix instance of the reflection vector
 */
-void apply_householder_rows(matrix &A, matrix &v);
+template <class small_scalar_type>
+void
+apply_householder_rows(mtx_select_t<cplx_select_t<small_scalar_type>> &A, mtx_select_t<cplx_select_t<small_scalar_type>> &v);
+
 
 
 
@@ -94,7 +159,9 @@ void apply_householder_rows(matrix &A, matrix &v);
 @param A matrix on which the householder transformation is applied. (The output is returned via this matrix)
 @param v A matrix instance of the reflection vector
 */
-void apply_householder_cols_req(matrix &A, matrix &v);
+template<class small_scalar_type>
+void
+apply_householder_cols_req(mtx_select_t<cplx_select_t<small_scalar_type>> &A, mtx_select_t<cplx_select_t<small_scalar_type>> &v);
 
 
 
@@ -104,7 +171,9 @@ void apply_householder_cols_req(matrix &A, matrix &v);
 @brief Reduce a general matrix to upper Hessenberg form.
 @param matrix matrix to be reduced to upper Hessenberg form. The reduced matrix is returned via this input
 */
-void transform_matrix_to_hessenberg(matrix &mtx);
+template <class small_scalar_type>
+void
+transform_matrix_to_hessenberg(mtx_select_t<cplx_select_t<small_scalar_type>> &mtx);
 
 
 
@@ -114,7 +183,9 @@ void transform_matrix_to_hessenberg(matrix &mtx);
 @param Lv the left sided vector
 @param Rv the roght sided vector
 */
-void transform_matrix_to_hessenberg(matrix &mtx, matrix& Lv, matrix& Rv );
+template <class small_scalar_type>
+void
+transform_matrix_to_hessenberg(mtx_select_t<cplx_select_t<small_scalar_type>> &mtx, mtx_select_t<cplx_select_t<small_scalar_type>>& Lv, mtx_select_t<cplx_select_t<small_scalar_type>>& Rv );
 
 
 
@@ -125,7 +196,9 @@ and a loop corrections in Eq (3.26) of arXiv1805.12498
 @param pow_max
 @return Returns with the calculated loop correction
 */
-void CalcPowerTraces( matrix& AZ, size_t pow_max, matrix32 &traces32);
+template <class small_scalar_type, class scalar_type>
+void
+CalcPowerTraces( mtx_select_t<cplx_select_t<small_scalar_type>>& AZ, size_t pow_max, mtx_select_t<cplx_select_t<scalar_type>> &traces32);
 
 
 /**
@@ -136,8 +209,9 @@ and a loop corrections in Eq (3.26) of arXiv1805.12498
 @param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
 @return Returns with the calculated loop correction
 */
-void CalcPowerTracesAndLoopCorrections( matrix &cx_diag_elements, matrix &diag_elements, matrix& AZ, size_t pow_max, matrix32 &traces, matrix32 &loop_corrections);
-
+template <class small_scalar_type, class scalar_type>
+void
+CalcPowerTracesAndLoopCorrections( mtx_select_t<cplx_select_t<small_scalar_type>> &cx_diag_elements, mtx_select_t<cplx_select_t<small_scalar_type>> &diag_elements, mtx_select_t<cplx_select_t<small_scalar_type>>& AZ, size_t pow_max, mtx_select_t<cplx_select_t<scalar_type>> &traces32, mtx_select_t<cplx_select_t<scalar_type>> &loop_corrections32);
 
 /**
 @brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498
@@ -146,7 +220,9 @@ void CalcPowerTracesAndLoopCorrections( matrix &cx_diag_elements, matrix &diag_e
 @param AZ Corresponds to A^(Z), i.e. to the square matrix constructed from the input matrix (see the text below Eq.(3.20) of arXiv 1805.12498)
 @return Returns with the calculated loop correction
 */
-matrix calculate_loop_correction_2( matrix &cx_diag_elements, matrix &diag_elements, matrix& AZ, size_t num_of_modes);
+template <class small_scalar_type>
+mtx_select_t<cplx_select_t<small_scalar_type>>
+calculate_loop_correction_2( mtx_select_t<cplx_select_t<small_scalar_type>> &cx_diag_elements, mtx_select_t<cplx_select_t<small_scalar_type>> &diag_elements, mtx_select_t<cplx_select_t<small_scalar_type>>& AZ, size_t num_of_modes);
 
 
 

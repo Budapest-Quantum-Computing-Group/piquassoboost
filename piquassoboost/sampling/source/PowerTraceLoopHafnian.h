@@ -23,11 +23,11 @@
 namespace pic {
 
 
-
 /**
 @brief Class to calculate the loop hafnian of a complex matrix by the power trace method
 */
-class PowerTraceLoopHafnian : public PowerTraceHafnian{
+template <class small_scalar_type, class scalar_type>
+class PowerTraceLoopHafnian : public PowerTraceHafnian<small_scalar_type, scalar_type>{
 
 
 public:
@@ -82,6 +82,10 @@ virtual void ScaleMatrix();
 
 }; //PowerTraceLoopHafnian
 
+using PowerTraceLoopHafnianDouble = PowerTraceLoopHafnian<double, double>;
+using PowerTraceLoopHafnianHybrid = PowerTraceLoopHafnian<double, long double>;
+using PowerTraceLoopHafnianLongDouble = PowerTraceLoopHafnian<long double, long double>;
+using PowerTraceLoopHafnianInf = PowerTraceLoopHafnian<RationalInf, RationalInf>;
 
 } // PIC
 

@@ -18,6 +18,7 @@
 #define PowerTraceLoopHafnianRecursive_H
 
 #include "PowerTraceLoopHafnian.h"
+#include "PowerTraceHafnianUtilities.h"
 #include "PowerTraceHafnianRecursive.h"
 #include "PicState.h"
 #include "PicVector.hpp"
@@ -34,7 +35,8 @@ namespace pic {
 This class is an interface class betwwen the Python extension and the C++ implementation to relieve python extensions from TBB functionalities.
 (CPython does not support static objects with constructors/destructors)
 */
-class PowerTraceLoopHafnianRecursive : public PowerTraceLoopHafnian {
+template <class small_scalar_type, class scalar_type>
+class PowerTraceLoopHafnianRecursive : public PowerTraceLoopHafnian<small_scalar_type, scalar_type> {
 
 
 protected:
@@ -82,7 +84,10 @@ virtual Complex16 calculate();
 
 }; //PowerTraceLoopHafnianRecursive
 
-
+using PowerTraceLoopHafnianRecursiveHybrid = PowerTraceLoopHafnianRecursive<double, long double>;
+using PowerTraceLoopHafnianRecursiveDouble = PowerTraceLoopHafnianRecursive<double, double>;
+using PowerTraceLoopHafnianRecursiveLongDouble = PowerTraceLoopHafnianRecursive<long double, long double>;
+using PowerTraceLoopHafnianRecursiveInf = PowerTraceLoopHafnianRecursive<RationalInf, RationalInf>;
 
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON
@@ -91,7 +96,8 @@ virtual Complex16 calculate();
 @brief Class to calculate the loop hafnian of a complex matrix by a recursive power trace method. This algorithm is designed to support gaussian boson sampling simulations, it is not a general
 purpose loop hafnian calculator. This algorithm accounts for the repeated occupancy in the covariance matrix.
 */
-class PowerTraceLoopHafnianRecursive_Tasks : public PowerTraceHafnianRecursive_Tasks {
+template <class small_scalar_type, class scalar_type>
+class PowerTraceLoopHafnianRecursive_Tasks : public PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type> {
 
 protected:
     /// The diagonal elements of the input matrix
@@ -136,7 +142,7 @@ protected:
 @param current_occupancy Current occupancy of the selected column pairs for which the partial hafnian is calculated
 @return Returns with the calculated hafnian
 */
-Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
+cplx_select_t<scalar_type> CalculatePartialHafnian( const PicVector<char>& selected_modes, const  PicState_int64& current_occupancy );
 
 
 /**
@@ -147,7 +153,7 @@ Complex32 CalculatePartialHafnian( const PicVector<char>& selected_modes, const 
 @param scale_factor_AZ The scale factor that has been used to scale the matrix elements of AZ =returned by reference)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-matrix CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, double &scale_factor_AZ );
+mtx_select_t<cplx_select_t<small_scalar_type>> CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& total_num_of_occupancy, small_scalar_type &scale_factor_AZ );
 
 /**
 @brief Call to scale the input matrix according to according to Eq (2.14) of in arXiv 1805.12498
@@ -163,7 +169,7 @@ void ScaleMatrix();
 @param num_of_modes The number of modes (including degeneracies) that have been previously calculated. (it is the sum of values in current_occupancy)
 @return Returns with the constructed matrix \f$ A^Z \f$.
 */
-matrix CreateDiagElements( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes );
+mtx_select_t<cplx_select_t<small_scalar_type>> CreateDiagElements( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes );
 
 
 }; //PowerTraceLoopHafnianRecursive_Tasks
