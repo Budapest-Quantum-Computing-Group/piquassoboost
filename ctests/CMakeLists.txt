@@ -31,6 +31,7 @@ add_test(insert_transformed_rows insert_transformed_rows ...)
 add_test(ctest_common_functionalities ctest_common_functionalities ...)
 add_test(permanents_accuracy permanents_accuracy ...)
 add_test(permanents_speed permanents_speed ...)
+add_test(random_ctest random_ctest ...)
 
 add_executable (hafnian_complex_matrix hafnian_complex_matrix.cpp)
 add_executable (torontonian torontonian.cpp)
@@ -47,6 +48,7 @@ add_executable (insert_transformed_rows insert_transformed_rows.cpp)
 add_executable (ctest_common_functionalities ctest_common_functionalities.cpp)
 add_executable (permanents_accuracy permanents_accuracy.cpp)
 add_executable (permanents_speed permanents_speed.cpp)
+add_executable (random_ctest random_ctest.cpp)
 
 
 
@@ -136,7 +138,14 @@ target_include_directories(permanents_speed PRIVATE
                             ../piquassoboost/sampling/source
                             ../piquassoboost/sampling/simulation_strategies/source
                             ${TBB_HEADER}
-                            ${EXTRA_INCLUDES})    
+                            ${EXTRA_INCLUDES})
+                            
+target_include_directories(random_ctest PRIVATE
+                            ../piquassoboost/common/source
+                            ../piquassoboost/sampling/source
+                            ../piquassoboost/sampling/simulation_strategies/source
+                            ${TBB_HEADER}
+                            ${EXTRA_INCLUDES})   
 
 
 
@@ -263,6 +272,15 @@ target_link_libraries (ctest_common_functionalities
                            ${TBB_LIB}
                            ${BLAS_LIBRARIES}
                            ${MPI_C_LIBRARIES})
+                           
+                           
+target_link_libraries (random_ctest
+                           piquassoboost
+                           ${TBBMALLOC_LIB}
+                           ${TBBMALLOC_PROXY_LIB}
+                           ${TBB_LIB}
+                           ${BLAS_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
 
 
 # adding compile options
@@ -363,4 +381,10 @@ target_compile_options(permanents_speed PRIVATE
     "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
 )
 
+# adding compile options
+target_compile_options(random_ctest PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+)
 

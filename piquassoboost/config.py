@@ -51,3 +51,4 @@ class BoostConfig(Config):
             permanent_function=permanent_function,
             **kwargs,
         )
+        self.number_of_approximated_modes = None

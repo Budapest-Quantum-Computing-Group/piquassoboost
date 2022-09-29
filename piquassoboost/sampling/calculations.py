@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from distutils.command.config import config
 import numpy as np
 
 from functools import partial
@@ -30,13 +31,24 @@ from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
     GeneralizedCliffordsSimulationStrategyDualDFE,
     GeneralizedCliffordsSimulationStrategyMultiSingleDFE,
     GeneralizedCliffordsSimulationStrategyMultiDualDFE,
+    GeneralizedCliffordsBUniformLossesSimulationStrategy,
+    GeneralizedCliffordsBLossySimulationStrategy,
 )
 
 from piquasso.api.result import Result
 
 
+def _is_uniform(array):
+    return np.isclose(np.min(array), np.max(array))
 
-def _particle_number_measurement(state, instruction, shots, strategy_class) -> Result:
+
+def _particle_number_measurement(
+    state, 
+    instruction, 
+    shots,
+    strategy_class,
+    speedup_uniform = False
+) -> Result:
     """Simulates a boson sampling using generalized Clifford&Clifford algorithm
     from [Brod, Oszmaniec 2020].
 
@@ -48,24 +60,79 @@ def _particle_number_measurement(state, instruction, shots, strategy_class) -> R
     as it allows effective simulation of broader range of input states than original
     algorithm.
     """
+    
+    if state._config.number_of_approximated_modes is not None:
+        interferometer = state.interferometer
 
-    interferometer = state.interferometer
-    initial_state = np.array(state.initial_state)
+        initial_state = np.array(state.initial_state)
 
-    if state.is_lossy:  # Prepare inputs for lossy regime.
-        # In case of losses we want specially prepared 2m x 2m interferometer matrix
-        interferometer = prepare_interferometer_matrix_in_expanded_space(
-            state.interferometer
+
+        from theboss.boson_sampling_utilities.permanent_calculators.ryser_permanent_calculator import (
+            RyserPermanentCalculator,
+        )
+        from theboss.simulation_strategies.nonuniform_losses_approximation_strategy import (
+            NonuniformLossesApproximationStrategy,
+        )
+        
+        
+        #calculator = RyserPermanentCalculator(interferometer)
+        #simulation_strategy = NonuniformLossesApproximationStrategy(
+        #    bs_permanent_calculator=calculator,
+        #    approximated_modes_number=state._config.number_of_approximated_modes,
+        #    threads_number=1
+        #)
+
+        simulation_strategy = GeneralizedCliffordsBLossySimulationStrategy(
+            interferometer,
+            state._config.number_of_approximated_modes,
+            state._config._seed_sequence
+        )
+        
+        sampling_simulator = BosonSamplingSimulator(simulation_strategy)
+
+        samples = sampling_simulator.get_classical_simulation_results(
+            initial_state,
+            samples_number=shots
         )
 
-        # In case of losses we want 2m-modes input state
-        # (initialized with 0 on new modes)
-        for _ in initial_state:
-            initial_state = np.append(initial_state, 0)
+        return Result(state=state, samples=samples)
 
-    simulation_strategy = strategy_class(
-        interferometer, state._config.seed_sequence
-    )
+    singular_values = np.linalg.svd(state.interferometer)[1]
+    is_uniform = _is_uniform(singular_values)
+
+    initial_state = np.array(state.initial_state)
+
+    if state.is_lossy:
+        if speedup_uniform and is_uniform:
+            # revert interferometer to unitary
+            interferometer = state.interferometer / singular_values[0]
+
+            simulation_strategy = GeneralizedCliffordsBUniformLossesSimulationStrategy(
+                interferometer,
+                singular_values[0],
+                state._config.seed_sequence
+            )
+
+        else:
+            # In case of losses we want specially prepared 2m x 2m interferometer matrix
+            interferometer = prepare_interferometer_matrix_in_expanded_space(
+                state.interferometer
+            )
+
+            simulation_strategy = strategy_class(
+                interferometer, state._config.seed_sequence
+            )
+
+            # In case of losses we want 2m-modes input state
+            # (initialized with 0 on new modes)
+            initial_state = np.append(initial_state, np.zeros_like(initial_state))
+
+    else:
+        interferometer = state.interferometer
+        simulation_strategy = strategy_class(
+            interferometer, state._config.seed_sequence
+        )
+
     sampling_simulator = BosonSamplingSimulator(simulation_strategy)
 
     samples = sampling_simulator.get_classical_simulation_results(
@@ -82,7 +149,7 @@ def _particle_number_measurement(state, instruction, shots, strategy_class) -> R
     return Result(state=state, samples=samples)
 
 
-particle_number_measurement = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsBSimulationStrategy)
+particle_number_measurement = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsBSimulationStrategy, speedup_uniform=True)
 
 sampling_GeneralizedCliffords = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategy)
 sampling_GeneralizedCliffords_chinhuh = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh)
