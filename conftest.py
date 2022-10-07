@@ -26,7 +26,8 @@ def _patch(request):
 
     result = regexp.search(str(request.fspath))
 
-    if result.group(1) == "piquasso-module":
-        # NOTE: Only override the simulators, when the origin Piquasso Python tests are
-        # executed. For tests originating in PiquassoBoost, handle everything manually!
+    if result.group(1) in ["tests", "scripts", "piquasso-module"]:
+        # NOTE: Only override the simulators, when the original Piquasso Python tests
+        # are executed. For tests originating in PiquassoBoost, handle everything
+        # manually!
         pqb.patch()

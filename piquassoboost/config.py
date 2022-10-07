@@ -24,9 +24,13 @@ from theboss.boson_sampling_utilities.boson_sampling_utilities import (
     EffectiveScatteringMatrixCalculator
 )
 
+from piquasso._math.hafnian import _reduce_matrix_with_diagonal
 
-def cpp_loop_hafnian(matrix):
-    return PowerTraceLoopHafnian(matrix).calculate()
+
+def cpp_loop_hafnian(matrix, diagonal, reduce_on):
+    reduced_matrix = _reduce_matrix_with_diagonal(matrix, diagonal, reduce_on)
+
+    return PowerTraceLoopHafnian(reduced_matrix).calculate()
 
 
 def cpp_permanent_function(matrix, input, output):
@@ -36,7 +40,13 @@ def cpp_permanent_function(matrix, input, output):
 
     calculator = GlynnPermanent(scattering_matrix)
 
-    return calculator.calculate()
+    result = calculator.calculate()
+
+    if isinstance(result, list):
+        # TODO: Here an empty list is passed instead of 1.0.
+        result = 1.0
+
+    return result
 
 
 class BoostConfig(Config):
