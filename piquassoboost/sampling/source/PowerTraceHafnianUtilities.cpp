@@ -422,6 +422,7 @@ CalcPowerTraces<long double, long double>( mtx_select_t<cplx_select_t<long doubl
     traces32 = powtrace_from_charpoly<matrix_type>(coeffs_labudde, pow_max);
 }
 
+#ifdef __MPFR__
 template<>
 void
 transform_matrix_to_hessenberg<mtx_select_t<cplx_select_t<RationalInf>>, cplx_select_t<RationalInf>, RationalInf>(mtx_select_t<cplx_select_t<RationalInf>> &AZ) {
@@ -454,7 +455,10 @@ transform_matrix_to_hessenberg<mtx_select_t<cplx_select_t<RationalInf>>, cplx_se
         i++;
     }
 }
+#endif
 
+
+#ifdef __MPFR__
 template<> void
 CalcPowerTraces<RationalInf, RationalInf>( mtx_select_t<cplx_select_t<RationalInf>>& AZ, size_t pow_max, mtx_select_t<cplx_select_t<RationalInf>> &traces32) {
     using complex_type = cplx_select_t<RationalInf>;
@@ -500,6 +504,7 @@ CalcPowerTraces<RationalInf, RationalInf>( mtx_select_t<cplx_select_t<RationalIn
 #endif
     for (size_t i = AZnew.size(); i != 0; i--) AZnew[i-1].~complex_type();
 }
+#endif //MPFR
 
 /**
 @brief Call to calculate the power traces \f$Tr(mtx^j)~\forall~1\leq j\leq l\f$ for a squared complex matrix \f$mtx\f$ of dimensions \f$n\times n\f$
@@ -675,6 +680,7 @@ CalcPowerTracesAndLoopCorrections<long double, long double>( mtx_select_t<cplx_s
     traces32 = powtrace_from_charpoly<matrix_type>(coeffs_labudde, pow_max);
 }
 
+#ifdef __MPFR__
 template<>
 void
 transform_matrix_to_hessenberg<mtx_select_t<cplx_select_t<RationalInf>>, cplx_select_t<RationalInf>, RationalInf>(mtx_select_t<cplx_select_t<RationalInf>> &AZ, mtx_select_t<cplx_select_t<RationalInf>> Lv, mtx_select_t<cplx_select_t<RationalInf>> Rv) {
@@ -710,7 +716,10 @@ transform_matrix_to_hessenberg<mtx_select_t<cplx_select_t<RationalInf>>, cplx_se
         i++;
     }
 }
+#endif
 
+
+#ifdef __MPFR__
 template <> void
 CalcPowerTracesAndLoopCorrections<RationalInf, RationalInf>( mtx_select_t<cplx_select_t<RationalInf>> &cx_diag_elements, mtx_select_t<cplx_select_t<RationalInf>> &diag_elements, mtx_select_t<cplx_select_t<RationalInf>>& AZ, size_t pow_max, mtx_select_t<cplx_select_t<RationalInf>> &traces32, mtx_select_t<cplx_select_t<RationalInf>> &loop_corrections32)
 {
@@ -772,6 +781,7 @@ CalcPowerTracesAndLoopCorrections<RationalInf, RationalInf>( mtx_select_t<cplx_s
 #endif
     for (size_t i = AZnew.size(); i != 0; i--) AZnew[i-1].~complex_type();
 }
+#endif //MPFR
 
 /**
 @brief Call to calculate the loop corrections in Eq (3.26) of arXiv1805.12498

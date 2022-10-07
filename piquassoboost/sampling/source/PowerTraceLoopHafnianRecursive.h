@@ -87,7 +87,10 @@ virtual Complex16 calculate();
 using PowerTraceLoopHafnianRecursiveHybrid = PowerTraceLoopHafnianRecursive<double, long double>;
 using PowerTraceLoopHafnianRecursiveDouble = PowerTraceLoopHafnianRecursive<double, double>;
 using PowerTraceLoopHafnianRecursiveLongDouble = PowerTraceLoopHafnianRecursive<long double, long double>;
+
+#ifdef __MPFR__
 using PowerTraceLoopHafnianRecursiveInf = PowerTraceLoopHafnianRecursive<RationalInf, RationalInf>;
+#endif
 
 // relieve Python extension from TBB functionalities
 #ifndef CPYTHON

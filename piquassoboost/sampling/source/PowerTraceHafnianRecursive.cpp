@@ -132,8 +132,10 @@ PowerTraceHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
 template class PowerTraceHafnianRecursive<double, long double>;
 template class PowerTraceHafnianRecursive<double, double>;
 template class PowerTraceHafnianRecursive<long double, long double>;
-template class PowerTraceHafnianRecursive<RationalInf, RationalInf>;
 
+#ifdef __MPFR__
+template class PowerTraceHafnianRecursive<RationalInf, RationalInf>;
+#endif
 
 
 
@@ -771,6 +773,7 @@ template class PowerTraceHafnianRecursive_Tasks<double, double>;
 template class PowerTraceHafnianRecursive_Tasks<double, long double>;
 template class PowerTraceHafnianRecursive_Tasks<long double, long double>;
 
+#ifdef __MPFR__
 template class PowerTraceHafnianRecursive_Tasks<RationalInf, RationalInf>;
-
+#endif
 } // PIC

@@ -29,7 +29,10 @@
 #include "matrix32.h"
 
 #include "dot.h"
+
+#ifdef __MPFR__
 #include "InfinitePrecisionComplex.h"
+#endif
 
 extern "C" {
 
@@ -54,14 +57,20 @@ template <> class complexm_selector<long double> {
 public:
     typedef ComplexM<long double> cplxm_type;
 };
+
+#ifdef __MPFR__
 template <> class complexm_selector<FloatInf> {
 public:
     typedef ComplexInf cplxm_type;
 };
+
 template <> class complexm_selector<RationalInf> {
 public:
     typedef ComplexRationalInf cplxm_type;
 };
+#endif
+
+
 template <class T>
 using cplxm_select_t = typename complexm_selector<T>::cplxm_type;
 
@@ -70,18 +79,26 @@ template <> class complex_selector<double> {
 public:
     typedef Complex16 cplx_type;
 };
+
+
 template <> class complex_selector<long double> {
 public:
     typedef Complex32 cplx_type;
 };
+
+
+#ifdef __MPFR__
 template <> class complex_selector<FloatInf> {
 public:
     typedef ComplexInf cplx_type;
 };
+
 template <> class complex_selector<RationalInf> {
 public:
     typedef ComplexRationalInf cplx_type;
 };
+#endif
+
 template <class T>
 using cplx_select_t = typename complex_selector<T>::cplx_type;
 
@@ -90,18 +107,27 @@ template <> class matrix_selector<Complex16> {
 public:
     typedef matrix mat_type;
 };
+
+
 template <> class matrix_selector<Complex32> {
 public:
     typedef matrix32 mat_type;
 };
+
+
+#ifdef __MPFR__
 template <> class matrix_selector<ComplexInf> {
 public:
     typedef matrix_base<ComplexInf> mat_type;
 }; 
+
+
 template <> class matrix_selector<ComplexRationalInf> {
 public:
     typedef matrix_base<ComplexRationalInf> mat_type;
 }; 
+#endif
+
 template <class T>
 using mtx_select_t = typename matrix_selector<T>::mat_type;
 

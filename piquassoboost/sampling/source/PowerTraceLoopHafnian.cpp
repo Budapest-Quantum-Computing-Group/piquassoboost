@@ -470,6 +470,7 @@ template class PowerTraceLoopHafnian<double, double>;
 template class PowerTraceLoopHafnian<double, long double>;
 template class PowerTraceLoopHafnian<long double, long double>;
 
+#ifdef __MPFR__
 template <>
 void
 PowerTraceLoopHafnian<RationalInf, RationalInf>::ScaleMatrix() {
@@ -477,5 +478,6 @@ PowerTraceLoopHafnian<RationalInf, RationalInf>::ScaleMatrix() {
     scale_factor = 1.0;
 }
 template class PowerTraceLoopHafnian<RationalInf, RationalInf>;
+#endif
 
 } // PIC

@@ -27,7 +27,10 @@
 #define Hybrid 0
 #define Double 1
 #define LongDouble 2
+
+#ifdef __MPFR__
 #define InfPrec 3
+#endif
 
 /**
 This file contains the implementation of the python wrapper object for the C++ class PowerTraceHafnianRecursive_wrapper. 
@@ -49,7 +52,9 @@ typedef struct PowerTraceHafnianRecursive_wrapper {
         pic::PowerTraceHafnianRecursiveHybrid* calculator;
         pic::PowerTraceHafnianRecursiveDouble* calculatorDouble;
         pic::PowerTraceHafnianRecursiveLongDouble* calculatorLongDouble;
+#ifdef __MPFR__
         pic::PowerTraceHafnianRecursiveInf* calculatorInf;
+#endif
     };    
 } PowerTraceHafnianRecursive_wrapper;
 
@@ -102,8 +107,10 @@ PowerTraceHafnianRecursive_wrapper_dealloc(PowerTraceHafnianRecursive_wrapper *s
         delete self->calculatorDouble;
     else if (self->lib == LongDouble)
         delete self->calculatorLongDouble;
+#ifdef __MPFR__
     else if (self->lib == InfPrec)
         delete self->calculatorInf;
+#endif
 
     if ( self->matrix != NULL ) {
         // release numpy arrays
@@ -199,8 +206,10 @@ PowerTraceHafnianRecursive_wrapper_init(PowerTraceHafnianRecursive_wrapper *self
         self->calculatorDouble = new pic::PowerTraceHafnianRecursiveDouble(matrix_mtx, occupancy_mtx);
     else if (self->lib == LongDouble)
         self->calculatorLongDouble = new pic::PowerTraceHafnianRecursiveLongDouble(matrix_mtx, occupancy_mtx);
+#ifdef __MPFR__
     else if (self->lib == InfPrec)
         self->calculatorInf = new pic::PowerTraceHafnianRecursiveInf(matrix_mtx, occupancy_mtx);
+#endif
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for hafnian library.");
         return -1;

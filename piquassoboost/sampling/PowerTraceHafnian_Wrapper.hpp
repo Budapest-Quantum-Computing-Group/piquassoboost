@@ -47,7 +47,9 @@ typedef struct PowerTraceHafnian_wrapper {
         pic::PowerTraceHafnianHybrid* calculator;
         pic::PowerTraceHafnianDouble* calculatorDouble;
         pic::PowerTraceHafnianLongDouble* calculatorLongDouble;
+#ifdef __MPFR__
         pic::PowerTraceHafnianInf* calculatorInf;
+#endif
     };
 } PowerTraceHafnian_wrapper;
 
@@ -100,8 +102,10 @@ PowerTraceHafnian_wrapper_dealloc(PowerTraceHafnian_wrapper *self)
         delete self->calculatorDouble;
     else if (self->lib == LongDouble)
         delete self->calculatorLongDouble;
+#ifdef __MPFR__
     else if (self->lib == InfPrec)
         delete self->calculatorInf;
+#endif
 
     // release numpy arrays
     Py_DECREF(self->matrix);
@@ -170,8 +174,10 @@ PowerTraceHafnian_wrapper_init(PowerTraceHafnian_wrapper *self, PyObject *args, 
         self->calculatorDouble = new pic::PowerTraceHafnianDouble(matrix_mtx);
     else if (self->lib == LongDouble)
         self->calculatorLongDouble = new pic::PowerTraceHafnianLongDouble(matrix_mtx);
+#ifdef __MPFR__
     else if (self->lib == InfPrec)
         self->calculatorInf = new pic::PowerTraceHafnianInf(matrix_mtx);
+#endif
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for hafnian library.");
         return -1;

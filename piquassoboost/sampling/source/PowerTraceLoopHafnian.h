@@ -85,7 +85,10 @@ virtual void ScaleMatrix();
 using PowerTraceLoopHafnianDouble = PowerTraceLoopHafnian<double, double>;
 using PowerTraceLoopHafnianHybrid = PowerTraceLoopHafnian<double, long double>;
 using PowerTraceLoopHafnianLongDouble = PowerTraceLoopHafnian<long double, long double>;
+
+#ifdef __MPFR__
 using PowerTraceLoopHafnianInf = PowerTraceLoopHafnian<RationalInf, RationalInf>;
+#endif
 
 } // PIC
 

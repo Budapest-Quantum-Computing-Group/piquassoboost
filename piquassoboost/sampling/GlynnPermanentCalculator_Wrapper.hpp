@@ -187,7 +187,6 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
 {
 
     if (PyList_Check(self->matrix)) {
-
         // convert list of input numpy arrays into a vector of matices
         Py_ssize_t sz = PyList_Size(self->matrix);
         std::vector<pic::matrix> matrices;
@@ -276,12 +275,6 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
             PyList_Append(list, o);
             Py_DECREF(o);
         }
-
-        for (int i = 0; i < ret.size(); i++){
-            std::cout << i << ret[i];
-        }
-        std::cout << "ret.size()=0";
-
         return list;
 
 
@@ -294,8 +287,6 @@ GlynnPermanentCalculator_Wrapper_calculate(GlynnPermanentCalculator_wrapper *sel
         // start the calculation of the permanent
     
         pic::Complex16 ret;
-        //ret = 27.0;
-        //std::cout << "27 in ret\n";
 
         if (self->lib == GlynnLongDouble) {
             try {

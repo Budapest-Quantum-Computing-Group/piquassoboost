@@ -164,10 +164,13 @@ template
 void scaleMatrix<double>(mtx_select_t<cplx_select_t<double>> & AZ, double &scale_factor_AZ);
 template
 void scaleMatrix<long double>(mtx_select_t<cplx_select_t<long double>> & AZ, long double &scale_factor_AZ);
+
+#ifdef __MPFR__
 template<>
 void scaleMatrix<RationalInf>(mtx_select_t<cplx_select_t<RationalInf>> & AZ, RationalInf &scale_factor_AZ) {
     scale_factor_AZ = 1.0;
 }
+#endif
 
 
 /**
@@ -457,6 +460,7 @@ template class PowerTraceHafnian<double, double>;
 template class PowerTraceHafnian<double, long double>;
 template class PowerTraceHafnian<long double, long double>;
 
+#ifdef __MPFR__
 template <>
 void
 PowerTraceHafnian<RationalInf, RationalInf>::ScaleMatrix() {
@@ -464,5 +468,6 @@ PowerTraceHafnian<RationalInf, RationalInf>::ScaleMatrix() {
     scale_factor = 1.0;
 }
 template class PowerTraceHafnian<RationalInf, RationalInf>;
+#endif
 
 } // PIC

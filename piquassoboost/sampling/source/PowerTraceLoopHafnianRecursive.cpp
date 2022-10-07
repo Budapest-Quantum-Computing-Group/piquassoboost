@@ -159,7 +159,10 @@ PowerTraceLoopHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
 template class PowerTraceLoopHafnianRecursive<double, long double>;
 template class PowerTraceLoopHafnianRecursive<double, double>;
 template class PowerTraceLoopHafnianRecursive<long double, long double>;
+
+#ifdef __MPFR__
 template class PowerTraceLoopHafnianRecursive<RationalInf, RationalInf>;
+#endif
 
 
 
@@ -478,12 +481,16 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::ScaleMatri
 
 }
 
+
+
+#ifdef __MPFR__
 template <>
 void
 PowerTraceLoopHafnianRecursive_Tasks<RationalInf, RationalInf>::ScaleMatrix() {
     this->mtx = this->mtx_orig;
     this->scale_factor = 1.0;
 }
+#endif
 
 /**
 @brief Call to construct matrix \f$ A^Z \f$ (see the text below Eq. (3.20) of arXiv 1805.12498) for the given modes and their occupancy
@@ -682,7 +689,10 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateDiag
 template class PowerTraceLoopHafnianRecursive_Tasks<double, long double>;
 template class PowerTraceLoopHafnianRecursive_Tasks<double, double>;
 template class PowerTraceLoopHafnianRecursive_Tasks<long double, long double>;
+
+#ifdef __MPFR__
 template class PowerTraceLoopHafnianRecursive_Tasks<RationalInf, RationalInf>;
+#endif
 
 
 

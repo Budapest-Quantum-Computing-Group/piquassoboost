@@ -27,7 +27,10 @@
 #define Hybrid 0
 #define Double 1
 #define LongDouble 2
+
+#ifdef __MPFR__
 #define InfPrec 3
+#endif
 
 /**
 @brief Type definition of the PowerTraceLoopHafnian_wrapper Python class of the PowerTraceLoopHafnian_wrapper module
@@ -42,7 +45,9 @@ typedef struct PowerTraceLoopHafnian_wrapper {
         pic::PowerTraceLoopHafnianHybrid* calculator;
         pic::PowerTraceLoopHafnianDouble* calculatorDouble;
         pic::PowerTraceLoopHafnianLongDouble* calculatorLongDouble;
+#ifdef __MPFR__
         pic::PowerTraceLoopHafnianInf* calculatorInf;
+#endif
     };    
 } PowerTraceLoopHafnian_wrapper;
 
@@ -97,8 +102,10 @@ PowerTraceLoopHafnian_wrapper_dealloc(PowerTraceLoopHafnian_wrapper *self)
         delete self->calculatorDouble;
     else if (self->lib == LongDouble)
         delete self->calculatorLongDouble;
+#ifdef __MPFR__
     else if (self->lib == InfPrec)
         delete self->calculatorInf;
+#endif
     
 
     // release numpy arrays
@@ -168,8 +175,10 @@ PowerTraceLoopHafnian_wrapper_init(PowerTraceLoopHafnian_wrapper *self, PyObject
         self->calculatorDouble = new pic::PowerTraceLoopHafnianDouble(matrix_mtx);
     else if (self->lib == LongDouble)
         self->calculatorLongDouble = new pic::PowerTraceLoopHafnianLongDouble(matrix_mtx);
+#ifdef __MPFR__
     else if (self->lib == InfPrec)
         self->calculatorInf = new pic::PowerTraceLoopHafnianInf(matrix_mtx);
+#endif
     else {
         PyErr_SetString(PyExc_Exception, "Wrong value set for hafnian library.");
         return -1;
