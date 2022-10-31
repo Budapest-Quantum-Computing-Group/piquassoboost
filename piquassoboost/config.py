@@ -15,50 +15,9 @@
 
 from piquasso.api.config import Config
 
-from piquassoboost.sampling.Boson_Sampling_Utilities import (
-    PowerTraceLoopHafnian,
-    GlynnPermanent
-)
-
-from theboss.boson_sampling_utilities.boson_sampling_utilities import (
-    EffectiveScatteringMatrixCalculator
-)
-
-from piquasso._math.hafnian import _reduce_matrix_with_diagonal
-
-
-def cpp_loop_hafnian(matrix, diagonal, reduce_on):
-    reduced_matrix = _reduce_matrix_with_diagonal(matrix, diagonal, reduce_on)
-
-    return PowerTraceLoopHafnian(reduced_matrix).calculate()
-
-
-def cpp_permanent_function(matrix, input, output):
-    scattering_matrix = EffectiveScatteringMatrixCalculator(
-        matrix, input, output
-    ).calculate()
-
-    calculator = GlynnPermanent(scattering_matrix)
-
-    result = calculator.calculate()
-
-    if isinstance(result, list):
-        # TODO: Here an empty list is passed instead of 1.0.
-        result = 1.0
-
-    return result
-
 
 class BoostConfig(Config):
-    def __init__(
-        self,
-        loop_hafnian_function=cpp_loop_hafnian,
-        permanent_function=cpp_permanent_function,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            loop_hafnian_function=loop_hafnian_function,
-            permanent_function=permanent_function,
-            **kwargs,
-        )
-        self.number_of_approximated_modes = None
+    def __init__(self, number_of_approximated_modes=None, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        self.number_of_approximated_modes = number_of_approximated_modes

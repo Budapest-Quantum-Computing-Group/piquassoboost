@@ -16,7 +16,9 @@
 import piquasso as pq
 
 from piquassoboost.config import BoostConfig
+from piquassoboost.calculator import BoostCalculator
 
 
 class BoostedPureFockSimulator(pq.PureFockSimulator):
     _config_class = BoostConfig
+    _calculator_class = BoostCalculator
