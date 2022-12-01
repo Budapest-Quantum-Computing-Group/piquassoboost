@@ -225,13 +225,13 @@ public:
     ComplexInf() : ComplexInf(0.0, 0.0) {
     }
     ComplexInf(double real, double imag) {
-        ::new (&REALPART(*this)) FloatInf(real);
-        ::new (&IMAGPART(*this)) FloatInf(imag);
+        REALPART(*this) = real;
+        IMAGPART(*this) = imag;
     }
     ComplexInf(const Complex16& f) : ComplexInf(f.real(), f.imag()) {}
     ComplexInf(const FloatInf& r, const FloatInf& i) {
-        ::new (&REALPART(*this)) FloatInf(r);
-        ::new (&IMAGPART(*this)) FloatInf(i);
+        REALPART(*this) = r;
+        IMAGPART(*this) = i;
     }
     ComplexInf(const ComplexInf& f) : ComplexInf(REALPARTC(f), IMAGPARTC(f)) {}
     ComplexInf(ComplexInf&& f) : ComplexInf(std::move(REALPARTC(f)), std::move(IMAGPARTC(f))) {}
@@ -323,31 +323,31 @@ class RationalInf
 public:
     RationalInf() : RationalInf(0.0) {}
     RationalInf(double num) {
-        ::new (&this->num) FloatInf(num);
-        ::new (&this->denom) FloatInf(1.0);
+        this->num = num;
+        this->denom = 1.0;
         normalize_int();
     }
     RationalInf(const long long unsigned int num) {
-        ::new (&this->num) FloatInf(num);
-        ::new (&this->denom) FloatInf(1.0);
+        this->num = num;
+        this->denom = 1.0;
     }
     RationalInf(const size_t num) : RationalInf((unsigned long long)num) {}
     RationalInf(double num, double denom) {
-        ::new (&this->num) FloatInf(num);
-        ::new (&this->denom) FloatInf(denom);
+        this->num = num;
+        this->denom = denom;
         normalize();
     }
     RationalInf(const FloatInf& num, const FloatInf& denom) {
-        ::new (&this->num) FloatInf(num);
-        ::new (&this->denom) FloatInf(denom);
+        this->num = num;
+        this->denom = denom;
     }
     RationalInf(FloatInf&& num, FloatInf&& denom) {
-        ::new (&this->num) FloatInf(num);
-        ::new (&this->denom) FloatInf(denom);
+        this->num = num;
+        this->denom = denom;
     }
     RationalInf(const RationalInf& f) {
-        ::new (&this->num) FloatInf(f.num);
-        ::new (&this->denom) FloatInf(f.denom);
+        this->num = f.num;
+        this->denom = f.denom;
     }
     RationalInf(RationalInf&& f) : RationalInf(std::move(f.num), std::move(f.denom)) {}
     ~RationalInf() {
@@ -551,19 +551,19 @@ class ComplexRationalInf : public Complex_base<RationalInf>
 public:
     ComplexRationalInf() : ComplexRationalInf(0.0, 0.0) {}
     ComplexRationalInf(double real, double imag) {
-        ::new (&RREALPART(*this)) RationalInf(real);
-        ::new (&RIMAGPART(*this)) RationalInf(imag);
+        RREALPART(*this) = real;
+        RIMAGPART(*this) = imag;
     }
     ComplexRationalInf(double real) : ComplexRationalInf(real, 0.0) {}
     ComplexRationalInf(RationalInf&& r, RationalInf&& i)
     {
-        ::new (&RREALPART(*this)) RationalInf(r);
-        ::new (&RIMAGPART(*this)) RationalInf(i);
+        RREALPART(*this) = r;
+        RIMAGPART(*this) = i;
     }
     ComplexRationalInf(const RationalInf& r, const RationalInf& i)
     {
-        ::new (&RREALPART(*this)) RationalInf(r);
-        ::new (&RIMAGPART(*this)) RationalInf(i);
+        RREALPART(*this) = r;
+        RIMAGPART(*this) = i;
     }
     ComplexRationalInf(const ComplexRationalInf& f) : ComplexRationalInf(RREALPARTC(f), RIMAGPARTC(f)) {}
     ComplexRationalInf(ComplexRationalInf&& f) : ComplexRationalInf(std::move(RREALPARTC(f)), std::move(RIMAGPARTC(f))) {}
