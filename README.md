@@ -148,7 +148,7 @@ Install dependencies:
 
 $ conda install numpy scipy pip pytest scikit-build tbb-devel tensorflow ninja
 
-$ pip install quntum_blackbird theboss=2.0.3
+$ pip install quantum_blackbird theboss==2.0.3
 
 For running pytest examples one should also install the Strawberry Fields package:
 
