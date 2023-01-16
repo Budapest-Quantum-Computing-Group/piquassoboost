@@ -53,8 +53,8 @@ The Python interface of the Piquasso Boost library needs the following packages 
 * [scikit-build](https://pypi.org/project/scikit-build/) (>=0.11.1)
 * [Numpy](https://numpy.org/install/) (>=1.19.4)
 * [scipy](https://www.scipy.org/install.html) (>=1.5.2)
-* quantum-blackbird (>=0.2.4)
-* BoSS-Tomev (>=0.0.6)
+* quantum-blackbird (==0.2.3)
+* theboss (>=2.0.3)
 * tbb-devel
 * mpi4py
 * pytest
@@ -129,6 +129,45 @@ Finally, in order to  build Piquasso Boost library including the C test files de
 $ export PIQUASSOBOOST_CTEST=1
 
 environment variable before compiling the library.
+
+
+### Developer build
+
+
+We recommend to install the Piquasso Boost package in the Anaconda environment. In order to install the necessary requirements, follow the steps below:
+
+Creating new python environment: 
+
+$ conda create -n pqboost python=3.10
+
+Activate the new anaconda environment
+
+$ conda activate pqboost
+
+Install dependencies:
+
+$ conda install numpy scipy pip pytest scikit-build tbb-devel tensorflow ninja
+
+$ pip install quntum_blackbird theboss=2.0.3
+
+For running pytest examples one should also install the Strawberry Fields package:
+
+$ pip install strawberryfields
+
+To initialize the correct piquasso package for interfacing with python issue the following commands:
+
+$ git submodule init
+
+$ git submodule update
+
+After the basic environment variables are set and the dependencies are installed, the compilation of the package can be started by the Python command:
+
+$ python3 setup.py build_ext
+
+The command above starts the compilation of the SQUANDER C++ library and builds the necessary C++ Python interface extensions of the SQUANDER package in place.
+After a successful build, one can register the SQUANDER package in the Python distribution in developer (i.e. editable) mode by command:
+
+$ python -m pip install -e .
 
 
 ### Binary distribution
