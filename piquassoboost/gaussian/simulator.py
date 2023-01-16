@@ -18,6 +18,7 @@ import piquasso as pq
 from piquasso.instructions import gates, measurements
 
 from piquassoboost.config import BoostConfig
+from piquassoboost.calculator import BoostCalculator
 
 from .calculations import passive_linear, threshold_measurement, particle_number_measurement
 
@@ -34,3 +35,4 @@ class BoostedGaussianSimulator(pq.GaussianSimulator):
     }
 
     _config_class = BoostConfig
+    _calculator_class = BoostCalculator

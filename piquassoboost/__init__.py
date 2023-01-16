@@ -16,6 +16,7 @@
 import piquasso as pq
 
 from piquassoboost.config import BoostConfig
+from piquassoboost.calculator import BoostCalculator
 
 from piquassoboost.gaussian.simulator import BoostedGaussianSimulator
 from piquassoboost.sampling.simulator import BoostedSamplingSimulator
@@ -30,6 +31,7 @@ def patch():
     pq.BoostedFockSimulator = BoostedFockSimulator
 
     pq.BoostConfig = BoostConfig
+    pq.BoostCalculator = BoostCalculator
 
     pq.GaussianSimulator = BoostedGaussianSimulator
     pq.SamplingSimulator = BoostedSamplingSimulator
