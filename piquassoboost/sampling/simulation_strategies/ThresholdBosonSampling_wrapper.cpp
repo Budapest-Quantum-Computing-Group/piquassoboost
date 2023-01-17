@@ -141,8 +141,13 @@ ThresholdBosonSampling_wrapper_init(ThresholdBosonSampling_wrapper *self, PyObje
         self->covariance_matrix = covariance_matrix_arg;
         Py_INCREF(self->covariance_matrix);
     }
-    else {
+    else if (PyArray_TYPE(covariance_matrix_arg) == NPY_FLOAT64 ) {
         self->covariance_matrix = PyArray_FROM_OTF(covariance_matrix_arg, NPY_FLOAT64, NPY_ARRAY_IN_ARRAY);
+    }
+    else {
+        std::string err( "The covariance matrix should be real (given in float64 format)");
+        PyErr_SetString(PyExc_Exception, err.c_str());
+        return -1;
     }
 
     // create PIC version of the input matrices
@@ -169,13 +174,29 @@ ThresholdBosonSampling_wrapper_simulate(ThresholdBosonSampling_wrapper *self, Py
     int sample_num = 0;
 
     // parsing input arguments
-    if (!PyArg_ParseTuple(args, "|i",
-                                     &sample_num))
+    if (!PyArg_ParseTuple(args, "|i", &sample_num))
         return Py_BuildValue("i", -1);
 
 
-    // call the C++ variant of the sampling method    
-    std::vector<pic::PicState_int64> samples = self->simulation_strategy->simulate(sample_num);
+
+    std::vector<pic::PicState_int64> samples;
+    
+    try {
+
+        // call the C++ variant of the sampling method    
+        samples = self->simulation_strategy->simulate(sample_num);
+        
+    }
+    catch (std::string err) {
+        PyErr_SetString(PyExc_Exception, err.c_str());
+        std::cout << err << std::endl;
+        return NULL;
+    }
+    catch(...) {
+        std::string err( "Invalid pointer to sampling trategy object class");
+        PyErr_SetString(PyExc_Exception, err.c_str());
+        return NULL;
+    }
 
 
     // preallocate Python list to hold the calculated samples
@@ -237,6 +258,79 @@ ThresholdBosonSampling_wrapper_setcovariance_matrix(ThresholdBosonSampling_wrapp
 
 
 
+/**
+@brief Method to get the upper bound of photons to be sampled.
+*/
+static PyObject *
+ThresholdBosonSampling_wrapper_get_photon_upper_bound(ThresholdBosonSampling_wrapper *self)
+{
+
+
+    int upbound = -1;
+
+
+    try {
+        upbound = self->simulation_strategy->get_photon_upper_bound();
+    }
+    catch (std::string err) {
+        PyErr_SetString(PyExc_Exception, err.c_str());
+        std::cout << err << std::endl;
+        return NULL;
+    }
+    catch(...) {
+        std::string err( "Invalid pointer to sampling trategy object class");
+        PyErr_SetString(PyExc_Exception, err.c_str());
+        return NULL;
+    }
+    
+    // set the upper bound of photon count in the C++ class  
+    
+    
+    
+    return Py_BuildValue("i", upbound);
+}
+
+/**
+@brief Method to set the upper bound of photons to be sampled.
+*/
+static PyObject *
+ThresholdBosonSampling_wrapper_set_photon_upper_bound(ThresholdBosonSampling_wrapper *self, PyObject *args)
+{
+
+    int upbound = 0;
+
+
+    // parsing input arguments
+    if (!PyArg_ParseTuple(args, "|i", &upbound))
+        return Py_BuildValue("i", -1);
+
+
+    try {
+        // set the upper bound of photon count in the C++ class  
+        self->simulation_strategy->set_photon_upper_bound(upbound);
+    }
+    catch (std::string err) {
+        PyErr_SetString(PyExc_Exception, err.c_str());
+        std::cout << err << std::endl;
+        return NULL;
+    }
+    catch(...) {
+        std::string err( "Invalid pointer to sampling trategy object class");
+        PyErr_SetString(PyExc_Exception, err.c_str());
+        return NULL;
+    }
+    
+
+    
+
+
+
+    return Py_BuildValue("i", 0);
+
+}
+
+
+
 static PyGetSetDef ThresholdBosonSampling_wrapper_getsetters[] = {
     {"covariance_matrix", (getter) ThresholdBosonSampling_wrapper_getcovariance_matrix, (setter) ThresholdBosonSampling_wrapper_setcovariance_matrix,
      "covariance_matrix", NULL},
@@ -255,6 +349,12 @@ static PyMethodDef ThresholdBosonSampling_wrapper_Methods[] = {
     {"simulate", (PyCFunction) ThresholdBosonSampling_wrapper_simulate, METH_VARARGS,
      "Method to calculate boson sampling output samples"
     },
+    {"set_photon_upper_bound", (PyCFunction) ThresholdBosonSampling_wrapper_set_photon_upper_bound, METH_VARARGS,
+     "Method to set the upper bound of photons to be sampled."
+    },
+    {"get_photon_upper_bound", (PyCFunction) ThresholdBosonSampling_wrapper_get_photon_upper_bound, METH_NOARGS,
+     "Method to get the upper bound of photons to be sampled."
+    },        
     {NULL}  /* Sentinel */
 };
 
