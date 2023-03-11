@@ -263,7 +263,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::calculate(unsi
     // thread local storage for partial hafnian
     tbb::combinable<cplxm_select_t<scalar_type>> priv_addend{[](){return cplxm_select_t<scalar_type>();}};
 
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     PicVector<char> selected_modes;
     selected_modes.reserve(num_of_modes);
     for (size_t idx = 0; idx < num_of_modes; idx++) {
@@ -352,7 +352,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::calculate(unsi
 
     // scale the result by the appropriate facto according to Eq (2.11) of in arXiv 1805.12498
     hafnian *= pow(this->scale_factor, sum(occupancy));
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     hafnian /= (1ULL << (sum(occupancy)-1));
 #endif
 
@@ -515,7 +515,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateParti
 
     size_t total_num_of_modes = sum(occupancy);
     size_t dim = total_num_of_modes*2;
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     size_t num_of_modes = total_num_of_modes; 
     bool fact = sum(current_occupancy) % 2;
 #else
@@ -532,12 +532,12 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateParti
     // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
     matrix_type traces(total_num_of_modes, 1);
-#ifndef GLYNN
+#ifndef __GLYNN_HAFNIAN__
     if (num_of_modes != 0) {
 #endif
         //traces = calc_power_traces<matrix32, complex_type>(B, total_num_of_modes);
         CalcPowerTraces<small_scalar_type, scalar_type>(B, total_num_of_modes, traces);
-#ifndef GLYNN
+#ifndef __GLYNN_HAFNIAN__
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -632,7 +632,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( cons
 
 
 //std::cout << "A" << std::endl;
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     matrix A(num_of_modes*2, num_of_modes*2);
     memset(A.get_data(), 0, A.size()*sizeof(Complex16));
     size_t row_idx = 0;

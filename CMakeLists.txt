@@ -442,6 +442,21 @@ if (DEFINED ENV{PIQUASSOBOOST_DFE})
 
 endif()
 
+if (DEFINED ENV{PIQUASSOBOOST_RYSER_HAFNIAN})
+
+  # Glynn formula giver better numerical accuracy (it has been made default)
+  list(APPEND CXX_FLAGS_DEBUG "-D__RYSER_HAFNIAN__=1")
+  list(APPEND CXX_FLAGS_RELEASE "-D__RYSER_HAFNIAN__=1")
+
+else()
+  # Glynn formula giver better numerical accuracy (it has been made default)
+  list(APPEND CXX_FLAGS_DEBUG "-D__GLYNN_HAFNIAN__=1")
+  list(APPEND CXX_FLAGS_RELEASE "-D__GLYNN_HAFNIAN__=1")
+
+endif()
+
+
+
 # add architecture specific kernels
 if (${HAVE_AVX512F_EXTENSIONS})
   list(APPEND piquassoboost_files 

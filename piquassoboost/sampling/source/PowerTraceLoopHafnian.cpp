@@ -113,7 +113,7 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate() {
     int current_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     Complex16 hafnian = calculate(current_rank, world_size, permutation_idx_max/2);
 #else
     Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
@@ -140,7 +140,7 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate() {
     unsigned long long current_rank = 0;
     unsigned long long world_size = 1;
 
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     Complex16 hafnian = calculate(current_rank, world_size, permutation_idx_max/2);
 #else
     Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
@@ -212,7 +212,7 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
     for (unsigned long long permutation_idx = 0; permutation_idx < permutation_idx_max; permutation_idx++) {
 */
 
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
         mtx_select_t<cplx_select_t<small_scalar_type>> diag_elements(1, dim);
         mtx_select_t<cplx_select_t<small_scalar_type>> cx_diag_elements(dim, 1);
         mtx_select_t<cplx_select_t<small_scalar_type>> AZ(dim, dim);
@@ -284,11 +284,11 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
         matrix_type traces(dim_over_2, 1);
         matrix_type loop_corrections(dim_over_2, 1);
 
-#ifndef GLYNN
+#ifndef __GLYNN_HAFNIAN__
         if (number_of_ones != 0) {
 #endif
             CalcPowerTracesAndLoopCorrections<small_scalar_type, scalar_type>(cx_diag_elements, diag_elements, AZ, dim_over_2, traces, loop_corrections);
-#ifndef GLYNN
+#ifndef __GLYNN_HAFNIAN__
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -393,7 +393,7 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::calculate(unsigned long l
 
     // scale the result by the appropriate facto according to Eq (2.11) of in arXiv 1805.12498
     res *= pow(this->scale_factor, dim_over_2);
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     res /= (1ULL << (dim_over_2-1));
 #endif
     return Complex16(res.real(), res.imag() );
@@ -438,9 +438,9 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::ScaleMatrix() {
         // determine the scale factor
         this->scale_factor = 0.0;
         for (size_t idx=0; idx<this->mtx_orig.size(); idx++) {
-            this->scale_factor = this->scale_factor + sqrt( this->mtx_orig[idx].real()*this->mtx_orig[idx].real() + this->mtx_orig[idx].imag()*this->mtx_orig[idx].imag() );
+            this->scale_factor = this->scale_factor + std::sqrt( this->mtx_orig[idx].real()*this->mtx_orig[idx].real() + this->mtx_orig[idx].imag()*this->mtx_orig[idx].imag() );
         }
-        this->scale_factor = this->scale_factor/this->mtx_orig.size()/sqrt(2.0);
+        this->scale_factor = this->scale_factor/this->mtx_orig.size()/std::sqrt(2);
 
         this->mtx = this->mtx_orig.copy();
 
