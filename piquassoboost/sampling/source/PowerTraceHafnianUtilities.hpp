@@ -38,6 +38,8 @@ static double time_szamlalo = 0.0;
 static double time_nevezo = 0.0;
 */
 
+long double sqrt(long double arg);
+
 namespace pic {
 
 
@@ -63,7 +65,7 @@ get_reflection_vector(matrix_type &input, small_scalar_type &norm_v_sqr) {
   sigma = sqrt(norm_v_sqr);
 
 
-  small_scalar_type abs_val = std::sqrt( reflect_vector[0].real()*reflect_vector[0].real() + reflect_vector[0].imag()*reflect_vector[0].imag() );
+  small_scalar_type abs_val = std::abs(reflect_vector[0]);
   norm_v_sqr = 2*(norm_v_sqr + abs_val*sigma);
   if (abs_val != 0.0){
       //small_scalar_type angle = std::arg(reflect_vector[0]); // sigma *= (reflect_vector[0] / std::abs(reflect_vector[0]));
@@ -79,7 +81,7 @@ get_reflection_vector(matrix_type &input, small_scalar_type &norm_v_sqr) {
       return reflect_vector;
 
   // normalize the reflection matrix
-  small_scalar_type norm_v = std::sqrt(norm_v_sqr);
+  small_scalar_type norm_v = sqrt(norm_v_sqr);
   for (size_t idx=0; idx<reflect_vector.size(); idx++) {
       reflect_vector[idx] = reflect_vector[idx]/norm_v;
   }
