@@ -154,7 +154,7 @@ void scaleMatrix(mtx_select_t<cplx_select_t<small_scalar_type>> & AZ, small_scal
         scale_factor_AZ = 1.0;
     }
     else {
-        scale_factor_AZ = std::sqrt(scale_factor_AZ/2)/AZ.size();
+        scale_factor_AZ = sqrt(scale_factor_AZ/2)/AZ.size();
         for (size_t idx=0; idx<AZ.size(); idx++) {
             AZ[idx] *= scale_factor_AZ;
         }
@@ -438,9 +438,9 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::ScaleMatrix() {
         // determine the scale factor
         scale_factor = 0.0;
         for (size_t idx=0; idx<mtx_orig.size(); idx++) {
-            scale_factor = scale_factor + sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
+            scale_factor = scale_factor + std::abs(mtx_orig[idx]);
         }
-        scale_factor = scale_factor/mtx_orig.size()/sqrt(2.0);
+        scale_factor = scale_factor/mtx_orig.size()/sqrt((small_scalar_type)2.0);
         //scale_factor = scale_factor*mtx_orig.rows;
 
         mtx = mtx_orig.copy();
