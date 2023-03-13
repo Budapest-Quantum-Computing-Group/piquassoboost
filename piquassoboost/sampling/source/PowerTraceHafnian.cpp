@@ -102,7 +102,7 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate() {
     int current_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     Complex16 hafnian = calculate(current_rank, world_size, permutation_idx_max/2);
 #else
     Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
@@ -129,7 +129,7 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate() {
     unsigned long long current_rank = 0;
     unsigned long long world_size = 1;
 
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     Complex16 hafnian = calculate(current_rank, world_size, permutation_idx_max/2);
 #else
     Complex16 hafnian = calculate(current_rank+1, world_size, permutation_idx_max);
@@ -231,7 +231,7 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long 
     for (unsigned long long permutation_idx = 0; permutation_idx < permutation_idx_max; permutation_idx++) {
 */
 
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
         mtx_select_t<cplx_select_t<small_scalar_type>> B(dim, dim);
         bool fact = false;
         //also possible to the pairs of rows and pairs of columns, places them on the opposite halves, and reverses these halves 
@@ -293,11 +293,11 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long 
         // calculating Tr(B^j) for all j's that are 1<=j<=dim/2
         // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
         matrix_type traces(dim_over_2, 1);
-#ifndef GLYNN
+#ifndef __GLYNN_HAFNIAN__
         if (number_of_ones != 0) {
 #endif
             CalcPowerTraces<small_scalar_type, scalar_type>(B, dim_over_2, traces);
-#ifndef GLYNN
+#ifndef __GLYNN_HAFNIAN__
         }
         else{
             // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -397,7 +397,7 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::calculate(unsigned long long 
 
     // scale the result by the appropriate factor according to Eq (2.11) of in arXiv 1805.12498
     res *= pow(scale_factor, dim_over_2);
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     res /= (1ULL << (dim_over_2-1));
 #endif
     return Complex16(res.real(), res.imag() );
@@ -438,9 +438,9 @@ PowerTraceHafnian<small_scalar_type, scalar_type>::ScaleMatrix() {
         // determine the scale factor
         scale_factor = 0.0;
         for (size_t idx=0; idx<mtx_orig.size(); idx++) {
-            scale_factor = scale_factor + sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
+            scale_factor = scale_factor + std::sqrt( mtx_orig[idx].real()*mtx_orig[idx].real() + mtx_orig[idx].imag()*mtx_orig[idx].imag() );
         }
-        scale_factor = scale_factor/mtx_orig.size()/sqrt(2.0);
+        scale_factor = scale_factor/mtx_orig.size()/std::sqrt(2);
         //scale_factor = scale_factor*mtx_orig.rows;
 
         mtx = mtx_orig.copy();

@@ -284,7 +284,7 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
 //return complex_type(0.0,0.0);
     size_t total_num_of_modes = sum(this->occupancy);
     size_t dim = total_num_of_modes*2;
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     size_t num_of_modes = total_num_of_modes; 
     bool fact = sum(current_occupancy) % 2;
 #else
@@ -306,7 +306,7 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
 
     // select the X transformed diagonal elements for the loop correction (operator X is the direct sum of sigma_x operators)
     mtx_select_t<cplx_select_t<small_scalar_type>> cx_diag_elements(num_of_modes*2, 1);
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     size_t idx = 1;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
         for (size_t filling_factor=1; filling_factor<=this->occupancy[selected_modes[mode_idx]]; filling_factor++) {
@@ -327,11 +327,11 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
     // this is needed to calculate f_G(Z) defined in Eq. (3.17b) of arXiv 1805.12498
     matrix_type traces(total_num_of_modes, 1);
     matrix_type loop_corrections(total_num_of_modes, 1);
-#ifndef GLYNN
+#ifndef __GLYNN_HAFNIAN__
     if (num_of_modes != 0) {
 #endif
         CalcPowerTracesAndLoopCorrections<small_scalar_type, scalar_type>(cx_diag_elements, diag_elements, B, total_num_of_modes, traces, loop_corrections);
-#ifndef GLYNN
+#ifndef __GLYNN_HAFNIAN__
     }
     else{
         // in case we have no 1's in the binary representation of permutation_idx we get zeros
@@ -504,7 +504,7 @@ template <class small_scalar_type, class scalar_type>
 mtx_select_t<cplx_select_t<small_scalar_type>>
 PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( const PicVector<char>& selected_modes, const PicState_int64& current_occupancy, const size_t& num_of_modes, small_scalar_type &scale_factor_AZ  ) {
 
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
     matrix A(num_of_modes*2, num_of_modes*2);
     memset(A.get_data(), 0, A.size()*sizeof(Complex16));
     size_t row_idx = 0;
@@ -662,7 +662,7 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateDiag
         size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*this->mtx.stride;
         size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*this->mtx.stride;
 
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
         for (size_t filling_factor_row=1; filling_factor_row<=this->occupancy[selected_modes[mode_idx]]; filling_factor_row++) {
             bool neg = filling_factor_row <= current_occupancy[mode_idx];
             if (neg) {
@@ -674,7 +674,7 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateDiag
 #endif
                 ::new (&diag_elements[2*row_idx]) cplx_select_t<small_scalar_type>(diag[selected_modes[mode_idx]*2].real(), diag[selected_modes[mode_idx]*2].imag());
                 ::new (&diag_elements[2*row_idx+1]) cplx_select_t<small_scalar_type>(diag[selected_modes[mode_idx]*2 + 1].real(), diag[selected_modes[mode_idx]*2 + 1].imag());
-#ifdef GLYNN
+#ifdef __GLYNN_HAFNIAN__
             }
 #endif
             row_idx++;
