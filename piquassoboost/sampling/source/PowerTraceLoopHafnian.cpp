@@ -438,9 +438,9 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::ScaleMatrix() {
         // determine the scale factor
         this->scale_factor = 0.0;
         for (size_t idx=0; idx<this->mtx_orig.size(); idx++) {
-            this->scale_factor = this->scale_factor + std::sqrt( this->mtx_orig[idx].real()*this->mtx_orig[idx].real() + this->mtx_orig[idx].imag()*this->mtx_orig[idx].imag() );
+            this->scale_factor = this->scale_factor + std::abs(this->mtx_orig[idx]);
         }
-        this->scale_factor = this->scale_factor/this->mtx_orig.size()/std::sqrt(2);
+        this->scale_factor = this->scale_factor/this->mtx_orig.size()/sqrt((small_scalar_type)2.0);
 
         this->mtx = this->mtx_orig.copy();
 
