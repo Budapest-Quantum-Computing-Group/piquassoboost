@@ -168,7 +168,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 
         working_input_state = particle_input_state.copy();
 
-        fill_r_sample( sample );
+        fill_r_sample( sample, number_of_input_photons );
               
         // calculate the individual outputs for the shots and send the calculated outputs to other MPI processes in parallel
         PicState_int64 sample_new;
@@ -200,7 +200,14 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 
             working_input_state = particle_input_state.copy();
 
-            fill_r_sample( sample_new );
+            fill_r_sample( sample_new, number_of_input_photons );
+            
+#ifdef __DFE__
+            if (out_of_memory) {
+                out_of_memory = false;
+                continue;
+            }
+#endif            
    
 
 
