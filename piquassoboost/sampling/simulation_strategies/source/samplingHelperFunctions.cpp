@@ -217,7 +217,7 @@ compute_pmf( matrix &interferometer_matrix, PicState_int64& sample, PicState_int
                     input_states_DFE.push_back(input_state_loc_tmp);
 
                     tbb::tick_count t1c = tbb::tick_count::now();////////////////////////// 
-                    t_DFE_prepare += (t1c-t0c).seconds(); //////////////////////////   
+                    //t_DFE_prepare += (t1c-t0c).seconds(); //////////////////////////   
 /*
                     Complex16& perm = permanent_addends[colIndices[idx]];
                     GlynnPermanentCalculatorRepeated_DFE(interferometer_matrix, input_state_loc, sample, perm, useDual, useFloat);
@@ -255,7 +255,7 @@ compute_pmf( matrix &interferometer_matrix, PicState_int64& sample, PicState_int
     
 
                 tbb::tick_count t1b = tbb::tick_count::now();////////////////////////// 
-                t_DFE += (t1b-t0b).seconds(); ////////////////////////// 
+                //t_DFE += (t1b-t0b).seconds(); ////////////////////////// 
 
         });
 

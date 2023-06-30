@@ -97,7 +97,7 @@ PowerTraceHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
     int current_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &current_rank);
 
-    PowerTraceHafnianRecursive_Tasks hafnian_calculator = PowerTraceHafnianRecursive_Tasks(mtx, occupancy);
+    PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type> hafnian_calculator = PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>(this->mtx, occupancy);
     Complex16 hafnian = hafnian_calculator.calculate(current_rank+1, world_size, permutation_idx_max);
 
     // send the calculated partial hafnian to rank 0
@@ -105,16 +105,17 @@ PowerTraceHafnianRecursive<small_scalar_type, scalar_type>::calculate() {
 
     MPI_Allgather(&hafnian, 2, MPI_DOUBLE, partial_hafnians, 2, MPI_DOUBLE, MPI_COMM_WORLD);
 
-    hafnian = cplx_select_t<scalar_type>(0.0,0.0);
+    cplx_select_t<scalar_type> hafnian_gathered(0.0,0.0);
     for (size_t idx=0; idx<world_size; idx++) {
-        hafnian = hafnian + partial_hafnians[idx];
+        hafnian_gathered = hafnian_gathered + partial_hafnians[idx];
     }
 
     // release memory on the zero rank
     delete partial_hafnians;
 
 
-    return hafnian;
+    Complex16 hafian_ret( hafnian_gathered.real(), hafnian_gathered.imag() );
+    return hafian_ret;
 
 #else
     unsigned long long current_rank = 0;
