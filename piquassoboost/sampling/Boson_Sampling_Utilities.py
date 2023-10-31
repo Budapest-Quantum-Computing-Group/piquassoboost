@@ -344,7 +344,7 @@ class PowerTraceHafnian(PowerTraceHafnian_wrapper):
     def __init__(self, matrix):
 
         # call the constructor of the wrapper class
-        super(PowerTraceHafnian, self).__init__(matrix=matrix)
+        super(PowerTraceHafnian, self).__init__(lib=1, matrix=matrix)
         pass
 
        
@@ -425,7 +425,7 @@ class PowerTraceHafnianRecursive(PowerTraceHafnianRecursive_wrapper):
     def __init__(self, matrix, occupancy):
 
         # call the constructor of the wrapper class
-        super(PowerTraceHafnianRecursive, self).__init__(matrix=matrix, occupancy=occupancy)
+        super(PowerTraceHafnianRecursive, self).__init__(lib=1, matrix=matrix, occupancy=occupancy)
         pass
 
        
