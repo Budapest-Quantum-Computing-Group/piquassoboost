@@ -31,7 +31,16 @@ def passive_linear(
     state, instruction, shots
 ):
     modes = instruction.modes
-    T: np.ndarray = instruction._all_params["passive_block"]
+    T: np.ndarray = instruction._get_passive_block(state._calculator, state._config)
+
+    # NOTE: We need to explicitely cast complex64 to complex128 for piquassoboost to
+    # handle it correctly, and then cast it back.
+    dtype_is_complex64 = state._C.dtype == np.complex64
+
+    if dtype_is_complex64:
+        state._C = state._C.astype(np.complex128)
+        state._G = state._G.astype(np.complex128)
+        T = T.astype(np.complex128)
 
     state._m[(modes,)] = (
         T
@@ -44,6 +53,11 @@ def passive_linear(
         C=state._C, G=state._G,
         T=T, modes=modes,
     )
+
+    if dtype_is_complex64:
+        state._C = state._C.astype(np.complex64)
+        state._G = state._G.astype(np.complex64)
+        T = T.astype(np.complex64)
 
     return Result(state=state)
 

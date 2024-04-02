@@ -34,7 +34,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "numpy>=1.19.4",
-        "piquasso==2.0.0",
+        "piquasso==4.0.0",
     ],
     tests_require=["pytest"],
     description='The C++ binding for the Piquasso project',
