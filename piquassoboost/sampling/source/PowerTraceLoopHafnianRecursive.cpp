@@ -193,18 +193,6 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::PowerTrace
     this->Update_mtx( mtx_in );
     this->occupancy = occupancy_in;
 
-
-    if (this->mtx.rows != 2*this->occupancy.size()) {
-        std::cout << "The length of array occupancy should be equal to the half of the dimension of the input matrix mtx. Exiting" << std::endl;
-        exit(-1);
-    }
-
-    if (this->mtx.rows % 2 != 0) {
-        // The dimensions of the matrix should be even
-        std::cout << "In PowerTraceHafnianRecursive_Tasks algorithm the dimensions of the matrix should strictly be even. Exiting" << std::endl;
-        exit(-1);
-    }
-
     // set the maximal number of spawned tasks living at the same time
     this->max_task_num = 300;
     // The current number of spawned tasks
@@ -234,16 +222,6 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::PowerTrace
     this->occupancy = occupancy_in;
 
 
-    if (this->mtx.rows != 2*this->occupancy.size()) {
-        std::cout << "The length of array occupancy should be equal to the half of the dimension of the input matrix mtx. Exiting" << std::endl;
-        exit(-1);
-    }
-
-    if (this->mtx.rows % 2 != 0) {
-        // The dimensions of the matrix should be even
-        std::cout << "In PowerTraceHafnianRecursive_Tasks algorithm the dimensions of the matrix should strictly be even. Exiting" << std::endl;
-        exit(-1);
-    }
 
     diag = matrix(this->mtx.rows,1);
     for (size_t idx=0; idx<this->mtx.rows; idx++) {

@@ -22,7 +22,7 @@ import piquasso as pq
 from .calculation_extension import apply_passive_linear_to_C_and_G
 
 from piquasso.api.result import Result
-from piquasso._backends.gaussian import calculations as pq_calculations
+from piquasso._simulators.gaussian import calculations as pq_calculations
 
 from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 
