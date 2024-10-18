@@ -38,8 +38,6 @@ static double time_szamlalo = 0.0;
 static double time_nevezo = 0.0;
 */
 
-long double sqrt(long double arg);
-
 namespace pic {
 
 

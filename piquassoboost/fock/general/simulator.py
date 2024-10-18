@@ -15,8 +15,8 @@
 
 import piquasso as pq
 
-from piquassoboost.calculator import BoostCalculator
+from piquassoboost.connector import BoostConnector
 
 
 class BoostedFockSimulator(pq.FockSimulator):
-    _calculator_class = BoostCalculator
+    _calculator_class = BoostConnector

@@ -7,5 +7,7 @@ piquassoboost.egg-info
 
 .vscode
 
+.venv*
+
 *.so
 *.so.*
