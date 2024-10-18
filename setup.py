@@ -27,14 +27,14 @@ setup(
             "piquasso", "piquasso.*",
         )
     ),
-    version='0.2.0',
-    url="https://gitlab.inf.elte.hu/wigner-rcp-quantum-computing-and-information-group/piquassoboost",  # noqa: E501
+    version='0.3.0',
+    url="https://github.com/Budapest-Quantum-Computing-Group/piquasso",  # noqa: E501
     maintainer="The Piquasso team",
     maintainer_email="kolarovszki@inf.elte.hu",
     include_package_data=True,
     install_requires=[
         "numpy>=1.19.4",
-        "piquasso==4.0.0",
+        "piquasso==5.0.0",
     ],
     tests_require=["pytest"],
     description='The C++ binding for the Piquasso project',

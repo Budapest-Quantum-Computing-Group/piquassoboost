@@ -22,8 +22,6 @@
 #include "loop_correction_AVX.h"
 
 
-long double sqrt(long double arg) { return sqrtl(arg); }
-
 namespace pic {
 
 /**
