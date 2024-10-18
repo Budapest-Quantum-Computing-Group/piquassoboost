@@ -13,34 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from piquasso._backends.calculator import NumpyCalculator
+from piquasso._simulators.connectors import NumpyConnector
 
 from piquassoboost.sampling.Boson_Sampling_Utilities import (
-    PowerTraceLoopHafnian,
-    GlynnPermanent
+    BBFGRepeatedPermanentCalculatorDouble,
 )
-
-from theboss.boson_sampling_utilities.boson_sampling_utilities import (
-    EffectiveScatteringMatrixCalculator
-)
-
-from piquasso._math.hafnian import _reduce_matrix_with_diagonal
-
-
-def cpp_loop_hafnian(matrix, diagonal, reduce_on):
-    reduced_matrix = _reduce_matrix_with_diagonal(matrix, diagonal, reduce_on)
-
-    return PowerTraceLoopHafnian(reduced_matrix).calculate()
 
 
 def cpp_permanent_function(matrix, input, output):
-    scattering_matrix = EffectiveScatteringMatrixCalculator(
-        matrix, input, output
-    ).calculate()
 
-    calculator = GlynnPermanent(scattering_matrix)
-
-    result = calculator.calculate()
+    result = BBFGRepeatedPermanentCalculatorDouble(matrix, input, output).calculate()
 
     if isinstance(result, list):
         # TODO: Here an empty list is passed instead of 1.0.
@@ -49,10 +31,9 @@ def cpp_permanent_function(matrix, input, output):
     return result
 
 
-class BoostCalculator(NumpyCalculator):
+class BoostConnector(NumpyConnector):
     def __init__(self) -> None:
         super().__init__()
 
         self.permanent = cpp_permanent_function
-        self.loop_hafnian = cpp_loop_hafnian
         self.number_of_approximated_modes = None

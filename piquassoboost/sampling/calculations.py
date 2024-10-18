@@ -13,14 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from distutils.command.config import config
 import numpy as np
 
 from functools import partial
 
-from theboss.boson_sampling_utilities.boson_sampling_utilities import (
-    prepare_interferometer_matrix_in_expanded_space
-)
+from piquasso._simulators.sampling.utils import _prepare_interferometer_matrix_in_expanded_space
+
 from .BosonSamplingSimulator import BosonSamplingSimulator
 from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
     GeneralizedCliffordsBSimulationStrategy,
@@ -43,11 +41,7 @@ def _is_uniform(array):
 
 
 def _particle_number_measurement(
-    state, 
-    instruction, 
-    shots,
-    strategy_class,
-    speedup_uniform = False
+    state, instruction, shots, strategy_class, speedup_uniform=False
 ) -> Result:
     """Simulates a boson sampling using generalized Clifford&Clifford algorithm
     from [Brod, Oszmaniec 2020].
@@ -60,39 +54,22 @@ def _particle_number_measurement(
     as it allows effective simulation of broader range of input states than original
     algorithm.
     """
-    
+
+    initial_state = state._occupation_numbers[0]
+
     if state._config.number_of_approximated_modes is not None:
         interferometer = state.interferometer
-
-        initial_state = np.array(state.initial_state)
-
-
-        from theboss.boson_sampling_utilities.permanent_calculators.ryser_permanent_calculator import (
-            RyserPermanentCalculator,
-        )
-        from theboss.simulation_strategies.nonuniform_losses_approximation_strategy import (
-            NonuniformLossesApproximationStrategy,
-        )
-        
-        
-        #calculator = RyserPermanentCalculator(interferometer)
-        #simulation_strategy = NonuniformLossesApproximationStrategy(
-        #    bs_permanent_calculator=calculator,
-        #    approximated_modes_number=state._config.number_of_approximated_modes,
-        #    threads_number=1
-        #)
 
         simulation_strategy = GeneralizedCliffordsBLossySimulationStrategy(
             interferometer,
             state._config.number_of_approximated_modes,
-            state._config._seed_sequence
+            state._config._seed_sequence,
         )
-        
+
         sampling_simulator = BosonSamplingSimulator(simulation_strategy)
 
         samples = sampling_simulator.get_classical_simulation_results(
-            initial_state,
-            samples_number=shots
+            initial_state, samples_number=shots
         )
 
         return Result(state=state, samples=samples)
@@ -100,22 +77,18 @@ def _particle_number_measurement(
     singular_values = np.linalg.svd(state.interferometer)[1]
     is_uniform = _is_uniform(singular_values)
 
-    initial_state = np.array(state.initial_state)
-
     if state.is_lossy:
         if speedup_uniform and is_uniform:
             # revert interferometer to unitary
             interferometer = state.interferometer / singular_values[0]
 
             simulation_strategy = GeneralizedCliffordsBUniformLossesSimulationStrategy(
-                interferometer,
-                singular_values[0],
-                state._config.seed_sequence
+                interferometer, singular_values[0], state._config.seed_sequence
             )
 
         else:
             # In case of losses we want specially prepared 2m x 2m interferometer matrix
-            interferometer = prepare_interferometer_matrix_in_expanded_space(
+            interferometer = _prepare_interferometer_matrix_in_expanded_space(
                 state.interferometer
             )
 
@@ -136,24 +109,44 @@ def _particle_number_measurement(
     sampling_simulator = BosonSamplingSimulator(simulation_strategy)
 
     samples = sampling_simulator.get_classical_simulation_results(
-        initial_state,
-        samples_number=shots
+        initial_state, samples_number=shots
     )
 
     if state.is_lossy:  # Trim lossy state to initial size.
         trimmed_samples = []
         for sample in samples:
-            trimmed_samples.append(sample[:len(state.initial_state)])
+            trimmed_samples.append(sample[: len(initial_state)])
         samples = trimmed_samples  # We want to return trimmed samples.
 
     return Result(state=state, samples=samples)
 
 
-particle_number_measurement = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsBSimulationStrategy, speedup_uniform=True)
+particle_number_measurement = partial(
+    _particle_number_measurement,
+    strategy_class=GeneralizedCliffordsBSimulationStrategy,
+    speedup_uniform=True,
+)
 
-sampling_GeneralizedCliffords = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategy)
-sampling_GeneralizedCliffords_chinhuh = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh)
-sampling_GeneralizedCliffords_single_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE)
-sampling_GeneralizedCliffords_dual_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE)
-sampling_GeneralizedCliffords_multi_single_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE)
-sampling_GeneralizedCliffords_multi_dual_dfe = partial(_particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE)
+sampling_GeneralizedCliffords = partial(
+    _particle_number_measurement, strategy_class=GeneralizedCliffordsSimulationStrategy
+)
+sampling_GeneralizedCliffords_chinhuh = partial(
+    _particle_number_measurement,
+    strategy_class=GeneralizedCliffordsSimulationStrategyChinHuh,
+)
+sampling_GeneralizedCliffords_single_dfe = partial(
+    _particle_number_measurement,
+    strategy_class=GeneralizedCliffordsSimulationStrategySingleDFE,
+)
+sampling_GeneralizedCliffords_dual_dfe = partial(
+    _particle_number_measurement,
+    strategy_class=GeneralizedCliffordsSimulationStrategyDualDFE,
+)
+sampling_GeneralizedCliffords_multi_single_dfe = partial(
+    _particle_number_measurement,
+    strategy_class=GeneralizedCliffordsSimulationStrategyMultiSingleDFE,
+)
+sampling_GeneralizedCliffords_multi_dual_dfe = partial(
+    _particle_number_measurement,
+    strategy_class=GeneralizedCliffordsSimulationStrategyMultiDualDFE,
+)
