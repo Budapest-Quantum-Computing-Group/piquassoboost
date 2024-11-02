@@ -3,7 +3,7 @@ wheel
 scikit-build
 cmake
 ninja
-numpy
+numpy<2.0.0
 tbb-devel
-mpi4py
 networkx
+mpi4py

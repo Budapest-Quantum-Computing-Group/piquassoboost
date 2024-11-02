@@ -18,7 +18,7 @@ import piquasso as pq
 from piquasso.instructions import measurements
 
 from piquassoboost.config import BoostConfig
-from piquassoboost.calculator import BoostCalculator
+from piquassoboost.connector import BoostConnector
 
 from .calculations import particle_number_measurement
 
@@ -30,4 +30,4 @@ class BoostedSamplingSimulator(pq.SamplingSimulator):
     }
 
     _config_class = BoostConfig
-    _calculator_class = BoostCalculator
+    _connector_class = BoostConnector
