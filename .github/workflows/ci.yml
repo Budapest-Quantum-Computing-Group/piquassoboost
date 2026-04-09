@@ -49,6 +49,13 @@ jobs:
         status=$?
 
         if [ "$status" -ne 0 ]; then
+          FAILED_NODE=$(python -c "import json, pathlib; p=pathlib.Path('.pytest_cache/v/cache/lastfailed'); d=json.loads(p.read_text()) if p.exists() else {}; print(next(iter(d.keys()), ''))")
+          echo "First failed pytest node: ${FAILED_NODE:-<none>}"
+          if [ -n "$FAILED_NODE" ]; then
+            echo "Re-running failed node with verbose traceback..."
+            pytest "$FAILED_NODE" -vv -s --tb=long || true
+          fi
+
           echo "Pytest failed. Collecting native backtrace for test_dot2..."
           gdb -q --batch \
             -ex "set pagination off" \
