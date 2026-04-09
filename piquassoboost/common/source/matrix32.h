@@ -91,7 +91,17 @@ matrix32( size_t rows_in, size_t cols_in, size_t stride_in);
 */
 matrix32(const matrix32 &in);
 
+/**
+@brief Move constructor of the class. Takes ownership of the moved matrix's data.
+@param An rvalue reference of class matrix32 to be moved.
+*/
+matrix32(matrix32 &&in) noexcept;
 
+/**
+@brief Move assignment operator. Takes ownership of the moved matrix's data.
+@param An rvalue reference of class matrix32 to be moved.
+*/
+matrix32& operator=(matrix32 &&in) noexcept;
 
 /**
 @brief Call to create a copy of the matrix

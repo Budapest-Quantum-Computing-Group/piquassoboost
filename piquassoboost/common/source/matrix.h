@@ -90,6 +90,17 @@ matrix( size_t rows_in, size_t cols_in, size_t stride_in);
 */
 matrix(const matrix &in);
 
+/**
+@brief Move constructor of the class. Takes ownership of the moved matrix's data.
+@param An rvalue reference of class matrix to be moved.
+*/
+matrix(matrix &&in) noexcept;
+
+/**
+@brief Move assignment operator. Takes ownership of the moved matrix's data.
+@param An rvalue reference of class matrix to be moved.
+*/
+matrix& operator=(matrix &&in) noexcept;
 
 /**
 @brief Call to create a copy of the matrix

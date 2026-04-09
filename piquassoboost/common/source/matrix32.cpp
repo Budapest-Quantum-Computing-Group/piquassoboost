@@ -16,6 +16,7 @@
 
 #include "matrix32.h"
 #include <cstring>
+#include <algorithm>
 #include <iostream>
 
 /// The namespace of the Picasso project
@@ -106,10 +107,47 @@ matrix32::copy() {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   ret.owner = true;
 
-  memcpy( ret.data, data, rows*cols*sizeof(Complex32));
+  std::copy_n(data, rows*cols, ret.data);
 
   return ret;
 
+}
+
+/**
+@brief Move constructor of the class. Takes ownership of the moved matrix's data.
+*/
+matrix32::matrix32(matrix32 &&in) noexcept 
+    : matrix_base<Complex32>(in.data, in.rows, in.cols, in.stride) {
+  // Take ownership from the rvalue reference
+  owner = in.owner;
+  conjugated = in.conjugated;
+  transposed = in.transposed;
+  
+  // Mark the moved-from object as non-owner to prevent double-delete
+  in.owner = false;
+}
+
+/**
+@brief Move assignment operator. Takes ownership of the moved matrix's data.
+*/
+matrix32& matrix32::operator=(matrix32 &&in) noexcept {
+  if (this != &in) {
+    // Release current data if we own it
+    release_data();
+    
+    // Take ownership from the rvalue reference
+    data = in.data;
+    rows = in.rows;
+    cols = in.cols;
+    stride = in.stride;
+    owner = in.owner;
+    conjugated = in.conjugated;
+    transposed = in.transposed;
+    
+    // Mark the moved-from object as non-owner to prevent double-delete
+    in.owner = false;
+  }
+  return *this;
 }
 
 

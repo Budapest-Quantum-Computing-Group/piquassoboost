@@ -114,6 +114,45 @@ matrix::copy() {
 
 
 /**
+@brief Move constructor of the class. Takes ownership of the moved matrix's data.
+*/
+matrix::matrix(matrix &&in) noexcept 
+    : matrix_base<Complex16>(in.data, in.rows, in.cols, in.stride) {
+  // Take ownership from the rvalue reference
+  owner = in.owner;
+  conjugated = in.conjugated;
+  transposed = in.transposed;
+  
+  // Mark the moved-from object as non-owner to prevent double-delete
+  in.owner = false;
+}
+
+/**
+@brief Move assignment operator. Takes ownership of the moved matrix's data.
+*/
+matrix& matrix::operator=(matrix &&in) noexcept {
+  if (this != &in) {
+    // Release current data if we own it
+    release_data();
+    
+    // Take ownership from the rvalue reference
+    data = in.data;
+    rows = in.rows;
+    cols = in.cols;
+    stride = in.stride;
+    owner = in.owner;
+    conjugated = in.conjugated;
+    transposed = in.transposed;
+    
+    // Mark the moved-from object as non-owner to prevent double-delete
+    in.owner = false;
+  }
+  return *this;
+}
+
+
+
+/**
 @brief Call to check the array for NaN entries.
 @return Returns with true if the array has at least one NaN entry.
 */
