@@ -43,13 +43,13 @@
 namespace pic {
 
 
-static double t_perm_accumulator=0.0;
-static double t_DFE=0.0;
-static double t_DFE_pure=0.0;
-static double t_DFE_prepare=0.0;
-static double t_CPU_permanent=0.0;
-static double t_CPU=0.0;
-static double t_CPU_permanent_Glynn=0.0;
+//static double t_perm_accumulator=0.0;
+//static double t_DFE=0.0;
+//static double t_DFE_pure=0.0;
+//static double t_DFE_prepare=0.0;
+//static double t_CPU_permanent=0.0;
+//static double t_CPU=0.0;
+//static double t_CPU_permanent_Glynn=0.0;
 
 
 CGeneralizedCliffordsBUniformLossesSimulationStrategy::CGeneralizedCliffordsBUniformLossesSimulationStrategy() {

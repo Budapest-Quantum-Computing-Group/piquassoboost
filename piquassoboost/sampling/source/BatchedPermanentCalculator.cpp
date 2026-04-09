@@ -112,7 +112,7 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
 
  
         // calculate the permanents on CPU
-        for ( int idx=0; idx<input_states.size(); idx++) {
+        for ( size_t idx=0; idx<input_states.size(); idx++) {
 /*
             // create the matrix for which permanent would be calculated including row/col multiplicities
             matrix&& modifiedInterferometerMatrix = adaptInterferometerGlynnMultiplied(interferometer_matrix, input_states[idx], output_states[idx] );

@@ -18,6 +18,7 @@
 
 
 #include <iostream>
+#include <algorithm>
 #include "GlynnPermanentCalculatorRepeated.h"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
@@ -147,7 +148,7 @@ GlynnPermanentCalculatorRepeatedTask<matrix_type, precision_type>::calculate() {
     // calculate the initial sum of the columns
     matrix_type colSum( mtx.cols, 1);
     Complex_base<precision_type>* colSum_data = colSum.get_data();
-    memset( colSum_data, 0.0, colSum.size()*sizeof(Complex_base<precision_type>));
+    std::fill_n(colSum_data, colSum.size(), Complex_base<precision_type>(0.0));
 
     tbb::parallel_for( tbb::blocked_range<size_t>(0, mtx.cols), [&](tbb::blocked_range<size_t> r) {
         for (size_t col_idx=r.begin(); col_idx<r.end(); ++col_idx){

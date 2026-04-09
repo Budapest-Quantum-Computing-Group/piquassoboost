@@ -25,6 +25,7 @@
 
 #include "PowerTraceHafnianUtilities.h"
 #include <iostream>
+#include <algorithm>
 #include "common_functionalities.h"
 #include <math.h>
 #include "tbb/tick_count.h"
@@ -330,7 +331,7 @@ apply_householder_rows(matrix_type &A, matrix_type &v) {
 
       // allocate memory for the vector-matrix product v^+ A
       matrix_type vH_times_A(1, A.cols);
-      memset(vH_times_A.get_data(), 0, vH_times_A.size()*sizeof(complex_type) );
+      std::fill_n(vH_times_A.get_data(), vH_times_A.size(), complex_type(0));
       calc_vH_times_A<matrix_type, complex_type>(A, v, vH_times_A);
 
 
@@ -862,7 +863,7 @@ calculate_loop_correction( matrix_type &cx_diag_elements, matrix_type& diag_elem
         loop_correction[idx] = tmp;
 
 
-        memset(tmp_vec.get_data(), 0, tmp_vec.size()*sizeof(complex_type));
+        std::fill_n(tmp_vec.get_data(), tmp_vec.size(), complex_type(0));
 
         if (sizeof(complex_type) == 16) {
 
@@ -902,7 +903,7 @@ calculate_loop_correction( matrix_type &cx_diag_elements, matrix_type& diag_elem
         loop_correction[idx] = tmp;
 
 
-         memset(tmp_vec.get_data(), 0, tmp_vec.size()*sizeof(complex_type));
+         std::fill_n(tmp_vec.get_data(), tmp_vec.size(), complex_type(0));
 
          for (size_t kdx=0; kdx<cx_diag_elements.size(); kdx++) {
              for (size_t jdx=0; jdx<cx_diag_elements.size(); jdx++) {
@@ -910,7 +911,7 @@ calculate_loop_correction( matrix_type &cx_diag_elements, matrix_type& diag_elem
              }
          }
 
-         memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(complex_type));
+         std::copy_n(tmp_vec.get_data(), tmp_vec.size(), cx_diag_elements.get_data());
 
     }
 */

@@ -62,7 +62,7 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::PowerTraceLoopHafnian( ma
     
     if (mtx_in.rows % 2 == 1){
         matrix extended_matrix(mtx_in.rows + 1, mtx_in.cols + 1);
-        for (int row_idx = 0; row_idx < mtx_in.rows; row_idx++){
+        for (size_t row_idx = 0; row_idx < mtx_in.rows; row_idx++){
             std::memcpy(
                 extended_matrix.get_data() + row_idx * extended_matrix.stride,
                 mtx_in.get_data() + row_idx * mtx_in.stride,

@@ -593,7 +593,7 @@ ThresholdBosonSampling::calc_Qinv( matrix_real& matrix, double& Qdet ) {
     //  calculate the determinant of Q
     Qdet = 1.0;
     for (size_t idx=0; idx<Q.rows; idx++) {
-        if (ipiv[idx] != idx+1) {
+        if (ipiv[idx] != (int)(idx+1)) {
             Qdet = -Qdet * Q[idx*Q.stride + idx];
         }
         else {

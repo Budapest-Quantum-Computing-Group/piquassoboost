@@ -34,7 +34,7 @@ namespace pic {
 @param vec a container if integers
 @return Returns with the sum of the elements of the container
 */
-static int64_t sum( PicState_int64 &vec);
+// Function is defined in GaussianSimulationStrategy.cpp as static inline
 
 /**
 @brief Class representing a Gaussian boson sampling simulation strategy.

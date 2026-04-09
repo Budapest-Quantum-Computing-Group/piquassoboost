@@ -15,6 +15,7 @@
  */
 
 #include "loop_correction_AVX.h"
+#include <algorithm>
 
 
 namespace pic {
@@ -177,7 +178,7 @@ calculate_loop_correction_AVX( matrix &cx_diag_elements, matrix &diag_elements, 
         }
 
 
-        memcpy(cx_diag_elements.get_data(), tmp_vec.get_data(), tmp_vec.size()*sizeof(Complex16));
+        std::copy_n(tmp_vec.get_data(), tmp_vec.size(), cx_diag_elements.get_data());
 
     }
 

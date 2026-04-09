@@ -98,10 +98,8 @@ Complex16 calculate() {
     int NumThreads = omp_get_max_threads();
     omp_set_num_threads(1);
 #elif BLAS==1 // MKL
-    int NumThreads = mkl_get_max_threads();
     MKL_Set_Num_Threads(1);
 #elif BLAS==2 //OpenBLAS
-    int NumThreads = openblas_get_num_threads();
     openblas_set_num_threads(1);
 #endif
 
@@ -121,7 +119,7 @@ Complex16 calculate() {
     // determine the concurrency of the calculation
     unsigned int nthreads = std::thread::hardware_concurrency();
     int64_t concurrency = (int64_t)nthreads * 4;
-    concurrency = concurrency < Idx_max ? concurrency : (int64_t)Idx_max;
+    concurrency = concurrency < (int64_t)Idx_max ? concurrency : (int64_t)Idx_max;
     
     tbb::parallel_for( (int64_t)0, concurrency, (int64_t)1, [&](int64_t job_idx) {
 //    for( int64_t job_idx=0; job_idx<concurrency; job_idx++) {
@@ -178,7 +176,7 @@ Complex16 calculate() {
         }
    
 
-        for( uint64_t idx=initial_offset+1; idx<offset_max; idx++) {
+        for( int64_t idx=initial_offset+1; idx<offset_max; idx++) {
 
             // find the index of the changed bit:
             // If you number the bits starting with 0 for least significant, the position of the bit to change to increase

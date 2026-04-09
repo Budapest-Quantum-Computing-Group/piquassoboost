@@ -15,6 +15,7 @@
  */
 
 #include "RepeatedColumnPairs.h"
+#include <algorithm>
 
 
 
@@ -262,7 +263,7 @@ void PermuteRow( matrix row, const size_t& row_mode, const bool &is_row_mode_con
 
     size_t dim_over_2 = row.size()/2;
 
-    memset( row_permuted.get_data(), 0, row_permuted.size()*sizeof(Complex16));
+    std::fill_n(row_permuted.get_data(), row_permuted.size(), Complex16(0));
 /*
 for (size_t idx=0; idx<dim_over_2; idx++ ) {
     std::cout << row[idx];
@@ -355,7 +356,7 @@ void ConstructRepeatedMatrix(matrix &mtx, std::vector<SingleMode>& single_modes,
 
     // preallocate the output arrays
     mtx_out = matrix(dim, dim);
-    memset(mtx_out.get_data(), 0, mtx_out.size());
+    std::fill_n(mtx_out.get_data(), mtx_out.size(), Complex16(0));
     repeated_column_pairs = PicState_int64(dim_over_2, 1);
 
 

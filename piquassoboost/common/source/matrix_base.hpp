@@ -483,7 +483,7 @@ matrix_base<scalar> copy() const {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   ret.owner = true;
 
-  memcpy( ret.data, data, rows*cols*sizeof(scalar));
+  std::copy_n(data, rows*cols, ret.data);
 
   return ret;
 

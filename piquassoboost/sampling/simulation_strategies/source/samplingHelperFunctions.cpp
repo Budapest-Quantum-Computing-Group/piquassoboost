@@ -18,6 +18,7 @@
 #include "samplingHelperFunctions.h"
 
 #include <iostream>
+#include <algorithm>
 #include <complex>
 
 // MSVC requires _USE_MATH_DEFINES before <math.h> or <cmath> for M_PI, M_E, etc.
@@ -74,10 +75,10 @@ compute_pmf( matrix &interferometer_matrix, PicState_int64& sample, PicState_int
 
     // calculate permanents of submatrices
     matrix permanent_addends(1, current_input.size());
-    memset( permanent_addends.get_data(), 0.0, permanent_addends.size()*sizeof(Complex16) );
+    std::fill_n(permanent_addends.get_data(), permanent_addends.size(), Complex16(0.0));
 
     matrix permanent_addends_tmp(1, current_input.size());
-    memset( permanent_addends_tmp.get_data(), 0.0, permanent_addends_tmp.size()*sizeof(Complex16) );
+    std::fill_n(permanent_addends_tmp.get_data(), permanent_addends_tmp.size(), Complex16(0.0));
 
 //#ifdef __DFE__
 
@@ -340,7 +341,7 @@ sample_from_pmf( PicState_int64& sample, matrix_real &pmf ) {
     // determine the random index according to the distribution described by pmf
     int sampled_index=0;
     double prob_sum = 0.0;
-    for (int idx=0; idx<pmf.size(); idx++) {
+    for (size_t idx=0; idx<pmf.size(); idx++) {
         prob_sum = prob_sum + pmf[idx];
         if ( prob_sum >= rand_num) {
             sampled_index = idx;

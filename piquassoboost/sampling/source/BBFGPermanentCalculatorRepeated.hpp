@@ -150,10 +150,8 @@ Complex16 calculate() {
     int NumThreads = omp_get_max_threads();
     omp_set_num_threads(1);
 #elif BLAS==1 // MKL
-    int NumThreads = mkl_get_max_threads();
     MKL_Set_Num_Threads(1);
 #elif BLAS==2 //OpenBLAS
-    int NumThreads = openblas_get_num_threads();
     openblas_set_num_threads(1);
 #endif
 

@@ -40,7 +40,7 @@ namespace pic {
 
 
 static double t_perm_accumulator=0.0;
-static double t_single_thread=0.0;
+//static double t_single_thread=0.0;
 static double t_CPU=0.0;
 
 
@@ -503,7 +503,7 @@ CGeneralizedCliffordsSimulationStrategy::sample_from_latest_pmf( PicState_int64&
     // determine the random index according to the distribution described by pmf
     int sampled_index=0;
     double prob_sum = 0.0;
-    for (int idx=0; idx<pmf.size(); idx++) {
+    for (size_t idx=0; idx<pmf.size(); idx++) {
         prob_sum = prob_sum + pmf[idx];
         if ( prob_sum >= rand_num) {
             sampled_index = idx;

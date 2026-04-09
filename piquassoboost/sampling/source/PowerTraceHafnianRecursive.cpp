@@ -19,6 +19,7 @@
 #endif // LONG_DOUBLE_CUTOFF
 
 #include <iostream>
+#include <algorithm>
 #include "PowerTraceHafnianRecursive.h"
 #include "PowerTraceHafnianUtilities.hpp"
 #include <tbb/scalable_allocator.h>
@@ -635,7 +636,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( cons
 //std::cout << "A" << std::endl;
 #ifdef __GLYNN_HAFNIAN__
     matrix A(num_of_modes*2, num_of_modes*2);
-    memset(A.get_data(), 0, A.size()*sizeof(Complex16));
+    std::fill_n(A.get_data(), A.size(), Complex16(0));
     size_t row_idx = 0;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
 
@@ -653,8 +654,8 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( cons
             for (size_t mode_jdx = 0; mode_jdx < selected_modes.size(); mode_jdx++) {
 
 
-                for (size_t filling_factor_col=1; filling_factor_col<=occupancy[selected_modes[mode_jdx]]; filling_factor_col++) {
-                    bool neg = filling_factor_col <= current_occupancy[mode_jdx];
+                for (size_t filling_factor_col=1; filling_factor_col<=(size_t)occupancy[selected_modes[mode_jdx]]; filling_factor_col++) {
+                    bool neg = filling_factor_col <= (size_t)current_occupancy[mode_jdx];
                     if (neg) {
                         A[row_offset_A_a + col_idx*2] = -this->mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
                         A[row_offset_A_aconj + col_idx*2+1] = -this->mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
@@ -677,7 +678,7 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( cons
     }    
 #else
     matrix A(num_of_modes*2, num_of_modes*2);
-    memset(A.get_data(), 0, A.size()*sizeof(Complex16));
+    std::fill_n(A.get_data(), A.size(), Complex16(0));
     size_t row_idx = 0;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
 
