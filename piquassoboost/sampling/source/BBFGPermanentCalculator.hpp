@@ -115,7 +115,7 @@ Complex16 calculate() {
     tbb::combinable<scalar_type> priv_addend{[](){return scalar_type(0.0,0.0);}};
 
     
-    uint64_t Idx_max = 1ULL << mtx.rows-1; 
+    uint64_t Idx_max = 1ULL << (mtx.rows-1);
     
 
     // determine the concurrency of the calculation

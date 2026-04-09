@@ -412,10 +412,7 @@ static PyTypeObject GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper",
-    .m_doc = "Python binding for class ChinHuhPermanentCalculator",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper", "Python binding for class ChinHuhPermanentCalculator", -1,
 };
 
 /**

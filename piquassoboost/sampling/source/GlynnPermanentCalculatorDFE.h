@@ -2,6 +2,7 @@
 #ifndef GlynnPermanentCalculatorDFE_H
 #define GlynnPermanentCalculatorDFE_H
 
+#include <cstdint>
 #include <mutex>
 #include "matrix.h"
 #include "matrix_real16.h"
@@ -15,9 +16,9 @@ namespace pic {
 /// @brief Structure type representing 16 byte complex numbers
 typedef struct ComplexFix16 {
   /// the real part of a complex number
-  __int64_t real;
+  int64_t real;
   /// the imaginary part of a complex number
-  __int64_t imag;
+  int64_t imag;
 } ComplexFix16;
 
 

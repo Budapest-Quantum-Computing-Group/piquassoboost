@@ -370,10 +370,7 @@ static PyTypeObject GaussianSimulationStrategyFast_wrapper_Type = {
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef GaussianSimulationStrategyFast_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "GaussianSimulationStrategyFast_wrapper",
-    .m_doc = "Python binding for class ChinHuhPermanentCalculator",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "GaussianSimulationStrategyFast_wrapper", "Python binding for class ChinHuhPermanentCalculator", -1,
 };
 
 /**

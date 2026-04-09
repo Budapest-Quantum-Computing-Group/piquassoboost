@@ -18,6 +18,12 @@
 #include "samplingHelperFunctions.h"
 
 #include <iostream>
+#include <complex>
+
+// MSVC requires _USE_MATH_DEFINES before <math.h> or <cmath> for M_PI, M_E, etc.
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+#endif
 #include "CGeneralizedCliffordsBSimulationStrategy.h"
 #include "CChinHuhPermanentCalculator.h"
 #include "GlynnPermanentCalculatorRepeated.h"
@@ -33,6 +39,14 @@
 #include <math.h>
 #include <tbb/tbb.h>
 #include <chrono>
+
+// Fallback definitions for M_PI and M_E if not provided by the compiler/platform
+#ifndef M_PI
+#define M_PI 3.141592653589793238462643383279502884
+#endif
+#ifndef M_E
+#define M_E  2.718281828459045235360287471352662498
+#endif
 
 
 namespace pic{
@@ -374,7 +388,8 @@ update_input_by_single_photon(
 matrix quantum_fourier_transform_matrix(size_t n){
     Complex16 j = Complex16(0.0, 1.0);
     Complex16 e = M_E;
-    auto omega_std = pow(e, j * 2.0 * M_PI / (double)n);
+    auto omega_std = std::pow(static_cast<std::complex<double>>(e),
+                              static_cast<std::complex<double>>(j) * 2.0 * M_PI / (double)n);
     Complex16 omega = Complex16(omega_std.real(), omega_std.imag());
 
     matrix qft(n, n);
@@ -383,8 +398,10 @@ matrix quantum_fourier_transform_matrix(size_t n){
 
     for (size_t row_idx = 0; row_idx < n; row_idx++){
         for (size_t col_idx = 0; col_idx < n; col_idx++){
+            auto powered = std::pow(static_cast<std::complex<double>>(omega),
+                                    static_cast<double>(row_idx * col_idx));
             qft[row_idx * qft.stride + col_idx] =
-                pow(omega, row_idx * col_idx) / sqrt_of_n;
+                Complex16(powered.real(), powered.imag()) / sqrt_of_n;
         }
     }
 
@@ -401,7 +418,8 @@ matrix random_phases_vector(size_t n){
     for (size_t idx = 0; idx < n; idx++){
         double rand_num = (double)rand()/RAND_MAX;
 
-        auto omega_std = pow(e, j * 2.0 * M_PI / rand_num);
+        auto omega_std = std::pow(static_cast<std::complex<double>>(e),
+                                   static_cast<std::complex<double>>(j) * 2.0 * M_PI / rand_num);
         Complex16 omega = Complex16(omega_std.real(), omega_std.imag());
 
         phases[idx] = omega;

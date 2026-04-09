@@ -130,8 +130,12 @@ sum( const PicState_int& vec) {
 */
 template <typename int_type>
 int_type binomialCoeffTemplated(int n, int k) {
+#ifdef _MSC_VER
+   std::vector<int_type> C(k+1, (int_type)0);
+#else
    int_type C[k+1];
    memset(C, 0, sizeof(C));
+#endif
    C[0] = 1;
    for (int i = 1; i <= n; i++) {
       for (int j = std::min(i, k); j > 0; j--)
@@ -151,8 +155,8 @@ int64_t binomialCoeffInt64(int n, int k){
 }
 
 
-__int128 binomialCoeffInt128(int n, int k){
-    return binomialCoeffTemplated<__int128>(n, k);
+piq_int128_t binomialCoeffInt128(int n, int k){
+    return binomialCoeffTemplated<piq_int128_t>(n, k);
 }
 
 

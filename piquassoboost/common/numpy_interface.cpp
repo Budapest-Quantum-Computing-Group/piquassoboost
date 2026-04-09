@@ -19,6 +19,17 @@
 
 #include <Python.h>
 #include <numpy/arrayobject.h>
+
+// NumPy 2.x changed PyArray_* to static inline functions requiring (const PyArrayObject*).
+// Add C++ overloads accepting (PyObject*) so existing code compiles unchanged.
+static inline void*  PyArray_DATA(PyObject* op)  { return PyArray_DATA((const PyArrayObject*)op); }
+static inline int    PyArray_NDIM(PyObject* op)  { return PyArray_NDIM((const PyArrayObject*)op); }
+static inline npy_intp* PyArray_DIMS(PyObject* op) { return PyArray_DIMS((const PyArrayObject*)op); }
+static inline int    PyArray_TYPE(PyObject* op)  { return PyArray_TYPE((const PyArrayObject*)op); }
+static inline int    PyArray_CHKFLAGS(PyObject* op, int flags) { return PyArray_CHKFLAGS((const PyArrayObject*)op, flags); }
+#undef PyArray_IS_C_CONTIGUOUS
+#define PyArray_IS_C_CONTIGUOUS(op) PyArray_CHKFLAGS((PyArrayObject*)(op), NPY_ARRAY_C_CONTIGUOUS)
+
 #include "matrix.h"
 #include "matrix_real.h"
 #include "PicState.h"

@@ -49,12 +49,12 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
         __m256d v_vec = _mm256_loadu_pd(v_data+2*row_idx);
 
         // create vector v_{i+1}, v_{i+1}
-        __m128d* v_element = (__m128d*)&v_vec[2];
-        __m256d v_vec2 = _mm256_broadcast_pd( v_element );
+        __m128d v_upper = _mm256_extractf128_pd(v_vec, 1);
+        __m256d v_vec2 = _mm256_broadcast_pd( &v_upper );
 
         // create vector v_i, v_i
-        v_element = (__m128d*)&v_vec[0];
-        __m256d v_vec1 = _mm256_broadcast_pd( v_element );
+        __m128d v_lower = _mm256_castpd256_pd128(v_vec);
+        __m256d v_vec1 = _mm256_broadcast_pd( &v_lower );
 
         for (size_t kdx = 0; kdx < 2*(A.cols-1); kdx = kdx + 4) {
             __m256d A_vec = _mm256_loadu_pd(data+kdx);
@@ -109,9 +109,7 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
 
         if (A.cols % 2 == 1) {
             size_t kdx = 2*(A.cols-1);
-            __m256d A_vec;
-            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data+kdx), 0);
-            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data2+kdx), 1);
+            __m256d A_vec = _mm256_set_m128d(_mm_load_pd(data2+kdx), _mm_load_pd(data+kdx));
 
             // calculate the multiplications  A_vec*conj(v_vec)
 
@@ -158,8 +156,7 @@ calc_vH_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
         __m128d v_vec = _mm_loadu_pd(v_data+2*row_idx);
 
         // create vector v_i, v_i
-        __m128d* v_element = (__m128d*)&v_vec[0];
-        __m256d v_vec1 = _mm256_broadcast_pd( v_element );
+        __m256d v_vec1 = _mm256_broadcast_pd( &v_vec );
 
 
         for (size_t kdx = 0; kdx < 2*(A.cols-1); kdx = kdx + 4) {

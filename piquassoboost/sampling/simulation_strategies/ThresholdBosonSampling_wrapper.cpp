@@ -335,10 +335,7 @@ static PyTypeObject ThresholdBosonSampling_wrapper_Type = {
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef ThresholdBosonSampling_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "ThresholdBosonSampling_wrapper",
-    .m_doc = "Python binding for class ThresholdBosonSampling",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "ThresholdBosonSampling_wrapper", "Python binding for class ThresholdBosonSampling", -1,
 };
 
 /**

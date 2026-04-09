@@ -13,6 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import sys
+
+# On Windows, Python 3.8+ no longer searches PATH for DLLs loaded by
+# extension modules.  Add the package directory explicitly so that
+# piquassoboost.dll (built alongside the .pyd files) is found at import time.
+if sys.platform == "win32":
+    _pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    if hasattr(os, "add_dll_directory"):
+        os.add_dll_directory(_pkg_dir)
+
 import piquasso as pq
 
 from piquassoboost.config import BoostConfig

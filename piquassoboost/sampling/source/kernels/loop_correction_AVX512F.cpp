@@ -71,7 +71,7 @@ calculate_loop_correction_AVX( matrix &cx_diag_elements, matrix &diag_elements, 
             // calculate the sum of the numbers
             cx_vec_high = _mm_add_pd(cx_vec_high, _mm256_castpd256_pd128(cx_vec) );
 
-            tmp += *((Complex16*)&cx_vec_high[0]);
+            tmp += *((Complex16*)&cx_vec_high);
 
 
         }

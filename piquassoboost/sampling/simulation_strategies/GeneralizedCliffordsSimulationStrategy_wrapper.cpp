@@ -404,10 +404,7 @@ static PyTypeObject GeneralizedCliffordsSimulationStrategy_wrapper_Type = {
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef GeneralizedCliffordsSimulationStrategy_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "GeneralizedCliffordsSimulationStrategy_wrapper",
-    .m_doc = "Python binding for class ChinHuhPermanentCalculator",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "GeneralizedCliffordsSimulationStrategy_wrapper", "Python binding for class ChinHuhPermanentCalculator", -1,
 };
 
 /**

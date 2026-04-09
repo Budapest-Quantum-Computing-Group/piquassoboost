@@ -43,12 +43,12 @@ permanent_CPU_repeated_long_double(PyObject *self, PyObject *args, PyObject *kwd
     // parsing input arguments
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOO", kwlist,
                                      &matrix_arg, &input_state_arg, &output_state_arg))
-        return -1;
+        return NULL;
 
     // convert python object array to numpy C API array
-    if ( matrix_arg == NULL ) return -1;
-    if ( input_state_arg == NULL ) return -1;
-    if ( output_state_arg == NULL ) return -1;
+    if ( matrix_arg == NULL ) return NULL;
+    if ( input_state_arg == NULL ) return NULL;
+    if ( output_state_arg == NULL ) return NULL;
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(matrix_arg) ) {
@@ -116,12 +116,12 @@ permanent_CPU_repeated_double(PyObject *self, PyObject *args, PyObject *kwds)
     // parsing input arguments
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOO", kwlist,
                                      &matrix_arg, &input_state_arg, &output_state_arg))
-        return -1;
+        return NULL;
 
     // convert python object array to numpy C API array
-    if ( matrix_arg == NULL ) return -1;
-    if ( input_state_arg == NULL ) return -1;
-    if ( output_state_arg == NULL ) return -1;
+    if ( matrix_arg == NULL ) return NULL;
+    if ( input_state_arg == NULL ) return NULL;
+    if ( output_state_arg == NULL ) return NULL;
 
     // establish memory contiguous arrays for C calculations
     if ( PyArray_IS_C_CONTIGUOUS(matrix_arg) ) {

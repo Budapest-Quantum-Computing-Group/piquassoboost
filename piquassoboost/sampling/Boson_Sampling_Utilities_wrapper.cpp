@@ -34,10 +34,7 @@ extern "C"
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef Boson_Sampling_Utilities_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "Boson_Sampling_Utilities_wrapper",
-    .m_doc = "Python binding for class Boson_Sampling_Utilities",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "Boson_Sampling_Utilities_wrapper", "Python binding for class Boson_Sampling_Utilities", -1,
 };
 
 /**

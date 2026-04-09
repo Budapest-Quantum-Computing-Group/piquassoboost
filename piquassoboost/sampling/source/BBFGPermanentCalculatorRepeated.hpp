@@ -192,7 +192,7 @@ Complex16 calculate() {
         PicState_int gcode = gcode_counter.get();
 
         // calculate the initial column sum and binomial coefficient
-        __int128 binomial_coeff = 1;
+        piq_int128_t binomial_coeff = 1;
 
         matrix_base<scalar_type> colsum( 1, col_mult.size());
         std::uninitialized_copy_n(mtx.get_data(), colsum.size(), colsum.get_data());  

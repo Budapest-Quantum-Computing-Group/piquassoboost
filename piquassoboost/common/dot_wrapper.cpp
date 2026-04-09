@@ -448,10 +448,7 @@ static PyMethodDef dot_wrapper_Methods[] = {
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef dot_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "dot_wrapper",
-    .m_doc = "Python binding for calculating matrix product by C++ code",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "dot_wrapper", "Python binding for calculating matrix product by C++ code", -1,
     dot_wrapper_Methods 
 };
 

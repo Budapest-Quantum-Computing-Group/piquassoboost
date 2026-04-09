@@ -51,12 +51,12 @@ calc_vov_times_A_AVX(matrix &A, matrix &v, matrix &vH_times_A) {
         v_vec = _mm256_mul_pd(v_vec, two);
 
         // create vector v_{i+1}, v_{i+1}
-        __m128d* v_element = (__m128d*)&v_vec[2];
-        __m256d v_vec2 = _mm256_broadcast_pd( v_element );
+        __m128d v_upper = _mm256_extractf128_pd(v_vec, 1);
+        __m256d v_vec2 = _mm256_broadcast_pd( &v_upper );
 
         // create vector v_i, v_i
-        v_element = (__m128d*)&v_vec[0];
-        __m256d v_vec1 = _mm256_broadcast_pd( v_element );
+        __m128d v_lower = _mm256_castpd256_pd128(v_vec);
+        __m256d v_vec1 = _mm256_broadcast_pd( &v_lower );
 
         for (size_t kdx = 0; kdx < 2*(A.cols-1); kdx=kdx+4) {
 
@@ -146,9 +146,7 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
                 vec3  = _mm256_hsub_pd(vec3, vec4);
 
                 // subtract the result from A_vec
-                __m256d A_vec;
-                A_vec = _mm256_insertf128_pd(A_vec, _mm_loadu_pd(data+kdx), 0);
-                A_vec = _mm256_insertf128_pd(A_vec, _mm_loadu_pd(data2+kdx), 1);
+                __m256d A_vec = _mm256_set_m128d(_mm_loadu_pd(data2+kdx), _mm_loadu_pd(data+kdx));
                 A_vec = _mm256_sub_pd(A_vec, vec3);
 
                 // store the result to th memory
@@ -180,7 +178,7 @@ std::cout << data_A2[kdx] << " " << *((Complex16*)&A_vec2[0]) << " " << data_A2[
         v_vec = _mm_mul_pd(v_vec, two);
 
         // create vector v_i, v_i
-        __m256d v_vec1 = _mm256_broadcast_pd( (__m128d*)&v_vec[0] );
+        __m256d v_vec1 = _mm256_broadcast_pd( &v_vec );
 
 
 

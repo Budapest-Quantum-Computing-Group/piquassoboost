@@ -412,10 +412,7 @@ static PyTypeObject GeneralizedCliffordsBLossySimulationStrategy_wrapper_Type = 
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef GeneralizedCliffordsBLossySimulationStrategy_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "GeneralizedCliffordsBLossySimulationStrategy_wrapper",
-    .m_doc = "Python binding for class CGeneralizedCliffordsBLossySimulationStrategy",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "GeneralizedCliffordsBLossySimulationStrategy_wrapper", "Python binding for class CGeneralizedCliffordsBLossySimulationStrategy", -1,
 };
 
 /**
