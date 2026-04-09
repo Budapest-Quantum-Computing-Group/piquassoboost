@@ -52,23 +52,6 @@ namespace pic {
 
 
 /**
-@brief Call to calculate the element-wise complex conjugate of a matrix.
-Used to pre-conjugate matrices so cblas_zgemm is always called with CblasNoTrans
-instead of CblasConjNoTrans (114), which is not standard and may abort in OpenBLAS.
-@param M The input matrix.
-@return Returns with the conjugated copy.
-*/
-matrix conjMatrix( matrix &M );
-
-/**
-@brief Fill an existing matrix with the element-wise complex conjugate of the input.
-@param M The input matrix.
-@param output The output matrix storage.
-*/
-void conjMatrixInto(matrix &M, matrix &output);
-
-
-/**
 @brief Call to calculate the product of two complex matrices by calling method zgemm3m from the CBLAS library.
 @param A The first matrix in the product of type matrix.
 @param B The second matrix in the product of type matrix

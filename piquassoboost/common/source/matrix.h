@@ -91,12 +91,6 @@ matrix( size_t rows_in, size_t cols_in, size_t stride_in);
 matrix(const matrix &in);
 
 /**
-@brief Copy assignment operator of the class. Shares stored memory with reference counting.
-@param An instance of class matrix to be assigned.
-*/
-matrix& operator=(const matrix &in);
-
-/**
 @brief Call to create a copy of the matrix
 @return Returns with the instance of the class.
 */

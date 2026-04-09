@@ -18,7 +18,6 @@
 #include "PicState.h"
 #include <cstring>
 #include <iostream>
-#include <memory>
 #include "tbb/tbb.h"
 #include <tbb/scalable_allocator.h>
 
@@ -45,33 +44,6 @@ Complex16* create_conjugated_buffer(matrix &M) {
 }
 
 //tbb::spin_mutex my_mutex;
-
-
-/// Calculate the element-wise complex conjugate of a matrix.
-/// Used to pre-conjugate matrices so cblas_zgemm is always called with
-/// CblasNoTrans instead of CblasConjNoTrans (=114), which is non-standard
-/// and can abort in OpenBLAS/system BLAS.
-matrix conjMatrix(matrix &M) {
-    matrix output(M.rows, M.cols);
-
-    conjMatrixInto(M, output);
-
-    return output;
-}
-
-
-void conjMatrixInto(matrix &M, matrix &output) {
-    assert(output.rows == M.rows);
-    assert(output.cols == M.cols);
-
-    size_t size = M.size();
-
-    pic::Complex16* data = M.get_data();
-
-    for (size_t i = 0; i < size; i++) {
-        output[i] = pic::Complex16(data[i].real(), -data[i].imag());
-    }
-}
 
 
 /**

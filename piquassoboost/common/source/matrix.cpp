@@ -87,15 +87,6 @@ matrix::matrix(const matrix &in) : matrix_base<Complex16>(in) {
 
 }
 
-/**
-@brief Copy assignment operator of the class. Shares stored memory with reference counting.
-*/
-matrix&
-matrix::operator=(const matrix &in) {
-  matrix_base<Complex16>::operator=(in);
-  return *this;
-}
-
 
 
 /**

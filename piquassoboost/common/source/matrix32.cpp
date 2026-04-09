@@ -88,15 +88,6 @@ matrix32::matrix32(const matrix32 &in) : matrix_base<Complex32>(in) {
 
 }
 
-/**
-@brief Copy assignment operator of the class. Shares stored memory with reference counting.
-*/
-matrix32&
-matrix32::operator=(const matrix32 &in) {
-  matrix_base<Complex32>::operator=(in);
-  return *this;
-}
-
 
 
 
