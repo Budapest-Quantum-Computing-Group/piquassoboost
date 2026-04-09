@@ -92,6 +92,12 @@ matrix32( size_t rows_in, size_t cols_in, size_t stride_in);
 matrix32(const matrix32 &in);
 
 /**
+@brief Copy assignment operator of the class. Shares stored memory with reference counting.
+@param An instance of class matrix32 to be assigned.
+*/
+matrix32& operator=(const matrix32 &in);
+
+/**
 @brief Move constructor of the class. Takes ownership of the moved matrix's data.
 @param An rvalue reference of class matrix32 to be moved.
 */

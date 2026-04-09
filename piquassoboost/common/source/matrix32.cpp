@@ -88,6 +88,15 @@ matrix32::matrix32(const matrix32 &in) : matrix_base<Complex32>(in) {
 
 }
 
+/**
+@brief Copy assignment operator of the class. Shares stored memory with reference counting.
+*/
+matrix32&
+matrix32::operator=(const matrix32 &in) {
+  matrix_base<Complex32>::operator=(in);
+  return *this;
+}
+
 
 
 
@@ -117,14 +126,29 @@ matrix32::copy() {
 @brief Move constructor of the class. Takes ownership of the moved matrix's data.
 */
 matrix32::matrix32(matrix32 &&in) noexcept 
-    : matrix_base<Complex32>(in.data, in.rows, in.cols, in.stride) {
-  // Take ownership from the rvalue reference
+    : matrix_base<Complex32>() {
+  // Drop default-constructed bookkeeping and steal complete storage state.
+  release_data();
+
+  data = in.data;
+  rows = in.rows;
+  cols = in.cols;
+  stride = in.stride;
   owner = in.owner;
   conjugated = in.conjugated;
   transposed = in.transposed;
-  
-  // Mark the moved-from object as non-owner to prevent double-delete
+  reference_mutex = in.reference_mutex;
+  references = in.references;
+
+  in.data = NULL;
+  in.rows = 0;
+  in.cols = 0;
+  in.stride = 0;
   in.owner = false;
+  in.conjugated = false;
+  in.transposed = false;
+  in.reference_mutex = NULL;
+  in.references = NULL;
 }
 
 /**
@@ -132,10 +156,8 @@ matrix32::matrix32(matrix32 &&in) noexcept
 */
 matrix32& matrix32::operator=(matrix32 &&in) noexcept {
   if (this != &in) {
-    // Release current data if we own it
     release_data();
-    
-    // Take ownership from the rvalue reference
+
     data = in.data;
     rows = in.rows;
     cols = in.cols;
@@ -143,9 +165,18 @@ matrix32& matrix32::operator=(matrix32 &&in) noexcept {
     owner = in.owner;
     conjugated = in.conjugated;
     transposed = in.transposed;
-    
-    // Mark the moved-from object as non-owner to prevent double-delete
+    reference_mutex = in.reference_mutex;
+    references = in.references;
+
+    in.data = NULL;
+    in.rows = 0;
+    in.cols = 0;
+    in.stride = 0;
     in.owner = false;
+    in.conjugated = false;
+    in.transposed = false;
+    in.reference_mutex = NULL;
+    in.references = NULL;
   }
   return *this;
 }
