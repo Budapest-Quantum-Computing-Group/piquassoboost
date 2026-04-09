@@ -138,11 +138,11 @@ dot_wrapper_dot2(PyObject *self, PyObject *args)
     // create PIC version of the input matrices
     pic::matrix A_mtx = numpy2matrix(A);
     pic::matrix B_mtx = numpy2matrix(B);
-    // Pre-conjugate explicitly to keep CBLAS transpose values standard.
-    pic::matrix B_conjugated = pic::conjMatrix(B_mtx);
+    // Mark B for conjugation so dot() handles it safely with unique_ptr
+    B_mtx.set_conjugated( true );
 
     // calculate the matrix product on the C++ side
-    pic::matrix C_mtx = dot(A_mtx, B_conjugated);
+    pic::matrix C_mtx = dot(A_mtx, B_mtx);
 
     // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
     C_mtx.set_owner( false );
