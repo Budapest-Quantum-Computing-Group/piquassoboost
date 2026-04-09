@@ -24,6 +24,16 @@ The project was supported by the Ministry of Innovation and Technology and the N
 Office within the Quantum Information National Laboratory of Hungary.
 
 
+### Citation
+
+If you use Piquasso Boost in your research, please cite:
+
+Morse, Gregory; Rybotycki, Tomasz; Kaposi, Ágoston; Kolarovszki, Zoltán; Stojčić, Uros; Kozsik, Tamás; Mencer, Oskar; Oszmaniec, Michał; Zimborás, Zoltán; Rakyta, Péter. High performance Boson sampling simulation via data-flow engines. New Journal of Physics 26(3), 033033 (2024).
+
+* DOI: https://doi.org/10.1088/1367-2630/ad313b
+* PDF: https://iopscience.iop.org/article/10.1088/1367-2630/ad313b/pdf
+
+
 ### Contact Us
 
 Have a question about the Piquasso Boost library? Don't hesitate to contact us by creating a new issue or directly at the following e-mails:
@@ -31,6 +41,7 @@ Have a question about the Piquasso Boost library? Don't hesitate to contact us b
 * Zoltán Zimborás (researcher): zimboras.zoltan@wigner.hu
 * Zoltán Kolarovszki (developer): kolarovszki@inf.elte.hu
 * Peter Rakyta (developer): peter.rakyta@ttk.elte.hu
+* Gregory Morse (developer): gregory.morse@live.com
 
 
 
