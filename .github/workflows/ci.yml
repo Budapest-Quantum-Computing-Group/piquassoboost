@@ -51,16 +51,16 @@ jobs:
         if [ "$status" -ne 0 ]; then
           echo "Pytest failed. Collecting native backtrace for test_dot2..."
           cat > /tmp/repro_dot2.py <<'PY'
-            import numpy as np
-            from scipy.stats import unitary_group
-            import piquassoboost.common.dot_wrapper as dot
+import numpy as np
+from scipy.stats import unitary_group
+import piquassoboost.common.dot_wrapper as dot
 
-            A_numpy = np.ascontiguousarray(unitary_group.rvs(2))
-            B_numpy = np.ascontiguousarray(unitary_group.rvs(2))
+A_numpy = np.ascontiguousarray(unitary_group.rvs(2))
+B_numpy = np.ascontiguousarray(unitary_group.rvs(2))
 
-            _ = dot.dot2(A_numpy, B_numpy)
-            print("dot2 completed")
-            PY
+_ = dot.dot2(A_numpy, B_numpy)
+print("dot2 completed")
+PY
           gdb -q --batch \
             -ex "set pagination off" \
             -ex "run" \
@@ -109,8 +109,31 @@ jobs:
     - name: Test dot regression (ASan/UBSan)
       env:
         ASAN_OPTIONS: detect_leaks=0
+        OPENBLAS_NUM_THREADS: 1
+        OMP_NUM_THREADS: 1
       run: |
+        set +e
         pytest unittests/test_dot.py::test_dot2 -x -v --tb=line
+        status=$?
+
+        if [ "$status" -ne 0 ]; then
+          echo "Sanitizer pytest failed. Probing extension import and dynamic deps..."
+          python -V || true
+          python - <<'PY' || true
+import importlib.util
+so = "piquassoboost/common/dot_wrapper.cpython-313-x86_64-linux-gnu.so"
+print("checking", so)
+spec = importlib.util.spec_from_file_location("dot_wrapper", so)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+print("dot_wrapper import ok")
+PY
+          ls -lh piquassoboost/common/dot_wrapper*.so || true
+          ldd piquassoboost/common/dot_wrapper*.so || true
+          ldd piquassoboost/libpiquassoboost.so.0.1 || true
+        fi
+
+        exit "$status"
 
   build-and-test-windows:
     runs-on: windows-latest

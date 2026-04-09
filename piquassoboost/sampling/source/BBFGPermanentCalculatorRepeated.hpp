@@ -18,6 +18,7 @@
 #include "tbb/tbb.h"
 #endif
 
+#include <algorithm>
 #include <thread>
 #include "PicState.h"
 #include "PicVector.hpp"
@@ -82,8 +83,14 @@ BBFGPermanentCalculatorRepeated_Tasks( matrix_type &mtx_in, PicState_int& col_mu
         memcpy( row_mult.get_data()+1, row_mult_in.get_data(), row_mult_in.size()*sizeof(int) );
         row_mult[1+(minelem - &row_mult_in[0])]--;
         mtx = matrix_type( mtx_in.rows+1, mtx_in.cols );
-        memcpy( mtx.get_data(), mtx_in.get_data()+mtx_in.stride*(minelem - &row_mult_in[0]), mtx_in.cols*sizeof(*mtx.get_data()) );
-        memcpy( mtx.get_data()+mtx.stride, mtx_in.get_data(), mtx_in.cols*mtx_in.rows*sizeof(*mtx.get_data()) );
+        std::copy_n(
+            mtx_in.get_data() + mtx_in.stride*(minelem - &row_mult_in[0]),
+            mtx_in.cols,
+            mtx.get_data());
+        std::copy_n(
+            mtx_in.get_data(),
+            mtx_in.cols*mtx_in.rows,
+            mtx.get_data()+mtx.stride);
     }
     else {
         row_mult = row_mult_in;
@@ -124,7 +131,7 @@ Complex16 calculate() {
 
         scalar_type ret(1.0, 0.0);
         for (size_t idx=0; idx<col_mult.size(); idx++) {
-            for (size_t jdx=0; jdx<col_mult[idx]; jdx++) {
+            for (int jdx=0; jdx<col_mult[idx]; jdx++) {
                 ret *= mtx[idx];
             }
         }
@@ -168,7 +175,7 @@ Complex16 calculate() {
     // determine the concurrency of the calculation
     unsigned int nthreads = std::thread::hardware_concurrency();
     int64_t concurrency = (int64_t)nthreads * 4;
-    concurrency = concurrency < Idx_max ? concurrency : (int64_t)Idx_max;
+    concurrency = concurrency < static_cast<int64_t>(Idx_max) ? concurrency : static_cast<int64_t>(Idx_max);
     
     tbb::parallel_for( (int64_t)0, concurrency, (int64_t)1, [&](int64_t job_idx) {
 //    for( int64_t job_idx=0; job_idx<concurrency; job_idx++) {
@@ -226,7 +233,7 @@ Complex16 calculate() {
 
         scalar_type colsum_prod((precision_type)parity, (precision_type)0.0);
         for( size_t idx=0; idx<col_mult.size(); idx++ ) {
-            for (size_t jdx=0; jdx<col_mult[idx]; jdx++) {
+            for (int jdx=0; jdx<col_mult[idx]; jdx++) {
                 colsum_prod *= colsum[idx];
             }
         }
@@ -263,7 +270,7 @@ Complex16 calculate() {
                     colsum[col_idx] += mtx_data[col_idx];
                 }
 
-                for (size_t jdx=0; jdx<col_mult[col_idx]; jdx++) {
+                for (int jdx=0; jdx<col_mult[col_idx]; jdx++) {
                     colsum_prod *= colsum[col_idx];
                 }
 

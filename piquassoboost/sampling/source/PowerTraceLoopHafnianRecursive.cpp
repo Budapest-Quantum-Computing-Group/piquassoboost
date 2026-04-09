@@ -19,6 +19,7 @@
 #endif // LONG_DOUBLE_CUTOFF
 
 #include <iostream>
+#include <algorithm>
 #include "PowerTraceLoopHafnianRecursive.h"
 #include "PowerTraceHafnianUtilities.hpp"
 #include <tbb/scalable_allocator.h>
@@ -309,8 +310,8 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CalculateP
 #ifdef __GLYNN_HAFNIAN__
     size_t idx = 1;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
-        for (size_t filling_factor=1; filling_factor<=this->occupancy[selected_modes[mode_idx]]; filling_factor++) {
-            bool neg = filling_factor <= current_occupancy[mode_idx];
+        for (size_t filling_factor=1; filling_factor<=static_cast<size_t>(this->occupancy[selected_modes[mode_idx]]); filling_factor++) {
+            bool neg = filling_factor <= static_cast<size_t>(current_occupancy[mode_idx]);
             ::new (&cx_diag_elements[idx]) cplx_select_t<small_scalar_type>(neg ? -diag_elements[idx-1] : diag_elements[idx-1]);
             ::new (&cx_diag_elements[idx-1]) cplx_select_t<small_scalar_type>(neg ? -diag_elements[idx] : diag_elements[idx]);
             idx+=2;
@@ -506,14 +507,14 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( 
 
 #ifdef __GLYNN_HAFNIAN__
     matrix A(num_of_modes*2, num_of_modes*2);
-    memset(A.get_data(), 0, A.size()*sizeof(Complex16));
+    std::fill_n(A.get_data(), A.size(), Complex16(0.0, 0.0));
     size_t row_idx = 0;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
 
         size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*this->mtx.stride;
         size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*this->mtx.stride;
 
-        for (size_t filling_factor_row=1; filling_factor_row<=this->occupancy[selected_modes[mode_idx]]; filling_factor_row++) {
+        for (size_t filling_factor_row=1; filling_factor_row<=static_cast<size_t>(this->occupancy[selected_modes[mode_idx]]); filling_factor_row++) {
 
             size_t row_offset_A_a = 2*row_idx*A.stride;
             size_t row_offset_A_aconj = (2*row_idx+1)*A.stride;
@@ -524,8 +525,8 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( 
             for (size_t mode_jdx = 0; mode_jdx < selected_modes.size(); mode_jdx++) {
 
 
-                for (size_t filling_factor_col=1; filling_factor_col<=this->occupancy[selected_modes[mode_jdx]]; filling_factor_col++) {
-                    bool neg = filling_factor_col <= current_occupancy[mode_jdx];
+                for (size_t filling_factor_col=1; filling_factor_col<=static_cast<size_t>(this->occupancy[selected_modes[mode_jdx]]); filling_factor_col++) {
+                    bool neg = filling_factor_col <= static_cast<size_t>(current_occupancy[mode_jdx]);
                     if (neg) {
                         A[row_offset_A_a + col_idx*2] = -this->mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
                         A[row_offset_A_aconj + col_idx*2+1] = -this->mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];
@@ -541,7 +542,7 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( 
                 }
             }
 
-            if (filling_factor_row <= current_occupancy[mode_idx]) {
+            if (filling_factor_row <= static_cast<size_t>(current_occupancy[mode_idx])) {
                 A[row_offset_A_a + 2*row_idx]       = -diag[selected_modes[mode_idx]*2];
                 A[row_offset_A_aconj + 2*row_idx+1] = -diag[selected_modes[mode_idx]*2+1];
             } else {
@@ -555,14 +556,14 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( 
     }    
 #else
     matrix A(num_of_modes*2, num_of_modes*2);
-    memset(A.get_data(), 0, A.size()*sizeof(Complex16));
+    std::fill_n(A.get_data(), A.size(), Complex16(0.0, 0.0));
     size_t row_idx = 0;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
 
         size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*this->mtx.stride;
         size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*this->mtx.stride;
 
-        for (size_t filling_factor_row=1; filling_factor_row<=current_occupancy[mode_idx]; filling_factor_row++) {
+        for (size_t filling_factor_row=1; filling_factor_row<=static_cast<size_t>(current_occupancy[mode_idx]); filling_factor_row++) {
 
             size_t row_offset_A_a = 2*row_idx*A.stride;
             size_t row_offset_A_aconj = (2*row_idx+1)*A.stride;
@@ -572,7 +573,7 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( 
 
             for (size_t mode_jdx = 0; mode_jdx < selected_modes.size(); mode_jdx++) {
 
-                for (size_t filling_factor_col=1; filling_factor_col<=current_occupancy[mode_jdx]; filling_factor_col++) {
+                for (size_t filling_factor_col=1; filling_factor_col<=static_cast<size_t>(current_occupancy[mode_jdx]); filling_factor_col++) {
 
                     A[row_offset_A_a + col_idx*2]   = this->mtx[row_offset_mtx_a + (selected_modes[mode_jdx]*2)];
                     A[row_offset_A_aconj + col_idx*2+1] = this->mtx[row_offset_mtx_aconj + (selected_modes[mode_jdx]*2+1)];  
@@ -659,18 +660,15 @@ PowerTraceLoopHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateDiag
     size_t row_idx = 0;
     for (size_t mode_idx = 0; mode_idx < selected_modes.size(); mode_idx++) {
 
-        size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*this->mtx.stride;
-        size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*this->mtx.stride;
-
 #ifdef __GLYNN_HAFNIAN__
-        for (size_t filling_factor_row=1; filling_factor_row<=this->occupancy[selected_modes[mode_idx]]; filling_factor_row++) {
-            bool neg = filling_factor_row <= current_occupancy[mode_idx];
+        for (size_t filling_factor_row=1; filling_factor_row<=static_cast<size_t>(this->occupancy[selected_modes[mode_idx]]); filling_factor_row++) {
+            bool neg = filling_factor_row <= static_cast<size_t>(current_occupancy[mode_idx]);
             if (neg) {
                 ::new (&diag_elements[2*row_idx]) cplx_select_t<small_scalar_type>(-diag[selected_modes[mode_idx]*2].real(), -diag[selected_modes[mode_idx]*2].imag());
                 ::new (&diag_elements[2*row_idx+1]) cplx_select_t<small_scalar_type>(-diag[selected_modes[mode_idx]*2 + 1].real(), -diag[selected_modes[mode_idx]*2 + 1].imag());
             } else {
 #else
-        for (size_t filling_factor_row=1; filling_factor_row<=current_occupancy[mode_idx]; filling_factor_row++) {
+        for (size_t filling_factor_row=1; filling_factor_row<=static_cast<size_t>(current_occupancy[mode_idx]); filling_factor_row++) {
 #endif
                 ::new (&diag_elements[2*row_idx]) cplx_select_t<small_scalar_type>(diag[selected_modes[mode_idx]*2].real(), diag[selected_modes[mode_idx]*2].imag());
                 ::new (&diag_elements[2*row_idx+1]) cplx_select_t<small_scalar_type>(diag[selected_modes[mode_idx]*2 + 1].real(), diag[selected_modes[mode_idx]*2 + 1].imag());
