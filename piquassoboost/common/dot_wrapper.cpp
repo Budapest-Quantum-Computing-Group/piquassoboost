@@ -74,14 +74,11 @@ dot_wrapper_dot(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B);     
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -138,14 +135,10 @@ dot_wrapper_dot2(PyObject *self, PyObject *args)
     // create PIC version of the input matrices
     pic::matrix A_mtx = numpy2matrix(A);
     pic::matrix B_mtx = numpy2matrix(B);
-    // Mark B for conjugation so dot() handles it safely with unique_ptr
     B_mtx.conjugate();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -203,15 +196,12 @@ dot_wrapper_dot3(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B); 
-    A_mtx.transpose();    
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    A_mtx.transpose();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -268,16 +258,13 @@ dot_wrapper_dot4(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B); 
-    A_mtx.transpose();    
-    A_mtx.conjugate(); 
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    A_mtx.transpose();
+    A_mtx.conjugate();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -336,14 +323,10 @@ dot_wrapper_dot5(PyObject *self, PyObject *args)
     // create PIC version of the input matrices
     pic::matrix A_mtx = numpy2matrix(A);
     pic::matrix B_mtx = numpy2matrix(B);
-    // Pre-conjugate explicitly to keep CBLAS transpose values standard.
-    pic::matrix A_conjugated = pic::conjMatrix(A_mtx);
+    A_mtx.conjugate();
 
     // calculate the matrix product on the C++ side
-    pic::matrix C_mtx = dot(A_conjugated, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );
+    pic::matrix C_mtx = dot(A_mtx, B_mtx);
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -399,15 +382,12 @@ dot_wrapper_dot6(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B); 
-    B_mtx.transpose(); 
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    B_mtx.transpose();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );

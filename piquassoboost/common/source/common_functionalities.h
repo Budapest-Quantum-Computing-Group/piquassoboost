@@ -86,6 +86,13 @@ int binomialCoeff(int n, int k);
 @return Returns with the Binomial Coefficient C(n, k).
 */
 int64_t binomialCoeffInt64(int n, int k);
+
+
+/**
+@brief Free externally handed-off aligned matrix/state data in the native library.
+@param ptr The data pointer to release.
+*/
+void free_external_data(void* ptr);
   
 
 // GCC/Clang provide __int128 natively; MSVC does not.

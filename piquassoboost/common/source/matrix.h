@@ -97,22 +97,16 @@ matrix(const matrix &in);
 matrix& operator=(const matrix &in);
 
 /**
-@brief Move constructor of the class. Takes ownership of the moved matrix's data.
-@param An rvalue reference of class matrix to be moved.
-*/
-matrix(matrix &&in) noexcept;
-
-/**
-@brief Move assignment operator. Takes ownership of the moved matrix's data.
-@param An rvalue reference of class matrix to be moved.
-*/
-matrix& operator=(matrix &&in) noexcept;
-
-/**
 @brief Call to create a copy of the matrix
 @return Returns with the instance of the class.
 */
 matrix copy();
+
+/**
+@brief Detach the stored data pointer from the matrix and release bookkeeping.
+@return Returns with the detached data pointer.
+*/
+Complex16* detach_data();
 
 /**
 @brief Call to check the array for NaN entries.

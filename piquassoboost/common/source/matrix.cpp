@@ -121,64 +121,25 @@ matrix::copy() {
 }
 
 
-
 /**
-@brief Move constructor of the class. Takes ownership of the moved matrix's data.
+@brief Detach the stored data pointer from the matrix and release bookkeeping.
 */
-matrix::matrix(matrix &&in) noexcept 
-    : matrix_base<Complex16>() {
-  // Drop default-constructed bookkeeping and steal complete storage state.
-  release_data();
+Complex16*
+matrix::detach_data() {
 
-  data = in.data;
-  rows = in.rows;
-  cols = in.cols;
-  stride = in.stride;
-  owner = in.owner;
-  conjugated = in.conjugated;
-  transposed = in.transposed;
-  reference_mutex = in.reference_mutex;
-  references = in.references;
-
-  in.data = NULL;
-  in.rows = 0;
-  in.cols = 0;
-  in.stride = 0;
-  in.owner = false;
-  in.conjugated = false;
-  in.transposed = false;
-  in.reference_mutex = NULL;
-  in.references = NULL;
-}
-
-/**
-@brief Move assignment operator. Takes ownership of the moved matrix's data.
-*/
-matrix& matrix::operator=(matrix &&in) noexcept {
-  if (this != &in) {
-    release_data();
-
-    data = in.data;
-    rows = in.rows;
-    cols = in.cols;
-    stride = in.stride;
-    owner = in.owner;
-    conjugated = in.conjugated;
-    transposed = in.transposed;
-    reference_mutex = in.reference_mutex;
-    references = in.references;
-
-    in.data = NULL;
-    in.rows = 0;
-    in.cols = 0;
-    in.stride = 0;
-    in.owner = false;
-    in.conjugated = false;
-    in.transposed = false;
-    in.reference_mutex = NULL;
-    in.references = NULL;
+  if (references != NULL && *references != 1) {
+    matrix unique_copy = copy();
+    return unique_copy.detach_data();
   }
-  return *this;
+
+  Complex16* detached_data = data;
+
+  free_bookkeeping();
+
+  data = NULL;
+  owner = false;
+
+  return detached_data;
 }
 
 

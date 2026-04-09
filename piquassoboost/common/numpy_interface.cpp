@@ -33,6 +33,7 @@ static inline int    PyArray_CHKFLAGS(PyObject* op, int flags) { return PyArray_
 #include "matrix.h"
 #include "matrix_real.h"
 #include "PicState.h"
+#include "common_functionalities.h"
 
 
 /**
@@ -45,7 +46,7 @@ void capsule_cleanup(PyObject* capsule) {
     // I'm going to assume your memory needs to be freed with free().
     // If it needs different cleanup, perform whatever that cleanup is
     // instead of calling free().
-    scalable_aligned_free(memory);
+    pic::free_external_data(memory);
 
 
 }
@@ -94,7 +95,7 @@ PyObject* matrix_to_numpy( pic::matrix &mtx ) {
         shape[0] = (npy_intp) mtx.rows;
         shape[1] = (npy_intp) mtx.cols;
 
-        pic::Complex16* data = mtx.get_data();
+        pic::Complex16* data = mtx.detach_data();
         return array_from_ptr( (void*) data, 2, shape, NPY_COMPLEX128);
 
 

@@ -60,6 +60,13 @@ instead of CblasConjNoTrans (114), which is not standard and may abort in OpenBL
 */
 matrix conjMatrix( matrix &M );
 
+/**
+@brief Fill an existing matrix with the element-wise complex conjugate of the input.
+@param M The input matrix.
+@param output The output matrix storage.
+*/
+void conjMatrixInto(matrix &M, matrix &output);
+
 
 /**
 @brief Call to calculate the product of two complex matrices by calling method zgemm3m from the CBLAS library.

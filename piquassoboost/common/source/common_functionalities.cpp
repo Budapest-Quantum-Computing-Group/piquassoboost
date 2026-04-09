@@ -160,6 +160,11 @@ piq_int128_t binomialCoeffInt128(int n, int k){
 }
 
 
+void free_external_data(void* ptr) {
+    scalable_aligned_free(ptr);
+}
+
+
 /**
 @brief Function which checks whether the given matrix is symmetric or not.
 @param mtx_in The given matrix.

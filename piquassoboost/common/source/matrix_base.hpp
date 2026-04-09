@@ -18,8 +18,10 @@
 #define matrix_BASE_H
 
 #include "PicTypes.hpp"
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <new>
 #include <tbb/scalable_allocator.h>
 #include <tbb/spin_mutex.h>
 
@@ -60,6 +62,36 @@ protected:
   /// the number of the current references of the present object
   int64_t* references;
 
+  void allocate_bookkeeping() {
+    reference_mutex = (tbb::spin_mutex*)std::malloc(sizeof(tbb::spin_mutex));
+    if (reference_mutex == NULL) {
+      throw std::bad_alloc();
+    }
+    new (reference_mutex) tbb::spin_mutex();
+
+    references = (int64_t*)std::malloc(sizeof(int64_t));
+    if (references == NULL) {
+      reference_mutex->~spin_mutex();
+      std::free(reference_mutex);
+      reference_mutex = NULL;
+      throw std::bad_alloc();
+    }
+    (*references) = 1;
+  }
+
+  void free_bookkeeping() {
+    if (references != NULL) {
+      std::free(references);
+      references = NULL;
+    }
+
+    if (reference_mutex != NULL) {
+      reference_mutex->~spin_mutex();
+      std::free(reference_mutex);
+      reference_mutex = NULL;
+    }
+  }
+
 
 
 public:
@@ -85,9 +117,8 @@ matrix_base() {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = false;
   // mutual exclusion to count the references for class instances referring to the same data.
-  reference_mutex = new tbb::spin_mutex();
-  references = new int64_t;
-  (*references)=1;
+  allocate_bookkeeping();
+
 }
 
 
@@ -115,9 +146,7 @@ matrix_base( scalar* data_in, size_t rows_in, size_t cols_in) {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = false;
   // mutual exclusion to count the references for class instances referring to the same data.
-  reference_mutex = new tbb::spin_mutex();
-  references = new int64_t;
-  (*references)=1;
+  allocate_bookkeeping();
 }
 
 
@@ -147,9 +176,7 @@ matrix_base( scalar* data_in, size_t rows_in, size_t cols_in, size_t stride_in) 
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = false;
   // mutual exclusion to count the references for class instances referring to the same data.
-  reference_mutex = new tbb::spin_mutex();
-  references = new int64_t;
-  (*references)=1;
+  allocate_bookkeeping();
 }
 
 
@@ -187,10 +214,7 @@ matrix_base( size_t rows_in, size_t cols_in) {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = true;
   // mutual exclusion to count the references for class instances referring to the same data.
-  reference_mutex = new tbb::spin_mutex();
-  references = new int64_t;
-  (*references)=1;
-
+  allocate_bookkeeping();
 
 }
 
@@ -223,10 +247,7 @@ matrix_base( size_t rows_in, size_t cols_in, size_t stride_in) {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   owner = true;
   // mutual exclusion to count the references for class instances referring to the same data.
-  reference_mutex = new tbb::spin_mutex();
-  references = new int64_t;
-  (*references)=1;
-
+  allocate_bookkeeping();
 
 }
 
@@ -252,8 +273,6 @@ matrix_base(const matrix_base<scalar> &in) {
       tbb::spin_mutex::scoped_lock my_lock{*reference_mutex};
       (*references)++;
     }
-
-
 
 }
 
@@ -328,9 +347,7 @@ void replace_data( scalar* data_in, bool owner_in) {
     data = data_in;
     owner = owner_in;
 
-    reference_mutex = new tbb::spin_mutex();
-    references = new int64_t;
-    (*references)=1;
+    allocate_bookkeeping();
 
 }
 
@@ -356,7 +373,8 @@ void release_data() {
       if (owner) {
         scalable_aligned_free(data);
       }
-      delete references;
+      std::free(references);
+      references = NULL;
     }
     else {
         (*references)--;
@@ -368,7 +386,8 @@ void release_data() {
 }
 
   if ( call_delete && reference_mutex !=NULL) {
-    delete reference_mutex;
+    reference_mutex->~spin_mutex();
+    std::free(reference_mutex);
   }
 
   reference_mutex = NULL;

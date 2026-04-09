@@ -123,67 +123,6 @@ matrix32::copy() {
 }
 
 /**
-@brief Move constructor of the class. Takes ownership of the moved matrix's data.
-*/
-matrix32::matrix32(matrix32 &&in) noexcept 
-    : matrix_base<Complex32>() {
-  // Drop default-constructed bookkeeping and steal complete storage state.
-  release_data();
-
-  data = in.data;
-  rows = in.rows;
-  cols = in.cols;
-  stride = in.stride;
-  owner = in.owner;
-  conjugated = in.conjugated;
-  transposed = in.transposed;
-  reference_mutex = in.reference_mutex;
-  references = in.references;
-
-  in.data = NULL;
-  in.rows = 0;
-  in.cols = 0;
-  in.stride = 0;
-  in.owner = false;
-  in.conjugated = false;
-  in.transposed = false;
-  in.reference_mutex = NULL;
-  in.references = NULL;
-}
-
-/**
-@brief Move assignment operator. Takes ownership of the moved matrix's data.
-*/
-matrix32& matrix32::operator=(matrix32 &&in) noexcept {
-  if (this != &in) {
-    release_data();
-
-    data = in.data;
-    rows = in.rows;
-    cols = in.cols;
-    stride = in.stride;
-    owner = in.owner;
-    conjugated = in.conjugated;
-    transposed = in.transposed;
-    reference_mutex = in.reference_mutex;
-    references = in.references;
-
-    in.data = NULL;
-    in.rows = 0;
-    in.cols = 0;
-    in.stride = 0;
-    in.owner = false;
-    in.conjugated = false;
-    in.transposed = false;
-    in.reference_mutex = NULL;
-    in.references = NULL;
-  }
-  return *this;
-}
-
-
-
-/**
 @brief Call to check the array for NaN entries.
 @return Returns with true if the array has at least one NaN entry.
 */
