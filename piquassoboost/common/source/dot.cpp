@@ -18,6 +18,7 @@
 #include "PicState.h"
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include "tbb/tbb.h"
 #include <tbb/scalable_allocator.h>
 
@@ -30,11 +31,10 @@ namespace pic {
 //tbb::spin_mutex my_mutex;
 
 
-// Currently only used when we have a CBLAS without CblasConjNoTrans
-
-#if CBLAS_CONJ_NO_TRANS_PRESENT == 0
-
-/// Calculate the element-wise complex conjugate of a matrix
+/// Calculate the element-wise complex conjugate of a matrix.
+/// Used to pre-conjugate matrices so cblas_zgemm is always called with
+/// CblasNoTrans instead of CblasConjNoTrans (=114), which is non-standard
+/// and can abort in OpenBLAS/system BLAS.
 matrix conjMatrix(matrix &M) {
     matrix output(M.rows, M.cols);
 
@@ -47,8 +47,6 @@ matrix conjMatrix(matrix &M) {
     }
     return output;
 }
-
-#endif
 
 
 /**
@@ -76,53 +74,59 @@ dot( matrix &A, matrix &B ) {
     assert( check_matrices( A, B ) );
 
 
-/* Some CBLAS packages come without CblasConjNoTrans, so we have to de-conjugate the
- * matrices if they are conjugated but not transposed. This way they will fall in the
- * `CblasNoTrans` category, which is supported.
- */
-#if CBLAS_CONJ_NO_TRANS_PRESENT == 0
+    // Avoid CblasConjNoTrans (114): pre-conjugate conjugated-only matrices.
+    // Use owned temporaries and references to avoid unsafe matrix assignment.
+    std::unique_ptr<matrix> A_conjugated;
+    std::unique_ptr<matrix> B_conjugated;
+    matrix* A_effective = &A;
+    matrix* B_effective = &B;
+
     if ( B.is_conjugated() && !B.is_transposed() ) {
-        B = conjMatrix( B );
+        B_conjugated = std::make_unique<matrix>(conjMatrix(B));
+        B_effective = B_conjugated.get();
     }
 
     if ( A.is_conjugated() && !A.is_transposed() ) {
-        A = conjMatrix( A );
+        A_conjugated = std::make_unique<matrix>(conjMatrix(A));
+        A_effective = A_conjugated.get();
     }
-#endif
+
+    matrix& A_ref = *A_effective;
+    matrix& B_ref = *B_effective;
 
 
     // Preparing the output matrix
     matrix C;
-    if ( A.is_transposed() ){
-        if ( B.is_transposed() ) {
-            C = matrix(A.cols, B.rows);
+    if ( A_ref.is_transposed() ){
+        if ( B_ref.is_transposed() ) {
+            C = matrix(A_ref.cols, B_ref.rows);
         }
         else {
-            C = matrix(A.cols, B.cols);
+            C = matrix(A_ref.cols, B_ref.cols);
         }
     }
     else {
-        if ( B.is_transposed() ) {
-            C = matrix(A.rows, B.rows);
+        if ( B_ref.is_transposed() ) {
+            C = matrix(A_ref.rows, B_ref.rows);
         }
         else {
-            C = matrix(A.rows, B.cols);
+            C = matrix(A_ref.rows, B_ref.cols);
         }
     }
 
 
     // Calculating the matrix product
-    if ( A.rows <= SERIAL_CUTOFF && B.cols <= SERIAL_CUTOFF ) {
+    if ( A_ref.rows <= SERIAL_CUTOFF && B_ref.cols <= SERIAL_CUTOFF ) {
         // creating the serial task object
-        zgemm_Task_serial calc_task = zgemm_Task_serial( A, B, C );
+        zgemm_Task_serial calc_task = zgemm_Task_serial( A_ref, B_ref, C );
         calc_task.zgemm_chunk();
     }
     else {
 
         // creating the task object
         tbb::task_group g;
-        g.run_and_wait([&A, &B, &C, &g]() {
-                       zgemm_Task calc_task = zgemm_Task( A, B, C );
+        g.run_and_wait([&A_ref, &B_ref, &C, &g]() {
+                   zgemm_Task calc_task = zgemm_Task( A_ref, B_ref, C );
                        calc_task.execute(g);
         });
 
@@ -208,7 +212,9 @@ get_cblas_transpose( matrix &A, CBLAS_TRANSPOSE &transpose ) {
         transpose = CblasConjTrans;
     }
     else if ( A.is_conjugated() & !A.is_transposed() ) {
-        transpose = CblasConjNoTrans; // not present in MKL
+        // Conjugated-only matrices are pre-conjugated before CBLAS call.
+        // Keep a safe fallback to standard NoTrans.
+        transpose = CblasNoTrans;
     }
     else if ( !A.is_conjugated() & A.is_transposed() ) {
         transpose = CblasTrans;
