@@ -98,10 +98,18 @@ jobs:
     - name: Test dot regression (ASan/UBSan)
       env:
         ASAN_OPTIONS: detect_leaks=0
+        UBSAN_OPTIONS: print_stacktrace=1
         OPENBLAS_NUM_THREADS: 1
         OMP_NUM_THREADS: 1
       run: |
         set +e
+
+        # Ensure ASan runtime is loaded before Python starts.
+        ASAN_LIB="$(gcc -print-file-name=libasan.so)"
+        UBSAN_LIB="$(gcc -print-file-name=libubsan.so)"
+        export LD_PRELOAD="$ASAN_LIB:$UBSAN_LIB${LD_PRELOAD:+:$LD_PRELOAD}"
+        echo "Using LD_PRELOAD=$LD_PRELOAD"
+
         pytest unittests/test_dot.py::test_dot2 -x -v --tb=line
         status=$?
 
