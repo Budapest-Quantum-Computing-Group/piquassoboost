@@ -371,6 +371,8 @@ void release_data() {
     delete reference_mutex;
   }
 
+  reference_mutex = NULL;
+
 }
 
 
@@ -390,7 +392,11 @@ void set_owner( bool owner_in)  {
 @param mtx An instance of class matrix_base
 @return Returns with the instance of the class.
 */
-void operator= (const matrix_base& mtx ) {
+matrix_base& operator= (const matrix_base& mtx ) {
+
+  if (this == &mtx) {
+    return *this;
+  }
 
   // releasing the containing data
   release_data();
@@ -417,6 +423,8 @@ void operator= (const matrix_base& mtx ) {
       tbb::spin_mutex::scoped_lock my_lock{*reference_mutex};
       (*references)++;
   }
+
+  return *this;
 
 }
 

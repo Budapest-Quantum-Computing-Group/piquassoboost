@@ -135,16 +135,20 @@ dot_wrapper_dot2(PyObject *self, PyObject *args)
     }
 
 
-    PyObject* B_conjugated = PyObject_CallMethod(B, "conjugate", NULL);
-    if (B_conjugated == NULL) {
-        Py_DECREF(A);
-        Py_DECREF(B);
-        return NULL;
-    }
+    // create PIC version of the input matrices
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    // Pre-conjugate explicitly to keep CBLAS transpose values standard.
+    pic::matrix B_conjugated = pic::conjMatrix(B_mtx);
 
-    PyObject* C = PyNumber_MatrixMultiply(A, B_conjugated);
+    // calculate the matrix product on the C++ side
+    pic::matrix C_mtx = dot(A_mtx, B_conjugated);
 
-    Py_DECREF(B_conjugated);
+    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
+    C_mtx.set_owner( false );
+
+    // convert C++ matrix into numpy array
+    PyObject* C = matrix_to_numpy( C_mtx );
 
 
     Py_DECREF(A);   
@@ -329,16 +333,20 @@ dot_wrapper_dot5(PyObject *self, PyObject *args)
     }
 
 
-    PyObject* A_conjugated = PyObject_CallMethod(A, "conjugate", NULL);
-    if (A_conjugated == NULL) {
-        Py_DECREF(A);
-        Py_DECREF(B);
-        return NULL;
-    }
+    // create PIC version of the input matrices
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    // Pre-conjugate explicitly to keep CBLAS transpose values standard.
+    pic::matrix A_conjugated = pic::conjMatrix(A_mtx);
 
-    PyObject* C = PyNumber_MatrixMultiply(A_conjugated, B);
+    // calculate the matrix product on the C++ side
+    pic::matrix C_mtx = dot(A_conjugated, B_mtx);
 
-    Py_DECREF(A_conjugated);
+    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
+    C_mtx.set_owner( false );
+
+    // convert C++ matrix into numpy array
+    PyObject* C = matrix_to_numpy( C_mtx );
 
 
     Py_DECREF(A);   
