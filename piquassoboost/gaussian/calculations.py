@@ -16,7 +16,7 @@
 import numpy as np
 
 from piquasso.api.result import Result
-from piquasso._simulators.gaussian import calculations as pq_calculations
+import piquasso._simulators.gaussian.calculations as pq_calculations
 
 from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 

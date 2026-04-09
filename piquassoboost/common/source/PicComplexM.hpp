@@ -55,7 +55,7 @@ public:
 @brief Nullary Contructor of the class
 @return Returns with the created class instance
 */
-ComplexM<scalar> () {
+ComplexM () {
 
 };
 
@@ -65,7 +65,7 @@ ComplexM<scalar> () {
 @param b The imaginary part of the complex number
 @return Returns with the created class instance
 */
-ComplexM<scalar> ( scalar a, scalar b) {
+ComplexM ( scalar a, scalar b) {
 
     // reserve space for 3 orders
     addends.reserve(3);
@@ -80,7 +80,7 @@ ComplexM<scalar> ( scalar a, scalar b) {
 @param a The real part of the complex number (The imaginary part is set to zero)
 @return Returns with the created class instance
 */
-ComplexM<scalar>( scalar a) {
+ComplexM( scalar a) {
 
     // reserve space for 3 orders
     addends.reserve(3);
