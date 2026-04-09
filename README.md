@@ -33,6 +33,13 @@ Morse, Gregory; Rybotycki, Tomasz; Kaposi, Ágoston; Kolarovszki, Zoltán; Stoj�
 * DOI: https://doi.org/10.1088/1367-2630/ad313b
 * PDF: https://iopscience.iop.org/article/10.1088/1367-2630/ad313b/pdf
 
+For the recursive Torontonian and loop-Torontonian algorithms, please also cite:
+
+Kaposi, Ágoston; Kolarovszki, Zoltán; Kozsik, Tamás; Zimborás, Zoltán; Rakyta, Péter. Polynomial speedup in Torontonian calculation by a scalable recursive algorithm (2021).
+
+* arXiv: https://arxiv.org/abs/2109.04528
+* DOI: https://doi.org/10.48550/arXiv.2109.04528
+
 
 ### Contact Us
 
