@@ -51,16 +51,16 @@ jobs:
         if [ "$status" -ne 0 ]; then
           echo "Pytest failed. Collecting native backtrace for test_dot2..."
           cat > /tmp/repro_dot2.py <<'PY'
-import numpy as np
-from scipy.stats import unitary_group
-import piquassoboost.common.dot_wrapper as dot
+            import numpy as np
+            from scipy.stats import unitary_group
+            import piquassoboost.common.dot_wrapper as dot
 
-A_numpy = np.ascontiguousarray(unitary_group.rvs(2))
-B_numpy = np.ascontiguousarray(unitary_group.rvs(2))
+            A_numpy = np.ascontiguousarray(unitary_group.rvs(2))
+            B_numpy = np.ascontiguousarray(unitary_group.rvs(2))
 
-_ = dot.dot2(A_numpy, B_numpy)
-print("dot2 completed")
-PY
+            _ = dot.dot2(A_numpy, B_numpy)
+            print("dot2 completed")
+            PY
           gdb -q --batch \
             -ex "set pagination off" \
             -ex "run" \
