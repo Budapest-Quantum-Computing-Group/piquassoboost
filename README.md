@@ -47,6 +47,7 @@ Have a question about the Piquasso Boost library? Don't hesitate to contact us b
 
 * Zoltán Zimborás (researcher): zimboras.zoltan@wigner.hu
 * Zoltán Kolarovszki (developer): kolarovszki@inf.elte.hu
+* Kaposi Ágoston (developer): kaposiagoston@inf.elte.hu
 * Peter Rakyta (developer): peter.rakyta@ttk.elte.hu
 * Gregory Morse (developer): gregory.morse@live.com
 
