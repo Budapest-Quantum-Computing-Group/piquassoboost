@@ -20,6 +20,7 @@
 #include "matrix.h"
 #include "dot.h"
 #include <memory.h>
+#include <algorithm>
 
 namespace pic {
 
@@ -58,7 +59,7 @@ Transform_Rows::operator()(const tbb::flow::continue_msg &msg) {
     matrix dot_res = dot( T, mtx );
 
     // copy the result into the input matrix
-    memcpy(mtx_data, dot_res.get_data(), mtx.rows*mtx.cols*sizeof(Complex16));
+    std::copy_n(dot_res.get_data(), mtx.rows*mtx.cols, mtx_data);
 
     return msg;
 

@@ -133,7 +133,7 @@ matrix BatchednPermanentCalculator::calculate(int lib) {
         CChinHuhPermanentCalculator permanentCalculator;
 
         // calculate the permanents on CPU
-        for ( int idx=0; idx<input_states.size(); idx++) {       
+        for ( size_t idx=0; idx<input_states.size(); idx++) {
             ret[idx] = permanentCalculator.calculate( interferometer_matrix, *input_states[idx], *output_states[idx]);
         }
 
@@ -357,7 +357,6 @@ adaptInterferometerGlynnMultiplied( const matrix& interferometerMatrix, PicState
     int64_t sum = input_state->number_of_photons;
     matrix mtx(sum, sum);
 
-    int row_idx = 0;
     int row_offset_orig = 0;
     int row_offset = 0;
     for (int i = 0; i < n; i++){
@@ -399,13 +398,13 @@ matrix
 adaptInterferometer( const matrix& interferometerMatrix, PicState_int64 &input_state, PicState_int64 &output_state) {
 
     int nonZeroInput = 0;
-    for (int i = 0; i < input_state.size(); i++){
+    for (size_t i = 0; i < input_state.size(); i++){
         if (input_state[i] > 0){
             nonZeroInput++;
         }
     }
     int nonZeroOutput = 0;
-    for (int i = 0; i < output_state.size(); i++){
+    for (size_t i = 0; i < output_state.size(); i++){
         if (output_state[i] > 0){
             nonZeroOutput++;
         }

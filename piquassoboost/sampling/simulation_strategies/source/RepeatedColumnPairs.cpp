@@ -206,7 +206,7 @@ void DetermineModePairs(std::vector<SingleMode>& single_modes, std::vector<ModeP
     // create single degenerate mode pairs from the last degenerate mode that has no further piars
     if ( tmp==1 ) {
 
-        if ( modes_loc[modes_pair.mode1] < single_modes.size() ) {
+        if ( (size_t)modes_loc[modes_pair.mode1] < single_modes.size() ) {
 
             size_t idx_min = single_modes.size()-modes_loc[modes_pair.mode1]-1;
 

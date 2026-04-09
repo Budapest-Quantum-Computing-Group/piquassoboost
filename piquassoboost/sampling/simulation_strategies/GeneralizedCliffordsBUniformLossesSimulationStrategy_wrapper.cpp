@@ -253,7 +253,7 @@ GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper_simulate(Generalize
     PyObject* PySamples = PyTuple_New( (Py_ssize_t) sample_num );
 
 
-    for ( int idx = 0; idx < samples.size(); idx++ ) {
+    for ( size_t idx = 0; idx < samples.size(); idx++ ) {
         // release the C++ array from the ownership of the calculated data
         samples[idx].set_owner(false);
 

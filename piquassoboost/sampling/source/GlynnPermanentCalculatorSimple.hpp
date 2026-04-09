@@ -147,7 +147,7 @@ GlynnPermanentCalculatorSimpleTask<matrix_type, precision_type>::calculate(matri
             }
 
             // change container deltas
-            for (size_t deltaIndex = 0; deltaIndex < indexChanged; ++deltaIndex){
+            for (size_t deltaIndex = 0; deltaIndex < (size_t)indexChanged; ++deltaIndex){
                 deltas[mtx.rows - deltaIndex - 1] *= -1;
             }
         }

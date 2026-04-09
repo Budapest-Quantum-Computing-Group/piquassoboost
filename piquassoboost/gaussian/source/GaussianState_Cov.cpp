@@ -17,6 +17,7 @@
 #include <iostream>
 #include "GaussianState_Cov.h"
 #include <memory.h>
+#include <algorithm>
 #if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
 #include <immintrin.h>
 #endif
@@ -146,12 +147,12 @@ GaussianState_Cov::getReducedGaussianState( PicState_int64 &modes ) {
             // col-wise extraction of the q quadratures from the covariance matrix
             size_t cov_reduced_offset = mode_row_idx*covariance_matrix_reduced.stride + mode_idx;
             size_t cov_offset = modes[mode_row_idx]*covariance_matrix.stride + col_idx;
-            memcpy(covariance_matrix_reduced_data + cov_reduced_offset, covariance_matrix_data + cov_offset , col_range*sizeof(Complex16));
+            std::copy_n(covariance_matrix_data + cov_offset, col_range, covariance_matrix_reduced_data + cov_reduced_offset);
 
             // col-wise extraction of the p quadratures from the covariance matrix
             cov_reduced_offset = cov_reduced_offset + number_of_modes;
             cov_offset = cov_offset + total_number_of_modes;
-            memcpy(covariance_matrix_reduced_data + cov_reduced_offset, covariance_matrix_data + cov_offset , col_range*sizeof(Complex16));
+            std::copy_n(covariance_matrix_data + cov_offset, col_range, covariance_matrix_reduced_data + cov_reduced_offset);
 
         }
 
@@ -162,18 +163,18 @@ GaussianState_Cov::getReducedGaussianState( PicState_int64 &modes ) {
             // col-wise extraction of the q quadratures from the covariance matrix
             size_t cov_reduced_offset = (mode_row_idx+number_of_modes)*covariance_matrix_reduced.stride + mode_idx;
             size_t cov_offset = (modes[mode_row_idx]+total_number_of_modes)*covariance_matrix.stride + col_idx;
-            memcpy(covariance_matrix_reduced_data + cov_reduced_offset, covariance_matrix_data + cov_offset , col_range*sizeof(Complex16));
+            std::copy_n(covariance_matrix_data + cov_offset, col_range, covariance_matrix_reduced_data + cov_reduced_offset);
 
             // col-wise extraction of the p quadratures from the covariance matrix
             cov_reduced_offset = cov_reduced_offset + number_of_modes;
             cov_offset = cov_offset + total_number_of_modes;
-            memcpy(covariance_matrix_reduced_data + cov_reduced_offset, covariance_matrix_data + cov_offset , col_range*sizeof(Complex16));
+            std::copy_n(covariance_matrix_data + cov_offset, col_range, covariance_matrix_reduced_data + cov_reduced_offset);
         }
 
         // extract modes from the displacement
         if (m.size() > 0) {
-            memcpy(m_reduced_data + mode_idx, m_data + col_idx, col_range*sizeof(Complex16)); // q quadratires
-            memcpy(m_reduced_data + mode_idx + number_of_modes, m_data + col_idx + total_number_of_modes, col_range*sizeof(Complex16)); // p quadratures
+            std::copy_n(m_data + col_idx, col_range, m_reduced_data + mode_idx); // q quadratires
+            std::copy_n(m_data + col_idx + total_number_of_modes, col_range, m_reduced_data + mode_idx + number_of_modes); // p quadratures
         }
 
         mode_idx = mode_idx + col_range;

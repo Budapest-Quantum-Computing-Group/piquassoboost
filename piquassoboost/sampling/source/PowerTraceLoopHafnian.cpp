@@ -19,6 +19,7 @@
 #endif // LONG_DOUBLE_CUTOFF
 
 #include <iostream>
+#include <algorithm>
 #include "PowerTraceLoopHafnian.h"
 #include "PowerTraceHafnianUtilities.hpp"
 #include <tbb/scalable_allocator.h>
@@ -63,10 +64,10 @@ PowerTraceLoopHafnian<small_scalar_type, scalar_type>::PowerTraceLoopHafnian( ma
     if (mtx_in.rows % 2 == 1){
         matrix extended_matrix(mtx_in.rows + 1, mtx_in.cols + 1);
         for (size_t row_idx = 0; row_idx < mtx_in.rows; row_idx++){
-            std::memcpy(
-                extended_matrix.get_data() + row_idx * extended_matrix.stride,
+            std::copy_n(
                 mtx_in.get_data() + row_idx * mtx_in.stride,
-                sizeof(Complex16) * mtx_in.cols
+                mtx_in.cols,
+                extended_matrix.get_data() + row_idx * extended_matrix.stride
             );
             extended_matrix[row_idx * extended_matrix.stride + mtx_in.cols] = 
                 Complex16(0.0, 0.0);

@@ -643,7 +643,8 @@ PowerTraceHafnianRecursive_Tasks<small_scalar_type, scalar_type>::CreateAZ( cons
         size_t row_offset_mtx_a = 2*selected_modes[mode_idx]*this->mtx.stride;
         size_t row_offset_mtx_aconj = (2*selected_modes[mode_idx]+1)*this->mtx.stride;
 
-        for (size_t filling_factor_row=1; filling_factor_row<=occupancy[selected_modes[mode_idx]]; filling_factor_row++) {
+        const size_t occupancy_mode = (size_t)occupancy[selected_modes[mode_idx]];
+        for (size_t filling_factor_row=1; filling_factor_row<=occupancy_mode; filling_factor_row++) {
 
             size_t row_offset_A_a = 2*row_idx*A.stride;
             size_t row_offset_A_aconj = (2*row_idx+1)*A.stride;

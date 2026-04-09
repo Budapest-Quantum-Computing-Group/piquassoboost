@@ -340,7 +340,7 @@ CGeneralizedCliffordsBLossySimulationStrategy::fill_r_sample(
 ){
     size_t number_of_current_input_photons = working_particle_input_state.size();
 
-    while (number_of_current_input_photons > sample.number_of_photons) {
+    while (number_of_current_input_photons > (size_t)sample.number_of_photons) {
 
         // randomly pick up an incoming photon and add it to current input state
         update_input_by_single_photon( current_input, working_particle_input_state );

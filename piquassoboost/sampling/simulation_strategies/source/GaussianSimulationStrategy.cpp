@@ -240,7 +240,7 @@ GaussianSimulationStrategy::simulate( int samples_number ) {
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
     samples.reserve(samples_number);
-    for (size_t idx=0; idx < samples_number; idx++) {
+    for (size_t idx=0; idx < (size_t)samples_number; idx++) {
         samples.push_back(getSample());
     }
 
@@ -709,14 +709,16 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
 
     size_t row_idx = 0;
     for (size_t idx=0; idx<current_output.size(); idx++) {
-        for (size_t row_repeat=0; row_repeat<current_output[idx]; row_repeat++) {
+        const size_t current_output_idx = (size_t)current_output[idx];
+        for (size_t row_repeat=0; row_repeat<current_output_idx; row_repeat++) {
 
             size_t row_offset = row_idx*A_S.stride;
             size_t row_offset_A = idx*A.stride;
             size_t col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+                const size_t current_output_jdx = (size_t)current_output[jdx];
+                for (size_t col_repeat=0; col_repeat<current_output_jdx; col_repeat++) {
                         A_S[row_offset + col_idx] = A[row_offset_A + jdx];
                     col_idx++;
                 }
@@ -725,7 +727,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+                const size_t current_output_jdx = (size_t)current_output[jdx];
+                for (size_t col_repeat=0; col_repeat<current_output_jdx; col_repeat++) {
                     A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
                     col_idx++;
                 }
@@ -737,7 +740,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+                const size_t current_output_jdx = (size_t)current_output[jdx];
+                for (size_t col_repeat=0; col_repeat<current_output_jdx; col_repeat++) {
                     A_S[row_offset + col_idx] = A[row_offset_A + jdx];
                     col_idx++;
                 }
@@ -746,7 +750,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+                const size_t current_output_jdx = (size_t)current_output[jdx];
+                for (size_t col_repeat=0; col_repeat<current_output_jdx; col_repeat++) {
                         A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
                     col_idx++;
                 }
