@@ -55,7 +55,7 @@ public:
 @brief Nullary Contructor of the class
 @return Returns with the created class instance
 */
-RealM<scalar> () {
+RealM () {
 
 };
 
@@ -66,7 +66,7 @@ RealM<scalar> () {
 @param a The real number
 @return Returns with the created class instance
 */
-RealM<scalar>( scalar a) {
+RealM( scalar a) {
 
     // reserve space for 3 orders
     addends.reserve(3);
