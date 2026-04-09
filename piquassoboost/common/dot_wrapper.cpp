@@ -139,7 +139,7 @@ dot_wrapper_dot2(PyObject *self, PyObject *args)
     pic::matrix A_mtx = numpy2matrix(A);
     pic::matrix B_mtx = numpy2matrix(B);
     // Mark B for conjugation so dot() handles it safely with unique_ptr
-    B_mtx.set_conjugated( true );
+    B_mtx.conjugate();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
