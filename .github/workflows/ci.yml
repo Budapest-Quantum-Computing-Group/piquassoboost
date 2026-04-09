@@ -25,7 +25,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y --no-install-recommends cmake libtbb-dev libopenblas-dev liblapacke-dev
+        sudo apt-get install -y --no-install-recommends cmake gdb libtbb-dev libopenblas-dev liblapacke-dev
 
     - name: Install Python Dependencies
       run: |
@@ -39,9 +39,36 @@ jobs:
       run: |
         python setup.py build_ext -q
 
-    - name: Test
+    - name: Test (with crash diagnostics)
+      env:
+        OPENBLAS_NUM_THREADS: 1
+        OMP_NUM_THREADS: 1
       run: |
+        set +e
         pytest unittests/ -x -v --tb=line
+        status=$?
+
+        if [ "$status" -ne 0 ]; then
+          echo "Pytest failed. Collecting native backtrace for test_dot2..."
+          cat > /tmp/repro_dot2.py <<'PY'
+import numpy as np
+from scipy.stats import unitary_group
+import piquassoboost.common.dot_wrapper as dot
+
+A_numpy = np.ascontiguousarray(unitary_group.rvs(2))
+B_numpy = np.ascontiguousarray(unitary_group.rvs(2))
+
+_ = dot.dot2(A_numpy, B_numpy)
+print("dot2 completed")
+PY
+          gdb -q --batch \
+            -ex "set pagination off" \
+            -ex "run" \
+            -ex "thread apply all bt full" \
+            --args python /tmp/repro_dot2.py || true
+        fi
+
+        exit "$status"
 
   build-and-test-linux-sanitizers:
     runs-on: ubuntu-latest
@@ -60,7 +87,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y --no-install-recommends clang cmake libtbb-dev libopenblas-dev liblapacke-dev
+        sudo apt-get install -y --no-install-recommends cmake libtbb-dev libopenblas-dev liblapacke-dev
 
     - name: Install Python Dependencies
       run: |
@@ -69,8 +96,8 @@ jobs:
 
     - name: Build (ASan/UBSan)
       env:
-        CC: clang
-        CXX: clang++
+        CC: gcc
+        CXX: g++
         CFLAGS: -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined
         CXXFLAGS: -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined
         LDFLAGS: -fsanitize=address,undefined
