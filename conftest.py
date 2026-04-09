@@ -22,7 +22,7 @@ import piquassoboost as pqb
 
 @pytest.fixture(autouse=True)
 def _patch(request):
-    regexp = re.compile(f"{re.escape(str(request.config.rootdir))}\/(.+?)\/(.*)")
+    regexp = re.compile(f"{re.escape(str(request.config.rootdir))}/(.+?)/(.*)")
 
     result = regexp.search(str(request.fspath))
 

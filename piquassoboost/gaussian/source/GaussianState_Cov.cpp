@@ -322,6 +322,7 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
 
 
 
+#if defined(__AVX__)
     double* qq_data_d = (double*)qq.get_data();
     double* pp_data_d = (double*)pp.get_data();
     double* qp_data_d = (double*)qp.get_data();
@@ -331,8 +332,6 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
     double* a_i_ad_j_data_d  = (double*)a_i_ad_j.get_data();
     double* a_i_a_j_data_d   = (double*)a_i_a_j.get_data();
     double* ad_i_ad_j_data_d = (double*)ad_i_ad_j.get_data();
-
-
 
     __m256d neg = _mm256_setr_pd(-1.0, 1.0, -1.0, 1.0);
     __m256d half = _mm256_setr_pd(0.5, 0.5, 0.5, 0.5);
@@ -406,16 +405,39 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
             a_i_a_j[idx]   = (qq_minus_pp + Complex16(0.0,1.0) * pq_plus_qp)/2.0;
             ad_i_ad_j[idx] = (qq_minus_pp - Complex16(0.0,1.0) * pq_plus_qp)/2.0;
 
-
-            //a_i_ad_j_data[idx]  = (qq_data[idx] + pp_data[idx] + Complex16(0.0,1.0) * (pq_data[idx] - qp_data[idx]))/2.0;
-            //ad_i_a_j_data[idx]  = (qq_data[idx] + pp_data[idx] - Complex16(0.0,1.0) * (pq_data[idx] - qp_data[idx]))/2.0;
-            //a_i_a_j_data[idx]   = (qq_data[idx] - pp_data[idx] + Complex16(0.0,1.0) * (pq_data[idx] + qp_data[idx]))/2.0;
-            //ad_i_ad_j_data[idx] = (qq_data[idx] - pp_data[idx] - Complex16(0.0,1.0) * (pq_data[idx] + qp_data[idx]))/2.0;
-
         }
 
 
     }
+
+#else // non-AVX scalar path (e.g. ARM)
+
+    // calculate \Sigma = covariance_matrix_a following Eq. (1) in arXiv 2010.15595v3
+    for (size_t row_idx = 0; row_idx<total_number_of_modes; row_idx++) {
+
+        size_t row_offset = row_idx*2*total_number_of_modes;
+
+        for (size_t col_idx = 0; col_idx<total_number_of_modes; col_idx++) {
+
+            size_t idx = row_offset + col_idx;
+
+            Complex16 qq_plus_pp  = qq[idx] + pp[idx];
+            Complex16 pq_minus_qp = pq[idx] - qp[idx];
+
+            a_i_ad_j[idx] = (qq_plus_pp + Complex16(0.0,1.0) * pq_minus_qp) / 2.0;
+            ad_i_a_j[idx] = (qq_plus_pp - Complex16(0.0,1.0) * pq_minus_qp) / 2.0;
+
+            Complex16 qq_minus_pp = qq[idx] - pp[idx];
+            Complex16 pq_plus_qp  = pq[idx] + qp[idx];
+
+            a_i_a_j[idx]   = (qq_minus_pp + Complex16(0.0,1.0) * pq_plus_qp) / 2.0;
+            ad_i_ad_j[idx] = (qq_minus_pp - Complex16(0.0,1.0) * pq_plus_qp) / 2.0;
+
+        }
+
+    }
+
+#endif // defined(__AVX__)
 
 
     // strore the calculated covariance matrix
