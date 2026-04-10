@@ -187,7 +187,7 @@ jobs:
           docker run --rm -v ${{ github.workspace }}:/io \
             quay.io/pypa/${{ matrix.image }} \
             /bin/bash -c "
-              yum install -y cmake tbb-devel openblas-devel lapack-devel
+              yum install -y cmake tbb-devel openblas-devel lapack-devel python3-devel
               PYTHON_TAG=\$(echo '${{ matrix.python-version }}' | tr -d '.')
               /opt/python/cp\${PYTHON_TAG}-cp\${PYTHON_TAG}/bin/pip install --upgrade pip
               /opt/python/cp\${PYTHON_TAG}-cp\${PYTHON_TAG}/bin/pip install build setuptools wheel scikit-build ninja numpy auditwheel
