@@ -219,6 +219,7 @@ jobs:
     # Only publish to PyPI on an actual GitHub release event, not on
     # workflow_dispatch (which is used for testing the build without releasing).
     if: github.event_name == 'release' && needs.get-version.outputs.version != ''
+    environment: pypi
     permissions:
       id-token: write
       contents: read
