@@ -224,12 +224,17 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - name: Download all wheels
+      - name: Download wheels (Windows/macOS)
         uses: actions/download-artifact@v4
         with:
-          pattern: |
-            wheels-*
-            wheels-manylinux-*
+          pattern: wheels-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Download wheels (manylinux)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-manylinux-*
           path: dist/
           merge-multiple: true
 
