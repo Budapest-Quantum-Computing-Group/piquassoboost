@@ -1,3 +1,9 @@
+[![PyPI](https://img.shields.io/pypi/v/piquassoboost.svg?logo=pypi&color=blue)](https://pypi.org/project/piquassoboost/)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/piquassoboost.svg?logo=python&color=3776AB)](https://pypi.org/project/piquassoboost/)
+[![License](https://img.shields.io/pypi/l/piquassoboost.svg?color=blue)](https://github.com/Budapest-Quantum-Computing-Group/piquassoboost/blob/main/LICENSE.txt)
+[![CI](https://github.com/Budapest-Quantum-Computing-Group/piquassoboost/actions/workflows/ci.yml/badge.svg)](https://github.com/Budapest-Quantum-Computing-Group/piquassoboost/actions/workflows/ci.yml)
+[![Publish](https://github.com/Budapest-Quantum-Computing-Group/piquassoboost/actions/workflows/publish.yml/badge.svg)](https://github.com/Budapest-Quantum-Computing-Group/piquassoboost/actions/workflows/publish.yml)
+
 # Piquasso Boost
 
 The Piquasso Boost library intends to improve the performance and the scaleability of the computationally most demanding components of the Piquasso bosonic quantum simulation package. 
