@@ -19,10 +19,24 @@ import sys
 # On Windows, Python 3.8+ no longer searches PATH for DLLs loaded by
 # extension modules.  Add the package directory explicitly so that
 # piquassoboost.dll (built alongside the .pyd files) is found at import time.
-if sys.platform == "win32":
+# Also add the BLAS/TBB runtime DLL directory (conda Library/bin or BLAS_LIB_DIR/../bin).
+if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
     _pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    if hasattr(os, "add_dll_directory"):
-        os.add_dll_directory(_pkg_dir)
+    os.add_dll_directory(_pkg_dir)
+    # Try BLAS_LIB_DIR env var (set during build); resolve ../bin as runtime sibling
+    _blas_lib_dir = os.environ.get("BLAS_LIB_DIR", "")
+    if _blas_lib_dir:
+        _blas_bin_dir = os.path.join(_blas_lib_dir, "..", "bin")
+        if os.path.isdir(_blas_bin_dir):
+            os.add_dll_directory(os.path.normpath(_blas_bin_dir))
+        elif os.path.isdir(_blas_lib_dir):
+            os.add_dll_directory(_blas_lib_dir)
+    # Also try CONDA_PREFIX/Library/bin
+    _conda_prefix = os.environ.get("CONDA_PREFIX", "")
+    if _conda_prefix:
+        _conda_bin = os.path.join(_conda_prefix, "bin")
+        if os.path.isdir(_conda_bin):
+            os.add_dll_directory(_conda_bin)
 
 import piquasso as pq
 
