@@ -42,6 +42,13 @@ Morse, Gregory; Rybotycki, Tomasz; Kaposi, Ágoston; Kolarovszki, Zoltán; Stoj�
 * DOI: https://doi.org/10.1088/1367-2630/ad313b
 * PDF: https://iopscience.iop.org/article/10.1088/1367-2630/ad313b/pdf
 
+For the Piquasso photonic quantum computing framework that Piquasso Boost accelerates, please also cite:
+
+Kolarovszki, Zoltán; Rybotycki, Tomasz; Rakyta, Péter; Kaposi, Ágoston; Poór, Boldizsár; Jóczik, Szabolcs; Nagy, Dániel T. R.; Varga, Henrik; El-Safty, Kareem H.; Morse, Gregory; Oszmaniec, Michał; Kozsik, Tamás; Zimborás, Zoltán. Piquasso: A Photonic Quantum Computer Simulation Software Platform. Quantum 9, 1708 (2025).
+
+* DOI: https://doi.org/10.22331/q-2025-04-15-1708
+* arXiv: https://arxiv.org/abs/2403.04006
+
 For the recursive Torontonian and loop-Torontonian algorithms, please also cite:
 
 Kaposi, Ágoston; Kolarovszki, Zoltán; Kozsik, Tamás; Zimborás, Zoltán; Rakyta, Péter. Polynomial speedup in Torontonian calculation by a scalable recursive algorithm (2021).
