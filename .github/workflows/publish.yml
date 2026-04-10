@@ -203,7 +203,6 @@ jobs:
               cd /io
               /opt/python/cp\${PYTHON_TAG}-cp\${PYTHON_TAG}/bin/python -m build --wheel
               /opt/python/cp\${PYTHON_TAG}-cp\${PYTHON_TAG}/bin/auditwheel repair dist/*.whl -w dist/
-              rm -f dist/*linux_x86_64.whl
             "
 
       - name: Upload wheel artifacts
