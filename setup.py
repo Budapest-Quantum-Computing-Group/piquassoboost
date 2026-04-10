@@ -43,13 +43,12 @@ setup(
     keywords="test, cmake, extension",
     classifiers=[
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: "
-        "Apache License 2.0.",
+        "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
         "Programming Language :: C",
         "Programming Language :: C++"
     ],
-    license='Apache License 2.0.',
+    license='Apache Software License',
     scripts=[
         "cmake/check_AVX.cmake",
         "cmake/FindBLASEXT.cmake",
