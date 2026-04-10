@@ -72,11 +72,11 @@ target_include_directories(permanent_calculators PUBLIC
 
 
 set_target_properties( Boson_Sampling_Utilities_wrapper PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 set_target_properties( permanent_calculators PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 

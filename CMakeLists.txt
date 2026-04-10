@@ -22,6 +22,14 @@ project(PiuqassoBoost VERSION 0.1)
 # reuse compilation time linking for use runtime linking 
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
+# Platform-appropriate rpath origin token.
+# $ORIGIN is ELF/Linux syntax; macOS requires @loader_path instead.
+if(APPLE)
+    set(RPATH_ORIGIN "@loader_path")
+else()
+    set(RPATH_ORIGIN "$ORIGIN")
+endif()
+
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

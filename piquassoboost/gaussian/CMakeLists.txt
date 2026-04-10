@@ -45,7 +45,7 @@ target_include_directories(calculation_extension PUBLIC
                             ${NUMPY_INC_DIR})
 
 set_target_properties( calculation_extension PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 
