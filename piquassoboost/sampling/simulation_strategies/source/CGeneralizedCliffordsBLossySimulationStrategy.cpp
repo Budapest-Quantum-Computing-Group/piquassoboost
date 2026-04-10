@@ -48,13 +48,13 @@ extern "C" {
 
 namespace pic {
 
-static double t_perm_accumulator=0.0;
-static double t_DFE=0.0;
-static double t_DFE_pure=0.0;
-static double t_DFE_prepare=0.0;
-static double t_CPU_permanent=0.0;
-static double t_CPU=0.0;
-static double t_CPU_permanent_Glynn=0.0;
+//static double t_perm_accumulator=0.0;
+//static double t_DFE=0.0;
+//static double t_DFE_pure=0.0;
+//static double t_DFE_prepare=0.0;
+//static double t_CPU_permanent=0.0;
+//static double t_CPU=0.0;
+//static double t_CPU_permanent_Glynn=0.0;
 
 CGeneralizedCliffordsBLossySimulationStrategy::CGeneralizedCliffordsBLossySimulationStrategy() {
     // seed the random generator
@@ -340,7 +340,7 @@ CGeneralizedCliffordsBLossySimulationStrategy::fill_r_sample(
 ){
     size_t number_of_current_input_photons = working_particle_input_state.size();
 
-    while (number_of_current_input_photons > sample.number_of_photons) {
+    while (number_of_current_input_photons > (size_t)sample.number_of_photons) {
 
         // randomly pick up an incoming photon and add it to current input state
         update_input_by_single_photon( current_input, working_particle_input_state );

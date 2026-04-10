@@ -15,6 +15,7 @@
  */
 
 #include <iostream>
+#include <algorithm>
 #include "GaussianSimulationStrategy.h"
 #include "PowerTraceHafnian.h"
 #include "PowerTraceLoopHafnian.h"
@@ -239,7 +240,7 @@ GaussianSimulationStrategy::simulate( int samples_number ) {
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
     samples.reserve(samples_number);
-    for (size_t idx=0; idx < samples_number; idx++) {
+    for (size_t idx=0; idx < (size_t)samples_number; idx++) {
         samples.push_back(getSample());
     }
 
@@ -294,16 +295,16 @@ GaussianSimulationStrategy::getSample() {
             Complex16* XQinvX_data = XQinvX.get_data() + (idx+Qinv.rows/2)*XQinvX.stride;
             Complex16* Qinv_data = Qinv.get_data() + (idx)*Qinv.stride;
 
-            memcpy(XQinvX_data, Qinv_data + Qinv.cols/2, Qinv.cols/2*sizeof(Complex16));
-            memcpy(XQinvX_data + Qinv.cols/2, Qinv_data, Qinv.cols/2*sizeof(Complex16));
+            std::copy_n(Qinv_data + Qinv.cols/2, Qinv.cols/2, XQinvX_data);
+            std::copy_n(Qinv_data, Qinv.cols/2, XQinvX_data + Qinv.cols/2);
         }
 
         for (size_t idx=Qinv.rows/2; idx<Qinv.rows; idx++) {
             Complex16* XQinvX_data = XQinvX.get_data() + (idx-Qinv.rows/2)*XQinvX.stride;
             Complex16* Qinv_data = Qinv.get_data() + (idx)*Qinv.stride;
 
-            memcpy(XQinvX_data, Qinv_data + Qinv.cols/2, Qinv.cols/2*sizeof(Complex16));
-            memcpy(XQinvX_data + Qinv.cols/2, Qinv_data, Qinv.cols/2*sizeof(Complex16));
+            std::copy_n(Qinv_data + Qinv.cols/2, Qinv.cols/2, XQinvX_data);
+            std::copy_n(Qinv_data, Qinv.cols/2, XQinvX_data + Qinv.cols/2);
 
         }
         Qinv = XQinvX;
@@ -420,7 +421,7 @@ GaussianSimulationStrategy::calc_Qinv( GaussianState_Cov& state, double& Qdet ) 
     //  calculate the determinant of Q
     Complex16 Qdet_cmplx(1.0,0.0);
     for (size_t idx=0; idx<Q.rows; idx++) {
-        if (ipiv[idx] != idx+1) {
+        if (ipiv[idx] != (int)(idx+1)) {
             Qdet_cmplx = -Qdet_cmplx * Q[idx*Q.stride + idx];
         }
         else {
@@ -704,18 +705,20 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
     size_t dim_A = current_output.size();
 
     matrix A_S(2*dim_A_S, 2*dim_A_S);
-    memset(A_S.get_data(), 0, A_S.size()*sizeof(Complex16));
+    std::fill_n(A_S.get_data(), A_S.size(), Complex16(0));
 
     size_t row_idx = 0;
     for (size_t idx=0; idx<current_output.size(); idx++) {
-        for (size_t row_repeat=0; row_repeat<current_output[idx]; row_repeat++) {
+        const size_t current_output_idx = (size_t)current_output[idx];
+        for (size_t row_repeat=0; row_repeat<current_output_idx; row_repeat++) {
 
             size_t row_offset = row_idx*A_S.stride;
             size_t row_offset_A = idx*A.stride;
             size_t col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+                const size_t current_output_jdx = (size_t)current_output[jdx];
+                for (size_t col_repeat=0; col_repeat<current_output_jdx; col_repeat++) {
                         A_S[row_offset + col_idx] = A[row_offset_A + jdx];
                     col_idx++;
                 }
@@ -724,7 +727,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+                const size_t current_output_jdx = (size_t)current_output[jdx];
+                for (size_t col_repeat=0; col_repeat<current_output_jdx; col_repeat++) {
                     A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
                     col_idx++;
                 }
@@ -736,7 +740,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+                const size_t current_output_jdx = (size_t)current_output[jdx];
+                for (size_t col_repeat=0; col_repeat<current_output_jdx; col_repeat++) {
                     A_S[row_offset + col_idx] = A[row_offset_A + jdx];
                     col_idx++;
                 }
@@ -745,7 +750,8 @@ GaussianSimulationStrategy::create_A_S( matrix& A, PicState_int64& current_outpu
             col_idx = 0;
             // insert column elements
             for (size_t jdx=0; jdx<current_output.size(); jdx++) {
-                for (size_t col_repeat=0; col_repeat<current_output[jdx]; col_repeat++) {
+                const size_t current_output_jdx = (size_t)current_output[jdx];
+                for (size_t col_repeat=0; col_repeat<current_output_jdx; col_repeat++) {
                         A_S[row_offset + col_idx + dim_A_S] = A[row_offset_A + jdx + dim_A];
                     col_idx++;
                 }

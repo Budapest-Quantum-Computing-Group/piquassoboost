@@ -43,7 +43,7 @@ public:
 @brief Nullary Contructor of the class
 @return Returns with the created class instance
 */
-Complex_base<scalar> () {
+Complex_base () {
 
 };
 
@@ -53,7 +53,7 @@ Complex_base<scalar> () {
 @param b The imaginary part of the complex number
 @return Returns with the created class instance
 */
-Complex_base<scalar> ( scalar a, scalar b) {
+Complex_base ( scalar a, scalar b) {
 
     this->real(a);
     this->imag(b);
@@ -66,7 +66,7 @@ Complex_base<scalar> ( scalar a, scalar b) {
 @param a The real part of the complex number (The imaginary part is set to zero)
 @return Returns with the created class instance
 */
-Complex_base<scalar> ( scalar a) {
+Complex_base ( scalar a) {
 
     this->real(a);
     this->imag(0.0);

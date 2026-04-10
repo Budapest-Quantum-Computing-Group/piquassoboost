@@ -17,7 +17,10 @@
 #include <iostream>
 #include "GaussianState_Cov.h"
 #include <memory.h>
+#include <algorithm>
+#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
 #include <immintrin.h>
+#endif
 #include "tbb/tbb.h"
 
 
@@ -144,12 +147,12 @@ GaussianState_Cov::getReducedGaussianState( PicState_int64 &modes ) {
             // col-wise extraction of the q quadratures from the covariance matrix
             size_t cov_reduced_offset = mode_row_idx*covariance_matrix_reduced.stride + mode_idx;
             size_t cov_offset = modes[mode_row_idx]*covariance_matrix.stride + col_idx;
-            memcpy(covariance_matrix_reduced_data + cov_reduced_offset, covariance_matrix_data + cov_offset , col_range*sizeof(Complex16));
+            std::copy_n(covariance_matrix_data + cov_offset, col_range, covariance_matrix_reduced_data + cov_reduced_offset);
 
             // col-wise extraction of the p quadratures from the covariance matrix
             cov_reduced_offset = cov_reduced_offset + number_of_modes;
             cov_offset = cov_offset + total_number_of_modes;
-            memcpy(covariance_matrix_reduced_data + cov_reduced_offset, covariance_matrix_data + cov_offset , col_range*sizeof(Complex16));
+            std::copy_n(covariance_matrix_data + cov_offset, col_range, covariance_matrix_reduced_data + cov_reduced_offset);
 
         }
 
@@ -160,18 +163,18 @@ GaussianState_Cov::getReducedGaussianState( PicState_int64 &modes ) {
             // col-wise extraction of the q quadratures from the covariance matrix
             size_t cov_reduced_offset = (mode_row_idx+number_of_modes)*covariance_matrix_reduced.stride + mode_idx;
             size_t cov_offset = (modes[mode_row_idx]+total_number_of_modes)*covariance_matrix.stride + col_idx;
-            memcpy(covariance_matrix_reduced_data + cov_reduced_offset, covariance_matrix_data + cov_offset , col_range*sizeof(Complex16));
+            std::copy_n(covariance_matrix_data + cov_offset, col_range, covariance_matrix_reduced_data + cov_reduced_offset);
 
             // col-wise extraction of the p quadratures from the covariance matrix
             cov_reduced_offset = cov_reduced_offset + number_of_modes;
             cov_offset = cov_offset + total_number_of_modes;
-            memcpy(covariance_matrix_reduced_data + cov_reduced_offset, covariance_matrix_data + cov_offset , col_range*sizeof(Complex16));
+            std::copy_n(covariance_matrix_data + cov_offset, col_range, covariance_matrix_reduced_data + cov_reduced_offset);
         }
 
         // extract modes from the displacement
         if (m.size() > 0) {
-            memcpy(m_reduced_data + mode_idx, m_data + col_idx, col_range*sizeof(Complex16)); // q quadratires
-            memcpy(m_reduced_data + mode_idx + number_of_modes, m_data + col_idx + total_number_of_modes, col_range*sizeof(Complex16)); // p quadratures
+            std::copy_n(m_data + col_idx, col_range, m_reduced_data + mode_idx); // q quadratires
+            std::copy_n(m_data + col_idx + total_number_of_modes, col_range, m_reduced_data + mode_idx + number_of_modes); // p quadratures
         }
 
         mode_idx = mode_idx + col_range;
@@ -320,6 +323,7 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
 
 
 
+#if defined(__AVX__)
     double* qq_data_d = (double*)qq.get_data();
     double* pp_data_d = (double*)pp.get_data();
     double* qp_data_d = (double*)qp.get_data();
@@ -329,8 +333,6 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
     double* a_i_ad_j_data_d  = (double*)a_i_ad_j.get_data();
     double* a_i_a_j_data_d   = (double*)a_i_a_j.get_data();
     double* ad_i_ad_j_data_d = (double*)ad_i_ad_j.get_data();
-
-
 
     __m256d neg = _mm256_setr_pd(-1.0, 1.0, -1.0, 1.0);
     __m256d half = _mm256_setr_pd(0.5, 0.5, 0.5, 0.5);
@@ -404,16 +406,39 @@ GaussianState_Cov::ConvertToComplexAmplitudes() {
             a_i_a_j[idx]   = (qq_minus_pp + Complex16(0.0,1.0) * pq_plus_qp)/2.0;
             ad_i_ad_j[idx] = (qq_minus_pp - Complex16(0.0,1.0) * pq_plus_qp)/2.0;
 
-
-            //a_i_ad_j_data[idx]  = (qq_data[idx] + pp_data[idx] + Complex16(0.0,1.0) * (pq_data[idx] - qp_data[idx]))/2.0;
-            //ad_i_a_j_data[idx]  = (qq_data[idx] + pp_data[idx] - Complex16(0.0,1.0) * (pq_data[idx] - qp_data[idx]))/2.0;
-            //a_i_a_j_data[idx]   = (qq_data[idx] - pp_data[idx] + Complex16(0.0,1.0) * (pq_data[idx] + qp_data[idx]))/2.0;
-            //ad_i_ad_j_data[idx] = (qq_data[idx] - pp_data[idx] - Complex16(0.0,1.0) * (pq_data[idx] + qp_data[idx]))/2.0;
-
         }
 
 
     }
+
+#else // non-AVX scalar path (e.g. ARM)
+
+    // calculate \Sigma = covariance_matrix_a following Eq. (1) in arXiv 2010.15595v3
+    for (size_t row_idx = 0; row_idx<total_number_of_modes; row_idx++) {
+
+        size_t row_offset = row_idx*2*total_number_of_modes;
+
+        for (size_t col_idx = 0; col_idx<total_number_of_modes; col_idx++) {
+
+            size_t idx = row_offset + col_idx;
+
+            Complex16 qq_plus_pp  = qq[idx] + pp[idx];
+            Complex16 pq_minus_qp = pq[idx] - qp[idx];
+
+            a_i_ad_j[idx] = (qq_plus_pp + Complex16(0.0,1.0) * pq_minus_qp) / 2.0;
+            ad_i_a_j[idx] = (qq_plus_pp - Complex16(0.0,1.0) * pq_minus_qp) / 2.0;
+
+            Complex16 qq_minus_pp = qq[idx] - pp[idx];
+            Complex16 pq_plus_qp  = pq[idx] + qp[idx];
+
+            a_i_a_j[idx]   = (qq_minus_pp + Complex16(0.0,1.0) * pq_plus_qp) / 2.0;
+            ad_i_ad_j[idx] = (qq_minus_pp - Complex16(0.0,1.0) * pq_plus_qp) / 2.0;
+
+        }
+
+    }
+
+#endif // defined(__AVX__)
 
 
     // strore the calculated covariance matrix

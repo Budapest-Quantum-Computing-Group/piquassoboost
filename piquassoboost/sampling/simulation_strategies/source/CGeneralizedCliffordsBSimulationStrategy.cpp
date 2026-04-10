@@ -42,13 +42,13 @@ namespace pic {
 */
 
 
-static double t_perm_accumulator=0.0;
-static double t_DFE=0.0;
-static double t_DFE_pure=0.0;
-static double t_DFE_prepare=0.0;
-static double t_CPU_permanent=0.0;
-static double t_CPU=0.0;
-static double t_CPU_permanent_Glynn=0.0;
+//static double t_perm_accumulator=0.0;
+//static double t_DFE=0.0;
+//static double t_DFE_pure=0.0;
+//static double t_DFE_prepare=0.0;
+//static double t_CPU_permanent=0.0;
+//static double t_CPU=0.0;
+//static double t_CPU_permanent_Glynn=0.0;
 
 
 
@@ -236,7 +236,7 @@ CGeneralizedCliffordsBSimulationStrategy::simulate( PicState_int64 &input_state_
 
         // calculate the individual outputs for the shots
         for (int idx=0; idx<samples_number; idx++) {
-tbb::tick_count t0cpu = tbb::tick_count::now();
+//tbb::tick_count t0cpu = tbb::tick_count::now();
             PicState_int64 sample(input_state_in.cols, 0);
             sample.number_of_photons = 0;
 
@@ -257,8 +257,8 @@ tbb::tick_count t0cpu = tbb::tick_count::now();
             samples.push_back( sample );
 //std::cout << "sample: " << idx+1 << std::endl;
 //sample.print_matrix();
-tbb::tick_count t1cpu = tbb::tick_count::now();
-t_CPU += (t1cpu-t0cpu).seconds();            
+//tbb::tick_count t1cpu = tbb::tick_count::now();
+//t_CPU += (t1cpu-t0cpu).seconds();            
 //std::cout << "DFE all time: " << t_DFE << ", cpu permanent: " << t_CPU_permanent << " " << t_CPU_permanent_Glynn << std::endl;
 //std::cout << "DFE_pure time: " << t_DFE_pure << std::endl;
 //std::cout << "DFE_prepare time: " << t_DFE_prepare << std::endl;

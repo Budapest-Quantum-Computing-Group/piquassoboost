@@ -37,10 +37,9 @@ get_reflection_vector_AVX(matrix &input, double &norm_v_sqr) {
 
   for (size_t idx = 0; idx < reflect_vector.size()-1; idx=idx+2) {
 
-      __m256d element_vec;
-      element_vec =  _mm256_insertf128_pd(element_vec, _mm_load_pd(input_data), 0);
+      __m128d _lo_vec = _mm_load_pd(input_data);
       input_data = input_data + 2*input.stride;
-      element_vec =  _mm256_insertf128_pd(element_vec, _mm_load_pd(input_data), 1);
+      __m256d element_vec = _mm256_set_m128d(_mm_load_pd(input_data), _lo_vec);
 
       // store data to reflection vector
       _mm256_storeu_pd(reflect_vector_data+2*idx, element_vec);
@@ -72,7 +71,7 @@ get_reflection_vector_AVX(matrix &input, double &norm_v_sqr) {
 
 
   __m128d norm_v_sqr_vec = _mm_hadd_pd(norm_v_sqr_vec_128, norm_v_sqr_vec_128);
-  norm_v_sqr = norm_v_sqr_vec[0];
+  norm_v_sqr = _mm_cvtsd_f64(norm_v_sqr_vec);
 
   //__m128d sigma_vec = _mm_sqrt_pd(norm_v_sqr_vec);
   double sigma = sqrt(norm_v_sqr);//sigma_vec[0];

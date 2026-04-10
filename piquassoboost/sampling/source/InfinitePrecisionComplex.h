@@ -4,6 +4,16 @@
 #include <mpfr.h>
 
 namespace pic {
+#ifdef _MSC_VER
+// Provide a minimal piq_uint128 definition so this header can be included
+// before common_functionalities.h.  The full definition (with operators) in
+// common_functionalities.h is guarded by the same macro and won't conflict.
+#ifndef PIQ_UINT128_DEFINED
+#define PIQ_UINT128_DEFINED
+#include <stdint.h>
+struct piq_uint128 { uint64_t lo; uint64_t hi; };
+#endif
+#endif
 #define IEEE_DBL_MANT_DIG 53
 # define MPFR_LDBL_MANT_DIG   64
 class FloatInf
@@ -16,6 +26,18 @@ public:
   FloatInf(const long long unsigned int uj) { init = 1; mpfr_init2(this->f, sizeof(uintmax_t)*8); mpfr_set_uj(this->f, uj, MPFR_RNDN); }
   FloatInf(const int i) { init = 1; mpfr_init2(this->f, sizeof(int)*8); mpfr_set_si(this->f, i, MPFR_RNDN); }
   FloatInf(const int64_t i) { init = 1; mpfr_init2(this->f, sizeof(intmax_t)*8); mpfr_set_sj(this->f, i, MPFR_RNDN); }
+#ifdef _MSC_VER
+  // MSVC has no __int128; accept our piq_uint128 emulation type instead.
+  // mp_limb_t on win-64 is uint64_t, so two limbs cover all 128 bits.
+  FloatInf(const pic::piq_uint128& i) {
+      init = 1; mpfr_init2(this->f, 128);
+      mp_limb_t limbs[2] = { static_cast<mp_limb_t>(i.lo), static_cast<mp_limb_t>(i.hi) };
+      mpz_t z;
+      mpz_roinit_n(z, limbs, 2);
+      mpfr_set_z(this->f, z, MPFR_RNDN);
+      mpz_clear(z);
+  }
+#else
   FloatInf(const __int128 i) { init = 1; mpfr_init2(this->f, sizeof(__int128)*8);
       mpz_t z;
       assert(sizeof(i) == 2 * sizeof(mp_limb_t));
@@ -23,6 +45,7 @@ public:
       mpfr_set_z(this->f, z, MPFR_RNDN);
       mpz_clear(z);
   }
+#endif
   FloatInf(const char c) { init = 1; mpfr_init2(this->f, sizeof(char)*8); mpfr_set_si(this->f, c, MPFR_RNDN); }
   FloatInf(const int oinit, const mpfr_t& f) {      
       init = oinit;
@@ -331,7 +354,9 @@ public:
         this->num = num;
         this->denom = 1.0;
     }
+#ifndef _MSC_VER  // On MSVC 64-bit, size_t == unsigned long long — would be a duplicate
     RationalInf(const size_t num) : RationalInf((unsigned long long)num) {}
+#endif
     RationalInf(double num, double denom) {
         this->num = num;
         this->denom = denom;

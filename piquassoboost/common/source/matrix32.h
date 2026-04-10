@@ -91,8 +91,6 @@ matrix32( size_t rows_in, size_t cols_in, size_t stride_in);
 */
 matrix32(const matrix32 &in);
 
-
-
 /**
 @brief Call to create a copy of the matrix
 @return Returns with the instance of the class.

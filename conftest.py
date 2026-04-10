@@ -22,11 +22,13 @@ import piquassoboost as pqb
 
 @pytest.fixture(autouse=True)
 def _patch(request):
-    regexp = re.compile(f"{re.escape(str(request.config.rootdir))}\/(.+?)\/(.*)")
+    regexp = re.compile(
+        f"{re.escape(str(request.config.rootdir))}[/\\\\](.+?)[/\\\\](.*)"
+    )
 
     result = regexp.search(str(request.fspath))
 
-    if result.group(1) in ["tests", "scripts", "piquasso-module"]:
+    if result is not None and result.group(1) in ["tests", "scripts", "piquasso-module"]:
         # NOTE: Only override the simulators, when the original Piquasso Python tests
         # are executed. For tests originating in PiquassoBoost, handle everything
         # manually!

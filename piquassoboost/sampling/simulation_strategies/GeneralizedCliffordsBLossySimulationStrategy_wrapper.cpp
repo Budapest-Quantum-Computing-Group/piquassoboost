@@ -253,7 +253,7 @@ GeneralizedCliffordsBLossySimulationStrategy_wrapper_simulate(GeneralizedCliffor
     PyObject* PySamples = PyTuple_New( (Py_ssize_t) sample_num );
 
 
-    for ( int idx = 0; idx < samples.size(); idx++ ) {
+    for ( size_t idx = 0; idx < samples.size(); idx++ ) {
         // release the C++ array from the ownership of the calculated data
         samples[idx].set_owner(false);
 
@@ -412,10 +412,7 @@ static PyTypeObject GeneralizedCliffordsBLossySimulationStrategy_wrapper_Type = 
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef GeneralizedCliffordsBLossySimulationStrategy_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "GeneralizedCliffordsBLossySimulationStrategy_wrapper",
-    .m_doc = "Python binding for class CGeneralizedCliffordsBLossySimulationStrategy",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "GeneralizedCliffordsBLossySimulationStrategy_wrapper", "Python binding for class CGeneralizedCliffordsBLossySimulationStrategy", -1,
 };
 
 /**

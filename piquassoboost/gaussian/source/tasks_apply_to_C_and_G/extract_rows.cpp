@@ -20,6 +20,7 @@
 #include "matrix.h"
 #include "dot.h"
 #include <memory.h>
+#include <algorithm>
 
 namespace pic {
 
@@ -66,7 +67,7 @@ Extract_Rows::operator()(const tbb::flow::continue_msg &msg) {
     for( size_t i=0; i<modes.size(); i++ ) {
         size_t rows_offset = i*(mtx.cols);
         size_t mtx_offset = (modes[i])*(mtx.cols);
-        memcpy( rows_data+rows_offset, mtx_data+mtx_offset, (mtx.cols)*sizeof(Complex16));
+        std::copy_n(mtx_data + mtx_offset, mtx.cols, rows_data + rows_offset);
     }
 
 

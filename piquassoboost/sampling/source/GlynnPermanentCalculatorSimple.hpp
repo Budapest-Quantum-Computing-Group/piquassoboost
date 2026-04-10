@@ -86,7 +86,7 @@ GlynnPermanentCalculatorSimpleTask<matrix_type, precision_type>::calculate(matri
         // local variable for filling the container deltas
         size_t firstDelta = range.begin();
 
-        for (int i = 1; i < mtx.rows; ++i){
+        for (size_t i = 1; i < mtx.rows; ++i){
             if (0 == firstDelta % 2){
                 deltas.insert(deltas.begin(), +1);
             }else{
@@ -147,7 +147,7 @@ GlynnPermanentCalculatorSimpleTask<matrix_type, precision_type>::calculate(matri
             }
 
             // change container deltas
-            for (size_t deltaIndex = 0; deltaIndex < indexChanged; ++deltaIndex){
+            for (size_t deltaIndex = 0; deltaIndex < (size_t)indexChanged; ++deltaIndex){
                 deltas[mtx.rows - deltaIndex - 1] *= -1;
             }
         }

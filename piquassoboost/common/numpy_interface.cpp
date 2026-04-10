@@ -19,9 +19,21 @@
 
 #include <Python.h>
 #include <numpy/arrayobject.h>
+
+// NumPy 2.x changed PyArray_* to static inline functions requiring (const PyArrayObject*).
+// Add C++ overloads accepting (PyObject*) so existing code compiles unchanged.
+static inline void*  PyArray_DATA(PyObject* op)  { return PyArray_DATA((const PyArrayObject*)op); }
+static inline int    PyArray_NDIM(PyObject* op)  { return PyArray_NDIM((const PyArrayObject*)op); }
+static inline npy_intp* PyArray_DIMS(PyObject* op) { return PyArray_DIMS((const PyArrayObject*)op); }
+static inline int    PyArray_TYPE(PyObject* op)  { return PyArray_TYPE((const PyArrayObject*)op); }
+static inline int    PyArray_CHKFLAGS(PyObject* op, int flags) { return PyArray_CHKFLAGS((const PyArrayObject*)op, flags); }
+#undef PyArray_IS_C_CONTIGUOUS
+#define PyArray_IS_C_CONTIGUOUS(op) PyArray_CHKFLAGS((PyArrayObject*)(op), NPY_ARRAY_C_CONTIGUOUS)
+
 #include "matrix.h"
 #include "matrix_real.h"
 #include "PicState.h"
+#include "common_functionalities.h"
 
 
 /**
@@ -34,7 +46,7 @@ void capsule_cleanup(PyObject* capsule) {
     // I'm going to assume your memory needs to be freed with free().
     // If it needs different cleanup, perform whatever that cleanup is
     // instead of calling free().
-    scalable_aligned_free(memory);
+    pic::free_external_data(memory);
 
 
 }
@@ -83,7 +95,7 @@ PyObject* matrix_to_numpy( pic::matrix &mtx ) {
         shape[0] = (npy_intp) mtx.rows;
         shape[1] = (npy_intp) mtx.cols;
 
-        pic::Complex16* data = mtx.get_data();
+        pic::Complex16* data = mtx.detach_data();
         return array_from_ptr( (void*) data, 2, shape, NPY_COMPLEX128);
 
 

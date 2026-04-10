@@ -27,28 +27,23 @@ namespace pic {
 // number of rows in matrix A and cols in matrix B, under which serialized multiplication is applied instead of parallel one
 #define SERIAL_CUTOFF 16
 
-//tbb::spin_mutex my_mutex;
+namespace {
 
-
-// Currently only used when we have a CBLAS without CblasConjNoTrans
-
-#if CBLAS_CONJ_NO_TRANS_PRESENT == 0
-
-/// Calculate the element-wise complex conjugate of a matrix
-matrix conjMatrix(matrix &M) {
-    matrix output(M.rows, M.cols);
-
+Complex16* create_conjugated_buffer(matrix &M) {
     size_t size = M.size();
-
-    pic::Complex16* data = M.get_data();
+    Complex16* buffer = (Complex16*)scalable_aligned_malloc(size * sizeof(Complex16), CACHELINE);
+    Complex16* data = M.get_data();
 
     for (size_t i = 0; i < size; i++) {
-        output[i] = pic::Complex16(data[i].real(), -data[i].imag());
+        buffer[i] = Complex16(data[i].real(), -data[i].imag());
     }
-    return output;
+
+    return buffer;
 }
 
-#endif
+}
+
+//tbb::spin_mutex my_mutex;
 
 
 /**
@@ -76,53 +71,133 @@ dot( matrix &A, matrix &B ) {
     assert( check_matrices( A, B ) );
 
 
-/* Some CBLAS packages come without CblasConjNoTrans, so we have to de-conjugate the
- * matrices if they are conjugated but not transposed. This way they will fall in the
- * `CblasNoTrans` category, which is supported.
- */
-#if CBLAS_CONJ_NO_TRANS_PRESENT == 0
-    if ( B.is_conjugated() && !B.is_transposed() ) {
-        B = conjMatrix( B );
-    }
+    // Avoid CblasConjNoTrans (114): pre-conjugate conjugated-only matrices.
+    // Use owned temporaries and references to avoid unsafe matrix assignment.
+    bool A_preconjugated = A.is_conjugated() && !A.is_transposed();
+    bool B_preconjugated = B.is_conjugated() && !B.is_transposed();
 
-    if ( A.is_conjugated() && !A.is_transposed() ) {
-        A = conjMatrix( A );
-    }
-#endif
+    matrix& A_ref = A;
+    matrix& B_ref = B;
 
 
     // Preparing the output matrix
-    matrix C;
-    if ( A.is_transposed() ){
-        if ( B.is_transposed() ) {
-            C = matrix(A.cols, B.rows);
+    size_t C_rows;
+    size_t C_cols;
+    if ( A_ref.is_transposed() ){
+        C_rows = A_ref.cols;
+        if ( B_ref.is_transposed() ) {
+            C_cols = B_ref.rows;
         }
         else {
-            C = matrix(A.cols, B.cols);
+            C_cols = B_ref.cols;
         }
     }
     else {
-        if ( B.is_transposed() ) {
-            C = matrix(A.rows, B.rows);
+        C_rows = A_ref.rows;
+        if ( B_ref.is_transposed() ) {
+            C_cols = B_ref.rows;
         }
         else {
-            C = matrix(A.rows, B.cols);
+            C_cols = B_ref.cols;
         }
     }
+    matrix C(C_rows, C_cols);
 
 
+    if (A_preconjugated || B_preconjugated) {
+        CBLAS_TRANSPOSE Atranspose = A_ref.is_transposed() ? CblasTrans : CblasNoTrans;
+        CBLAS_TRANSPOSE Btranspose = B_ref.is_transposed() ? CblasTrans : CblasNoTrans;
+
+        int m, n, k, lda, ldb, ldc;
+
+        if ( A_ref.is_transposed() ) {
+            m = (int)A_ref.cols;
+            k = (int)A_ref.rows;
+            lda = (int)A_ref.stride;
+        }
+        else {
+            m = (int)A_ref.rows;
+            k = (int)A_ref.cols;
+            lda = (int)A_ref.stride;
+        }
+
+        if (B_ref.is_transposed()) {
+            n = (int)B_ref.rows;
+            ldb = (int)B_ref.stride;
+        }
+        else {
+            n = (int)B_ref.cols;
+            ldb = (int)B_ref.stride;
+        }
+
+        ldc = (int)C.stride;
+
+        Complex16* A_data = A_preconjugated ? create_conjugated_buffer(A_ref) : A_ref.get_data();
+        Complex16* B_data = B_preconjugated ? create_conjugated_buffer(B_ref) : B_ref.get_data();
+
+        Complex16 alpha(1.0, 0.0);
+        Complex16 beta(0.0, 0.0);
+
+        cblas_zgemm(CblasRowMajor, Atranspose, Btranspose, m, n, k,
+                    (double*)&alpha,
+                    (double*)A_data, lda,
+                    (double*)B_data, ldb,
+                    (double*)&beta,
+                    (double*)C.get_data(), ldc);
+
+        if (A_preconjugated) {
+            scalable_aligned_free(A_data);
+        }
+        if (B_preconjugated) {
+            scalable_aligned_free(B_data);
+        }
+    }
     // Calculating the matrix product
-    if ( A.rows <= SERIAL_CUTOFF && B.cols <= SERIAL_CUTOFF ) {
-        // creating the serial task object
-        zgemm_Task_serial calc_task = zgemm_Task_serial( A, B, C );
-        calc_task.zgemm_chunk();
+    else if ( A_ref.rows <= SERIAL_CUTOFF && B_ref.cols <= SERIAL_CUTOFF ) {
+        CBLAS_TRANSPOSE Atranspose, Btranspose;
+        get_cblas_transpose( A_ref, Atranspose );
+        get_cblas_transpose( B_ref, Btranspose );
+
+        int m, n, k, lda, ldb, ldc;
+
+        if ( A_ref.is_transposed() ) {
+            m = (int)A_ref.cols;
+            k = (int)A_ref.rows;
+            lda = (int)A_ref.stride;
+        }
+        else {
+            m = (int)A_ref.rows;
+            k = (int)A_ref.cols;
+            lda = (int)A_ref.stride;
+        }
+
+        if (B_ref.is_transposed()) {
+            n = (int)B_ref.rows;
+            ldb = (int)B_ref.stride;
+        }
+        else {
+            n = (int)B_ref.cols;
+            ldb = (int)B_ref.stride;
+        }
+
+        ldc = (int)C.stride;
+
+        Complex16 alpha(1.0, 0.0);
+        Complex16 beta(0.0, 0.0);
+
+        cblas_zgemm(CblasRowMajor, Atranspose, Btranspose, m, n, k,
+                    (double*)&alpha,
+                    (double*)A_ref.get_data(), lda,
+                    (double*)B_ref.get_data(), ldb,
+                    (double*)&beta,
+                    (double*)C.get_data(), ldc);
     }
     else {
 
         // creating the task object
         tbb::task_group g;
-        g.run_and_wait([&A, &B, &C, &g]() {
-                       zgemm_Task calc_task = zgemm_Task( A, B, C );
+        g.run_and_wait([&A_ref, &B_ref, &C, &g]() {
+                   zgemm_Task calc_task = zgemm_Task( A_ref, B_ref, C );
                        calc_task.execute(g);
         });
 
@@ -208,7 +283,9 @@ get_cblas_transpose( matrix &A, CBLAS_TRANSPOSE &transpose ) {
         transpose = CblasConjTrans;
     }
     else if ( A.is_conjugated() & !A.is_transposed() ) {
-        transpose = CblasConjNoTrans; // not present in MKL
+        // Conjugated-only matrices are pre-conjugated before CBLAS call.
+        // Keep a safe fallback to standard NoTrans.
+        transpose = CblasNoTrans;
     }
     else if ( !A.is_conjugated() & A.is_transposed() ) {
         transpose = CblasTrans;

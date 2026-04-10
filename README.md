@@ -17,11 +17,37 @@ Also, the interplay of MPI and TBB parallel libraries implemented in the Piquass
 The present package is supplied with Python building script and CMake tools to ease its deployment.
 The Piquasso Boost library package can be built with both Intel and GNU compilers, and can be link against various CBLAS libraries installed on the system.
 (So far OpenBLAS and the Intel MKL packages were tested.)
-In the following we briefly summarize the steps to build, install and use the Piquasso Boost library. 
+In the following we briefly summarize the steps to build, install and use the Piquasso Boost library.
 
+### Installation
+
+The intended end-user installation path is:
+
+$ pip install piquassoboost
+
+The `piquassoboost` package name has been reserved for the upcoming PyPI release. Until the first release is published, or on platforms where a prebuilt wheel is not yet available, install from source using the manual build steps below.
+
+Piquasso Boost depends on `piquasso==5.0.0`, which is installed automatically by `pip`.
 
 The project was supported by the Ministry of Innovation and Technology and the National Research, Development and Innovation
 Office within the Quantum Information National Laboratory of Hungary.
+
+
+### Citation
+
+If you use Piquasso Boost in your research, please cite:
+
+Morse, Gregory; Rybotycki, Tomasz; Kaposi, Ágoston; Kolarovszki, Zoltán; Stojčić, Uros; Kozsik, Tamás; Mencer, Oskar; Oszmaniec, Michał; Zimborás, Zoltán; Rakyta, Péter. High performance Boson sampling simulation via data-flow engines. New Journal of Physics 26(3), 033033 (2024).
+
+* DOI: https://doi.org/10.1088/1367-2630/ad313b
+* PDF: https://iopscience.iop.org/article/10.1088/1367-2630/ad313b/pdf
+
+For the recursive Torontonian and loop-Torontonian algorithms, please also cite:
+
+Kaposi, Ágoston; Kolarovszki, Zoltán; Kozsik, Tamás; Zimborás, Zoltán; Rakyta, Péter. Polynomial speedup in Torontonian calculation by a scalable recursive algorithm (2021).
+
+* arXiv: https://arxiv.org/abs/2109.04528
+* DOI: https://doi.org/10.48550/arXiv.2109.04528
 
 
 ### Contact Us
@@ -30,7 +56,9 @@ Have a question about the Piquasso Boost library? Don't hesitate to contact us b
 
 * Zoltán Zimborás (researcher): zimboras.zoltan@wigner.hu
 * Zoltán Kolarovszki (developer): kolarovszki@inf.elte.hu
+* Kaposi Ágoston (developer): kaposiagoston@inf.elte.hu
 * Peter Rakyta (developer): peter.rakyta@ttk.elte.hu
+* Gregory Morse (developer): gregory.morse@live.com
 
 
 
@@ -47,7 +75,6 @@ The dependencies necessary to compile and build the Piquasso Boost library from 
 * [MPI](https://www.open-mpi.org/) library (optional)
 * [Doxygen](https://www.doxygen.nl/index.html) (optional)
 
-The Python interface of the Piquasso Boost library was developed and tested with Python 3.6 and 3.7.
 The Python interface of the Piquasso Boost library needs the following packages to be installed on the system:
 
 * [scikit-build](https://pypi.org/project/scikit-build/) (>=0.11.1)
@@ -62,6 +89,10 @@ The Python interface of the Piquasso Boost library needs the following packages 
 
 **Note**: In some distributions, OpenBLAS might not come with CBLAS, it might
 be needed to install CBLAS manually.
+
+### Source build
+
+Use the source build path for local development, editable installs, unpublished branches, or platforms where `pip install piquassoboost` needs to build from source.
 
 ### Download the source of the Piquasso Boost library
 
@@ -133,8 +164,7 @@ environment variable before compiling the library.
 
 ### Developer build
 
-
-We recommend to install the Piquasso Boost package in the Anaconda environment. In order to install the necessary requirements, follow the steps below:
+We recommend installing the Piquasso Boost package in an Anaconda environment for local development. In order to install the necessary requirements, follow the steps below:
 
 Creating new python environment: 
 
@@ -164,13 +194,15 @@ After the basic environment variables are set and the dependencies are installed
 
 $ python3 setup.py build_ext
 
-The command above starts the compilation of the SQUANDER C++ library and builds the necessary C++ Python interface extensions of the SQUANDER package in place.
-After a successful build, one can register the SQUANDER package in the Python distribution in developer (i.e. editable) mode by command:
+The command above starts the compilation of the Piquasso Boost C++ library and builds the necessary Python interface extensions in place.
+After a successful build, one can register the Piquasso Boost package in the Python distribution in developer (i.e. editable) mode by command:
 
 $ python -m pip install -e .
 
 
 ### Binary distribution
+
+This section is primarily for maintainers preparing release artifacts. End users should prefer `pip install piquassoboost` once wheels are published on PyPI.
 
 After the environment variables are set it is possible to build the Piquasso Boost binaries. 
 In order to launch the compilation process from python, **[scikit-build](https://scikit-build.readthedocs.io/en/latest/)** package is necessary.

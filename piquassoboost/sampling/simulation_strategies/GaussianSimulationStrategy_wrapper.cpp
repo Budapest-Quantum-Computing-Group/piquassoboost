@@ -216,7 +216,7 @@ GaussianSimulationStrategy_wrapper_simulate(GaussianSimulationStrategy_wrapper *
     // preallocate Python list to hold the calculated samples
     PyObject* PySamples = PyTuple_New( (Py_ssize_t) samples.size() );
 
-    for ( int idx = 0; idx < samples.size(); idx++ ) {
+    for ( size_t idx = 0; idx < samples.size(); idx++ ) {
         // release the C++ array from the ownership of the calculated data
         samples[idx].set_owner(false);
 
@@ -370,10 +370,7 @@ static PyTypeObject GaussianSimulationStrategy_wrapper_Type = {
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef GaussianSimulationStrategy_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "GaussianSimulationStrategy_wrapper",
-    .m_doc = "Python binding for class ChinHuhPermanentCalculator",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "GaussianSimulationStrategy_wrapper", "Python binding for class ChinHuhPermanentCalculator", -1,
 };
 
 /**

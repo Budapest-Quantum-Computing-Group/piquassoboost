@@ -16,6 +16,7 @@
 
 #include "matrix32.h"
 #include <cstring>
+#include <algorithm>
 #include <iostream>
 
 /// The namespace of the Picasso project
@@ -106,13 +107,11 @@ matrix32::copy() {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   ret.owner = true;
 
-  memcpy( ret.data, data, rows*cols*sizeof(Complex32));
+  std::copy_n(data, rows*cols, ret.data);
 
   return ret;
 
 }
-
-
 
 /**
 @brief Call to check the array for NaN entries.

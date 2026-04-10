@@ -27,7 +27,7 @@ setup(
             "piquasso", "piquasso.*",
         )
     ),
-    version='0.3.0',
+    version='0.3.1',
     url="https://github.com/Budapest-Quantum-Computing-Group/piquasso",  # noqa: E501
     maintainer="The Piquasso team",
     maintainer_email="kolarovszki@inf.elte.hu",
@@ -38,7 +38,7 @@ setup(
     ],
     tests_require=["pytest"],
     description='The C++ binding for the Piquasso project',
-    long_description=open("./README.md", 'r').read(),
+    long_description=open("./README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     keywords="test, cmake, extension",
     classifiers=[

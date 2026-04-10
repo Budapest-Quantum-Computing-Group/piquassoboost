@@ -19,6 +19,7 @@
 #include "insert_transformed_rows.h"
 #include "matrix.h"
 #include <memory.h>
+#include <algorithm>
 
 namespace pic {
 
@@ -135,7 +136,7 @@ Insert_Transformed_Rows::operator()(const tbb::flow::continue_msg &msg) {
             }
             else {
                 // copy from rows
-                memcpy(mtx_row+col_idx, row+col_idx, col_range*sizeof(Complex16));
+                std::copy_n(row + col_idx, col_range, mtx_row + col_idx);
             }
 
             col_idx = col_idx + col_range;

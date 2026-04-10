@@ -18,6 +18,7 @@
 #define GLYNN_PERMANENT_CALCULATOR_HPP
 
 #include <iostream>
+#include <algorithm>
 #include "GlynnPermanentCalculator.h"
 #include <tbb/scalable_allocator.h>
 #include "tbb/tbb.h"
@@ -95,7 +96,7 @@ GlynnPermanentCalculatorTask<matrix_type, precision_type>::calculate(matrix &mtx
     // calulate the initial sum of the columns
     matrix_type colSum( mtx.cols, 1);
     Complex_base<precision_type>* colSum_data = colSum.get_data();
-    memset( colSum_data, 0.0, colSum.size()*sizeof(Complex_base<precision_type>));
+    std::fill_n(colSum_data, colSum.size(), Complex_base<precision_type>(0.0));
 
 
 
@@ -150,7 +151,7 @@ GlynnPermanentCalculatorTask<matrix_type, precision_type>::IterateOverDeltas( ma
 
     // Calculate the partial permanent
     Complex_base<precision_type> colSumProd(1.0,0.0);
-    for (int idx=0; idx<colSum.rows; idx++) {
+    for (size_t idx=0; idx<colSum.rows; idx++) {
         colSumProd = colSumProd * colSum_data[idx];
     }
 
@@ -170,7 +171,7 @@ GlynnPermanentCalculatorTask<matrix_type, precision_type>::IterateOverDeltas( ma
 
             size_t row_offset = idx*mtx2.stride;
 
-            for (int jdx=0; jdx<mtx2.cols; jdx++) {
+            for (size_t jdx=0; jdx<mtx2.cols; jdx++) {
                 colSum_new_data[jdx] = colSum_new_data[jdx] - mtx2_data[row_offset+jdx];
             }
 

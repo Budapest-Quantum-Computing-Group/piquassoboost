@@ -109,16 +109,13 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
         if (A.cols % 2 == 1) {
             size_t kdx = 2*(A.cols-1);
 
-            __m256d A_vec;
-            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data+kdx), 0);
-            A_vec = _mm256_insertf128_pd(A_vec, _mm_load_pd(data2+kdx), 1);
+            __m256d A_vec = _mm256_set_m128d(_mm_load_pd(data2+kdx), _mm_load_pd(data+kdx));
 
             // extract the last component of vector v
             __m128d v_vec = _mm_load_pd(v_data+kdx);
 
             // create vector v_i, v_i
-            __m128d* v_element = (__m128d*)&v_vec[0];
-            __m256d v_vec1 = _mm256_broadcast_pd( v_element );
+            __m256d v_vec1 = _mm256_broadcast_pd( &v_vec );
 
 
             // calculate the multiplications  A_vec*v_vec1
@@ -152,8 +149,8 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
         factor = _mm_mul_pd(factor, two);
         factor2 = _mm_mul_pd(factor2, two);
 
-        factor_vec = _mm256_broadcast_pd( (__m128d*)&factor[0] );
-        factor_vec2 = _mm256_broadcast_pd( (__m128d*)&factor2[0] );
+        factor_vec = _mm256_broadcast_pd( &factor );
+        factor_vec2 = _mm256_broadcast_pd( &factor2 );
 
 
         for (size_t kdx = 0; kdx < 2*(sizeH-1); kdx = kdx + 4) {
@@ -213,8 +210,7 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
             __m128d v_vec = _mm_load_pd(v_data+kdx);
 
             // create vector v_i, v_i
-            __m128d* v_element = (__m128d*)&v_vec[0];
-            __m256d v_vec1 = _mm256_broadcast_pd( v_element );
+            __m256d v_vec1 = _mm256_broadcast_pd( &v_vec );
 
 
             // calculate the multiplications  factor_vec*conj(v_vec1)
@@ -338,7 +334,7 @@ apply_householder_cols_AVX(matrix &A, matrix &v) {
         __m128d two = _mm_setr_pd(2.0, 2.0);
         factor = _mm_mul_pd(factor, two);
 
-        factor_vec = _mm256_broadcast_pd( (__m128d*)&factor[0] );
+        factor_vec = _mm256_broadcast_pd( &factor );
 
 
         for (size_t kdx = 0; kdx < 2*(sizeH-1); kdx = kdx + 4) {

@@ -90,12 +90,17 @@ matrix( size_t rows_in, size_t cols_in, size_t stride_in);
 */
 matrix(const matrix &in);
 
-
 /**
 @brief Call to create a copy of the matrix
 @return Returns with the instance of the class.
 */
 matrix copy();
+
+/**
+@brief Detach the stored data pointer from the matrix and release bookkeeping.
+@return Returns with the detached data pointer.
+*/
+Complex16* detach_data();
 
 /**
 @brief Call to check the array for NaN entries.

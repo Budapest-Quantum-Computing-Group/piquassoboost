@@ -114,7 +114,7 @@ BruteForceHafnian::ColPermutationsForGivenRowIndices( const PicVector<short> &ro
 
         Complex16 partial_hafnian(0.0,0.0);
 
-        for (int col_idx = col_indices.size()-1; col_idx>=0; col_idx--) {
+        for (int col_idx = (int)col_indices.size()-1; col_idx>=0; col_idx--) {
 
             size_t current_column = col_indices[col_idx];
 
@@ -126,7 +126,7 @@ BruteForceHafnian::ColPermutationsForGivenRowIndices( const PicVector<short> &ro
             PicVector<short> col_indices_new(col_indices.size()-1);
             size_t jdx=0;
             for (size_t idx=0; idx<col_indices.size(); idx++) {
-                if (idx == col_idx) {
+                if (idx == (size_t)col_idx) {
                     continue;
                 }
 

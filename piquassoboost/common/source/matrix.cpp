@@ -16,6 +16,7 @@
 
 #include "matrix.h"
 #include <cstring>
+#include <algorithm>
 #include <iostream>
 
 /// The namespace of the Picasso project
@@ -104,10 +105,32 @@ matrix::copy() {
   // logical value indicating whether the class instance is the owner of the stored data or not. (If true, the data array is released in the destructor)
   ret.owner = true;
 
-  memcpy( ret.data, data, rows*cols*sizeof(Complex16));
+  std::copy_n(data, rows*cols, ret.data);
 
   return ret;
 
+}
+
+
+/**
+@brief Detach the stored data pointer from the matrix and release bookkeeping.
+*/
+Complex16*
+matrix::detach_data() {
+
+  if (references != NULL && *references != 1) {
+    matrix unique_copy = copy();
+    return unique_copy.detach_data();
+  }
+
+  Complex16* detached_data = data;
+
+  free_bookkeeping();
+
+  data = NULL;
+  owner = false;
+
+  return detached_data;
 }
 
 

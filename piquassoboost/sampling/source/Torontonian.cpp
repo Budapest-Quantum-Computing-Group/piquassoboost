@@ -60,17 +60,17 @@ Torontonian::calculate(){
         std::cout << "The input matrix should be square shaped, but matrix with " << mtx.rows << " rows and with " << mtx.cols << " columns was given" << std::endl;
         std::cout << "Returning zero" << std::endl;
         //return Complex16(0,0);
-        return 0.0D;
+        return 0.0;
     }
 
     if (mtx.rows == 0) {
         // the torontonian of an empty matrix is 1 by definition
         //return Complex16(1,0);
-        return 1.0D;
+        return 1.0;
     }
     else if (mtx.rows % 2 != 0) {
         //return Complex16(0.0, 0.0);
-        return 0.0D;
+        return 0.0;
     }
 
 

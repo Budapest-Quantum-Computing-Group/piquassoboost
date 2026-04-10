@@ -253,7 +253,7 @@ GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper_simulate(Generalize
     PyObject* PySamples = PyTuple_New( (Py_ssize_t) sample_num );
 
 
-    for ( int idx = 0; idx < samples.size(); idx++ ) {
+    for ( size_t idx = 0; idx < samples.size(); idx++ ) {
         // release the C++ array from the ownership of the calculated data
         samples[idx].set_owner(false);
 
@@ -412,10 +412,7 @@ static PyTypeObject GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper",
-    .m_doc = "Python binding for class ChinHuhPermanentCalculator",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper", "Python binding for class ChinHuhPermanentCalculator", -1,
 };
 
 /**

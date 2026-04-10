@@ -15,8 +15,12 @@
 
 import numpy as np
 
-from piquasso.api.result import Result
-from piquasso._simulators.gaussian import calculations as pq_calculations
+from fractions import Fraction
+
+from piquasso.api.branch import Branch
+from piquasso._simulators.gaussian.simulation_steps import (
+    threshold_measurement as _pq_threshold_measurement,
+)
 
 from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 
@@ -27,7 +31,7 @@ def threshold_measurement(state, instruction, shots):
     """
 
     if not np.allclose(state.xpxp_mean_vector, np.zeros_like(state.xpxp_mean_vector)):
-        return pq_calculations.threshold_measurement(state, instruction, shots)
+        return _pq_threshold_measurement(state, instruction, shots)
 
     reduced_state = state.reduced(instruction.modes)
 
@@ -38,4 +42,7 @@ def threshold_measurement(state, instruction, shots):
     )
     samples = th.simulate(shots)
 
-    return Result(state=state, samples=samples)
+    return [
+        Branch(state=None, outcome=outcome, frequency=Fraction(1, shots))
+        for outcome in samples
+    ]

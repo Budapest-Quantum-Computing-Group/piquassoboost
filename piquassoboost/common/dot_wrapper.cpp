@@ -74,14 +74,11 @@ dot_wrapper_dot(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B);     
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -136,15 +133,12 @@ dot_wrapper_dot2(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B); 
-    B_mtx.conjugate();    
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    B_mtx.conjugate();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -202,15 +196,12 @@ dot_wrapper_dot3(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B); 
-    A_mtx.transpose();    
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    A_mtx.transpose();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -267,16 +258,13 @@ dot_wrapper_dot4(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B); 
-    A_mtx.transpose();    
-    A_mtx.conjugate(); 
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    A_mtx.transpose();
+    A_mtx.conjugate();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -333,15 +321,12 @@ dot_wrapper_dot5(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B); 
-    A_mtx.conjugate(); 
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    A_mtx.conjugate();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -397,15 +382,12 @@ dot_wrapper_dot6(PyObject *self, PyObject *args)
 
 
     // create PIC version of the input matrices
-    pic::matrix A_mtx = numpy2matrix(A);     
-    pic::matrix B_mtx = numpy2matrix(B); 
-    B_mtx.transpose(); 
+    pic::matrix A_mtx = numpy2matrix(A);
+    pic::matrix B_mtx = numpy2matrix(B);
+    B_mtx.transpose();
 
     // calculate the matrix product on the C++ side
     pic::matrix C_mtx = dot(A_mtx, B_mtx);
-
-    // release C++ matrix from the ownership of the data. (Python would handle the release of the data)
-    C_mtx.set_owner( false );      
 
     // convert C++ matrix into numpy array
     PyObject* C = matrix_to_numpy( C_mtx );
@@ -448,10 +430,7 @@ static PyMethodDef dot_wrapper_Methods[] = {
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef dot_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "dot_wrapper",
-    .m_doc = "Python binding for calculating matrix product by C++ code",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "dot_wrapper", "Python binding for calculating matrix product by C++ code", -1,
     dot_wrapper_Methods 
 };
 

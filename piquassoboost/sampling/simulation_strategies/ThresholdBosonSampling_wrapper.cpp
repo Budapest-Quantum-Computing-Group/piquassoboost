@@ -181,7 +181,7 @@ ThresholdBosonSampling_wrapper_simulate(ThresholdBosonSampling_wrapper *self, Py
     // preallocate Python list to hold the calculated samples
     PyObject* PySamples = PyTuple_New( (Py_ssize_t) samples.size() );
 
-    for ( int idx = 0; idx < samples.size(); idx++ ) {
+    for ( size_t idx = 0; idx < samples.size(); idx++ ) {
         // release the C++ array from the ownership of the calculated data
         samples[idx].set_owner(false);
 
@@ -335,10 +335,7 @@ static PyTypeObject ThresholdBosonSampling_wrapper_Type = {
 @brief Structure containing metadata about the module.
 */
 static PyModuleDef ThresholdBosonSampling_wrapper_Module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "ThresholdBosonSampling_wrapper",
-    .m_doc = "Python binding for class ThresholdBosonSampling",
-    .m_size = -1,
+    PyModuleDef_HEAD_INIT, "ThresholdBosonSampling_wrapper", "Python binding for class ThresholdBosonSampling", -1,
 };
 
 /**

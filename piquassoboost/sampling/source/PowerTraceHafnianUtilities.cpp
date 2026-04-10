@@ -20,6 +20,7 @@
 #include "calc_vov_times_A_AVX.h"
 #include "apply_householder_cols_AVX.h"
 #include "loop_correction_AVX.h"
+#include <algorithm>
 
 
 namespace pic {
@@ -180,7 +181,7 @@ apply_householder_rows(mtx_select_t<cplx_select_t<small_scalar_type>> &A, mtx_se
 
       // allocate memory for the vector-matrix product v^+ A
       mtx_select_t<cplx_select_t<small_scalar_type>> vH_times_A(1, A.cols);
-      memset(vH_times_A.get_data(), 0, vH_times_A.size()*sizeof(cplx_select_t<small_scalar_type>) );
+    std::fill_n(vH_times_A.get_data(), vH_times_A.size(), cplx_select_t<small_scalar_type>(0));
       calc_vH_times_A<small_scalar_type>(A, v, vH_times_A);
 
 
