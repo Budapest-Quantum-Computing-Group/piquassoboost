@@ -218,7 +218,9 @@ jobs:
   publish:
     needs: [get-version, build-wheels, build-manylinux-wheels]
     runs-on: ubuntu-latest
-    if: needs.get-version.outputs.version != ''
+    # Only publish to PyPI on an actual GitHub release event, not on
+    # workflow_dispatch (which is used for testing the build without releasing).
+    if: github.event_name == 'release' && needs.get-version.outputs.version != ''
     permissions:
       id-token: write
       contents: read
