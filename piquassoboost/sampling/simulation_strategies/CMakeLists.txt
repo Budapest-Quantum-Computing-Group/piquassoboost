@@ -48,7 +48,7 @@ target_include_directories(GeneralizedCliffordsSimulationStrategy_wrapper PUBLIC
 
 
 set_target_properties( GeneralizedCliffordsSimulationStrategy_wrapper PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/../.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/../.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 
@@ -92,7 +92,7 @@ target_include_directories(GeneralizedCliffordsBSimulationStrategy_wrapper PUBLI
 
 
 set_target_properties( GeneralizedCliffordsBSimulationStrategy_wrapper PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/../.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/../.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 
@@ -135,7 +135,7 @@ target_include_directories(GeneralizedCliffordsBUniformLossesSimulationStrategy_
 
 
 set_target_properties( GeneralizedCliffordsBUniformLossesSimulationStrategy_wrapper PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/../.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/../.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 
@@ -177,7 +177,7 @@ target_include_directories(GeneralizedCliffordsBLossySimulationStrategy_wrapper 
 
 
 set_target_properties( GeneralizedCliffordsBLossySimulationStrategy_wrapper PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/../.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/../.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 
@@ -221,7 +221,7 @@ target_include_directories(GaussianSimulationStrategy_wrapper PUBLIC
 
 
 set_target_properties( GaussianSimulationStrategy_wrapper PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/../.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/../.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 
@@ -267,7 +267,7 @@ target_include_directories(GaussianSimulationStrategyFast_wrapper PUBLIC
 
 
 set_target_properties( GaussianSimulationStrategyFast_wrapper PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/../.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/../.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 
@@ -310,7 +310,7 @@ target_include_directories(ThresholdBosonSampling_wrapper PUBLIC
 
 
 set_target_properties( ThresholdBosonSampling_wrapper PROPERTIES
-                        INSTALL_RPATH "$ORIGIN/../.."
+                        INSTALL_RPATH "${RPATH_ORIGIN}/../.."
                         LIBRARY_OUTPUT_DIRECTORY ${EXT_DIR}
 )
 
