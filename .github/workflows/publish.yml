@@ -129,7 +129,9 @@ jobs:
           BLAS_LIB_DIR: ${{ env.BLAS_LIB_DIR }}
           CONDA_PREFIX: ${{ env.CONDA_PREFIX }}
         run: |
-          python -m build --wheel
+          # --no-isolation: TBB and BLAS are system packages (brew/conda), not pip
+          # packages.  An isolated venv cannot install tbb-devel on macOS/Windows.
+          python -m build --wheel --no-isolation
 
       - name: Repair wheel (macOS)
         if: runner.os == 'macOS'
@@ -147,7 +149,19 @@ jobs:
           $wheel = Get-ChildItem dist/*.whl | Select-Object -First 1
           if (-not $wheel) { Write-Host "ERROR: No wheel found"; exit 1 }
           Write-Host "Repairing wheel: $($wheel.Name)"
-          delvewheel repair $wheel.FullName -w dist/ --no-diagnostic
+
+          # delvewheel needs to discover piquassoboost.dll and its runtime
+          # dependencies (openblas.dll, tbb12.dll, tbbmalloc.dll).
+          # * piquassoboost.dll is written to the source tree during the cmake
+          #   build (RUNTIME_OUTPUT_DIRECTORY = PROJECT_SOURCE_DIR/piquassoboost)
+          # * openblas/tbb DLLs live in the conda Library/bin directory.
+          # Windows DLL search does NOT traverse parent directories, so we
+          # must supply both paths explicitly via --add-path.
+          $pqbSrc  = Join-Path (Get-Location) 'piquassoboost'
+          $condaBin = "$env:CONDA_PREFIX\Library\bin"
+          $addPath = "$pqbSrc;$condaBin"
+          Write-Host "delvewheel add-path: $addPath"
+          delvewheel repair --add-path $addPath $wheel.FullName -w dist/
           Write-Host "Repair complete. Wheels in dist/:"
           Get-ChildItem dist/*.whl | ForEach-Object { Write-Host "  $($_.Name)" }
 

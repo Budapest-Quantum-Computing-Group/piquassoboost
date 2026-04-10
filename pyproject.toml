@@ -6,5 +6,9 @@ requires = [
     "cmake",
     "ninja",
     "numpy",
-    "tbb-devel",
 ]
+# NOTE: tbb-devel is intentionally NOT listed here.
+# It is only available as a pip package on Linux (manylinux), not on macOS or
+# Windows.  On macOS, TBB is provided by `brew install tbb`; on Windows by
+# conda-forge.  The manylinux docker builds install tbb-devel via yum before
+# calling python -m build, so no pip-level declaration is needed there either.
