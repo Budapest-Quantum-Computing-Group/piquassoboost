@@ -129,9 +129,7 @@ jobs:
           BLAS_LIB_DIR: ${{ env.BLAS_LIB_DIR }}
           CONDA_PREFIX: ${{ env.CONDA_PREFIX }}
         run: |
-          # --no-isolation: TBB and BLAS are system packages (brew/conda), not pip
-          # packages.  An isolated venv cannot install tbb-devel on macOS/Windows.
-          python -m build --wheel --no-isolation
+          python -m build --wheel
 
       - name: Repair wheel (macOS)
         if: runner.os == 'macOS'
