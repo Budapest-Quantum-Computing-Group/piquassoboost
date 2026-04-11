@@ -18,6 +18,7 @@
 #define matrix_BASE_H
 
 #include "PicTypes.hpp"
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
