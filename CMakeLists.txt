@@ -85,7 +85,7 @@ enable_testing()
 # Use modern CMake Python discovery (CMake >= 3.14).
 # skbuild sets Python3_EXECUTABLE / PYTHON_EXECUTABLE before invoking cmake;
 # on a bare cmake invocation pass -DPython3_EXECUTABLE=/path/to/python.
-find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development.Module NumPy REQUIRED)
 
 # Provide legacy variable names used by the rest of this file.
 set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
