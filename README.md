@@ -63,6 +63,53 @@ Kaposi, Ágoston; Kolarovszki, Zoltán; Kozsik, Tamás; Zimborás, Zoltán; Raky
 * DOI: https://doi.org/10.48550/arXiv.2109.04528
 
 
+### Related talks and posters
+
+The following conference talks and poster presentations are directly related to Piquasso and/or Piquasso Boost:
+
+* **GPU Day 2021** (Nov 10-11, 2021, Budapest, Hungary)
+	* Peter Rakyta, "Boson sampling simulation enhanced by FPGA based data-flow engines" (Nov 11, 10:20-10:40).
+	* Event page: https://gpuday.com/gpu-day-2021
+
+* **GPU Day 2022** (Jun 20-21, 2022, Budapest, Hungary)
+	* Zoltan Zimboras, "Piquasso, a comprehensive framework for optical quantum computer programming and simulation" (Jun 21, 9:00-9:30).
+	* Gregory Morse, "Custom Tailored FPGA Boson Sampling" (Jun 21, 9:50-10:10).
+	* Agoston Kaposi, "Polynomial speedup in exact Torontonian calculation by a scalable recursive algorithm" (Jun 21, 11:20-11:40).
+	* Event page: https://gpuday.com/gpu-day-2022
+
+* **QT4HEP22 (International Conference on Quantum Technologies for High-Energy Physics)** (Nov 1-4, 2022, CERN)
+	* Poster: "Piquasso: A Photonic Quantum Computer Simulation Software Platform".
+	* Speaker: Zoltan Kolarovszki.
+	* Authors/co-authors include: Zoltan Kolarovszki, Zoltan Zimboras, Peter Rakyta, Agoston Kaposi, Szabolcs Joczki, Boldizsar Poor, Tamas Kozsik.
+	* Contribution page: https://indico.cern.ch/event/1190278/contributions/5107367/
+
+* **QIP 2023 (Quantum Information Processing 2023)** (Feb 4-10, 2023, Ghent, Belgium)
+	* Poster session (Tuesday): "Piquasso: A Photonic Quantum Computer Simulation Software Platform".
+	* Authors: Zoltan Kolarovszki, Tomasz Rybotycki, Peter Rakyta, Agoston Kaposi, Boldizsar Poor, Szabolcs Joczki, Kareem H. El-Safty, Gregory Morse, Gabor Nemeth, Daniel Nagy, Zsofia Kallus, Michal Oszmaniec, Tamas Kozsik, Zoltan Zimboras.
+	* Session time: Feb 7, 2023, 19:00-21:00.
+	* Session page: https://indico.global/event/13076/page/3897-tuesday-session
+
+* **GPU Day 2023** (May 15-16, 2023, Budapest, Hungary)
+	* Zoltan Kolarovszki, "Automatic differentiation of photonic quantum circuits" (May 15, 14:00-14:25).
+	* Peter Rakyta, "Simulation of quantum computers on tensor streaming processors" (May 16, 9:00-9:25).
+	* Event page: https://gpuday.com/gpu-day-2023
+
+* **GPU Day 2024** (May 30-31, 2024, Budapest, Hungary)
+	* Zoltan Kolarovszki, "Simulation of photonic quantum computing with automatic differentiation in Piquasso" (May 30, 11:00-11:25).
+	* Event page: https://gpuday.com/gpu-day-2024
+
+* **APS March Meeting 2024** (Mar 4-8, 2024, Minneapolis & Virtual)
+	* Talk (Session D53.00012): "Piquasso: A Photonic Quantum Computer Simulation Software Platform".
+	* Presenter: Zoltan Kolarovszki.
+	* Authors include: Zoltan Kolarovszki, Peter Rakyta, Tamas Kozsik, Zoltan Zimboras.
+	* Abstract page: https://meetings.aps.org/Meeting/MAR24/Session/D53.12
+
+Related (non-conference) article:
+
+* Peter Rakyta (ELTE), Agoston Kaposi, Zoltan Kolarovszki, Tamas Kozsik (ELTE), and Zoltan Zimboras (Wigner), "Simulation of Photonic Quantum Computers Enhanced by Data-Flow Engines," ERCIM News 128 (special theme article).
+	* https://ercim-news.ercim.eu/en128/special/simulation-of-photonic-quantum-computers-enhanced-by-data-flow-engines
+
+
 ### Contact Us
 
 Have a question about the Piquasso Boost library? Don't hesitate to contact us by creating a new issue or directly at the following e-mails:
