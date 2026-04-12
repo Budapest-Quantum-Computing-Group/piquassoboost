@@ -27,7 +27,7 @@ setup(
             "piquasso", "piquasso.*",
         )
     ),
-    version='0.3.3',
+    version='0.3.4',
     url="https://github.com/Budapest-Quantum-Computing-Group/piquasso",  # noqa: E501
     maintainer="The Piquasso team",
     maintainer_email="kolarovszki@inf.elte.hu",
