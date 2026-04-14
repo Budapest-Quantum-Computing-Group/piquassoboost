@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.10.2)
 
 
 # set the project name and version
-project(PiuqassoBoost VERSION 0.1)
+project(PiuqassoBoost VERSION 0.3.5)
 
 # reuse compilation time linking for use runtime linking 
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
