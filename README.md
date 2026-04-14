@@ -33,7 +33,7 @@ $ pip install piquassoboost
 
 The `piquassoboost` package name has been reserved for the upcoming PyPI release. Until the first release is published, or on platforms where a prebuilt wheel is not yet available, install from source using the manual build steps below.
 
-Piquasso Boost depends on `piquasso==5.0.0`, which is installed automatically by `pip`.
+On Linux, Piquasso Boost depends on `piquasso==7.2.1`, which is installed automatically by `pip`.
 
 The project was supported by the Ministry of Innovation and Technology and the National Research, Development and Innovation
 Office within the Quantum Information National Laboratory of Hungary.

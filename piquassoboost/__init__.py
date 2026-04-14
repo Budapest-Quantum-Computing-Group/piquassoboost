@@ -15,6 +15,7 @@
 
 import os
 import sys
+import importlib
 
 # On Windows, Python 3.8+ no longer searches PATH for DLLs loaded by
 # extension modules.  Add the package directory explicitly so that
@@ -38,7 +39,43 @@ if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
         if os.path.isdir(_conda_bin):
             os.add_dll_directory(_conda_bin)
 
-import piquasso as pq
+def _import_piquasso():
+    try:
+        import piquasso as _pq
+
+        return _pq
+    except ModuleNotFoundError as exc:
+        # When running from this repository, `piquasso` is often a source symlink
+        # without compiled `_math` extensions. In that case, prefer the installed
+        # package distribution that ships/builds those native modules.
+        if exc.name != "piquasso._math.permanent":
+            raise
+
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        removed_paths = []
+
+        for path_entry in list(sys.path):
+            normalized_entry = os.path.abspath(path_entry or os.getcwd())
+            local_piquasso = os.path.join(normalized_entry, "piquasso")
+
+            if os.path.isdir(local_piquasso) and os.path.realpath(local_piquasso).startswith(
+                os.path.realpath(repo_root)
+            ):
+                removed_paths.append(path_entry)
+                sys.path.remove(path_entry)
+
+        importlib.invalidate_caches()
+
+        try:
+            import piquasso as _pq
+
+            return _pq
+        finally:
+            for path_entry in reversed(removed_paths):
+                sys.path.insert(0, path_entry)
+
+
+pq = _import_piquasso()
 
 from piquassoboost.config import BoostConfig
 from piquassoboost.connector import BoostConnector

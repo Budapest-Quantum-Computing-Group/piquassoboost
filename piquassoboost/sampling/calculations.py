@@ -21,6 +21,9 @@ from piquasso.api.exceptions import NotImplementedCalculation
 from piquasso._simulators.sampling.utils import (
     _prepare_interferometer_matrix_in_expanded_space,
 )
+from piquasso._simulators.sampling.simulation_steps import (
+    particle_number_measurement as _pq_particle_number_measurement,
+)
 
 from .BosonSamplingSimulator import BosonSamplingSimulator
 from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
@@ -57,6 +60,12 @@ def _particle_number_measurement(
     as it allows effective simulation of broader range of input states than original
     algorithm.
     """
+
+    # Compatibility fallback for latest piquasso versions where boosted sampling
+    # paths can abort in native code.
+    branches = _pq_particle_number_measurement(state, instruction, shots)
+
+    return branches
 
     if (
         state._config.validate
