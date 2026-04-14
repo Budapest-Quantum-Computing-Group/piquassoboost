@@ -208,7 +208,7 @@ ThresholdBosonSampling::getSample() {
     for (size_t mode_idx=1; mode_idx<=number_of_modes; mode_idx++) {
 
         // create a random double that is used to sample from the probabilities
-        double rand_num = std::uniform_real_distribution<double>(0.0, 1.0)(rng_gen);
+        double rand_num = static_cast<double>(rng_gen()) / static_cast<double>(rng_gen.max());
 
 #ifdef __MPI__
         // ensure all the processes gets the same random number

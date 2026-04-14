@@ -71,6 +71,24 @@ matrix random_phases_vector(size_t n);
 
 
 /**
+ * @brief Returns a deterministic pseudo-random double in [0, 1].
+ *
+ * Uses direct mt19937 output transformation instead of std::uniform_real_distribution
+ * so the produced sequence is identical across standard library implementations.
+ */
+double random_double_0_1();
+
+
+/**
+ * @brief Returns a deterministic pseudo-random index in [0, upper_bound_exclusive).
+ *
+ * Uses direct mt19937 output transformation instead of std::uniform_int_distribution
+ * so the produced sequence is identical across standard library implementations.
+ */
+size_t random_index(size_t upper_bound_exclusive);
+
+
+/**
  * @brief Seeds the shared mt19937 random number generator used by all
  *        sampling simulation strategies. Platform-independent replacement for srand.
  * @param value The seed value.

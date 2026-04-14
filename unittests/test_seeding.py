@@ -16,7 +16,7 @@
 """Seeding tests for the boosted path.
 
 The expected sample values below are specific to the piquassoboost C++ RNG
-(srand/rand seeded with the integer seed_sequence). They differ from piquasso's
+(std::mt19937 seeded with the integer seed_sequence). They differ from piquasso's
 native expected values, which use numpy's SeedSequence-based RNG, but are fully
 reproducible across runs.
 """
@@ -60,26 +60,26 @@ def test_boson_sampling_seeded():
     samples = simulator.execute(program, shots=20).samples
 
     expected_samples = [
-        (1, 1, 0, 0, 3),
-        (0, 2, 0, 2, 1),
-        (0, 4, 1, 0, 0),
-        (0, 3, 2, 0, 0),
-        (0, 0, 2, 0, 3),
+        (4, 0, 0, 0, 1),
+        (0, 0, 0, 5, 0),
+        (0, 1, 0, 3, 1),
+        (0, 1, 1, 2, 1),
+        (1, 0, 2, 0, 2),
+        (1, 0, 2, 2, 0),
+        (4, 0, 0, 1, 0),
         (0, 0, 2, 2, 1),
-        (1, 2, 0, 0, 2),
-        (0, 0, 0, 4, 1),
+        (0, 4, 0, 0, 1),
+        (0, 0, 3, 0, 2),
+        (2, 0, 3, 0, 0),
+        (1, 2, 1, 0, 1),
+        (0, 0, 2, 1, 2),
+        (0, 2, 1, 1, 1),
         (0, 1, 1, 1, 2),
-        (0, 0, 4, 1, 0),
-        (0, 0, 3, 2, 0),
-        (0, 0, 1, 3, 1),
-        (0, 0, 1, 2, 2),
-        (2, 2, 1, 0, 0),
-        (1, 0, 0, 2, 2),
-        (2, 0, 0, 0, 3),
-        (0, 0, 4, 0, 1),
-        (4, 1, 0, 0, 0),
-        (1, 1, 0, 0, 3),
-        (0, 0, 1, 2, 2),
+        (2, 1, 1, 0, 1),
+        (0, 3, 1, 1, 0),
+        (0, 0, 3, 1, 1),
+        (4, 0, 0, 0, 1),
+        (0, 0, 3, 1, 1),
     ]
 
     assert samples == expected_samples
@@ -100,26 +100,26 @@ def test_LossyInterferometer_boson_sampling_seeded():
     samples = simulator.execute(program, shots=20).samples
 
     expected_samples = [
+        (0, 3, 1, 0, 0),
+        (0, 0, 0, 0, 4),
         (0, 1, 0, 0, 2),
-        (2, 0, 0, 1, 0),
-        (0, 0, 0, 2, 2),
-        (0, 0, 1, 1, 1),
-        (0, 0, 1, 1, 0),
-        (0, 0, 0, 1, 3),
-        (0, 0, 0, 2, 0),
-        (0, 0, 3, 0, 1),
-        (0, 0, 1, 1, 1),
-        (0, 2, 0, 0, 1),
-        (0, 0, 1, 1, 0),
+        (0, 0, 2, 0, 1),
+        (0, 2, 1, 0, 0),
+        (0, 0, 1, 0, 1),
+        (1, 0, 0, 1, 2),
         (0, 0, 0, 1, 2),
-        (0, 0, 1, 0, 0),
-        (0, 1, 0, 0, 1),
-        (1, 0, 0, 0, 1),
-        (0, 1, 1, 0, 0),
+        (0, 0, 0, 1, 3),
+        (2, 0, 0, 1, 1),
+        (0, 1, 0, 0, 0),
+        (0, 1, 0, 1, 0),
+        (0, 0, 0, 1, 1),
+        (0, 0, 1, 2, 0),
+        (0, 0, 2, 0, 0),
+        (3, 0, 0, 0, 0),
+        (0, 1, 1, 0, 2),
+        (0, 0, 1, 1, 0),
         (0, 0, 0, 0, 0),
-        (0, 1, 3, 0, 0),
-        (0, 1, 0, 0, 2),
-        (1, 0, 1, 1, 1),
+        (0, 0, 1, 1, 0),
     ]
 
     assert samples == expected_samples
@@ -140,26 +140,26 @@ def test_LossyInterferometer_boson_sampling_uniform_losses():
     samples = simulator.execute(program, shots=20).samples
 
     expected_samples = [
-        (0, 4, 0, 0, 1),
-        (0, 1, 2, 1, 0),
-        (0, 0, 2, 2, 0),
-        (2, 2, 1, 0, 0),
-        (1, 0, 1, 0, 1),
-        (0, 0, 4, 0, 0),
-        (0, 0, 4, 0, 0),
-        (2, 0, 1, 0, 2),
-        (0, 0, 2, 3, 0),
-        (1, 0, 3, 0, 0),
         (0, 1, 1, 2, 0),
-        (0, 0, 2, 1, 0),
-        (0, 0, 3, 2, 0),
-        (0, 1, 0, 0, 3),
-        (0, 0, 1, 0, 0),
-        (1, 1, 0, 0, 2),
+        (0, 0, 1, 1, 1),
+        (1, 0, 4, 0, 0),
+        (1, 0, 2, 1, 0),
+        (0, 1, 2, 0, 0),
+        (0, 0, 5, 0, 0),
+        (1, 0, 1, 0, 2),
+        (0, 1, 1, 1, 0),
+        (0, 0, 2, 3, 0),
+        (0, 0, 1, 2, 0),
+        (0, 0, 0, 1, 2),
+        (0, 0, 1, 2, 1),
+        (2, 1, 1, 0, 1),
         (2, 0, 2, 0, 0),
-        (1, 2, 0, 0, 0),
-        (1, 0, 1, 2, 0),
-        (0, 0, 0, 2, 2),
+        (0, 2, 1, 0, 0),
+        (1, 0, 0, 2, 1),
+        (3, 0, 0, 0, 1),
+        (2, 1, 1, 0, 1),
+        (0, 0, 1, 2, 2),
+        (2, 1, 1, 0, 1),
     ]
 
     assert samples == expected_samples
@@ -192,14 +192,14 @@ def test_ThresholdMeasurement_use_torontonian_seeding():
     result = simulator.execute(program, shots=shots)
 
     assert result.samples == [
-        (1, 0, 0, 1, 1),
-        (1, 1, 0, 1, 1),
-        (1, 1, 0, 1, 1),
+        (1, 0, 1, 1, 1),
+        (0, 0, 0, 0, 0),
         (0, 0, 0, 0, 0),
         (1, 1, 0, 1, 1),
+        (0, 0, 1, 1, 0),
         (1, 1, 0, 1, 1),
-        (1, 0, 0, 0, 1),
-        (1, 1, 0, 0, 0),
+        (1, 1, 0, 1, 1),
+        (1, 1, 0, 1, 1),
         (0, 0, 0, 0, 0),
         (1, 1, 0, 1, 1),
     ]
@@ -234,14 +234,14 @@ def test_ThresholdMeasurement_use_torontonian_seeding_float32():
     result = simulator.execute(program, shots=shots)
 
     assert result.samples == [
-        (1, 0, 0, 1, 1),
-        (1, 1, 0, 1, 1),
-        (1, 1, 0, 1, 1),
+        (1, 0, 1, 1, 1),
+        (0, 0, 0, 0, 0),
         (0, 0, 0, 0, 0),
         (1, 1, 0, 1, 1),
+        (0, 0, 1, 1, 0),
         (1, 1, 0, 1, 1),
-        (1, 0, 0, 0, 1),
-        (1, 1, 0, 0, 0),
+        (1, 1, 0, 1, 1),
+        (1, 1, 0, 1, 1),
         (0, 0, 0, 0, 0),
         (1, 1, 0, 1, 1),
     ]

@@ -60,6 +60,18 @@ std::mt19937 rng_gen;
 void seed_random_generator(unsigned long long int value) {
     rng_gen.seed(static_cast<std::mt19937::result_type>(value));
 }
+
+double random_double_0_1() {
+    return static_cast<double>(rng_gen()) / static_cast<double>(rng_gen.max());
+}
+
+size_t random_index(size_t upper_bound_exclusive) {
+    if (upper_bound_exclusive == 0) {
+        return 0;
+    }
+
+    return static_cast<size_t>(rng_gen() % upper_bound_exclusive);
+}
     
 
 
@@ -339,8 +351,8 @@ void
 sample_from_pmf( PicState_int64& sample, matrix_real &pmf ) {
 
 
-    // create a random double in [0, 1)
-    double rand_num = std::uniform_real_distribution<double>(0.0, 1.0)(rng_gen);
+    // Create a deterministic pseudo-random double in [0, 1].
+    double rand_num = random_double_0_1();
    //double rand_num = rand_nums[rand_num_idx];//distribution(generator);
     //rand_num_idx = rand_num_idx + 1;
 
@@ -373,8 +385,8 @@ update_input_by_single_photon(
         throw error;
     }
 
-    // determine a random index
-    size_t rand_index = std::uniform_int_distribution<size_t>(0, working_input_state.size() - 1)(rng_gen);
+    // Determine a random index.
+    size_t rand_index = random_index(working_input_state.size());
 
     current_input[working_input_state[rand_index]]++;
     current_input.number_of_photons++;
@@ -425,7 +437,10 @@ matrix random_phases_vector(size_t n){
     Complex16 e = M_E;
 
     for (size_t idx = 0; idx < n; idx++){
-        double rand_num = (double)rand()/RAND_MAX;
+        double rand_num = random_double_0_1();
+        if (rand_num == 0.0) {
+            rand_num = 1.0 / static_cast<double>(rng_gen.max());
+        }
 
         auto omega_std = std::pow(static_cast<std::complex<double>>(e),
                                    static_cast<std::complex<double>>(j) * 2.0 * M_PI / rand_num);

@@ -282,7 +282,7 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::fill_r_sample( PicState_i
 
 int64_t
 CGeneralizedCliffordsBUniformLossesSimulationStrategy::calculate_current_photon_number() {
-    double rand_num = std::uniform_real_distribution<double>(0.0, 1.0)(rng_gen);
+    double rand_num = random_double_0_1();
 
     int64_t photon_number = 0;
 

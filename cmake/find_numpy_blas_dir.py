@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright 2021-2026 Budapest Quantum Computing Group
 #
