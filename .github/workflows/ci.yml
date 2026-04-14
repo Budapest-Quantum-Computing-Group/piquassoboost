@@ -33,7 +33,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install -q numpy scipy scikit-build piquasso pytest \
-          pytest-lazy-fixtures "jax[cpu]" matplotlib qiskit tensorflow
+          pytest-lazy-fixtures "jax[cpu]" matplotlib qiskit tensorflow dask
 
     - name: Build
       env:
