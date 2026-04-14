@@ -13,15 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
+
+from fractions import Fraction
+
+from piquasso.api.branch import Branch
 from piquasso._simulators.gaussian.simulation_steps import (
     threshold_measurement as _pq_threshold_measurement,
 )
+
+from piquassoboost.sampling.simulation_strategies import ThresholdBosonSampling
 
 
 def threshold_measurement(state, instruction, shots):
     """
     NOTE: This function calculates only by using torontonian.
     """
-    # Temporary compatibility fallback for latest piquasso versions where the
-    # boosted threshold path can abort in native code.
-    return _pq_threshold_measurement(state, instruction, shots)
+
+    if not np.allclose(state.xpxp_mean_vector, np.zeros_like(state.xpxp_mean_vector)):
+        return _pq_threshold_measurement(state, instruction, shots)
+
+    reduced_state = state.reduced(instruction.modes)
+
+    th = ThresholdBosonSampling.ThresholdBosonSampling(
+        covariance_matrix=(
+            reduced_state.xxpp_covariance_matrix / (2 * state._config.hbar)
+        )
+    )
+    samples = th.simulate(shots)
+
+    return [
+        Branch(state=None, outcome=outcome, frequency=Fraction(1, shots))
+        for outcome in samples
+    ]

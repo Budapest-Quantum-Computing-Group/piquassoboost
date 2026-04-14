@@ -16,7 +16,10 @@
 import numpy as np
 
 from functools import partial
+from fractions import Fraction
+from collections import Counter
 
+from piquasso.api.branch import Branch
 from piquasso.api.exceptions import NotImplementedCalculation
 from piquasso._simulators.sampling.utils import (
     _prepare_interferometer_matrix_in_expanded_space,
@@ -39,8 +42,6 @@ from .simulation_strategies.GeneralizedCliffordsSimulationStrategy import (
     GeneralizedCliffordsBLossySimulationStrategy,
 )
 
-from piquasso.api.result import Result
-
 
 def _is_uniform(array):
     return np.isclose(np.min(array), np.max(array))
@@ -48,7 +49,7 @@ def _is_uniform(array):
 
 def _particle_number_measurement(
     state, instruction, shots, strategy_class, speedup_uniform=False
-) -> Result:
+):
     """Simulates a boson sampling using generalized Clifford&Clifford algorithm
     from [Brod, Oszmaniec 2020].
 
@@ -61,14 +62,13 @@ def _particle_number_measurement(
     algorithm.
     """
 
-    # Compatibility fallback for latest piquasso versions where boosted sampling
-    # paths can abort in native code.
-    branches = _pq_particle_number_measurement(state, instruction, shots)
-
-    return branches
+    # PostSelectPhotons mid-circuit and max_sample_generation_trials are not
+    # implemented in the boosted path — delegate to piquasso for those cases.
+    if state._is_postselected():
+        return _pq_particle_number_measurement(state, instruction, shots)
 
     if (
-        state._config.validate
+        state._can_validate_variable(state._coefficients[0])
         and len(state._occupation_numbers) != 1
         and not np.isclose(state._coefficients[0], 1.0)
     ):
@@ -87,16 +87,23 @@ def _particle_number_measurement(
         simulation_strategy = GeneralizedCliffordsBLossySimulationStrategy(
             interferometer,
             state._config.number_of_approximated_modes,
-            state._config._seed_sequence,
+            state._config.seed_sequence,
         )
 
         sampling_simulator = BosonSamplingSimulator(simulation_strategy)
 
-        samples = sampling_simulator.get_classical_simulation_results(
-            initial_state, samples_number=shots
+        samples = np.array(
+            sampling_simulator.get_classical_simulation_results(
+                initial_state, samples_number=shots
+            ),
+            dtype=int,
         )
 
-        return Result(state=state, samples=samples)
+        counts = Counter(map(tuple, samples.tolist()))
+        return [
+            Branch(state=None, outcome=outcome, frequency=Fraction(count, shots))
+            for outcome, count in counts.items()
+        ]
 
     interferometer_svd = np.linalg.svd(state.interferometer)
 
@@ -144,7 +151,11 @@ def _particle_number_measurement(
     if state.is_lossy:  # Trim lossy state to initial size.
         samples = samples[:, : len(instruction.modes)]
 
-    return Result(state=state, samples=samples)
+    counts = Counter(map(tuple, samples.tolist()))
+    return [
+        Branch(state=None, outcome=outcome, frequency=Fraction(count, shots))
+        for outcome, count in counts.items()
+    ]
 
 
 particle_number_measurement = partial(

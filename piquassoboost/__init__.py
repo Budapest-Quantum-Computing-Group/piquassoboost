@@ -17,6 +17,45 @@ import os
 import sys
 import importlib
 
+# On Linux, libtbbmalloc_proxy.so.2 must be loaded globally *before* any C++
+# extension imports so that its malloc/free override reaches all loaded DSOs
+# (including libstdc++.so.6 which was already loaded by the Python runtime).
+# Without RTLD_GLOBAL the proxy loads as an RTLD_LOCAL dependency and cannot
+# intercept allocations made by libstdc++ before the proxy came in, causing
+# "free(): invalid pointer" aborts when unordered_map or vector rehash is used.
+if sys.platform != "win32":
+    import ctypes as _ctypes
+    import subprocess as _subprocess
+    _pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    # Build candidate paths.  Priority:
+    # 1. Same dir as libpiquassoboost.so (resolved via ldd to find the exact TBB build)
+    # 2. Package directory (for installed wheel bundles)
+    # 3. System path (ldconfig fallback)
+    _proxy_candidates = []
+    _libpb = os.path.join(_pkg_dir, "libpiquassoboost.so.0.1")
+    if os.path.exists(_libpb):
+        try:
+            _ldd_out = _subprocess.check_output(
+                ["ldd", _libpb], stderr=_subprocess.DEVNULL, text=True
+            )
+            for _line in _ldd_out.splitlines():
+                if "libtbbmalloc_proxy" in _line and "=>" in _line:
+                    _ldd_path = _line.split("=>")[1].strip().split()[0]
+                    if os.path.exists(_ldd_path):
+                        _proxy_candidates.append(_ldd_path)
+                    break
+        except Exception:
+            pass
+    _proxy_candidates.append(os.path.join(_pkg_dir, "libtbbmalloc_proxy.so.2"))
+    _proxy_candidates.append("libtbbmalloc_proxy.so.2")
+    for _proxy_path in _proxy_candidates:
+        try:
+            _ctypes.CDLL(_proxy_path, mode=_ctypes.RTLD_GLOBAL)
+            break
+        except OSError:
+            continue
+    del _ctypes, _subprocess, _pkg_dir, _libpb, _proxy_candidates, _proxy_path
+
 # On Windows, Python 3.8+ no longer searches PATH for DLLs loaded by
 # extension modules.  Add the package directory explicitly so that
 # piquassoboost.dll (built alongside the .pyd files) is found at import time.

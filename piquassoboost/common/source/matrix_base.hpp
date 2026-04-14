@@ -64,16 +64,16 @@ protected:
   int64_t* references;
 
   void allocate_bookkeeping() {
-    reference_mutex = (tbb::spin_mutex*)std::malloc(sizeof(tbb::spin_mutex));
+    reference_mutex = (tbb::spin_mutex*)scalable_malloc(sizeof(tbb::spin_mutex));
     if (reference_mutex == NULL) {
       throw std::bad_alloc();
     }
     new (reference_mutex) tbb::spin_mutex();
 
-    references = (int64_t*)std::malloc(sizeof(int64_t));
+    references = (int64_t*)scalable_malloc(sizeof(int64_t));
     if (references == NULL) {
       reference_mutex->~spin_mutex();
-      std::free(reference_mutex);
+      scalable_free(reference_mutex);
       reference_mutex = NULL;
       throw std::bad_alloc();
     }
@@ -82,13 +82,13 @@ protected:
 
   void free_bookkeeping() {
     if (references != NULL) {
-      std::free(references);
+      scalable_free(references);
       references = NULL;
     }
 
     if (reference_mutex != NULL) {
       reference_mutex->~spin_mutex();
-      std::free(reference_mutex);
+      scalable_free(reference_mutex);
       reference_mutex = NULL;
     }
   }
@@ -374,7 +374,7 @@ void release_data() {
       if (owner) {
         scalable_aligned_free(data);
       }
-      std::free(references);
+      scalable_free(references);
       references = NULL;
     }
     else {
@@ -388,7 +388,7 @@ void release_data() {
 
   if ( call_delete && reference_mutex !=NULL) {
     reference_mutex->~spin_mutex();
-    std::free(reference_mutex);
+    scalable_free(reference_mutex);
   }
 
   reference_mutex = NULL;

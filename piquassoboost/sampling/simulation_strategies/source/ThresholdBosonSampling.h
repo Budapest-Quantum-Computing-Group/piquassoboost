@@ -30,6 +30,7 @@ constexpr int limit_for_using_pmfs = 30;
 #include <random>
 #include <unordered_map>
 #include <functional>
+#include <tbb/scalable_allocator.h>
 
 namespace pic {
 
@@ -104,7 +105,8 @@ std::vector<PicState_int64> simulate( int samples_number );
 
 protected:
     /// The individual probability layers of the possible occupation numbers 
-    std::unordered_map<PicState_int64, double, PicStateHash_int64> pmfs;
+    std::unordered_map<PicState_int64, double, PicStateHash_int64, std::equal_to<PicState_int64>,
+        tbb::scalable_allocator<std::pair<const PicState_int64, double>>> pmfs;
     /// The number of the input modes stored by the covariance matrix
     size_t number_of_modes;
     /// Space for storing the threshold measurement specific datas for a sample which are equal in all samples.
