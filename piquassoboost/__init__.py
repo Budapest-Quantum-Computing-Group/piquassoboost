@@ -103,6 +103,13 @@ def _import_piquasso():
                 removed_paths.append(path_entry)
                 sys.path.remove(path_entry)
 
+        # Purge any partially-imported piquasso modules from sys.modules so
+        # the retry picks up the installed package cleanly rather than mixing
+        # installed __init__ with locally-cached submodule paths.
+        for _key in list(sys.modules.keys()):
+            if _key == "piquasso" or _key.startswith("piquasso."):
+                del sys.modules[_key]
+
         importlib.invalidate_caches()
 
         try:
