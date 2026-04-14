@@ -112,6 +112,8 @@ void seed( unsigned long long int value );
 protected:
     /// Seed value; if non-zero the RNG is seeded with this value instead of time(NULL)
     unsigned long long int seed_value = 0;
+    /// Mersenne Twister RNG — platform-independent, seeded in simulate()
+    std::mt19937 rng_gen;
     /// The individual probability layers of the possible occupation numbers 
     std::unordered_map<PicState_int64, double, PicStateHash_int64, std::equal_to<PicState_int64>,
         tbb::scalable_allocator<std::pair<const PicState_int64, double>>> pmfs;

@@ -130,7 +130,7 @@ CGeneralizedCliffordsBLossySimulationStrategy::~CGeneralizedCliffordsBLossySimul
 
 void
 CGeneralizedCliffordsBLossySimulationStrategy::seed(unsigned long long int value) {
-    srand(value);
+    seed_random_generator(value);
 }
 
 
@@ -455,7 +455,7 @@ compute_lossy_particle_input(PicState_int64 &input_state_without_approx_modes){
 
     // fill all particles into one random mode on the approximated modes
     if (number_of_approximated_modes > 0){
-        size_t mode_index_of_approximation = rand() % number_of_approximated_modes;
+        size_t mode_index_of_approximation = std::uniform_int_distribution<size_t>(0, number_of_approximated_modes - 1)(rng_gen);
 
         lossy_input_state[mode_index_of_approximation] = random_particle_number(particle_number_in_approximated_modes);
     }
@@ -492,7 +492,7 @@ compute_lossy_particle_input(PicState_int64 &input_state_without_approx_modes){
 
 size_t CGeneralizedCliffordsBLossySimulationStrategy::random_particle_number(size_t maximal_particle_number){
 
-    double rand_num = (double)rand()/RAND_MAX;
+    double rand_num = std::uniform_real_distribution<double>(0.0, 1.0)(rng_gen);
     
     size_t idx = 0;
     double *weights = binomial_weights[maximal_particle_number].get_data();

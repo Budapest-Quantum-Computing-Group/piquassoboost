@@ -112,7 +112,7 @@ CGeneralizedCliffordsBSimulationStrategy::~CGeneralizedCliffordsBSimulationStrat
 */
 void
 CGeneralizedCliffordsBSimulationStrategy::seed(unsigned long long int value) {
-    srand(value);
+    seed_random_generator(value);
 }
 
 /**

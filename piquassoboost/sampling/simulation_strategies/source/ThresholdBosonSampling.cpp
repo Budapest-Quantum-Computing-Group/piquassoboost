@@ -129,7 +129,9 @@ ThresholdBosonSampling::simulate( int samples_number ) {
     fillSubstates( covariance_matrix, number_of_modes );
 
     // seed the random generator
-    srand( seed_value != 0 ? (unsigned int)seed_value : (unsigned int)time(NULL) );
+    rng_gen.seed(seed_value != 0
+        ? static_cast<std::mt19937::result_type>(seed_value)
+        : static_cast<std::mt19937::result_type>(time(NULL)));
     
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
@@ -206,7 +208,7 @@ ThresholdBosonSampling::getSample() {
     for (size_t mode_idx=1; mode_idx<=number_of_modes; mode_idx++) {
 
         // create a random double that is used to sample from the probabilities
-        double rand_num = (double)rand()/RAND_MAX;
+        double rand_num = std::uniform_real_distribution<double>(0.0, 1.0)(rng_gen);
 
 #ifdef __MPI__
         // ensure all the processes gets the same random number

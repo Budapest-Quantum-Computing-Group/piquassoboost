@@ -102,7 +102,7 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::~CGeneralizedCliffordsBUn
 
 void
 CGeneralizedCliffordsBUniformLossesSimulationStrategy::seed(unsigned long long int value) {
-    srand(value);
+    seed_random_generator(value);
 }
 
 
@@ -282,7 +282,7 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::fill_r_sample( PicState_i
 
 int64_t
 CGeneralizedCliffordsBUniformLossesSimulationStrategy::calculate_current_photon_number() {
-    double rand_num = (double)rand()/RAND_MAX;
+    double rand_num = std::uniform_real_distribution<double>(0.0, 1.0)(rng_gen);
 
     int64_t photon_number = 0;
 
