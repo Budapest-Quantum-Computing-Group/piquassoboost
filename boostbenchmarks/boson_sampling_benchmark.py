@@ -1,4 +1,4 @@
-]633;E;printf "$PY_HEADER";152f5206-bcdd-476b-8af3-0a46fb517c57]633;C#
+#
 # Copyright 2021-2026 Budapest Quantum Computing Group
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
