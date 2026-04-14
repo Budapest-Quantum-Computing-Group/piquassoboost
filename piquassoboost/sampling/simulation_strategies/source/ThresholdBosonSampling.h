@@ -103,7 +103,15 @@ void Update_covariance_matrix( matrix_real& covariance_matrix_in );
 */
 std::vector<PicState_int64> simulate( int samples_number );
 
+/**
+@brief Seeds the random number generator used in simulation.
+@param value The seed value.
+*/
+void seed( unsigned long long int value );
+
 protected:
+    /// Seed value; if non-zero the RNG is seeded with this value instead of time(NULL)
+    unsigned long long int seed_value = 0;
     /// The individual probability layers of the possible occupation numbers 
     std::unordered_map<PicState_int64, double, PicStateHash_int64, std::equal_to<PicState_int64>,
         tbb::scalable_allocator<std::pair<const PicState_int64, double>>> pmfs;

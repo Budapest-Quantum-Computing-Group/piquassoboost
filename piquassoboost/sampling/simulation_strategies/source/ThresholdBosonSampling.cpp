@@ -112,6 +112,12 @@ ThresholdBosonSampling::Update_covariance_matrix( matrix_real& covariance_matrix
 }
 
 
+void
+ThresholdBosonSampling::seed( unsigned long long int value ) {
+    seed_value = value;
+}
+
+
 /**
 @brief Call to determine the resultant state after traversing through linear interferometer.
 @param samples_number The number of shots for which the output should be determined
@@ -123,7 +129,7 @@ ThresholdBosonSampling::simulate( int samples_number ) {
     fillSubstates( covariance_matrix, number_of_modes );
 
     // seed the random generator
-    srand ( time( NULL) );
+    srand( seed_value != 0 ? (unsigned int)seed_value : (unsigned int)time(NULL) );
     
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;

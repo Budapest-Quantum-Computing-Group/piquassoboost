@@ -19,8 +19,10 @@ from .ThresholdBosonSampling_wrapper import ThresholdBosonSampling_wrapper
 class ThresholdBosonSampling(
     ThresholdBosonSampling_wrapper
 ):
-    def __init__(self, covariance_matrix):
+    def __init__(self, covariance_matrix, seed=None):
         super().__init__(covariance_matrix=covariance_matrix)
+        if seed is not None:
+            super().seed(int(seed))
 
     def simulate(self, samples_number: int = 1):
         """

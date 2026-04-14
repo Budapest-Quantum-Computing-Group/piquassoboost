@@ -38,7 +38,8 @@ def threshold_measurement(state, instruction, shots):
     th = ThresholdBosonSampling.ThresholdBosonSampling(
         covariance_matrix=(
             reduced_state.xxpp_covariance_matrix / (2 * state._config.hbar)
-        )
+        ),
+        seed=state._config.seed_sequence,
     )
     samples = th.simulate(shots)
 
