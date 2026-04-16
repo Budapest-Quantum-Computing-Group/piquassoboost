@@ -1,5 +1,5 @@
-/**
- * Copyright 2021 Budapest Quantum Computing Group
+/*
+ * Copyright 2021-2026 Budapest Quantum Computing Group
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -196,6 +196,19 @@ ThresholdBosonSampling_wrapper_simulate(ThresholdBosonSampling_wrapper *self, Py
 }
 
 
+/**
+@brief Wrapper to seed the random number generator of ThresholdBosonSampling.
+*/
+static PyObject *
+ThresholdBosonSampling_wrapper_seed(ThresholdBosonSampling_wrapper *self, PyObject *args)
+{
+    unsigned long long int seed_val = 0;
+    if (!PyArg_ParseTuple(args, "K", &seed_val))
+        return Py_BuildValue("i", -1);
+    self->simulation_strategy->seed(seed_val);
+    Py_RETURN_NONE;
+}
+
 
 /**
 @brief Method to get matrix covariance_matrix
@@ -254,6 +267,9 @@ static PyMemberDef ThresholdBosonSampling_wrapper_Members[] = {
 static PyMethodDef ThresholdBosonSampling_wrapper_Methods[] = {
     {"simulate", (PyCFunction) ThresholdBosonSampling_wrapper_simulate, METH_VARARGS,
      "Method to calculate boson sampling output samples"
+    },
+    {"seed", (PyCFunction) ThresholdBosonSampling_wrapper_seed, METH_VARARGS,
+     "Method to seed the random number generator"
     },
     {NULL}  /* Sentinel */
 };

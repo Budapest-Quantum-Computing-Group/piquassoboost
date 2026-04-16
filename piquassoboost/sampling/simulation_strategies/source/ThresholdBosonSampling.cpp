@@ -1,5 +1,5 @@
-/**
- * Copyright 2021 Budapest Quantum Computing Group
+/*
+ * Copyright 2021-2026 Budapest Quantum Computing Group
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ ThresholdBosonSampling::ThresholdBosonSampling( matrix_real& covariance_matrix_i
     // The number of the input modes stored by the covariance matrix
     number_of_modes = covariance_matrix.rows / 2;
     // Space for storing the threshold measurement specific datas for a sample which are equal in all samples.
-    pmfs = std::unordered_map<PicState_int64, double, PicStateHash_int64>();
+    pmfs = decltype(pmfs)();
 }
 
 
@@ -112,6 +112,12 @@ ThresholdBosonSampling::Update_covariance_matrix( matrix_real& covariance_matrix
 }
 
 
+void
+ThresholdBosonSampling::seed( unsigned long long int value ) {
+    seed_value = value;
+}
+
+
 /**
 @brief Call to determine the resultant state after traversing through linear interferometer.
 @param samples_number The number of shots for which the output should be determined
@@ -123,7 +129,9 @@ ThresholdBosonSampling::simulate( int samples_number ) {
     fillSubstates( covariance_matrix, number_of_modes );
 
     // seed the random generator
-    srand ( time( NULL) );
+    rng_gen.seed(seed_value != 0
+        ? static_cast<std::mt19937::result_type>(seed_value)
+        : static_cast<std::mt19937::result_type>(time(NULL)));
     
     // preallocate the memory for the output states
     std::vector<PicState_int64> samples;
@@ -200,7 +208,7 @@ ThresholdBosonSampling::getSample() {
     for (size_t mode_idx=1; mode_idx<=number_of_modes; mode_idx++) {
 
         // create a random double that is used to sample from the probabilities
-        double rand_num = (double)rand()/RAND_MAX;
+        double rand_num = static_cast<double>(rng_gen()) / static_cast<double>(rng_gen.max());
 
 #ifdef __MPI__
         // ensure all the processes gets the same random number

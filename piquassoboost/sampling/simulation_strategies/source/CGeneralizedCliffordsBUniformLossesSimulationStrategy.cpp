@@ -1,5 +1,5 @@
-/**
- * Copyright 2021 Budapest Quantum Computing Group
+/*
+ * Copyright 2021-2026 Budapest Quantum Computing Group
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,7 +102,7 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::~CGeneralizedCliffordsBUn
 
 void
 CGeneralizedCliffordsBUniformLossesSimulationStrategy::seed(unsigned long long int value) {
-    srand(value);
+    seed_random_generator(value);
 }
 
 
@@ -282,7 +282,7 @@ CGeneralizedCliffordsBUniformLossesSimulationStrategy::fill_r_sample( PicState_i
 
 int64_t
 CGeneralizedCliffordsBUniformLossesSimulationStrategy::calculate_current_photon_number() {
-    double rand_num = (double)rand()/RAND_MAX;
+    double rand_num = random_double_0_1();
 
     int64_t photon_number = 0;
 

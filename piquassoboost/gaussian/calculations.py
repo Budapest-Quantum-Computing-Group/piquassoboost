@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2022 Budapest Quantum Computing Group
+# Copyright 2021-2026 Budapest Quantum Computing Group
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,8 @@ def threshold_measurement(state, instruction, shots):
     th = ThresholdBosonSampling.ThresholdBosonSampling(
         covariance_matrix=(
             reduced_state.xxpp_covariance_matrix / (2 * state._config.hbar)
-        )
+        ),
+        seed=state._config.seed_sequence,
     )
     samples = th.simulate(shots)
 

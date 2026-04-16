@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2022 Budapest Quantum Computing Group
+# Copyright 2021-2026 Budapest Quantum Computing Group
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,14 +27,14 @@ setup(
             "piquasso", "piquasso.*",
         )
     ),
-    version='0.3.4',
+    version='0.3.5',
     url="https://github.com/Budapest-Quantum-Computing-Group/piquasso",  # noqa: E501
     maintainer="The Piquasso team",
     maintainer_email="kolarovszki@inf.elte.hu",
     include_package_data=True,
     install_requires=[
         "numpy>=1.19.4",
-        "piquasso==5.0.0",
+        "piquasso==7.2.1; platform_system=='Linux'",
     ],
     tests_require=["pytest"],
     description='The C++ binding for the Piquasso project',

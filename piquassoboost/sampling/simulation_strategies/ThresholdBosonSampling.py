@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2022 Budapest Quantum Computing Group
+# Copyright 2021-2026 Budapest Quantum Computing Group
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,10 @@ from .ThresholdBosonSampling_wrapper import ThresholdBosonSampling_wrapper
 class ThresholdBosonSampling(
     ThresholdBosonSampling_wrapper
 ):
-    def __init__(self, covariance_matrix):
+    def __init__(self, covariance_matrix, seed=None):
         super().__init__(covariance_matrix=covariance_matrix)
+        if seed is not None:
+            super().seed(int(seed))
 
     def simulate(self, samples_number: int = 1):
         """

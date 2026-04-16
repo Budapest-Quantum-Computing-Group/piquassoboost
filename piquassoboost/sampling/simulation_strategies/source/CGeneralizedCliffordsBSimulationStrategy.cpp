@@ -1,5 +1,5 @@
-/**
- * Copyright 2021 Budapest Quantum Computing Group
+/*
+ * Copyright 2021-2026 Budapest Quantum Computing Group
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,7 +112,7 @@ CGeneralizedCliffordsBSimulationStrategy::~CGeneralizedCliffordsBSimulationStrat
 */
 void
 CGeneralizedCliffordsBSimulationStrategy::seed(unsigned long long int value) {
-    srand(value);
+    seed_random_generator(value);
 }
 
 /**
